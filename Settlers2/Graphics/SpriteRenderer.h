@@ -83,6 +83,12 @@ public:
               float u0, float v0, float u1, float v1,
               DWORD color = 0xFFFFFFFF);
 
+    // Draw sprite with automatic texture flush on texture change
+    void DrawWithTexture(float x, float y, float width, float height,
+                        float u0, float v0, float u1, float v1,
+                        LPDIRECT3DTEXTURE9 pTexture,
+                        DWORD color = 0xFFFFFFFF);
+
     // Draw a rotated sprite (VMX-optimized on Xbox 360)
     void DrawRotated(float x, float y, float width, float height, float angle,
                      float u0, float v0, float u1, float v1,
@@ -164,10 +170,10 @@ private:
     // Get current vertex count
     int GetVertexCount() const { return m_spriteCount * 4; }
 
-    // Get device for external state management
+// Get device for external state management
     LPDIRECT3DDEVICE9 GetDevice() const { return m_pDevice; }
 
- public:
+public:
     // Public wrapper for staging area (external callers)
     void FillStagingAreaPublic(int startIdx, int count, const SpriteData* data);
 

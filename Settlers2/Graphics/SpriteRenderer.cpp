@@ -617,6 +617,14 @@ void SpriteRenderer::Draw(float x, float y, float width, float height,
         return;
     }
 
+    // Check if buffer is full (do this FIRST to prevent overflow)
+    if (m_spriteCount >= m_maxSprites) {
+        char warnMsg[128];
+        sprintf(warnMsg, "WARNING: Sprite limit reached (%d sprites)! Flushing...\n", m_maxSprites);
+        OutputDebugStringA(warnMsg);
+        Flush();
+    }
+
     // Check for buffer overflow
     if ((size_t)m_spriteCount * 4 * sizeof(SpriteVertex) >= (size_t)m_vertexBufferSize) {
         char errBuf[128];
@@ -625,15 +633,28 @@ void SpriteRenderer::Draw(float x, float y, float width, float height,
         return;
     }
 
-    // Check if buffer is full
-    if (m_spriteCount >= m_maxSprites) {
-        char warnMsg[128];
-        sprintf(warnMsg, "WARNING: Sprite limit reached (%d sprites)! Flushing...\n", m_maxSprites);
-        OutputDebugStringA(warnMsg);
-        Flush();
+    CreateQuad(x, y, width, height, u0, v0, u1, v1, color);
+}
+
+void SpriteRenderer::DrawWithTexture(float x, float y, float width, float height,
+                                     float u0, float v0, float u1, float v1,
+                                     LPDIRECT3DTEXTURE9 pTexture,
+                                     DWORD color) {
+    if (!m_isBatching) {
+        OutputDebugStringA("DrawWithTexture called without Begin!\n");
+        return;
     }
 
-    CreateQuad(x, y, width, height, u0, v0, u1, v1, color);
+    // Flush batch if texture changed (enables per-sprite texture switching)
+    if (pTexture != m_currentTexture) {
+        if (m_spriteCount > 0) {
+            Flush();
+        }
+        m_currentTexture = pTexture;
+        m_pDevice->SetTexture(0, pTexture);
+    }
+
+    Draw(x, y, width, height, u0, v0, u1, v1, color);
 }
 
 void SpriteRenderer::DrawRotated(float x, float y, float width, float height, float angle,
