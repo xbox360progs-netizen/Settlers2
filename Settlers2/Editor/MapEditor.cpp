@@ -374,8 +374,7 @@ void MapEditor::RenderGridLayer() {
             m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
         }
 
-        m_spriteRenderer->Begin("sprite_constant_instanced", m_groundAtlas->GetTexture());
-        int spriteCount = 0;
+        m_spriteRenderer->Begin("sprite", m_groundAtlas->GetTexture());
         for (int y = 0; y < groundLayer->GetHeight(); ++y) {
             for (int x = 0; x < groundLayer->GetWidth(); ++x) {
                 float wx, wy;
@@ -384,18 +383,7 @@ void MapEditor::RenderGridLayer() {
                 float sy = scY + (wy - camY) * zoom;
                 const World::Tile& tile = groundLayer->GetTile(x, y);
                 m_spriteRenderer->Draw(sx - tw * 0.5f, sy - th * 0.5f, tw, th, tile.u0, tile.v0, tile.u1, tile.v1, 0xFFFFFFFF);
-
-                // Flush every 16 sprites for Xbox 360 stability
-                spriteCount++;
-                if (spriteCount >= 16) {
-                    m_spriteRenderer->Flush();
-                    spriteCount = 0;
-                }
             }
-        }
-        // Flush remaining sprites
-        if (spriteCount > 0) {
-            m_spriteRenderer->Flush();
         }
         m_spriteRenderer->End();
         

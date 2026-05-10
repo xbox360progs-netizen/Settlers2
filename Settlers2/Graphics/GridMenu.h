@@ -35,11 +35,6 @@ private:
     static const float kInputDelayTime;
     
     LPDIRECT3DDEVICE9 m_device;
-    IDirect3DVertexShader9* m_vs;
-    IDirect3DPixelShader9* m_ps;
-    ID3DXConstantTable* m_vsConsts;
-    ID3DXConstantTable* m_psConsts;
-    
     Quad* m_highlightQuad;
     Quad* m_backgroundQuad;
     std::vector<Quad*> m_cellQuads;
@@ -79,13 +74,9 @@ private:
     float m_screenX;
     float m_screenY;
 
-    bool LoadShaders();
-    void ReleaseShaders();
     void UpdateFromStick(float stickX, float stickY);
 
 public:
-    static const std::wstring SHADER_PATH;
-
     GridMenu(LPDIRECT3DDEVICE9 device);
     ~GridMenu();
 

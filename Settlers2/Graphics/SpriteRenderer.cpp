@@ -244,11 +244,10 @@ HRESULT SpriteRenderer::Initialize(LPDIRECT3DDEVICE9 device, ShaderManager* shad
     hr = m_pDevice->CreateVertexDeclaration(instancingDecl, &m_pInstancedDecl);
     if (FAILED(hr)) { return hr; }
 
-    // Create constant buffer instanced vertex declaration (POSITION + instanceID)
-    // For 16-sprite batching with instance ID in TEXCOORD1
+    // Create constant buffer instanced vertex declaration (POSITION-only)
+    // We'll draw each sprite individually with constant data, no instID needed
     D3DVERTEXELEMENT9 constantInstDecl[] = {
         { 0, 0, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0 },
-        { 0, 12, D3DDECLTYPE_FLOAT1, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 1 }, // instanceID
         D3DDECL_END()
     };
     hr = m_pDevice->CreateVertexDeclaration(constantInstDecl, &m_pConstantInstancedDecl);
@@ -736,42 +735,18 @@ void SpriteRenderer::End() {
 }
 
 void SpriteRenderer::Flush(ShaderManager* pShader) {
-    // Only return if both are empty
-    if (m_instanceQueue.empty() && m_spriteCount == 0) return;
+    // Only return if empty
+    if (m_spriteCount == 0) return;
 
     // DEBUG LOG: Monitor vertex count to detect buffer overflow
     int vertexCount = m_spriteCount * 4;
     char debugMsg[256];
-    sprintf(debugMsg, "[SpriteRenderer::Flush] spriteCount=%d, instanceQueueSize=%d, vertexCount=%d, maxSprites=%d\n",
-            m_spriteCount, (int)m_instanceQueue.size(), vertexCount, m_maxSprites);
+    sprintf(debugMsg, "[SpriteRenderer::Flush] spriteCount=%d, vertexCount=%d, maxSprites=%d\n",
+            m_spriteCount, vertexCount, m_maxSprites);
     OutputDebugStringA(debugMsg);
 
-    // SIMPLE LOGIC: Use appropriate flush method based on which data is available
-    if (!m_instanceQueue.empty()) {
-        // Instance queue has data: use FlushConstantInstanced (world map)
-        if (m_pShaderManager) {
-            m_pShaderManager->SetActiveShader("sprite_constant_instanced");
-            m_pShaderManager->BeginShader();
-            m_pShaderManager->BeginPass(0);
-            m_pShaderManager->SetTexture("g_texture", m_currentTexture);
-
-            // Xbox 360: CommitChanges() after SetTexture to prevent texture change being missed
-            ShaderManager::Shader* pActiveShader = m_pShaderManager->GetActiveShader();
-            if (pActiveShader && pActiveShader->pEffect) {
-                pActiveShader->pEffect->CommitChanges();
-            }
-
-            m_pShaderManager->Commit();
-        }
-        FlushConstantInstanced();
-        if (m_pShaderManager) {
-            m_pShaderManager->EndPass();
-            m_pShaderManager->EndShader();
-        }
-    } else {
-        // Staging buffer has data: use FlushStandard (menus)
-        FlushStandard();
-    }
+    // SIMPLE LOGIC: Always use FlushStandard for all sprites (reliable for PowerPC)
+    FlushStandard();
 
     // Switch buffer for next frame (double buffering)
     m_activeBuffer = (m_activeBuffer + 1) % 2;
@@ -779,11 +754,10 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
 }
 
 void SpriteRenderer::Flush() {
-    // For sprite_constant_instanced, data is in m_instanceQueue, not m_spriteCount
-    // Only return if both are empty
-    if (m_instanceQueue.empty() && m_spriteCount == 0) return;
+    // Only return if empty
+    if (m_spriteCount == 0) return;
 
-    // Just call the version with shader manager - it handles all modes including MODE_STANDARD
+    // Just call the version with shader manager
     Flush(m_pShaderManager);
 }
 
@@ -1165,77 +1139,33 @@ void SpriteRenderer::FlushConstantInstanced() {
     m_pDevice->SetIndices(m_pStaticQuadIB);
     m_pDevice->SetVertexDeclaration(m_pConstantInstancedDecl);
 
-    // Process sprites in batches of 16
-    size_t totalSprites = m_instanceQueue.size();
-    for (size_t batchStart = 0; batchStart < totalSprites; batchStart += 16) {
-        size_t batchSize = min(16, totalSprites - batchStart);
+    // Draw each sprite individually with its own constant data
+    // Shader expects g_SpriteData array with instance ID selecting the index
+    for (size_t i = 0; i < m_instanceQueue.size(); ++i) {
+        const SpriteInstance& inst = m_instanceQueue[i];
 
-        // Fill sprite data array (c10-c41, 32 registers = 16 sprites * 2 registers each)
-        float spriteData[32 * 4]; // 32 float4 values
-        memset(spriteData, 0, sizeof(spriteData));
+        // Set sprite data in registers c10-c11 (instance ID = 0 for individual draws)
+        float spriteData[8]; // 2 float4 = position/size + UV rect
+        spriteData[0] = inst.positionSize[0]; // x
+        spriteData[1] = inst.positionSize[1]; // y
+        spriteData[2] = inst.positionSize[2]; // width
+        spriteData[3] = inst.positionSize[3]; // height
+        spriteData[4] = inst.uvRect[0]; // u0
+        spriteData[5] = inst.uvRect[1]; // v0
+        spriteData[6] = inst.uvRect[2]; // u1
+        spriteData[7] = inst.uvRect[3]; // v1
+        m_pDevice->SetVertexShaderConstantF(10, spriteData, 2);
 
-        for (size_t i = 0; i < batchSize; ++i) {
-            const SpriteInstance& inst = m_instanceQueue[batchStart + i];
-            int idx = i * 8; // 2 float4 per sprite = 8 floats
-
-            // Position/size (c10 + i*2)
-            spriteData[idx + 0] = inst.positionSize[0]; // x
-            spriteData[idx + 1] = inst.positionSize[1]; // y
-            spriteData[idx + 2] = inst.positionSize[2]; // width
-            spriteData[idx + 3] = inst.positionSize[3]; // height
-
-            // UV rect (c11 + i*2)
-            spriteData[idx + 4] = inst.uvRect[0]; // u0
-            spriteData[idx + 5] = inst.uvRect[1]; // v0
-            spriteData[idx + 6] = inst.uvRect[2]; // u1
-            spriteData[idx + 7] = inst.uvRect[3]; // v1
+        // Debug: Log first few sprites
+        if (i < 3) {
+            sprintf(debugMsg, "[FlushConst] Sprite[%d]: pos=(%.1f,%.1f,%.1f,%.1f), uv=(%.3f,%.3f,%.3f,%.3f)\n",
+                    (int)i, spriteData[0], spriteData[1], spriteData[2], spriteData[3],
+                    spriteData[4], spriteData[5], spriteData[6], spriteData[7]);
+            OutputDebugStringA(debugMsg);
         }
 
-        // Set all sprite data at once (32 registers starting at c10)
-        m_pDevice->SetVertexShaderConstantF(10, spriteData, 32);
-
-        // Create dynamic vertex buffer with instance IDs
-        struct InstancedVertex {
-            float x, y, z;
-            float instanceID;
-        };
-        InstancedVertex vertices[16 * 4]; // 16 sprites * 4 vertices per quad
-
-        // Define base quad vertices (0-1 unit quad)
-        float baseQuad[4][3] = {
-            {0.0f, 0.0f, 0.0f},  // 0: top-left
-            {1.0f, 0.0f, 0.0f},  // 1: top-right
-            {1.0f, 1.0f, 0.0f},  // 2: bottom-right
-            {0.0f, 1.0f, 0.0f}   // 3: bottom-left
-        };
-
-        for (int i = 0; i < (int)batchSize; ++i) {
-            float instID = (float)i;
-            // 4 vertices per quad, all with same instance ID
-            for (int v = 0; v < 4; ++v) {
-                vertices[i * 4 + v].x = baseQuad[v][0];
-                vertices[i * 4 + v].y = baseQuad[v][1];
-                vertices[i * 4 + v].z = baseQuad[v][2];
-                vertices[i * 4 + v].instanceID = instID;
-            }
-        }
-
-        // Create temporary vertex buffer for this batch
-        LPDIRECT3DVERTEXBUFFER9 pTempVB = NULL;
-        if (SUCCEEDED(m_pDevice->CreateVertexBuffer(batchSize * 4 * sizeof(InstancedVertex),
-            D3DUSAGE_WRITEONLY, 0, D3DPOOL_DEFAULT, &pTempVB, NULL))) {
-            void* pData = NULL;
-            if (SUCCEEDED(pTempVB->Lock(0, 0, &pData, 0))) {
-                memcpy(pData, vertices, batchSize * 4 * sizeof(InstancedVertex));
-                pTempVB->Unlock();
-            }
-
-            // Draw batch
-            m_pDevice->SetStreamSource(0, pTempVB, 0, sizeof(InstancedVertex));
-            m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, batchSize * 4, 0, batchSize * 2);
-
-            pTempVB->Release();
-        }
+        // Draw the quad (6 vertices = 2 triangles)
+        m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 4, 0, 2);
     }
 
     m_instanceQueue.clear();
@@ -1425,40 +1355,14 @@ void SpriteRenderer::CreateQuad(float x, float y, float width, float height,
         return;
     }
 
-    // SIMPLE LOGIC: sprite_constant_instanced uses instance queue, others use staging buffer
-    if (m_currentShaderName == "sprite_constant_instanced") {
-        // Add to instance queue for FlushConstantInstanced (world map only)
-        SpriteInstance inst;
-        inst.positionSize[0] = x;
-        inst.positionSize[1] = y;
-        inst.positionSize[2] = width;
-        inst.positionSize[3] = height;
-        inst.uvRect[0] = u0;
-        inst.uvRect[1] = v0;
-        inst.uvRect[2] = u1;
-        inst.uvRect[3] = v1;
-        inst.color = color;
-        m_instanceQueue.push_back(inst);
-
-        // Debug: Log first sprite only
-        if (m_instanceQueue.size() == 1) {
-            char debugMsg[256];
-            sprintf(debugMsg, "[CreateQuad] Added to queue (instancing): pos=(%.1f,%.1f,%.1f,%.1f), uv=(%.3f,%.3f,%.3f,%.3f)\n",
-                    x, y, width, height, u0, v0, u1, v1);
-            OutputDebugStringA(debugMsg);
-        }
-        return;
-    }
-
-    // Other shaders: Write to staging buffer for FlushStandard (menus only)
+    // ALWAYS use staging buffer for all sprites (simple, reliable for PowerPC)
     float x0 = x - 0.5f;
     float x1 = (x + width) - 0.5f;
     float y0 = y - 0.5f;
     float y1 = (y + height) - 0.5f;
     float z = 0.0f;
 
-    // Write DIRECTLY to staging buffer (not m_vertices!)
-    // FlushStandard reads from m_pStagingBuffer, not m_vertices
+    // Write DIRECTLY to staging buffer
     SpriteVertex* v = &m_pStagingBuffer[m_spriteCount * 4];
 
     v[0].x = x0; v[0].y = y0; v[0].z = z; v[0].color = color; v[0].u = u0; v[0].v = v0;

@@ -145,6 +145,19 @@ void Renderer::PrepareForUI() {
     m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 }
 
+void Renderer::RestoreFromUI() {
+    // Restore render states after UI rendering (for map rendering)
+    if (!m_pDevice) return;
+
+    // Restore Z-buffer for map rendering
+    m_pDevice->SetRenderState(D3DRS_ZENABLE, TRUE);
+    m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+
+    // Restore sampler states to default (WRAP for map tiles)
+    m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_WRAP);
+    m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_WRAP);
+}
+
 void Renderer::Shutdown() {
     m_shaderManager.Shutdown();
     

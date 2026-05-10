@@ -40,8 +40,14 @@ public:
     HRESULT LoadShader(const char* name, const char* filepath, const char* techniqueName = "SpriteBatchTech");
     bool SetShader(const char* name);
     void ResetToDefaultShader();
-    void Setup2DRenderStates();
+    // Prepare render states for UI rendering
     void PrepareForUI();
+
+    // Restore render states after UI rendering (for map rendering)
+    void RestoreFromUI();
+
+    // Setup 2D render states (preset to prevent 3D world states from breaking UI)
+    void Setup2DRenderStates();
 
     // Simple sprite rendering (for testing/diagnostics - no batching)
     void DrawSingleSprite(Texture* texture, float x, float y, float width, float height, D3DCOLOR color = 0xFFFFFFFF);

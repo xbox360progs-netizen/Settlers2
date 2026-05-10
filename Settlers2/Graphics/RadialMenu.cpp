@@ -396,8 +396,8 @@ void RadialMenu::RenderIcons(SpriteRenderer* spriteRenderer)
             continue;
         }
 
-        // Use sprite_constant_instanced shader with 16-sprite batching
-        spriteRenderer->Begin("sprite_constant_instanced", texture);
+        // Use simple sprite shader (reliable for PowerPC)
+        spriteRenderer->Begin("sprite", texture);
 
         // Draw all icons from this atlas
         for (size_t j = 0; j < indices.size(); ++j) {
@@ -446,6 +446,11 @@ void RadialMenu::RenderIcons(SpriteRenderer* spriteRenderer)
                 spriteRenderer->End();
             }
         }
+    }
+
+    // Restore GPU state after UI rendering (fixes sprite flickering on map)
+    if (m_renderer) {
+        m_renderer->RestoreFromUI();
     }
 
 }
