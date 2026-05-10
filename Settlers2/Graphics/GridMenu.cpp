@@ -417,7 +417,7 @@ void GridMenu::Render(const Camera* camera)
             }
         }
 
-        // FLUSH before icons
+        // CRITICAL: Flush before icons even if same texture
         m_spriteRenderer->Flush();
 
         // Draw icons from atlas
