@@ -395,6 +395,7 @@ void EditorScene::Render() {
     if (m_radialMenu && m_radialMenu->IsVisible()) {
         m_spriteRenderer->Flush();
         m_radialMenu->Render();
+        m_spriteRenderer->Flush();
         m_radialMenu->RenderIcons(m_spriteRenderer);
         m_spriteRenderer->Flush();
     }

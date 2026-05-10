@@ -451,28 +451,36 @@ void GridMenu::Render(const Camera* camera)
 // New single SpriteRenderer-based render path (explicit rendering order)
 void GridMenu::Render(SpriteRenderer* spriteRenderer)
 {
-    if (!m_visible || !spriteRenderer) return;
+    if (!m_visible || !spriteRenderer) {
+        return;
+    }
+
+    char debugMsg[256];
+    sprintf(debugMsg, "[GridMenu::Render] atlasTexture=%p, tileUVs.size()=%d, selectedIndex=%d, visible=%d, screenX=%.1f, screenY=%.1f\n",
+            m_atlasTexture, (int)m_tileUVs.size(), m_selectedIndex, m_visible, m_screenX, m_screenY);
+    OutputDebugStringA(debugMsg);
 
     float menuLeft = m_screenX - (m_menuWidth * 0.5f);
     float menuTop = m_screenY - (m_menuHeight * 0.5f);
     float cellSpacing = (kBaseCellSize + 48.0f) * kMenuScale;
     int totalSprites = min((int)m_tileUVs.size(), kItemsPerPage);
 
+    sprintf(debugMsg, "[GridMenu::Render] menuDims=%.1fx%.1f, menuLeft=%.1f, menuTop=%.1f, cellSpacing=%.1f, totalSprites=%d\n",
+            m_menuWidth, m_menuHeight, menuLeft, menuTop, cellSpacing, totalSprites);
+    OutputDebugStringA(debugMsg);
+
     // 1. Background (menu_bd) - full menu area
     if (m_backgroundTexture) {
-        // UNIFIED SHADER: Use sprite_constant_instanced
+        OutputDebugStringA("[GridMenu::Render] Drawing background\n");
         spriteRenderer->Begin("sprite_constant_instanced", m_backgroundTexture);
-        if (m_spriteRenderer) m_spriteRenderer->GetDevice()->SetTexture(0, m_backgroundTexture);
         spriteRenderer->Draw(menuLeft, menuTop, m_menuWidth, m_menuHeight, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
         spriteRenderer->End();
-        spriteRenderer->Flush();
     }
 
     // 2. Cell backgrounds (menu_cell) - 4x4 grid
     if (m_cellBackgroundTexture) {
-        // UNIFIED SHADER: Use sprite_constant_instanced
+        OutputDebugStringA("[GridMenu::Render] Drawing cell backgrounds\n");
         spriteRenderer->Begin("sprite_constant_instanced", m_cellBackgroundTexture);
-        if (m_spriteRenderer) m_spriteRenderer->GetDevice()->SetTexture(0, m_cellBackgroundTexture);
         for (int row = 0; row < kGridRows; ++row) {
             for (int col = 0; col < kGridCols; ++col) {
                 int localIndex = row * kGridCols + col;
@@ -483,28 +491,35 @@ void GridMenu::Render(SpriteRenderer* spriteRenderer)
             }
         }
         spriteRenderer->End();
-        spriteRenderer->Flush();
     }
 
     // 3. Icons from atlas (visible window)
     if (m_atlasTexture && !m_tileUVs.empty()) {
-        // UNIFIED SHADER: Use sprite_constant_instanced
+        sprintf(debugMsg, "[GridMenu::Render] Drawing %d icons from atlas (texture=%p)\n", totalSprites, m_atlasTexture);
+        OutputDebugStringA(debugMsg);
         spriteRenderer->Begin("sprite_constant_instanced", m_atlasTexture);
-        if (m_spriteRenderer) m_spriteRenderer->GetDevice()->SetTexture(0, m_atlasTexture);
         for (int i = 0; i < totalSprites; ++i) {
             int row = i / kGridCols;
             int col = i % kGridCols;
             const TileUV& tileUV = m_tileUVs[i];
             float cellX = menuLeft + 16.0f + (col * cellSpacing);
             float cellY = menuTop + 32.0f + (row * cellSpacing);
+            
+            // Debug first sprite only
+            if (i == 0) {
+                sprintf(debugMsg, "[GridMenu::Render] Icon[0]: pos=(%.1f, %.1f), size=%.1fx%.1f, UV=(%.3f,%.3f,%.3f,%.3f)\n",
+                        cellX, cellY, m_cellWidth, m_cellHeight, tileUV.u0, tileUV.v0, tileUV.u1, tileUV.v1);
+                OutputDebugStringA(debugMsg);
+            }
+            
             spriteRenderer->Draw(cellX, cellY, m_cellWidth, m_cellHeight, tileUV.u0, tileUV.v0, tileUV.u1, tileUV.v1, 0xFFFFFFFF);
         }
         spriteRenderer->End();
-        spriteRenderer->Flush();
     }
 
     // 4. Highlight selected tile
     if (m_atlasTexture && m_selectedIndex >= 0 && m_selectedIndex < totalSprites) {
+        OutputDebugStringA("[GridMenu::Render] Drawing highlight\n");
         const TileUV& selectedUV = m_tileUVs[m_selectedIndex];
         int row = m_selectedIndex / kGridCols;
         int col = m_selectedIndex % kGridCols;
@@ -512,12 +527,9 @@ void GridMenu::Render(SpriteRenderer* spriteRenderer)
         float highlightY = menuTop + 32.0f + (row * cellSpacing);
         float highlightW = m_cellWidth * 1.1f;
         float highlightH = m_cellHeight * 1.1f;
-        // UNIFIED SHADER: Use sprite_constant_instanced
         spriteRenderer->Begin("sprite_constant_instanced", m_atlasTexture);
-        if (m_spriteRenderer) m_spriteRenderer->GetDevice()->SetTexture(0, m_atlasTexture);
         spriteRenderer->Draw(highlightX, highlightY, highlightW, highlightH, selectedUV.u0, selectedUV.v0, selectedUV.u1, selectedUV.v1, 0xFFFFFF00);
         spriteRenderer->End();
-        spriteRenderer->Flush();
     }
 }
 

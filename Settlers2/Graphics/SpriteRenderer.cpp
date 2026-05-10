@@ -607,6 +607,10 @@ void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture) 
         }
     }
 
+    char debugMsg[128];
+    sprintf(debugMsg, "[SpriteRenderer::Begin] shader=%s, texture=%p, spriteCount=%d\n", shaderName, pTexture, m_spriteCount);
+    OutputDebugStringA(debugMsg);
+
     m_currentShaderName = shaderName;
     m_currentTexture = pTexture;
     m_isBatching = true;
@@ -643,6 +647,14 @@ void SpriteRenderer::Draw(float x, float y, float width, float height,
         sprintf(errBuf, "BSOD PREVENTED: Staging buffer overflow! spriteCount=%d, max=%d\n", m_spriteCount, m_maxSprites);
         OutputDebugStringA(errBuf);
         return;
+    }
+
+    // Debug first sprite only
+    if (m_spriteCount == 0) {
+        char debugMsg[256];
+        sprintf(debugMsg, "[SpriteRenderer::Draw] First sprite: pos=(%.1f, %.1f), size=%.1fx%.1f, UV=(%.3f,%.3f,%.3f,%.3f), color=%08X\n",
+                x, y, width, height, u0, v0, u1, v1, color);
+        OutputDebugStringA(debugMsg);
     }
 
     CreateQuad(x, y, width, height, u0, v0, u1, v1, color);
@@ -698,6 +710,9 @@ void SpriteRenderer::DrawRotated(float x, float y, float width, float height, fl
 
 void SpriteRenderer::End() {
     if (m_isBatching) {
+        char debugMsg[128];
+        sprintf(debugMsg, "[SpriteRenderer::End] Flushing %d sprites\n", m_spriteCount);
+        OutputDebugStringA(debugMsg);
         Flush();
         m_isBatching = false;
     }
@@ -707,13 +722,13 @@ void SpriteRenderer::End() {
 }
 
 void SpriteRenderer::Flush(ShaderManager* pShader) {
-    if (m_spriteCount == 0) return;
+    if (m_spriteCount == 0 && m_instanceQueue.empty()) return;
 
     // DEBUG LOG: Monitor vertex count to detect buffer overflow
     int vertexCount = m_spriteCount * 4;
     char debugMsg[256];
-    sprintf(debugMsg, "[SpriteRenderer::Flush] spriteCount=%d, vertexCount=%d, maxSprites=%d\n",
-            m_spriteCount, vertexCount, m_maxSprites);
+    sprintf(debugMsg, "[SpriteRenderer::Flush] spriteCount=%d, instanceQueueSize=%d, vertexCount=%d, maxSprites=%d\n",
+            m_spriteCount, (int)m_instanceQueue.size(), vertexCount, m_maxSprites);
     OutputDebugStringA(debugMsg);
 
     // UNIFIED SHADER: Always use sprite_constant_instanced (removed other shader paths)
@@ -743,7 +758,7 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
 }
 
 void SpriteRenderer::Flush() {
-    if (m_spriteCount == 0) return;
+    if (m_spriteCount == 0 && m_instanceQueue.empty()) return;
 
     // Just call the version with shader manager - it handles all modes including MODE_STANDARD
     Flush(m_pShaderManager);
@@ -1091,7 +1106,36 @@ void SpriteRenderer::FlushInstanced() {
 }
 
 void SpriteRenderer::FlushConstantInstanced() {
-    if (m_instanceQueue.empty()) return;
+    // CRITICAL FIX: If m_instanceQueue is empty but m_pStagingBuffer has data,
+    // copy data from staging buffer to instance queue. This prevents sprites from disappearing.
+    if (m_instanceQueue.empty() && m_spriteCount > 0 && m_pStagingBuffer != NULL) {
+        char debugMsg[128];
+        sprintf(debugMsg, "[FlushConstantInstanced] Copying %d sprites from staging buffer\n", m_spriteCount);
+        OutputDebugStringA(debugMsg);
+
+        for (int i = 0; i < m_spriteCount; i++) {
+            int idx = i * 4;
+            SpriteInstance inst;
+            inst.positionSize[0] = m_pStagingBuffer[idx].x;
+            inst.positionSize[1] = m_pStagingBuffer[idx].y;
+            inst.positionSize[2] = m_pStagingBuffer[idx + 1].x - m_pStagingBuffer[idx].x;
+            inst.positionSize[3] = m_pStagingBuffer[idx + 2].y - m_pStagingBuffer[idx].y;
+            inst.uvRect[0] = m_pStagingBuffer[idx].u;
+            inst.uvRect[1] = m_pStagingBuffer[idx].v;
+            inst.uvRect[2] = m_pStagingBuffer[idx + 2].u;
+            inst.uvRect[3] = m_pStagingBuffer[idx + 2].v;
+            m_instanceQueue.push_back(inst);
+        }
+    }
+
+    if (m_instanceQueue.empty()) {
+        OutputDebugStringA("[FlushConstantInstanced] m_instanceQueue is empty!\n");
+        return;
+    }
+
+    char debugMsg[256];
+    sprintf(debugMsg, "[FlushConstantInstanced] Rendering %d sprites\n", (int)m_instanceQueue.size());
+    OutputDebugStringA(debugMsg);
 
     // Check for NULL buffers to prevent BSOD
     if (m_pStaticQuadVB == NULL) {
@@ -1336,6 +1380,22 @@ void SpriteRenderer::CreateQuad(float x, float y, float width, float height,
         char errBuf[128];
         sprintf(errBuf, "BSOD PREVENTED: CreateQuad overflow! spriteCount=%d, max=%d\n", m_spriteCount, m_maxSprites);
         OutputDebugStringA(errBuf);
+        return;
+    }
+
+    // For sprite_constant_instanced, add to m_instanceQueue instead of staging buffer
+    if (m_currentShaderName == "sprite_constant_instanced") {
+        SpriteInstance inst;
+        inst.positionSize[0] = x;
+        inst.positionSize[1] = y;
+        inst.positionSize[2] = width;
+        inst.positionSize[3] = height;
+        inst.uvRect[0] = u0;
+        inst.uvRect[1] = v0;
+        inst.uvRect[2] = u1;
+        inst.uvRect[3] = v1;
+        inst.color = color;
+        m_instanceQueue.push_back(inst);
         return;
     }
 
