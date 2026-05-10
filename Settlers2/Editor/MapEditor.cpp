@@ -366,12 +366,15 @@ void MapEditor::RenderGridLayer() {
         float tw = 238.0f * zoom;
         float th = 148.0f * zoom;
 
+        // UNIFIED SHADER: Reset to default shader before drawing background
+        m_renderer->ResetToDefaultShader();
+
         // FIX: Disable Z-write before drawing background to prevent Z-conflicts
         if (m_pDevice) {
             m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
         }
 
-        m_spriteRenderer->Begin("sprite", m_groundAtlas->GetTexture());
+        m_spriteRenderer->Begin("sprite_constant_instanced", m_groundAtlas->GetTexture());
         for (int y = 0; y < groundLayer->GetHeight(); ++y) {
             for (int x = 0; x < groundLayer->GetWidth(); ++x) {
                 float wx, wy;
@@ -445,7 +448,8 @@ void MapEditor::RenderGridLayer() {
             float ntw = 119.0f * zoom;
             float nth = 72.0f * zoom;
 
-            m_spriteRenderer->Begin("sprite", m_groundAtlas->GetTexture());
+            // UNIFIED SHADER: Use sprite_constant_instanced
+            m_spriteRenderer->Begin("sprite_constant_instanced", m_groundAtlas->GetTexture());
             for (int y = 0; y < overlayLayer->GetHeight(); ++y) {
                 for (int x = 0; x < overlayLayer->GetWidth(); ++x) {
                     const World::Tile& tile = overlayLayer->GetTile(x, y);
@@ -472,7 +476,8 @@ void MapEditor::RenderGridLayer() {
         World::TileLayer* placementLayer = m_map->GetLayer(World::Placement);
         if (placementLayer) {
             CoordinateSystem& coords = CoordinateSystem::GetInstance();
-            m_spriteRenderer->Begin("sprite", m_dotTexture);
+            // UNIFIED SHADER: Use sprite_constant_instanced
+            m_spriteRenderer->Begin("sprite_constant_instanced", m_dotTexture);
             for (int y = 0; y < NODES_H; ++y) {
                 for (int x = 0; x < NODES_W; ++x) {
                     float wx, wy;
@@ -500,7 +505,8 @@ void MapEditor::RenderGridLayer() {
             float nth = 72.0f * zoom;
             CoordinateSystem& coords = CoordinateSystem::GetInstance();
 
-            m_spriteRenderer->Begin("sprite", m_objectAtlas->GetTexture());
+            // UNIFIED SHADER: Use sprite_constant_instanced
+            m_spriteRenderer->Begin("sprite_constant_instanced", m_objectAtlas->GetTexture());
             for (int y = 0; y < GRID_HEIGHT; ++y) {
                 for (int x = 0; x < GRID_WIDTH; ++x) {
                     const World::Tile& tile = resourcesLayer->GetTile(x, y);
@@ -525,7 +531,8 @@ void MapEditor::RenderGridLayer() {
             float nth = 72.0f * zoom;
             CoordinateSystem& coords = CoordinateSystem::GetInstance();
 
-            m_spriteRenderer->Begin("sprite", m_objectAtlas->GetTexture());
+            // UNIFIED SHADER: Use sprite_constant_instanced
+            m_spriteRenderer->Begin("sprite_constant_instanced", m_objectAtlas->GetTexture());
             for (int y = 0; y < GRID_HEIGHT; ++y) {
                 for (int x = 0; x < GRID_WIDTH; ++x) {
                     const World::Tile& tile = roadsLayer->GetTile(x, y);
@@ -684,7 +691,8 @@ void MapEditor::RenderWeightMap() {
     float hds = ds * 0.5f;
     float z = m_zoomLevel;
 
-    m_spriteRenderer->Begin("sprite", m_dotTexture);
+    // UNIFIED SHADER: Use sprite_constant_instanced
+    m_spriteRenderer->Begin("sprite_constant_instanced", m_dotTexture);
 
     for (int ny = 0; ny < NODES_H; ++ny) {
         for (int nx = 0; nx < NODES_W; ++nx) {

@@ -478,13 +478,15 @@ void GridMenu::Render(const Camera* camera)
         // Draw full background quad first
         float screenX = m_screenX;
         float screenY = m_screenY;
-        m_spriteRenderer->Begin("sprite", m_backgroundTexture);
+        // UNIFIED SHADER: Use sprite_constant_instanced
+        m_spriteRenderer->Begin("sprite_constant_instanced", m_backgroundTexture);
         m_spriteRenderer->Draw(screenX - (m_menuWidth * 0.5f), screenY - (m_menuHeight * 0.5f), m_menuWidth, m_menuHeight, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
         m_spriteRenderer->End();
 
         // Draw per-cell backgrounds if available
         if (m_cellBackgroundTexture) {
-            m_spriteRenderer->Begin("sprite", m_cellBackgroundTexture);
+            // UNIFIED SHADER: Use sprite_constant_instanced
+            m_spriteRenderer->Begin("sprite_constant_instanced", m_cellBackgroundTexture);
             float cellSpacing = (kBaseCellSize + 48.0f) * 1.2f;
             for (int row = 0; row < kGridRows; ++row) {
                 for (int col = 0; col < kGridCols; ++col) {
@@ -710,7 +712,8 @@ void GridMenu::Render(SpriteRenderer* spriteRenderer)
 
     // 1. Background (menu_bd) - full menu area
     if (m_backgroundTexture) {
-        spriteRenderer->Begin("sprite", m_backgroundTexture);
+        // UNIFIED SHADER: Use sprite_constant_instanced
+        spriteRenderer->Begin("sprite_constant_instanced", m_backgroundTexture);
         if (m_spriteRenderer) m_spriteRenderer->GetDevice()->SetTexture(0, m_backgroundTexture);
         spriteRenderer->Draw(menuLeft, menuTop, m_menuWidth, m_menuHeight, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
         spriteRenderer->End();
@@ -719,7 +722,8 @@ void GridMenu::Render(SpriteRenderer* spriteRenderer)
 
     // 2. Cell backgrounds (menu_cell) - 4x4 grid
     if (m_cellBackgroundTexture) {
-        spriteRenderer->Begin("sprite", m_cellBackgroundTexture);
+        // UNIFIED SHADER: Use sprite_constant_instanced
+        spriteRenderer->Begin("sprite_constant_instanced", m_cellBackgroundTexture);
         if (m_spriteRenderer) m_spriteRenderer->GetDevice()->SetTexture(0, m_cellBackgroundTexture);
         for (int row = 0; row < kGridRows; ++row) {
             for (int col = 0; col < kGridCols; ++col) {
@@ -736,7 +740,8 @@ void GridMenu::Render(SpriteRenderer* spriteRenderer)
 
     // 3. Icons from atlas (visible window)
     if (m_atlasTexture && !m_tileUVs.empty()) {
-        spriteRenderer->Begin("sprite", m_atlasTexture);
+        // UNIFIED SHADER: Use sprite_constant_instanced
+        spriteRenderer->Begin("sprite_constant_instanced", m_atlasTexture);
         if (m_spriteRenderer) m_spriteRenderer->GetDevice()->SetTexture(0, m_atlasTexture);
         for (int i = 0; i < totalSprites; ++i) {
             int row = i / kGridCols;
@@ -759,7 +764,8 @@ void GridMenu::Render(SpriteRenderer* spriteRenderer)
         float highlightY = menuTop + 32.0f + (row * cellSpacing);
         float highlightW = m_cellWidth * 1.1f;
         float highlightH = m_cellHeight * 1.1f;
-        spriteRenderer->Begin("sprite", m_atlasTexture);
+        // UNIFIED SHADER: Use sprite_constant_instanced
+        spriteRenderer->Begin("sprite_constant_instanced", m_atlasTexture);
         if (m_spriteRenderer) m_spriteRenderer->GetDevice()->SetTexture(0, m_atlasTexture);
         spriteRenderer->Draw(highlightX, highlightY, highlightW, highlightH, selectedUV.u0, selectedUV.v0, selectedUV.u1, selectedUV.v1, 0xFFFFFF00);
         spriteRenderer->End();

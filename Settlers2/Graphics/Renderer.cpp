@@ -115,6 +115,11 @@ bool Renderer::SetShader(const char* name) {
     return m_shaderManager.SetActiveShader(name);
 }
 
+void Renderer::ResetToDefaultShader() {
+    // Force reset to sprite_constant_instanced shader (unified shader approach)
+    m_shaderManager.SetActiveShader("sprite_constant_instanced");
+}
+
 void Renderer::Shutdown() {
     m_shaderManager.Shutdown();
     

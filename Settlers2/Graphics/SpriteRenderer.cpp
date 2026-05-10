@@ -76,9 +76,9 @@ SpriteRenderer::SpriteRenderer()
     // Force 4096 max sprites for performance
     m_maxSprites = 4096;
     
-    // Default rendering mode: standard (most compatible)
-    m_currentMode = MODE_STANDARD;
-    m_currentShaderName = "sprite";
+    // Default rendering mode: constant instanced (unified shader approach)
+    m_currentMode = MODE_INSTANCED_CONST;
+    m_currentShaderName = "sprite_constant_instanced";
     
     // Initialize arrays inside constructor body
     m_hThreadDoneEvents[0] = NULL;
