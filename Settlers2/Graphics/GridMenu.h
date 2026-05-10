@@ -9,6 +9,7 @@ class Quad;
 class Camera;
 class SpriteAtlas;
 class SpriteRenderer;
+class Renderer;
 namespace Input { class Gamepad; }
 
 class GridMenu
@@ -44,9 +45,10 @@ private:
     std::vector<Quad*> m_cellQuads;
     Quad* m_selectionBorderQuad;
 
-    LPDIRECT3DTEXTURE9 m_atlasTexture;    
-    LPDIRECT3DTEXTURE9 m_backgroundTexture; 
-    SpriteRenderer* m_spriteRenderer; 
+    LPDIRECT3DTEXTURE9 m_atlasTexture;
+    LPDIRECT3DTEXTURE9 m_backgroundTexture;
+    SpriteRenderer* m_spriteRenderer;
+    Renderer* m_renderer;
     LPDIRECT3DTEXTURE9 m_cellBackgroundTexture;
 
     std::vector<int> m_spriteIndices;
@@ -101,6 +103,7 @@ public:
     void SetTileUVs(const std::vector<TileUV>& tileUVs);
     void SetIconAtlas(std::shared_ptr<SpriteAtlas> atlas);
     void SetSpriteRenderer(class SpriteRenderer* spriteRenderer);
+    void SetRenderer(class Renderer* renderer);
     // New convenience: set all textures in one call (background, cell background, atlas)
     void SetTextures(LPDIRECT3DTEXTURE9 backgroundTexture, LPDIRECT3DTEXTURE9 cellBackgroundTexture, LPDIRECT3DTEXTURE9 atlasTexture);
     // New paging controls for atlas window

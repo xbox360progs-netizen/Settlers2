@@ -41,6 +41,7 @@ public:
     bool SetShader(const char* name);
     void ResetToDefaultShader();
     void Setup2DRenderStates();
+    void PrepareForUI();
 
     // Simple sprite rendering (for testing/diagnostics - no batching)
     void DrawSingleSprite(Texture* texture, float x, float y, float width, float height, D3DCOLOR color = 0xFFFFFFFF);

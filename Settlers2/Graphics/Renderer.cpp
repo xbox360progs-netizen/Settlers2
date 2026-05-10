@@ -131,6 +131,14 @@ void Renderer::Setup2DRenderStates() {
     m_pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
 }
 
+void Renderer::PrepareForUI() {
+    // Prepare render states for UI rendering (called by all UI classes at start of Render)
+    if (!m_pDevice) return;
+
+    m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+    m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+}
+
 void Renderer::Shutdown() {
     m_shaderManager.Shutdown();
     

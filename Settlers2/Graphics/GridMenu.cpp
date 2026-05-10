@@ -48,6 +48,8 @@ GridMenu::GridMenu(LPDIRECT3DDEVICE9 device)
     , m_highlightQuad(nullptr), m_backgroundQuad(nullptr)
     , m_selectionBorderQuad(nullptr)
     , m_atlasTexture(nullptr), m_backgroundTexture(nullptr)
+    , m_spriteRenderer(nullptr)
+    , m_renderer(nullptr)
     , m_cellBackgroundTexture(nullptr)
     , m_selectedSpriteIndex(-1)
     , m_selectedIndex(0)
@@ -372,10 +374,20 @@ void GridMenu::SetSpriteRenderer(SpriteRenderer* spriteRenderer)
     m_spriteRenderer = spriteRenderer;
 }
 
+void GridMenu::SetRenderer(Renderer* renderer)
+{
+    m_renderer = renderer;
+}
+
 void GridMenu::Render(const Camera* camera)
 {
     if (!m_visible) { OutputDebugStringA("[GridMenu] not visible\n"); return; }
     if (!m_spriteRenderer) { OutputDebugStringA("[GridMenu] spriteRenderer is NULL\n"); return; }
+
+    // Prepare render states for UI (called at start of Render as required)
+    if (m_renderer) {
+        m_renderer->PrepareForUI();
+    }
 
     // If SpriteRenderer-based rendering is available, render the background via SpriteRenderer
     if (m_spriteRenderer && m_backgroundTexture) {

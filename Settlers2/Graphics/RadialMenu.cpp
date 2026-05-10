@@ -40,6 +40,7 @@ RadialMenu::RadialMenu(LPDIRECT3DDEVICE9 device, ShaderManager* shaderManager, B
     : m_device(device)
     , m_shaderManager(shaderManager)
     , m_binFileManager(binFileManager)
+    , m_renderer(nullptr)
     , m_quad(nullptr)
     , m_selectedIndex(-1)
     , m_numSectors(8)
@@ -102,6 +103,11 @@ void RadialMenu::Shutdown()
     }
 
     m_items.clear();
+}
+
+void RadialMenu::SetRenderer(Renderer* renderer)
+{
+    m_renderer = renderer;
 }
 
 void RadialMenu::Show(float screenX, float screenY)
@@ -249,6 +255,11 @@ void RadialMenu::Render()
 {
     if (!m_visible || !m_quad || !m_device || !m_shaderManager) {
         return;
+    }
+
+    // Prepare render states for UI (called at start of Render as required)
+    if (m_renderer) {
+        m_renderer->PrepareForUI();
     }
 
     // Save current shader

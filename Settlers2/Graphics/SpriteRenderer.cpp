@@ -722,6 +722,13 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
         m_pShaderManager->BeginShader();
         m_pShaderManager->BeginPass(0);
         m_pShaderManager->SetTexture("g_texture", m_currentTexture);
+        
+        // Xbox 360: CommitChanges() after SetTexture to prevent texture change being missed
+        ShaderManager::Shader* pActiveShader = m_pShaderManager->GetActiveShader();
+        if (pActiveShader && pActiveShader->pEffect) {
+            pActiveShader->pEffect->CommitChanges();
+        }
+        
         m_pShaderManager->Commit(); // Xbox 360: Commit after setting texture/matrices
     }
     FlushConstantInstanced();

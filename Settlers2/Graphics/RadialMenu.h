@@ -10,6 +10,7 @@
 #include "../Input/Gamepad.h"
 
 class Quad;
+class Renderer;
 
 class RadialMenu
 {
@@ -57,6 +58,7 @@ public:
 
     void Render();
     void RenderIcons(SpriteRenderer* spriteRenderer);
+    void SetRenderer(Renderer* renderer);
 
     // Color customization
     void SetInnerColor(float r, float g, float b, float a) { m_innerColor = D3DXVECTOR4(r, g, b, a); }
@@ -72,6 +74,7 @@ private:
     LPDIRECT3DDEVICE9 m_device;
     ShaderManager* m_shaderManager;
     BinFileManager* m_binFileManager;
+    Renderer* m_renderer;
     Quad* m_quad;
 
     int m_selectedIndex;
