@@ -395,13 +395,13 @@ void GridMenu::Render(const Camera* camera)
         float screenY = m_screenY;
 
         // CORRECT RENDER ORDER: Begin -> Background -> Flush -> Icons -> End
-        m_spriteRenderer->Begin("sprite_constant_instanced", m_backgroundTexture);
+        // TEMPORARILY DISABLED: Background to test visibility
+        // m_spriteRenderer->Begin("sprite_constant_instanced", m_backgroundTexture);
+        // m_spriteRenderer->Draw(screenX - (m_menuWidth * 0.5f), screenY - (m_menuHeight * 0.5f), m_menuWidth, m_menuHeight, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
+        // m_spriteRenderer->Flush();
 
-        // Draw full background quad
-        m_spriteRenderer->Draw(screenX - (m_menuWidth * 0.5f), screenY - (m_menuHeight * 0.5f), m_menuWidth, m_menuHeight, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
-
-        // FLUSH: Separate background from content
-        m_spriteRenderer->Flush();
+        // Start rendering without background first
+        m_spriteRenderer->Begin("sprite_constant_instanced", m_cellBackgroundTexture ? m_cellBackgroundTexture : m_atlasTexture);
 
         // Draw per-cell backgrounds (if available)
         if (m_cellBackgroundTexture) {
@@ -413,6 +413,29 @@ void GridMenu::Render(const Camera* camera)
                     float cellX = screenX - (m_menuWidth * 0.5f) + (col * cellSpacing) + (m_cellWidth * 0.5f);
                     float cellY = screenY + (m_menuHeight * 0.5f) - 32.0f - (row * cellSpacing) - (m_cellHeight * 0.5f);
                     m_spriteRenderer->Draw(cellX, cellY, m_cellWidth, m_cellHeight, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
+                }
+            }
+        }
+
+        // FLUSH before icons
+        m_spriteRenderer->Flush();
+
+        // Draw icons from atlas
+        if (m_atlasTexture && !m_tileUVs.empty()) {
+            m_spriteRenderer->Begin("sprite_constant_instanced", m_atlasTexture);
+            float cellSpacing = (kBaseCellSize + 48.0f) * 1.2f;
+            for (int row = 0; row < kGridRows; ++row) {
+                for (int col = 0; col < kGridCols; ++col) {
+                    int localIndex = row * kGridCols + col;
+                    if (localIndex >= (int)m_spriteIndices.size()) continue;
+                    int spriteIndex = m_spriteIndices[localIndex];
+                    if (spriteIndex < 0 || spriteIndex >= (int)m_tileUVs.size()) continue;
+
+                    const TileUV& tileUV = m_tileUVs[localIndex];
+                    float cellX = screenX - (m_menuWidth * 0.5f) + (col * cellSpacing) + (m_cellWidth * 0.5f);
+                    float cellY = screenY + (m_menuHeight * 0.5f) - 32.0f - (row * cellSpacing) - (m_cellHeight * 0.5f);
+
+                    m_spriteRenderer->Draw(cellX, cellY, m_cellWidth, m_cellHeight, tileUV.u0, tileUV.v0, tileUV.u1, tileUV.v1, 0xFFFFFFFF);
                 }
             }
         }

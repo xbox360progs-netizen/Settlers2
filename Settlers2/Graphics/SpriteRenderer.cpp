@@ -1222,6 +1222,12 @@ void SpriteRenderer::FlushStandard() {
     }
     m_pDevice->SetTexture(0, m_currentTexture);
 
+    // Xbox 360: CommitChanges() CRITICAL before Draw to ensure texture/matrix are applied
+    ShaderManager::Shader* pActiveShader = m_pShaderManager->GetActiveShader();
+    if (pActiveShader && pActiveShader->pEffect) {
+        pActiveShader->pEffect->CommitChanges();
+    }
+
     // 6. Draw
     m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, m_spriteCount * 4, 0, m_spriteCount * 2);
 

@@ -384,6 +384,16 @@ void EditorScene::Render() {
         m_mapEditor->Render();
     }
 
+    // Reset to orthographic projection for UI rendering (separate from world rendering)
+    if (m_radialMenu && m_radialMenu->IsVisible() || m_gridMenu && m_gridMenu->IsVisible()) {
+        D3DXMATRIX ortho;
+        D3DXMatrixOrthoOffCenterLH(&ortho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
+        if (m_spriteRenderer) {
+            m_spriteRenderer->SetProjection(ortho);
+            m_spriteRenderer->Flush(); // Apply new matrix separately for UI
+        }
+    }
+
     if (m_radialMenu && m_radialMenu->IsVisible()) {
         m_spriteRenderer->Flush();
         m_radialMenu->Render();
