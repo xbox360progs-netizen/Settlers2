@@ -244,10 +244,8 @@ HRESULT SpriteRenderer::Initialize(LPDIRECT3DDEVICE9 device, ShaderManager* shad
     hr = m_pDevice->CreateVertexDeclaration(instancingDecl, &m_pInstancedDecl);
     if (FAILED(hr)) { return hr; }
 
-    // Create constant buffer instanced vertex declaration (POSITION-only on Stream 0)
-    // This matches m_pStaticQuadVB which only has float3 positions (12 bytes per vertex)
-    // Using m_pVertexDecl here would cause BSOD because it expects COLOR+TEXCOORD at offsets 12+16
-    // which don't exist in the static quad VB
+    // Create constant buffer instanced vertex declaration (POSITION-only)
+    // We'll draw each sprite individually with constant data, no instID needed
     D3DVERTEXELEMENT9 constantInstDecl[] = {
         { 0, 0, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0 },
         D3DDECL_END()
@@ -1116,20 +1114,18 @@ void SpriteRenderer::FlushConstantInstanced() {
     }
 
     char debugMsg[256];
-    sprintf(debugMsg, "[FlushConstantInstanced] Rendering %d sprites\n", (int)m_instanceQueue.size());
+    sprintf(debugMsg, "[FlushConstantInstanced] Rendering %d sprites individually\n", (int)m_instanceQueue.size());
     OutputDebugStringA(debugMsg);
 
-    // CRITICAL: Set orthographic projection matrix for instanced rendering
-    // Shader expects matOrtho in register c0
+    // CRITICAL: Set orthographic projection matrix
     D3DXMATRIX matOrtho;
     D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
     m_pDevice->SetVertexShaderConstantF(0, (float*)&matOrtho, 4);
 
-    // CRITICAL: Set texture for instanced rendering
-    // Shader expects g_texture in register s0
+    // CRITICAL: Set texture
     m_pDevice->SetTexture(0, m_currentTexture);
 
-    // Check for NULL buffers to prevent BSOD
+    // Check for NULL buffers
     if (m_pStaticQuadVB == NULL) {
         OutputDebugStringA("BSOD PREVENTED: m_pStaticQuadVB is NULL!\n");
         return;
@@ -1143,49 +1139,34 @@ void SpriteRenderer::FlushConstantInstanced() {
         return;
     }
 
-    // Use D3DVECTOR4 (Xbox 360 standard 128-bit vector type)
-    // 2 registers per sprite: [x, y, w, h] and [u0, v0, u1, v1]
-    static D3DVECTOR4 constantBuffer[256];
-
-    int totalSprites = (int)m_instanceQueue.size();
-    int processed = 0;
-
-    // CRITICAL: Use m_pConstantInstancedDecl (POSITION-only) instead of m_pVertexDecl
-    // m_pVertexDecl expects POSITION+COLOR+TEXCOORD (24 bytes) but m_pStaticQuadVB
-    // only has POSITION (12 bytes). Mismatch = GPU reads garbage = BSOD on Xbox 360!
+    // Set vertex streams and declaration
     m_pDevice->SetStreamSource(0, m_pStaticQuadVB, 0, sizeof(float) * 3);
     m_pDevice->SetIndices(m_pStaticQuadIB);
     m_pDevice->SetVertexDeclaration(m_pConstantInstancedDecl);
 
-    // Process in chunks (shader has g_InstanceData[200] = 100 sprites max, 2 registers per sprite)
-    while (processed < totalSprites) {
-        int batchSize = totalSprites - processed;
-        if (batchSize > 100) batchSize = 100;
+    // Draw each sprite individually with its own constant data
+    // Shader expects g_PosSize in c10 and g_UVRect in c11
+    for (size_t i = 0; i < m_instanceQueue.size(); ++i) {
+        const SpriteInstance& inst = m_instanceQueue[i];
 
-        // Pack data from m_instanceQueue into D3DVECTOR4 format
-        for (int i = 0; i < batchSize; ++i) {
-            int spriteIdx = processed + i;
+        // Set position and size in c10
+        D3DVECTOR4 posSize;
+        posSize.x = inst.positionSize[0]; // x
+        posSize.y = inst.positionSize[1]; // y
+        posSize.z = inst.positionSize[2]; // width
+        posSize.w = inst.positionSize[3]; // height
+        m_pDevice->SetVertexShaderConstantF(10, (float*)&posSize, 1);
 
-            // Register 1: Position and Size (x, y, w, h)
-            constantBuffer[i * 2].x = m_instanceQueue[spriteIdx].positionSize[0];
-            constantBuffer[i * 2].y = m_instanceQueue[spriteIdx].positionSize[1];
-            constantBuffer[i * 2].z = m_instanceQueue[spriteIdx].positionSize[2];
-            constantBuffer[i * 2].w = m_instanceQueue[spriteIdx].positionSize[3];
+        // Set UV rect in c11
+        D3DVECTOR4 uvRect;
+        uvRect.x = inst.uvRect[0]; // u0
+        uvRect.y = inst.uvRect[1]; // v0
+        uvRect.z = inst.uvRect[2]; // u1
+        uvRect.w = inst.uvRect[3]; // v1
+        m_pDevice->SetVertexShaderConstantF(11, (float*)&uvRect, 1);
 
-            // Register 2: UVs (u0, v0, u1, v1)
-            constantBuffer[i * 2 + 1].x = m_instanceQueue[spriteIdx].uvRect[0];
-            constantBuffer[i * 2 + 1].y = m_instanceQueue[spriteIdx].uvRect[1];
-            constantBuffer[i * 2 + 1].z = m_instanceQueue[spriteIdx].uvRect[2];
-            constantBuffer[i * 2 + 1].w = m_instanceQueue[spriteIdx].uvRect[3];
-        }
-
-        // Upload to Vertex Shader Constant Registers starting at c10
-        m_pDevice->SetVertexShaderConstantF(10, (float*)constantBuffer, batchSize * 2);
-
-        // Draw the batch using standard Xbox 360 DrawIndexedPrimitive (6 arguments)
+        // Draw the quad (6 vertices = 2 triangles)
         m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 4, 0, 2);
-
-        processed += batchSize;
     }
 
     m_instanceQueue.clear();

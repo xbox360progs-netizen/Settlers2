@@ -1,4 +1,4 @@
-﻿Построение начато 11.05.2026 0:30:23.
+﻿Построение начато 11.05.2026 0:38:41.
      1>Проект "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" в узле 2 (целевые объекты build).
      1>InitializeBuildStatus:
          Создание "Release\Settlers2.unsuccessfulbuild", так как было задано "AlwaysCreate".
@@ -78,4 +78,4 @@
 
 Построение успешно завершено.
 
-Затраченное время: 00:00:13.05
+Затраченное время: 00:00:12.41
