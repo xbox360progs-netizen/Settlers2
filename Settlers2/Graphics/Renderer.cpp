@@ -137,6 +137,10 @@ void Renderer::PrepareForUI() {
 
     m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
     m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+
+    // Fix: Clamp sampler states to remove stretched pixels ("tails") around sprite edges
+    m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+    m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 }
 
 void Renderer::Shutdown() {
@@ -191,7 +195,8 @@ void Renderer::EndFrame() {
 }
 
 void Renderer::Clear(D3DCOLOR color) {
-    if (m_pDevice) m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET, color, 1.0f, 0);
+    // Clear both TARGET and ZBUFFER to prevent old objects from overlapping new sprites
+    if (m_pDevice) m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, color, 1.0f, 0);
 }
 
 void Renderer::OnLostDevice() {

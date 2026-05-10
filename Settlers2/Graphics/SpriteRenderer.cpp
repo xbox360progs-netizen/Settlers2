@@ -1207,6 +1207,12 @@ void SpriteRenderer::FlushStandard() {
         D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
         m_pShaderManager->SetMatrix("matOrtho", (const float*)&matOrtho);
 
+        // Xbox 360: CommitChanges() after setting matrix to prevent GPU from using old projection
+        ShaderManager::Shader* pActiveShader = m_pShaderManager->GetActiveShader();
+        if (pActiveShader && pActiveShader->pEffect) {
+            pActiveShader->pEffect->CommitChanges();
+        }
+
         sprintf(debugMsg, "[SR] FlushStandard: Setting texture 0x%p\n", m_currentTexture);
         OutputDebugStringA(debugMsg);
 
