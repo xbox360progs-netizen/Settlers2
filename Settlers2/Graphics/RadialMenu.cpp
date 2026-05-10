@@ -384,9 +384,9 @@ void RadialMenu::RenderIcons(SpriteRenderer* spriteRenderer)
             OutputDebugStringA("[RadialMenu] ERROR: Texture surface is invalid!\n");
             continue;
         }
-		
-        // Begin batching with this atlas texture using standard sprite shader
-        spriteRenderer->Begin("sprite", texture);
+
+        // UNIFIED SHADER: Use sprite_constant_instanced
+        spriteRenderer->Begin("sprite_constant_instanced", texture);
 
         // Draw all icons from this atlas
         for (size_t j = 0; j < indices.size(); ++j) {

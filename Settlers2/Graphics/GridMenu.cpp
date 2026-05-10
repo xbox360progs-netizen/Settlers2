@@ -76,7 +76,8 @@ GridMenu::~GridMenu()
 bool GridMenu::Initialize()
 {
     if (!m_device) return false;
-    if (!LoadShaders()) return false;
+    // REMOVED: LoadShaders() - GridMenu no longer manages shaders directly
+    // SpriteRenderer handles all shader logic now
 
     m_backgroundQuad = new Quad(m_device);
     if (!m_backgroundQuad->Initialize(m_menuWidth, m_menuHeight)) return false;
@@ -93,105 +94,8 @@ bool GridMenu::Initialize()
     return true;
 }
 
-bool GridMenu::LoadShaders()
-{
-    bool shaderOk = false;
-
-    for (size_t i = 0; i < sizeof(kShaderPaths)/sizeof(kShaderPaths[0]); ++i) {
-        ID3DXBuffer* vsCode = NULL;
-        ID3DXBuffer* psCode = NULL;
-        ID3DXBuffer* errors = NULL;
-        ID3DXConstantTable* vsCT = NULL;
-        ID3DXConstantTable* psCT = NULL;
-
-        HRESULT hrVS = D3DXCompileShaderFromFileW(
-            kShaderPaths[i].c_str(),
-            NULL, NULL,
-            "VS", "vs_2_0",
-            0,
-            &vsCode, &errors, &vsCT);
-
-        if (FAILED(hrVS)) {
-            if (errors) {
-                OutputDebugStringA((char*)errors->GetBufferPointer());
-                errors->Release();
-                errors = NULL;
-            }
-            if (vsCode) vsCode->Release();
-            if (vsCT) vsCT->Release();
-            continue;
-        }
-
-        HRESULT hrPS = D3DXCompileShaderFromFileW(
-            kShaderPaths[i].c_str(),
-            NULL, NULL,
-            "PS", "ps_2_0",
-            0,
-            &psCode, &errors, &psCT);
-
-        if (FAILED(hrPS)) {
-            if (errors) {
-                OutputDebugStringA((char*)errors->GetBufferPointer());
-                errors->Release();
-            }
-            if (vsCode) vsCode->Release();
-            if (psCode) psCode->Release();
-            if (vsCT) vsCT->Release();
-            if (psCT) psCT->Release();
-            continue;
-        }
-
-        HRESULT hr = m_device->CreateVertexShader((DWORD*)vsCode->GetBufferPointer(), &m_vs);
-        if (FAILED(hr)) {
-            if (vsCode) vsCode->Release();
-            if (psCode) psCode->Release();
-            if (vsCT) vsCT->Release();
-            if (psCT) psCT->Release();
-            continue;
-        }
-        hr = m_device->CreatePixelShader((DWORD*)psCode->GetBufferPointer(), &m_ps);
-        vsCode->Release();
-        psCode->Release();
-        if (FAILED(hr)) {
-            if (m_vs) { m_vs->Release(); m_vs = NULL; }
-            if (vsCT) vsCT->Release();
-            if (psCT) psCT->Release();
-            continue;
-        }
-
-        m_vsConsts = vsCT;
-        m_psConsts = psCT;
-        shaderOk = true;
-        break;
-    }
-
-    return shaderOk;
-}
-
-void GridMenu::ReleaseShaders()
-{
-    if (m_vs) {
-        m_vs->Release();
-        m_vs = nullptr;
-    }
-    if (m_ps) {
-        m_ps->Release();
-        m_ps = nullptr;
-    }
-    if (m_vsConsts) {
-        m_vsConsts->Release();
-        m_vsConsts = nullptr;
-    }
-    if (m_psConsts) {
-        m_psConsts->Release();
-        m_psConsts = nullptr;
-    }
-}
-
 void GridMenu::Shutdown()
 {
-    ReleaseShaders();
-
     for (size_t i = 0; i < m_cellQuads.size(); i++) {
         if (m_cellQuads[i]) {
             delete m_cellQuads[i];
@@ -475,18 +379,20 @@ void GridMenu::Render(const Camera* camera)
 
     // If SpriteRenderer-based rendering is available, render the background via SpriteRenderer
     if (m_spriteRenderer && m_backgroundTexture) {
-        // Draw full background quad first
         float screenX = m_screenX;
         float screenY = m_screenY;
-        // UNIFIED SHADER: Use sprite_constant_instanced
-        m_spriteRenderer->Begin("sprite_constant_instanced", m_backgroundTexture);
-        m_spriteRenderer->Draw(screenX - (m_menuWidth * 0.5f), screenY - (m_menuHeight * 0.5f), m_menuWidth, m_menuHeight, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
-        m_spriteRenderer->End();
 
-        // Draw per-cell backgrounds if available
+        // CORRECT RENDER ORDER: Begin -> Background -> Flush -> Icons -> End
+        m_spriteRenderer->Begin("sprite_constant_instanced", m_backgroundTexture);
+
+        // Draw full background quad
+        m_spriteRenderer->Draw(screenX - (m_menuWidth * 0.5f), screenY - (m_menuHeight * 0.5f), m_menuWidth, m_menuHeight, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
+
+        // FLUSH: Separate background from content
+        m_spriteRenderer->Flush();
+
+        // Draw per-cell backgrounds (if available)
         if (m_cellBackgroundTexture) {
-            // UNIFIED SHADER: Use sprite_constant_instanced
-            m_spriteRenderer->Begin("sprite_constant_instanced", m_cellBackgroundTexture);
             float cellSpacing = (kBaseCellSize + 48.0f) * 1.2f;
             for (int row = 0; row < kGridRows; ++row) {
                 for (int col = 0; col < kGridCols; ++col) {
@@ -497,8 +403,9 @@ void GridMenu::Render(const Camera* camera)
                     m_spriteRenderer->Draw(cellX, cellY, m_cellWidth, m_cellHeight, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
                 }
             }
-            m_spriteRenderer->End();
         }
+
+        m_spriteRenderer->End();
         return;
     }
 

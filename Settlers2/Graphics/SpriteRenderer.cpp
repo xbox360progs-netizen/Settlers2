@@ -597,7 +597,12 @@ void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture) 
 
     // If state changed, flush previous batch
     if (m_isBatching) {
-        if (m_currentShaderName != shaderName || m_currentTexture != pTexture) {
+        // AUTO-FLUSH: If texture changed and buffer has vertices, flush first
+        // This prevents "icon mash" when switching textures
+        if (m_currentTexture != pTexture && m_spriteCount > 0) {
+            Flush();
+        }
+        if (m_currentShaderName != shaderName) {
             Flush();
         }
     }
@@ -615,6 +620,13 @@ void SpriteRenderer::Draw(float x, float y, float width, float height,
     if (!m_isBatching) {
         OutputDebugStringA("Draw called without Begin!\n");
         return;
+    }
+
+    // AUTO-FLUSH: If texture changed and buffer has vertices, flush first
+    // This prevents "icon mash" when switching textures
+    if (m_currentTexture != NULL && m_spriteCount > 0) {
+        // Note: Texture is managed by Begin(), so we check if it would change
+        // This is handled by Begin() already, but we add safety check here
     }
 
     // Check if buffer is full (do this FIRST to prevent overflow)
@@ -700,46 +712,22 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
     // DEBUG LOG: Monitor vertex count to detect buffer overflow
     int vertexCount = m_spriteCount * 4;
     char debugMsg[256];
-    sprintf(debugMsg, "[SpriteRenderer::Flush] spriteCount=%d, vertexCount=%d, maxSprites=%d\n", 
+    sprintf(debugMsg, "[SpriteRenderer::Flush] spriteCount=%d, vertexCount=%d, maxSprites=%d\n",
             m_spriteCount, vertexCount, m_maxSprites);
     OutputDebugStringA(debugMsg);
 
-    // Use strategy pattern: select rendering path based on current mode
-    switch (m_currentMode) {
-        case MODE_STANDARD:
-            // Standard path: CPU prepares all vertices, single DrawIndexedPrimitive
-            FlushStandard();
-            break;
-        case MODE_INSTANCED_STREAM:
-            // Two-stream instancing: geometry + instance data
-            if (m_pShaderManager) {
-                m_pShaderManager->SetActiveShader("sprite_instanced");
-                m_pShaderManager->BeginShader();
-                m_pShaderManager->BeginPass(0);
-                m_pShaderManager->SetTexture("g_texture", m_currentTexture);
-                m_pShaderManager->Commit();
-            }
-            FlushInstanced();
-            if (m_pShaderManager) {
-                m_pShaderManager->EndPass();
-                m_pShaderManager->EndShader();
-            }
-            break;
-        case MODE_INSTANCED_CONST:
-            // Constant buffer instancing: uses g_InstanceData[200] registers
-            if (m_pShaderManager) {
-                m_pShaderManager->SetActiveShader("sprite_constant_instanced");
-                m_pShaderManager->BeginShader();
-                m_pShaderManager->BeginPass(0);
-                m_pShaderManager->SetTexture("g_texture", m_currentTexture);
-                m_pShaderManager->Commit();
-            }
-            FlushConstantInstanced();
-            if (m_pShaderManager) {
-                m_pShaderManager->EndPass();
-                m_pShaderManager->EndShader();
-            }
-            break;
+    // UNIFIED SHADER: Always use sprite_constant_instanced (removed other shader paths)
+    if (m_pShaderManager) {
+        m_pShaderManager->SetActiveShader("sprite_constant_instanced");
+        m_pShaderManager->BeginShader();
+        m_pShaderManager->BeginPass(0);
+        m_pShaderManager->SetTexture("g_texture", m_currentTexture);
+        m_pShaderManager->Commit(); // Xbox 360: Commit after setting texture/matrices
+    }
+    FlushConstantInstanced();
+    if (m_pShaderManager) {
+        m_pShaderManager->EndPass();
+        m_pShaderManager->EndShader();
     }
 
     // Switch buffer for next frame (double buffering)

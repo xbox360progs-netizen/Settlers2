@@ -120,6 +120,17 @@ void Renderer::ResetToDefaultShader() {
     m_shaderManager.SetActiveShader("sprite_constant_instanced");
 }
 
+void Renderer::Setup2DRenderStates() {
+    // 2D render states preset to prevent 3D world states from breaking UI
+    if (!m_pDevice) return;
+
+    m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE); // Disable depth
+    m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE); // Enable transparency
+    m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE); // Draw both sides of sprite
+    m_pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+    m_pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+}
+
 void Renderer::Shutdown() {
     m_shaderManager.Shutdown();
     
@@ -133,8 +144,9 @@ void Renderer::Shutdown() {
 
 void Renderer::BeginFrame() {
     if (!m_pDevice) return;
-    
-    m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0,0,0), 1.0f, 0);
+
+    // Clear both target and Z-buffer to prevent artifacts from previous frames
+    m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0,0,0), 1.0f, 0);
     m_pDevice->BeginScene();
     
     // Set projection matrix on the sprite shader (but don't BeginShader/BeginPass here)
