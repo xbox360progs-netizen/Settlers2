@@ -1,18 +1,81 @@
-﻿Построение начато 10.05.2026 23:27:04.
+﻿Построение начато 10.05.2026 23:35:26.
      1>Проект "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" в узле 2 (целевые объекты build).
      1>InitializeBuildStatus:
-         Создание "Release\Settlers2.unsuccessfulbuild", так как было задано "AlwaysCreate".
+         Обращение к "Release\Settlers2.unsuccessfulbuild".
        ClCompile:
          Для всех выходных данных обновления не требуется.
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Graphics\GridMenu.cpp Graphics\SpriteRenderer.cpp Scene\EditorScene.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
-         GridMenu.cpp
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Graphics\SpriteRenderer.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
          SpriteRenderer.cpp
-         EditorScene.cpp
-     1>Scene\EditorScene.cpp(397): error C2039: 'SetProjection' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(65) : see declaration of 'SpriteRenderer'
-         Generating Code...
-     1>Построение проекта "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" завершено (целевые объекты build) с ошибкой.
+       Link:
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\link.exe /ERRORREPORT:PROMPT /OUT:"D:\development\Settlers2\Settlers2\Release\Settlers2.exe" /INCREMENTAL:NO /NOLOGO xapilib.lib d3d9.lib d3dx9.lib xgraphics.lib xboxkrnl.lib xnet.lib xaudio2.lib xact3.lib x3daudio.lib xmcore.lib vcomp.lib /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"D:\development\Settlers2\Settlers2\Release\Settlers2.pdb" /STACK:"262144","262144" /OPT:REF /OPT:ICF /TLBID:1 /RELEASE /IMPLIB:"D:\development\Settlers2\Settlers2\Release\Settlers2.lib" Release\GameEngine.obj
+         Release\BinFileManager.obj
+         Release\BitmapFont.obj
+         Release\BitmapText.obj
+         Release\Camera.obj
+         Release\GridMenu.obj
+         Release\OverlayFPS.obj
+         Release\Quad.obj
+         Release\RadialMenu.obj
+         Release\Renderer.obj
+         Release\ShaderManager.obj
+         Release\SpriteAtlas.obj
+         Release\SpriteBatch.obj
+         Release\SpriteRenderer.obj
+         Release\TextManager.obj
+         Release\TextureLoader.obj
+         Release\TextureRegistry.obj
+         Release\TileRenderer.obj
+         Release\Gamepad.obj
+         Release\InputContext.obj
+         Release\InputManager.obj
+         Release\ScreenKeyboard.obj
+         Release\IsoGrid.obj
+         Release\WeightMap.obj
+         Release\EditorScene.obj
+         Release\GameScene.obj
+         Release\LoadingScene.obj
+         Release\MenuScene.obj
+         Release\Scene.obj
+         Release\SceneManager.obj
+         Release\Settlers2.obj
+         Release\stdafx.obj
+         Release\BuildMenu.obj
+         Release\Button.obj
+         Release\EditorUI.obj
+         Release\Minimap.obj
+         Release\Panel.obj
+         Release\ResourceBar.obj
+         Release\UIManager.obj
+         Release\Widget.obj
+         Release\Building.obj
+         Release\Collider.obj
+         Release\Model.obj
+         Release\Resource.obj
+         Release\Sprite.obj
+         Release\Transform.obj
+         Release\Unit.obj
+         Release\Entity.obj
+         Release\EntityManager.obj
+         Release\Map.obj
+         Release\MapSerializer.obj
+         Release\AISystem.obj
+         Release\EconomySystem.obj
+         Release\PathfindingSystem.obj
+         Release\PhysicsSystem.obj
+         Release\RenderSystem.obj
+         Release\TileLayer.obj
+         Release\MapEditor.obj
+         Release\TilePalette.obj /XEX:NO
+       ImageXex:
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\imagexex.exe /out:"D:\development\Settlers2\Settlers2\Release\Settlers2.xex" "D:\development\Settlers2\Settlers2\Release\Settlers2.exe" 
+         Microsoft(R) Xbox 360 Image File Builder Version 2.0.21256.0
+         (c)2012 Microsoft Corporation. All rights reserved.
+         
+       FinalizeBuildStatus:
+         Файл "Release\Settlers2.unsuccessfulbuild" удаляется.
+         Обращение к "Release\Settlers2.lastbuildstate".
+     1>Построение проекта "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" завершено (целевые объекты build).
 
-СБОЙ построения.
+Построение успешно завершено.
 
-Затраченное время: 00:00:05.51
+Затраченное время: 00:00:13.32

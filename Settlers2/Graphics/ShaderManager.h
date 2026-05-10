@@ -36,6 +36,8 @@ public:
     void EndPass();
     void EndShader();
 
+    UINT GetNumPasses() const { return m_numPasses; }
+
     // Xbox 360 Optimization: Pre-commit constants
     // This allows the SpriteRenderer to fill buffers on Thread A
     // while Thread B (Render Thread) prepares the GPU state.

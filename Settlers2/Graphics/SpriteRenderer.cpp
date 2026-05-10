@@ -1193,7 +1193,6 @@ void SpriteRenderer::FlushStandard() {
 
         m_pShaderManager->SetActiveShader(m_currentShaderName.c_str());
         m_pShaderManager->BeginShader();
-        m_pShaderManager->BeginPass(0);
 
         // Set texture with correct parameter name based on shader
         if (m_currentShaderName == "Basic2D") {
@@ -1207,34 +1206,40 @@ void SpriteRenderer::FlushStandard() {
         D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
         m_pShaderManager->SetMatrix("matOrtho", (const float*)&matOrtho);
 
-        // Xbox 360: CommitChanges() after setting matrix to prevent GPU from using old projection
+        sprintf(debugMsg, "[SR] FlushStandard: Setting texture 0x%p\n", m_currentTexture);
+        OutputDebugStringA(debugMsg);
+
+        m_pShaderManager->Commit();
+
+        // Xbox 360: Loop through all passes (critical for shader activation)
+        UINT numPasses = m_pShaderManager->GetNumPasses();
         ShaderManager::Shader* pActiveShader = m_pShaderManager->GetActiveShader();
         if (pActiveShader && pActiveShader->pEffect) {
             pActiveShader->pEffect->CommitChanges();
         }
 
-        sprintf(debugMsg, "[SR] FlushStandard: Setting texture 0x%p\n", m_currentTexture);
-        OutputDebugStringA(debugMsg);
+        m_pDevice->SetTexture(0, m_currentTexture);
 
-        m_pShaderManager->Commit();
+        // Draw for each pass
+        for (UINT pass = 0; pass < numPasses; pass++) {
+            m_pShaderManager->BeginPass(pass);
+
+            // Xbox 360: CommitChanges() CRITICAL before Draw
+            if (pActiveShader && pActiveShader->pEffect) {
+                pActiveShader->pEffect->CommitChanges();
+            }
+
+            // 6. Draw
+            m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, m_spriteCount * 4, 0, m_spriteCount * 2);
+
+            m_pShaderManager->EndPass();
+        }
+
+        m_pShaderManager->EndShader();
     } else {
         OutputDebugStringA("[SR] FlushStandard: No shader manager or empty shader name\n");
-    }
-    m_pDevice->SetTexture(0, m_currentTexture);
-
-    // Xbox 360: CommitChanges() CRITICAL before Draw to ensure texture/matrix are applied
-    ShaderManager::Shader* pActiveShader = m_pShaderManager->GetActiveShader();
-    if (pActiveShader && pActiveShader->pEffect) {
-        pActiveShader->pEffect->CommitChanges();
-    }
-
-    // 6. Draw
-    m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, m_spriteCount * 4, 0, m_spriteCount * 2);
-
-    // 7. End shader pass
-    if (m_pShaderManager && !m_currentShaderName.empty()) {
-        m_pShaderManager->EndPass();
-        m_pShaderManager->EndShader();
+        m_pDevice->SetTexture(0, m_currentTexture);
+        m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, m_spriteCount * 4, 0, m_spriteCount * 2);
     }
 }
 
