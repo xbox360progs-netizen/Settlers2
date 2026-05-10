@@ -466,6 +466,7 @@ void GridMenu::Render(SpriteRenderer* spriteRenderer)
         OutputDebugStringA("[GridMenu::Render] Drawing background\n");
         spriteRenderer->Begin("sprite", m_backgroundTexture);
         spriteRenderer->Draw(menuLeft, menuTop, m_menuWidth, m_menuHeight, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
+        spriteRenderer->Flush(); // CRITICAL: Flush immediately after background to prevent texture overwrite
         spriteRenderer->End();
     }
 
@@ -482,6 +483,7 @@ void GridMenu::Render(SpriteRenderer* spriteRenderer)
                 spriteRenderer->Draw(cellX, cellY, m_cellWidth, m_cellHeight, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
             }
         }
+        spriteRenderer->Flush(); // CRITICAL: Flush immediately after cell backgrounds to prevent texture overwrite
         spriteRenderer->End();
     }
 
@@ -506,6 +508,7 @@ void GridMenu::Render(SpriteRenderer* spriteRenderer)
             
             spriteRenderer->Draw(cellX, cellY, m_cellWidth, m_cellHeight, tileUV.u0, tileUV.v0, tileUV.u1, tileUV.v1, 0xFFFFFFFF);
         }
+        spriteRenderer->Flush(); // CRITICAL: Flush immediately after icons to prevent texture overwrite
         spriteRenderer->End();
     }
 
@@ -521,6 +524,7 @@ void GridMenu::Render(SpriteRenderer* spriteRenderer)
         float highlightH = m_cellHeight * 1.1f;
         spriteRenderer->Begin("sprite", m_atlasTexture);
         spriteRenderer->Draw(highlightX, highlightY, highlightW, highlightH, selectedUV.u0, selectedUV.v0, selectedUV.u1, selectedUV.v1, 0xFFFFFF00);
+        spriteRenderer->Flush(); // CRITICAL: Flush immediately after highlight to prevent texture overwrite
         spriteRenderer->End();
     }
 

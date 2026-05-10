@@ -404,26 +404,19 @@ void RadialMenu::RenderIcons(SpriteRenderer* spriteRenderer)
             int i = indices[j];
             const float angle = GetShaderSectorCenterAngle(i, m_numSectors);
             float centerX = m_screenX + cosf(angle) * ringRadius;
-            float centerY = m_screenY - sinf(angle) * ringRadius; 
+            float centerY = m_screenY - sinf(angle) * ringRadius;
 
             uint32_t spriteIndex = m_items[i].spriteIndex;
             const SpriteRegion* region = atlas->GetRegion(spriteIndex);
-            if (!region) {
-                sprintf(debugMsg, "[RadialMenu] Region not found at index=%d\n", spriteIndex);
-                OutputDebugStringA(debugMsg);
-                continue;
-            }
+            if (!region) continue;
 
-            unsigned int color = (i == m_selectedIndex) ? 0xFFFFFFFF : 0xE8F5E7D8;
-            const float drawX = centerX - (m_ringIconSize * 0.5f);
-            const float drawY = centerY - (m_ringIconSize * 0.5f);
-
-
-            // Draw directly with UV coordinates
+            const float drawX = centerX - (region->width * 0.5f);
+            const float drawY = centerY - (region->height * 0.5f);
             spriteRenderer->Draw(drawX, drawY, (float)region->width, (float)region->height,
-                                region->u0, region->v0, region->u1, region->v1, color);
+                                region->u0, region->v0, region->u1, region->v1, 0xFFFFFFFF);
         }
 
+        spriteRenderer->Flush(); // CRITICAL: Flush immediately after each atlas to prevent texture overwrite
         spriteRenderer->End();
     }
 
@@ -443,6 +436,7 @@ void RadialMenu::RenderIcons(SpriteRenderer* spriteRenderer)
                     spriteRenderer->Draw(centerDrawX, centerDrawY, (float)centerRegion->width, (float)centerRegion->height,
                                         centerRegion->u0, centerRegion->v0, centerRegion->u1, centerRegion->v1, 0xFFF6EBDD);
                 }
+                spriteRenderer->Flush(); // CRITICAL: Flush immediately after center icon to prevent texture overwrite
                 spriteRenderer->End();
             }
         }
