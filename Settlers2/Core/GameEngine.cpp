@@ -143,6 +143,10 @@ bool GameEngine::Initialize()
     TextureRegistry::instance().initialize(m_renderer->GetDevice());
 
     m_sceneManager = new Scene::SceneManager();
+    
+    // Set up queue-based rendering pipeline
+    m_sceneManager->SetShaderManager(m_renderer->GetShaderManager());
+    m_sceneManager->SetSpriteRenderer(m_spriteRenderer);
 
     CreateScenes();
 

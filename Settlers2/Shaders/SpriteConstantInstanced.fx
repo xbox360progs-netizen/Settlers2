@@ -1,12 +1,19 @@
 // Xbox 360 Constant Buffer Sprite Shader
-// Each sprite drawn individually with data in c10-c11 registers
+// Unified register layout for global constants and instance data
 
+// === GLOBAL CONSTANTS (c0-c10) ===
 float4x4 matOrtho : register(c0);
+float4 g_GlobalTime : register(c4); // Time, can be used for animations
+float4 g_GlobalColor : register(c5); // Global tint color
+
 sampler2D g_texture : register(s0);
 
+// === INSTANCE DATA (c20-c200) ===
 // Current sprite data (2 registers: [PosSize] and [UVRect])
-float4 g_PosSize : register(c10);  // x, y, width, height
-float4 g_UVRect  : register(c11);  // u0, v0, u1, v1
+// Moved to c20 to avoid conflicts with global constants
+float4 g_PosSize : register(c20);  // x, y, width, height
+float4 g_UVRect  : register(c21);  // u0, v0, u1, v1
+float4 g_SpriteColor : register(c22); // Per-sprite color tint
 
 struct VS_INPUT {
     float3 basePos : POSITION; // Standard 0 to 1 quad
@@ -29,8 +36,8 @@ VS_OUTPUT SpriteConstantInstVS(VS_INPUT input) {
     output.uv.x = lerp(g_UVRect.x, g_UVRect.z, input.basePos.x);
     output.uv.y = lerp(g_UVRect.y, g_UVRect.w, input.basePos.y);
 
-    // Color - white for now
-    output.color = float4(1.0f, 1.0f, 1.0f, 1.0f);
+    // Color: combine global color with sprite-specific color
+    output.color = g_GlobalColor * g_SpriteColor;
 
     return output;
 }

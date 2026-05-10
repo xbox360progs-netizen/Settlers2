@@ -4,6 +4,10 @@
 #include <map>
 #include <string>
 
+// Forward declaration
+class ShaderManager;
+class SpriteRenderer;
+
 namespace Scene {
 
 class SceneManager
@@ -31,9 +35,15 @@ public:
     // Очистка
     void Clear();
 
+    // Queue-based rendering support
+    void SetShaderManager(ShaderManager* shaderManager) { m_shaderManager = shaderManager; }
+    void SetSpriteRenderer(SpriteRenderer* spriteRenderer) { m_spriteRenderer = spriteRenderer; }
+
 private:
     std::map<std::string, Scene*> m_scenes;
     Scene* m_currentScene;
+    ShaderManager* m_shaderManager;
+    SpriteRenderer* m_spriteRenderer;
 };
 
 } // namespace Scene

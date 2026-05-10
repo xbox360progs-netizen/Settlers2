@@ -1,11 +1,15 @@
 #include "stdafx.h"
 #include "SceneManager.h"
+#include "../Graphics/ShaderManager.h"
+#include "../Graphics/SpriteRenderer.h"
 #include <iostream>
 
 namespace Scene {
 
 SceneManager::SceneManager()
     : m_currentScene(NULL)
+    , m_shaderManager(NULL)
+    , m_spriteRenderer(NULL)
 {
 }
 
@@ -116,9 +120,47 @@ void SceneManager::Update(float deltaTime)
 
 void SceneManager::Render()
 {
-    if (m_currentScene)
+    if (!m_currentScene)
     {
-        m_currentScene->Render();
+        return;
+    }
+
+    // === QUEUE-BASED RENDERING PIPELINE ===
+    
+    // Step 1: Clear previous batches from ShaderManager
+    if (m_shaderManager)
+    {
+        m_shaderManager->ClearBatches();
+    }
+
+    // Step 2: Collect all render commands from scene
+    // The scene will call SpriteRenderer which submits batches to the queue
+    m_currentScene->Render();
+
+    // Step 3: Sort batches by shader and texture (critical for Xbox 360 performance)
+    if (m_shaderManager)
+    {
+        m_shaderManager->SortBatches();
+    }
+
+    // Step 4: Execute all batches in sorted order
+    if (m_shaderManager && m_spriteRenderer)
+    {
+        // Get vertex buffer and index buffer from SpriteRenderer
+        LPDIRECT3DVERTEXBUFFER9 pVB = m_spriteRenderer->GetVertexBuffer();
+        LPDIRECT3DINDEXBUFFER9 pIB = m_spriteRenderer->GetIndexBuffer();
+        LPDIRECT3DVERTEXDECLARATION9 pDecl = m_spriteRenderer->GetVertexDeclaration();
+        
+        // Execute batches with 32-byte stride (Xbox 360 alignment)
+        if (pVB && pIB && pDecl)
+        {
+            m_shaderManager->ExecuteBatches(pVB, pIB, pDecl, 32);
+        }
+        else
+        {
+            // Fallback: clear batches if resources not available
+            m_shaderManager->ClearBatches();
+        }
     }
 }
 

@@ -173,6 +173,11 @@ private:
 // Get device for external state management
     LPDIRECT3DDEVICE9 GetDevice() const { return m_pDevice; }
 
+    // Get rendering resources for queue-based execution
+    LPDIRECT3DVERTEXBUFFER9 GetVertexBuffer() const { return m_pVB[m_activeBuffer]; }
+    LPDIRECT3DINDEXBUFFER9 GetIndexBuffer() const { return m_pIndexBuffer; }
+    LPDIRECT3DVERTEXDECLARATION9 GetVertexDeclaration() const { return m_pVertexDecl; }
+
 public:
     // Public wrapper for staging area (external callers)
     void FillStagingAreaPublic(int startIdx, int count, const SpriteData* data);

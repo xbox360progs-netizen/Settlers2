@@ -99,11 +99,12 @@ private:
     float m_screenX;
     float m_screenY;
 
-    DWORD m_oldZEnable;
-    DWORD m_oldAlphaBlend;
-    DWORD m_oldSrcBlend;
-    DWORD m_oldDestBlend;
-    DWORD m_oldCullMode;
+    // Old state tracking removed - now using StateCache
+    // DWORD m_oldZEnable;
+    // DWORD m_oldAlphaBlend;
+    // DWORD m_oldSrcBlend;
+    // DWORD m_oldDestBlend;
+    // DWORD m_oldCullMode;
 
     std::vector<MenuItem> m_items;
 };

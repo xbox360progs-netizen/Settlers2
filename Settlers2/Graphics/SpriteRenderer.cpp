@@ -745,8 +745,44 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
             m_spriteCount, vertexCount, m_maxSprites);
     OutputDebugStringA(debugMsg);
 
-    // SIMPLE LOGIC: Always use FlushStandard for all sprites (reliable for PowerPC)
-    FlushStandard();
+    // === NEW QUEUE-BASED APPROACH ===
+    // Instead of drawing directly, submit batch to ShaderManager queue
+    
+    // Copy staging buffer to GPU
+    LPDIRECT3DVERTEXBUFFER9 currentVB = m_pVB[m_activeBuffer];
+    void* pData = NULL;
+    HRESULT hr = currentVB->Lock(0, m_spriteCount * 4 * sizeof(SpriteVertex), &pData, 0);
+    if (FAILED(hr)) {
+        OutputDebugStringA("Failed to lock vertex buffer\n");
+        m_spriteCount = 0;
+        return;
+    }
+    memcpy(pData, m_pStagingBuffer, m_spriteCount * 4 * sizeof(SpriteVertex));
+    currentVB->Unlock();
+
+    // Create render batch
+    if (pShader) {
+        ShaderManager::RenderBatch batch;
+        batch.pTexture = m_currentTexture;
+        batch.pShader = pShader->GetShader(m_currentShaderName.c_str());
+        batch.shaderName = m_currentShaderName;
+        batch.startVertex = 0; // Always 0 for now (single buffer)
+        batch.primitiveCount = m_spriteCount * 2; // 2 triangles per sprite
+        
+        // Set default render states for 2D sprites
+        batch.states.zEnable = D3DZB_FALSE;
+        batch.states.alphaBlendEnable = TRUE;
+        batch.states.srcBlend = D3DBLEND_SRCALPHA;
+        batch.states.destBlend = D3DBLEND_INVSRCALPHA;
+        batch.states.cullMode = D3DCULL_NONE;
+        
+        // Submit batch to queue
+        pShader->SubmitBatch(batch);
+        
+        sprintf(debugMsg, "[SpriteRenderer::Flush] Submitted batch: %d sprites, shader=%s\n",
+                m_spriteCount, m_currentShaderName.c_str());
+        OutputDebugStringA(debugMsg);
+    }
 
     // Switch buffer for next frame (double buffering)
     m_activeBuffer = (m_activeBuffer + 1) % 2;

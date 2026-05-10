@@ -2,6 +2,40 @@
 #include "ShaderManager.h"
 #include <stdio.h>
 #include <string>
+#include <algorithm>
+
+// StateCache Implementation
+ShaderManager::StateCache::StateCache() 
+    : m_dirty(false) {
+    // Initialize all states to default values
+    memset(m_currentStates, 0, sizeof(m_currentStates));
+    m_currentStates[D3DRS_ZENABLE] = D3DZB_FALSE;
+    m_currentStates[D3DRS_ALPHABLENDENABLE] = FALSE;
+    m_currentStates[D3DRS_SRCBLEND] = D3DBLEND_SRCALPHA;
+    m_currentStates[D3DRS_DESTBLEND] = D3DBLEND_INVSRCALPHA;
+    m_currentStates[D3DRS_CULLMODE] = D3DCULL_NONE;
+}
+
+void ShaderManager::StateCache::SetRenderState(LPDIRECT3DDEVICE9 device, D3DRENDERSTATETYPE state, DWORD value) {
+    if (m_currentStates[state] != value) {
+        device->SetRenderState(state, value);
+        m_currentStates[state] = value;
+        m_dirty = true;
+    }
+}
+
+void ShaderManager::StateCache::ResetDirtyStates(LPDIRECT3DDEVICE9 device, const RenderStateBlock& targetStates) {
+    if (!m_dirty) return;
+    
+    // Reset to target states
+    SetRenderState(device, D3DRS_ZENABLE, targetStates.zEnable);
+    SetRenderState(device, D3DRS_ALPHABLENDENABLE, targetStates.alphaBlendEnable);
+    SetRenderState(device, D3DRS_SRCBLEND, targetStates.srcBlend);
+    SetRenderState(device, D3DRS_DESTBLEND, targetStates.destBlend);
+    SetRenderState(device, D3DRS_CULLMODE, targetStates.cullMode);
+    
+    m_dirty = false;
+}
 
 ShaderManager::ShaderManager()
     : m_pDevice(NULL), m_pActiveShader(NULL), m_numPasses(0) {
@@ -228,4 +262,66 @@ void ShaderManager::OnResetDevice() {
 
 bool ShaderManager::HasShader(const char* name) const {
     return m_shaders.find(name) != m_shaders.end();
+}
+
+// === Queue-based Rendering System Implementation ===
+
+void ShaderManager::SubmitBatch(const RenderBatch& batch) {
+    m_batches.push_back(batch);
+}
+
+void ShaderManager::ClearBatches() {
+    m_batches.clear();
+}
+
+void ShaderManager::SortBatches() {
+    // Sort by shader, then texture (critical for Xbox 360 performance)
+    std::sort(m_batches.begin(), m_batches.end());
+}
+
+void ShaderManager::ExecuteBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
+                                   LPDIRECT3DVERTEXDECLARATION9 pDecl, uint32_t vertexStride) {
+    if (m_batches.empty()) return;
+    
+    // Set vertex declaration and streams once
+    m_pDevice->SetVertexDeclaration(pDecl);
+    m_pDevice->SetStreamSource(0, pVB, 0, vertexStride);
+    m_pDevice->SetIndices(pIB);
+    
+    // Process batches in sorted order
+    for (size_t i = 0; i < m_batches.size(); ++i) {
+        const RenderBatch& batch = m_batches[i];
+        
+        // Set shader if changed
+        if (m_pActiveShader != batch.pShader) {
+            if (m_pActiveShader) {
+                EndShader();
+            }
+            m_pActiveShader = batch.pShader;
+            BeginShader();
+        }
+        
+        // Apply render states for this batch
+        m_stateCache.ResetDirtyStates(m_pDevice, batch.states);
+        
+        // Set texture
+        SetTexture("g_texture", batch.pTexture);
+        Commit();
+        
+        // Draw this batch
+        BeginPass(0);
+        m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 
+                                       batch.primitiveCount * 3, 
+                                       batch.startVertex, 
+                                       batch.primitiveCount);
+        EndPass();
+    }
+    
+    // Clean up
+    if (m_pActiveShader) {
+        EndShader();
+    }
+    
+    // Clear batches after execution
+    m_batches.clear();
 }

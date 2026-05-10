@@ -340,15 +340,14 @@ void RadialMenu::SetupRenderStates()
 
 void RadialMenu::RestoreRenderStates()
 {
-    if (!m_device) {
+    if (!m_device || !m_shaderManager) {
         return;
     }
 
-    m_device->SetRenderState(D3DRS_ZENABLE, m_oldZEnable);
-    m_device->SetRenderState(D3DRS_ALPHABLENDENABLE, m_oldAlphaBlend);
-    m_device->SetRenderState(D3DRS_SRCBLEND, m_oldSrcBlend);
-    m_device->SetRenderState(D3DRS_DESTBLEND, m_oldDestBlend);
-    m_device->SetRenderState(D3DRS_CULLMODE, m_oldCullMode);
+    // StateCache will automatically reset states when needed
+    // No manual restore needed - the queue system handles this
+    ShaderManager::StateCache* stateCache = m_shaderManager->GetStateCache();
+    stateCache->MarkDirty(); // Mark states as dirty for next batch
 }
 
 void RadialMenu::RenderIcons(SpriteRenderer* spriteRenderer)
