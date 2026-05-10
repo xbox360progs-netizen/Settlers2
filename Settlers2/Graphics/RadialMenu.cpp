@@ -396,8 +396,8 @@ void RadialMenu::RenderIcons(SpriteRenderer* spriteRenderer)
             continue;
         }
 
-        // Use simple sprite shader for menus (small batches, no instancing needed)
-        spriteRenderer->Begin("sprite", texture);
+        // Use sprite_constant_instanced shader with 16-sprite batching
+        spriteRenderer->Begin("sprite_constant_instanced", texture);
 
         // Draw all icons from this atlas
         for (size_t j = 0; j < indices.size(); ++j) {
