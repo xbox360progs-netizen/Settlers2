@@ -366,6 +366,11 @@ void MapEditor::RenderGridLayer() {
         float tw = 238.0f * zoom;
         float th = 148.0f * zoom;
 
+        // FIX: Disable Z-write before drawing background to prevent Z-conflicts
+        if (m_pDevice) {
+            m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+        }
+
         m_spriteRenderer->Begin("sprite", m_groundAtlas->GetTexture());
         for (int y = 0; y < groundLayer->GetHeight(); ++y) {
             for (int x = 0; x < groundLayer->GetWidth(); ++x) {
@@ -378,9 +383,16 @@ void MapEditor::RenderGridLayer() {
             }
         }
         m_spriteRenderer->End();
+        
+        // FIX: Re-enable Z-write after background is drawn
+        if (m_pDevice) {
+            m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, TRUE);
+        }
     }
 
     // Objects layer - всегда поверх Ground (40x40)
+    // TEMPORARILY COMMENTED OUT FOR DEBUGGING - testing if this causes background disappearance
+    /*
     {
         World::TileLayer* objectsLayer = m_map->GetLayer(World::Objects);
         if (objectsLayer) {
@@ -424,6 +436,7 @@ void MapEditor::RenderGridLayer() {
             }
         }
     }
+    */
 
     // Overlay layer - всегда поверх Objects (40x40)
     {

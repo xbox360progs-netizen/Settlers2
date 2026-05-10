@@ -697,6 +697,13 @@ void SpriteRenderer::End() {
 void SpriteRenderer::Flush(ShaderManager* pShader) {
     if (m_spriteCount == 0) return;
 
+    // DEBUG LOG: Monitor vertex count to detect buffer overflow
+    int vertexCount = m_spriteCount * 4;
+    char debugMsg[256];
+    sprintf(debugMsg, "[SpriteRenderer::Flush] spriteCount=%d, vertexCount=%d, maxSprites=%d\n", 
+            m_spriteCount, vertexCount, m_maxSprites);
+    OutputDebugStringA(debugMsg);
+
     // Use strategy pattern: select rendering path based on current mode
     switch (m_currentMode) {
         case MODE_STANDARD:

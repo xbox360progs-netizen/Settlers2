@@ -371,6 +371,12 @@ if (gamepad->IsButtonDown(Input::GP_A)) {
 
 void EditorScene::Render() {
     if (!m_renderer) return;
+    
+    // FIX: Clear entire screen at start of render loop to fix icon tails (Xbox 360 EDRAM issue)
+    if (m_renderer->GetDevice()) {
+        m_renderer->GetDevice()->Clear(0, NULL, D3DCLEAR_TARGET, 0xFF000000, 1.0f, 0);
+    }
+    
     m_renderer->Clear(D3DCOLOR_XRGB(50, 50, 50));
 
     // Render map through MapEditor
