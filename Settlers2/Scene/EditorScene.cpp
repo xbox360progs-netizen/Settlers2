@@ -389,14 +389,8 @@ void EditorScene::Render() {
         m_spriteRenderer->Flush();
     }
 
-    // Reset to orthographic projection for UI rendering (separate from world rendering)
-    if (m_radialMenu && m_radialMenu->IsVisible() || m_gridMenu && m_gridMenu->IsVisible()) {
-        D3DXMATRIX ortho;
-        D3DXMatrixOrthoOffCenterLH(&ortho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
-        if (m_spriteRenderer) {
-            m_spriteRenderer->SetProjection(ortho);
-        }
-    }
+    // Note: Orthographic matrix is set in SpriteRenderer::FlushStandard shader
+    // No need to set it here - just flush to separate world and UI batches
 
     if (m_radialMenu && m_radialMenu->IsVisible()) {
         m_spriteRenderer->Flush();
