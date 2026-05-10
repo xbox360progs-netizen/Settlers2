@@ -655,7 +655,22 @@ void SpriteRenderer::Draw(float x, float y, float width, float height,
         OutputDebugStringA(debugMsg);
     }
 
-    CreateQuad(x, y, width, height, u0, v0, u1, v1, color);
+    // MODE SWITCH: Route to appropriate Create method based on current mode
+    switch (m_currentMode) {
+        case MODE_INSTANCED_CONST:
+            // Constant instancing mode: add to instance queue
+            CreateQuad(x, y, width, height, u0, v0, u1, v1, color);
+            break;
+        case MODE_INSTANCED_STREAM:
+            // Stream instancing mode: use different Create method
+            CreateQuad(x, y, width, height, u0, v0, u1, v1, color);
+            break;
+        case MODE_STANDARD:
+        default:
+            // Standard mode: use staging buffer
+            CreateQuad(x, y, width, height, u0, v0, u1, v1, color);
+            break;
+    }
 }
 
 void SpriteRenderer::DrawWithTexture(float x, float y, float width, float height,
@@ -720,7 +735,6 @@ void SpriteRenderer::End() {
 }
 
 void SpriteRenderer::Flush(ShaderManager* pShader) {
-    // For sprite_constant_instanced, data is in m_instanceQueue, not m_spriteCount
     // Only return if both are empty
     if (m_instanceQueue.empty() && m_spriteCount == 0) return;
 
@@ -731,25 +745,31 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
             m_spriteCount, (int)m_instanceQueue.size(), vertexCount, m_maxSprites);
     OutputDebugStringA(debugMsg);
 
-    // UNIFIED SHADER: Always use sprite_constant_instanced (removed other shader paths)
-    if (m_pShaderManager) {
-        m_pShaderManager->SetActiveShader("sprite_constant_instanced");
-        m_pShaderManager->BeginShader();
-        m_pShaderManager->BeginPass(0);
-        m_pShaderManager->SetTexture("g_texture", m_currentTexture);
-        
-        // Xbox 360: CommitChanges() after SetTexture to prevent texture change being missed
-        ShaderManager::Shader* pActiveShader = m_pShaderManager->GetActiveShader();
-        if (pActiveShader && pActiveShader->pEffect) {
-            pActiveShader->pEffect->CommitChanges();
+    // SIMPLE LOGIC: Use appropriate flush method based on which data is available
+    if (!m_instanceQueue.empty()) {
+        // Instance queue has data: use FlushConstantInstanced (world map)
+        if (m_pShaderManager) {
+            m_pShaderManager->SetActiveShader("sprite_constant_instanced");
+            m_pShaderManager->BeginShader();
+            m_pShaderManager->BeginPass(0);
+            m_pShaderManager->SetTexture("g_texture", m_currentTexture);
+
+            // Xbox 360: CommitChanges() after SetTexture to prevent texture change being missed
+            ShaderManager::Shader* pActiveShader = m_pShaderManager->GetActiveShader();
+            if (pActiveShader && pActiveShader->pEffect) {
+                pActiveShader->pEffect->CommitChanges();
+            }
+
+            m_pShaderManager->Commit();
         }
-        
-        m_pShaderManager->Commit(); // Xbox 360: Commit after setting texture/matrices
-    }
-    FlushConstantInstanced();
-    if (m_pShaderManager) {
-        m_pShaderManager->EndPass();
-        m_pShaderManager->EndShader();
+        FlushConstantInstanced();
+        if (m_pShaderManager) {
+            m_pShaderManager->EndPass();
+            m_pShaderManager->EndShader();
+        }
+    } else {
+        // Staging buffer has data: use FlushStandard (menus)
+        FlushStandard();
     }
 
     // Switch buffer for next frame (double buffering)
@@ -1165,6 +1185,14 @@ void SpriteRenderer::FlushConstantInstanced() {
         uvRect.w = inst.uvRect[3]; // v1
         m_pDevice->SetVertexShaderConstantF(11, (float*)&uvRect, 1);
 
+        // Debug: Log first few sprites
+        if (i < 3) {
+            sprintf(debugMsg, "[FlushConst] Sprite[%d]: pos=(%.1f,%.1f,%.1f,%.1f), uv=(%.3f,%.3f,%.3f,%.3f)\n",
+                    (int)i, posSize.x, posSize.y, posSize.z, posSize.w,
+                    uvRect.x, uvRect.y, uvRect.z, uvRect.w);
+            OutputDebugStringA(debugMsg);
+        }
+
         // Draw the quad (6 vertices = 2 triangles)
         m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 4, 0, 2);
     }
@@ -1356,8 +1384,9 @@ void SpriteRenderer::CreateQuad(float x, float y, float width, float height,
         return;
     }
 
-    // For sprite_constant_instanced, add to m_instanceQueue instead of staging buffer
+    // SIMPLE LOGIC: sprite_constant_instanced uses instance queue, others use staging buffer
     if (m_currentShaderName == "sprite_constant_instanced") {
+        // Add to instance queue for FlushConstantInstanced (world map only)
         SpriteInstance inst;
         inst.positionSize[0] = x;
         inst.positionSize[1] = y;
@@ -1369,10 +1398,18 @@ void SpriteRenderer::CreateQuad(float x, float y, float width, float height,
         inst.uvRect[3] = v1;
         inst.color = color;
         m_instanceQueue.push_back(inst);
+
+        // Debug: Log first sprite only
+        if (m_instanceQueue.size() == 1) {
+            char debugMsg[256];
+            sprintf(debugMsg, "[CreateQuad] Added to queue (instancing): pos=(%.1f,%.1f,%.1f,%.1f), uv=(%.3f,%.3f,%.3f,%.3f)\n",
+                    x, y, width, height, u0, v0, u1, v1);
+            OutputDebugStringA(debugMsg);
+        }
         return;
     }
 
-    // Calculate quad corners with half-pixel offset for pixel-perfect sprites
+    // Other shaders: Write to staging buffer for FlushStandard (menus only)
     float x0 = x - 0.5f;
     float x1 = (x + width) - 0.5f;
     float y0 = y - 0.5f;

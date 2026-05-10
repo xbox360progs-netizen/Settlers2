@@ -89,6 +89,8 @@ HRESULT Renderer::Initialize() {
     hr = LoadShader("sprite_constant_instanced", "game:\\Media\\Shaders\\SpriteConstantInstanced.fx", "SpriteConstantInstancedTech");
     if (FAILED(hr)) {
         OutputDebugStringA("Failed to load constant instanced sprite shader\n");
+    } else {
+        OutputDebugStringA("Successfully loaded sprite_constant_instanced shader\n");
     }
 
     SetProjectionMatrix(1280.0f, 720.0f);
