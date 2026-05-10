@@ -1,0 +1,7 @@
+﻿#ifndef WORLD_COMPONENTS_MODEL_H
+#define WORLD_COMPONENTS_MODEL_H
+
+// TODO: Implement Model
+
+#endif // WORLD_COMPONENTS_MODEL_H
+

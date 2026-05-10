@@ -1,0 +1,7 @@
+﻿#ifndef WORLD_COMPONENTS_COLLIDER_H
+#define WORLD_COMPONENTS_COLLIDER_H
+
+// TODO: Implement Collider
+
+#endif // WORLD_COMPONENTS_COLLIDER_H
+

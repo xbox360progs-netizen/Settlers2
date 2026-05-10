@@ -1,0 +1,7 @@
+﻿#ifndef WORLD_COMPONENTS_RESOURCE_H
+#define WORLD_COMPONENTS_RESOURCE_H
+
+// TODO: Implement Resource
+
+#endif // WORLD_COMPONENTS_RESOURCE_H
+

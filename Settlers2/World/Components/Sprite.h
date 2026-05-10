@@ -1,0 +1,7 @@
+﻿#ifndef WORLD_COMPONENTS_SPRITE_H
+#define WORLD_COMPONENTS_SPRITE_H
+
+// TODO: Implement Sprite
+
+#endif // WORLD_COMPONENTS_SPRITE_H
+

@@ -1,0 +1,7 @@
+﻿#ifndef WORLD_COMPONENTS_BUILDING_H
+#define WORLD_COMPONENTS_BUILDING_H
+
+// TODO: Implement Building
+
+#endif // WORLD_COMPONENTS_BUILDING_H
+

@@ -1,0 +1,7 @@
+﻿#ifndef WORLD_COMPONENTS_UNIT_H
+#define WORLD_COMPONENTS_UNIT_H
+
+// TODO: Implement Unit
+
+#endif // WORLD_COMPONENTS_UNIT_H
+
