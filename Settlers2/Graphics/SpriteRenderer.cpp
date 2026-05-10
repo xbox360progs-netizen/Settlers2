@@ -722,7 +722,9 @@ void SpriteRenderer::End() {
 }
 
 void SpriteRenderer::Flush(ShaderManager* pShader) {
-    if (m_spriteCount == 0 && m_instanceQueue.empty()) return;
+    // For sprite_constant_instanced, data is in m_instanceQueue, not m_spriteCount
+    // Only return if both are empty
+    if (m_instanceQueue.empty() && m_spriteCount == 0) return;
 
     // DEBUG LOG: Monitor vertex count to detect buffer overflow
     int vertexCount = m_spriteCount * 4;
@@ -758,7 +760,9 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
 }
 
 void SpriteRenderer::Flush() {
-    if (m_spriteCount == 0 && m_instanceQueue.empty()) return;
+    // For sprite_constant_instanced, data is in m_instanceQueue, not m_spriteCount
+    // Only return if both are empty
+    if (m_instanceQueue.empty() && m_spriteCount == 0) return;
 
     // Just call the version with shader manager - it handles all modes including MODE_STANDARD
     Flush(m_pShaderManager);
@@ -1106,28 +1110,6 @@ void SpriteRenderer::FlushInstanced() {
 }
 
 void SpriteRenderer::FlushConstantInstanced() {
-    // CRITICAL FIX: If m_instanceQueue is empty but m_pStagingBuffer has data,
-    // copy data from staging buffer to instance queue. This prevents sprites from disappearing.
-    if (m_instanceQueue.empty() && m_spriteCount > 0 && m_pStagingBuffer != NULL) {
-        char debugMsg[128];
-        sprintf(debugMsg, "[FlushConstantInstanced] Copying %d sprites from staging buffer\n", m_spriteCount);
-        OutputDebugStringA(debugMsg);
-
-        for (int i = 0; i < m_spriteCount; i++) {
-            int idx = i * 4;
-            SpriteInstance inst;
-            inst.positionSize[0] = m_pStagingBuffer[idx].x;
-            inst.positionSize[1] = m_pStagingBuffer[idx].y;
-            inst.positionSize[2] = m_pStagingBuffer[idx + 1].x - m_pStagingBuffer[idx].x;
-            inst.positionSize[3] = m_pStagingBuffer[idx + 2].y - m_pStagingBuffer[idx].y;
-            inst.uvRect[0] = m_pStagingBuffer[idx].u;
-            inst.uvRect[1] = m_pStagingBuffer[idx].v;
-            inst.uvRect[2] = m_pStagingBuffer[idx + 2].u;
-            inst.uvRect[3] = m_pStagingBuffer[idx + 2].v;
-            m_instanceQueue.push_back(inst);
-        }
-    }
-
     if (m_instanceQueue.empty()) {
         OutputDebugStringA("[FlushConstantInstanced] m_instanceQueue is empty!\n");
         return;
@@ -1136,6 +1118,16 @@ void SpriteRenderer::FlushConstantInstanced() {
     char debugMsg[256];
     sprintf(debugMsg, "[FlushConstantInstanced] Rendering %d sprites\n", (int)m_instanceQueue.size());
     OutputDebugStringA(debugMsg);
+
+    // CRITICAL: Set orthographic projection matrix for instanced rendering
+    // Shader expects matOrtho in register c0
+    D3DXMATRIX matOrtho;
+    D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
+    m_pDevice->SetVertexShaderConstantF(0, (float*)&matOrtho, 4);
+
+    // CRITICAL: Set texture for instanced rendering
+    // Shader expects g_texture in register s0
+    m_pDevice->SetTexture(0, m_currentTexture);
 
     // Check for NULL buffers to prevent BSOD
     if (m_pStaticQuadVB == NULL) {
