@@ -390,8 +390,8 @@ void RadialMenu::RenderIcons(SpriteRenderer* spriteRenderer)
             continue;
         }
 
-        // Use simple sprite shader (reliable for PowerPC)
-        spriteRenderer->Begin("sprite", texture);
+        // Use simple sprite shader with UI depth (0.1 = nearest, always on top)
+        spriteRenderer->Begin("sprite", texture, 0.1f);
 
         // Draw all icons from this atlas
         for (size_t j = 0; j < indices.size(); ++j) {
@@ -410,7 +410,6 @@ void RadialMenu::RenderIcons(SpriteRenderer* spriteRenderer)
                                 region->u0, region->v0, region->u1, region->v1, 0xFFFFFFFF);
         }
 
-        spriteRenderer->Flush(); // CRITICAL: Flush immediately after each atlas to prevent texture overwrite
         spriteRenderer->End();
     }
 
@@ -421,7 +420,7 @@ void RadialMenu::RenderIcons(SpriteRenderer* spriteRenderer)
         if (centerAtlas) {
             LPDIRECT3DTEXTURE9 centerTexture = centerAtlas->GetTexture();
             if (centerTexture) {
-                spriteRenderer->Begin("sprite", centerTexture);
+                spriteRenderer->Begin("sprite", centerTexture, 0.05f); // Center icon: closest to viewer
                 uint32_t centerSpriteIndex = centerItem->spriteIndex;
                 const SpriteRegion* centerRegion = centerAtlas->GetRegion(centerSpriteIndex);
                 if (centerRegion) {
@@ -430,7 +429,6 @@ void RadialMenu::RenderIcons(SpriteRenderer* spriteRenderer)
                     spriteRenderer->Draw(centerDrawX, centerDrawY, (float)centerRegion->width, (float)centerRegion->height,
                                         centerRegion->u0, centerRegion->v0, centerRegion->u1, centerRegion->v1, 0xFFF6EBDD);
                 }
-                spriteRenderer->Flush(); // CRITICAL: Flush immediately after center icon to prevent texture overwrite
                 spriteRenderer->End();
             }
         }

@@ -39,11 +39,11 @@ public:
         Shader* pShader;
         DWORD vertexOffset;  // Offset in vertex buffer
         DWORD indexCount;    // Number of indices to draw
-        float zOrder;
+        float depth;       // Z-layer: 1.0=far, 0.1=near
         std::string shaderName;
         int renderType;      // 0 = Single Sprite, 1 = Instanced
         
-        // Sorting operator: by texture first (expensive switch), then shader, then zOrder
+        // Sorting operator: by texture first (expensive switch), then shader, then depth
         bool operator<(const DrawBatch& other) const {
             // Texture switch is most expensive on Xbox 360
             if (pTexture != other.pTexture)
@@ -51,8 +51,8 @@ public:
             // Shader switch is second most expensive
             if (shaderName != other.shaderName)
                 return shaderName < other.shaderName;
-            // Z-order is least expensive
-            return zOrder < other.zOrder;
+            // Depth is least expensive (back-to-front for alpha)
+            return depth > other.depth;
         }
     };
 
@@ -64,15 +64,16 @@ public:
         DWORD vertexCount;
         DWORD primitiveCount;
         int batchType; // 0 - Standard (Single), 1 - Instanced
-        float zOrder;  // For Z-layer sorting
+        float depth;   // Z-layer: 1.0=far (ground), 0.5=mid (units), 0.1=near (UI)
         RenderStateBlock states;
         std::string shaderName;
         DWORD batchIndex; // For tracking batch sequence (for vertex offset calculation)
         
-        // Sorting operator: by zOrder first, then shader, then texture
+        // Sorting operator: back-to-front for alpha blending
+        // Higher depth = farther, drawn first. Lower depth = nearer, drawn on top.
         bool operator<(const RenderCommand& other) const {
-            if (zOrder != other.zOrder)
-                return zOrder < other.zOrder;
+            if (depth != other.depth)
+                return depth > other.depth; // Descending: far objects first
             if (shaderName != other.shaderName)
                 return shaderName < other.shaderName;
             return pTexture < other.pTexture;

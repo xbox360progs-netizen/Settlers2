@@ -79,7 +79,7 @@ SpriteRenderer::SpriteRenderer()
     // Default rendering mode: constant instanced (unified shader approach)
     m_currentMode = MODE_INSTANCED_CONST;
     m_currentShaderName = "sprite_constant_instanced";
-    m_currentZOrder = 0.0f;
+    m_currentDepth = 1.0f; // Default: far layer (ground)
     m_currentRenderType = 0; // Default to Single
     m_totalVertexCount = 0;
     
@@ -595,14 +595,14 @@ void SpriteRenderer::OnResetDevice() {
 }
 
 void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture) {
-    Begin(shaderName, pTexture, 0.0f, 0); // Default to Single sprite
+    Begin(shaderName, pTexture, 1.0f, 0); // Default: far layer (ground), Single sprite
 }
 
-void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float zOrder) {
-    Begin(shaderName, pTexture, zOrder, 0); // Default to Single sprite
+void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float depth) {
+    Begin(shaderName, pTexture, depth, 0); // Default to Single sprite
 }
 
-void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float zOrder, int renderType) {
+void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType) {
 
     // If state changed, flush previous batch
     if (m_isBatching) {
@@ -622,11 +622,12 @@ void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, 
     }
 
     char debugMsg[128];
-    sprintf(debugMsg, "[SpriteRenderer::Begin] shader=%s, texture=%p, spriteCount=%d\n", shaderName, pTexture, m_spriteCount);
+    sprintf(debugMsg, "[SpriteRenderer::Begin] shader=%s, texture=%p, depth=%.2f, renderType=%d\n", shaderName, pTexture, depth, renderType);
     OutputDebugStringA(debugMsg);
 
     m_currentShaderName = shaderName;
     m_currentTexture = pTexture;
+    m_currentDepth = depth;
     m_isBatching = true;
     m_spriteCount = 0;
 
@@ -786,7 +787,7 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
         cmd.vertexCount = m_spriteCount * 4; // 4 vertices per sprite
         cmd.primitiveCount = (DWORD)(m_spriteCount * 2); // 2 triangles per sprite
         cmd.batchType = m_currentRenderType; // Use render type from Begin()
-        cmd.zOrder = m_currentZOrder; // Use current Z-order from Begin()
+        cmd.depth = m_currentDepth; // Use current depth from Begin()
         
         // Set default render states for 2D sprites
         cmd.states.zEnable = D3DZB_FALSE;
@@ -798,8 +799,8 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
         // Submit command to queue (Master Loop)
         pShader->Submit(cmd);
         
-        sprintf(debugMsg, "[SpriteRenderer::Flush] Submitted batch: %d sprites, shader=%s, renderType=%d\n",
-                m_spriteCount, m_currentShaderName.c_str(), m_currentRenderType);
+        sprintf(debugMsg, "[SpriteRenderer::Flush] Submitted batch: %d sprites, shader=%s, depth=%.2f, renderType=%d\n",
+                m_spriteCount, m_currentShaderName.c_str(), m_currentDepth, m_currentRenderType);
         OutputDebugStringA(debugMsg);
     }
 
@@ -835,7 +836,7 @@ void SpriteRenderer::SubmitBatch(ShaderManager* pShader) {
         cmd.vertexCount = m_spriteCount * 4;
         cmd.primitiveCount = (DWORD)(m_spriteCount * 2);
         cmd.batchType = m_currentRenderType;
-        cmd.zOrder = m_currentZOrder;
+        cmd.depth = m_currentDepth;
         
         cmd.states.zEnable = D3DZB_FALSE;
         cmd.states.alphaBlendEnable = TRUE;

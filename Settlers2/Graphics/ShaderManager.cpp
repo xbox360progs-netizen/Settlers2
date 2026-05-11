@@ -306,17 +306,17 @@ void ShaderManager::ClearBatches() {
 }
 
 void ShaderManager::SortQueue() {
-    // Sort by zOrder, then shader, then texture (critical for Xbox 360 performance)
+    // Sort by depth (back-to-front for alpha), then shader, then texture
     std::sort(m_commandQueue.begin(), m_commandQueue.end());
 }
 
 void ShaderManager::SortDrawBatches() {
-    // Sort by texture first (expensive switch), then shader, then zOrder (State Sorting)
+    // Sort by texture first (expensive switch), then shader, then depth (State Sorting)
     std::sort(m_drawBatches.begin(), m_drawBatches.end());
 }
 
 void ShaderManager::SortBatches() {
-    // Sort by shader, then texture (critical for Xbox 360 performance)
+    // Sort commands by depth (back-to-front), shader, and texture
     std::sort(m_batches.begin(), m_batches.end());
 }
 
@@ -324,9 +324,9 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                                 LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride) {
     if (m_commandQueue.empty()) return;
     
-    // === SORT COMMANDS BY Z-ORDER ===
+    // === SORT COMMANDS BY DEPTH (back-to-front for alpha) ===
     // This ensures proper layering regardless of submission order
-    // Ground tiles (zOrder=0) render first, UI (zOrder=1+) renders on top
+    // Ground tiles (depth=1.0) render first, UI (depth=0.1) renders on top
     std::sort(m_commandQueue.begin(), m_commandQueue.end());
     
     // === RESET STATES: Force clean slate at start of render pass ===

@@ -4,8 +4,7 @@
 #include "../Graphics/Quad.h"
 #include "../Graphics/Camera.h"
 #include "../Input/Gamepad.h"
-// SpriteRenderer header is located in Shaders directory in this project
-#include "../Shaders/SpriteRenderer.h"
+#include "../Graphics/SpriteRenderer.h"
 
 namespace
 {
@@ -387,13 +386,11 @@ void GridMenu::Render(const Camera* camera)
         float screenX = m_screenX;
         float screenY = m_screenY;
 
-        // CORRECT RENDER ORDER: Begin -> Background -> Flush -> Icons -> End
-        m_spriteRenderer->Begin("sprite", m_backgroundTexture);
-        // m_spriteRenderer->Draw(screenX - (m_menuWidth * 0.5f), screenY - (m_menuHeight * 0.5f), m_menuWidth, m_menuHeight, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
-        // m_spriteRenderer->Flush();
+        // CORRECT RENDER ORDER: Begin -> Draw -> End (queue handles batching)
+        m_spriteRenderer->Begin("sprite", m_backgroundTexture, 0.15f); // Background: behind icons
 
         // Start rendering without background first
-        m_spriteRenderer->Begin("sprite", m_cellBackgroundTexture ? m_cellBackgroundTexture : m_atlasTexture);
+        m_spriteRenderer->Begin("sprite", m_cellBackgroundTexture ? m_cellBackgroundTexture : m_atlasTexture, 0.12f); // Cells: behind icons
 
         // Draw per-cell backgrounds (if available)
         if (m_cellBackgroundTexture) {
@@ -409,12 +406,9 @@ void GridMenu::Render(const Camera* camera)
             }
         }
 
-        // CRITICAL: Flush before icons even if same texture
-        m_spriteRenderer->Flush();
-
         // Draw icons from atlas
         if (m_atlasTexture && !m_tileUVs.empty()) {
-            m_spriteRenderer->Begin("sprite", m_atlasTexture);
+            m_spriteRenderer->Begin("sprite", m_atlasTexture, 0.1f); // Icons: UI depth
             float cellSpacing = (kBaseCellSize + 48.0f) * 1.2f;
             for (int row = 0; row < kGridRows; ++row) {
                 for (int col = 0; col < kGridCols; ++col) {
@@ -461,19 +455,18 @@ void GridMenu::Render(SpriteRenderer* spriteRenderer)
             m_menuWidth, m_menuHeight, menuLeft, menuTop, cellSpacing, totalSprites);
     OutputDebugStringA(debugMsg);
 
-    // 1. Background (menu_bd) - full menu area
+    // 1. Background (menu_bd) - full menu area (depth=0.15, behind cells)
     if (m_backgroundTexture) {
         OutputDebugStringA("[GridMenu::Render] Drawing background\n");
-        spriteRenderer->Begin("sprite", m_backgroundTexture);
+        spriteRenderer->Begin("sprite", m_backgroundTexture, 0.15f);
         spriteRenderer->Draw(menuLeft, menuTop, m_menuWidth, m_menuHeight, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
-        spriteRenderer->Flush(); // CRITICAL: Flush immediately after background to prevent texture overwrite
         spriteRenderer->End();
     }
 
-    // 2. Cell backgrounds (menu_cell) - 4x4 grid
+    // 2. Cell backgrounds (menu_cell) - 4x4 grid (depth=0.12, behind icons)
     if (m_cellBackgroundTexture) {
         OutputDebugStringA("[GridMenu::Render] Drawing cell backgrounds\n");
-        spriteRenderer->Begin("sprite", m_cellBackgroundTexture);
+        spriteRenderer->Begin("sprite", m_cellBackgroundTexture, 0.12f);
         for (int row = 0; row < kGridRows; ++row) {
             for (int col = 0; col < kGridCols; ++col) {
                 int localIndex = row * kGridCols + col;
@@ -483,15 +476,14 @@ void GridMenu::Render(SpriteRenderer* spriteRenderer)
                 spriteRenderer->Draw(cellX, cellY, m_cellWidth, m_cellHeight, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
             }
         }
-        spriteRenderer->Flush(); // CRITICAL: Flush immediately after cell backgrounds to prevent texture overwrite
         spriteRenderer->End();
     }
 
-    // 3. Icons from atlas (visible window)
+    // 3. Icons from atlas (visible window) (depth=0.1, UI layer)
     if (m_atlasTexture && !m_tileUVs.empty()) {
         sprintf(debugMsg, "[GridMenu::Render] Drawing %d icons from atlas (texture=%p)\n", totalSprites, m_atlasTexture);
         OutputDebugStringA(debugMsg);
-        spriteRenderer->Begin("sprite", m_atlasTexture);
+        spriteRenderer->Begin("sprite", m_atlasTexture, 0.1f);
         for (int i = 0; i < totalSprites; ++i) {
             int row = i / kGridCols;
             int col = i % kGridCols;
@@ -508,11 +500,10 @@ void GridMenu::Render(SpriteRenderer* spriteRenderer)
             
             spriteRenderer->Draw(cellX, cellY, m_cellWidth, m_cellHeight, tileUV.u0, tileUV.v0, tileUV.u1, tileUV.v1, 0xFFFFFFFF);
         }
-        spriteRenderer->Flush(); // CRITICAL: Flush immediately after icons to prevent texture overwrite
         spriteRenderer->End();
     }
 
-    // 4. Highlight selected tile
+    // 4. Highlight selected tile (depth=0.05, closest to viewer)
     if (m_atlasTexture && m_selectedIndex >= 0 && m_selectedIndex < totalSprites) {
         OutputDebugStringA("[GridMenu::Render] Drawing highlight\n");
         const TileUV& selectedUV = m_tileUVs[m_selectedIndex];
@@ -522,9 +513,8 @@ void GridMenu::Render(SpriteRenderer* spriteRenderer)
         float highlightY = menuTop + 32.0f + (row * cellSpacing);
         float highlightW = m_cellWidth * 1.1f;
         float highlightH = m_cellHeight * 1.1f;
-        spriteRenderer->Begin("sprite", m_atlasTexture);
+        spriteRenderer->Begin("sprite", m_atlasTexture, 0.05f);
         spriteRenderer->Draw(highlightX, highlightY, highlightW, highlightH, selectedUV.u0, selectedUV.v0, selectedUV.u1, selectedUV.v1, 0xFFFFFF00);
-        spriteRenderer->Flush(); // CRITICAL: Flush immediately after highlight to prevent texture overwrite
         spriteRenderer->End();
     }
 

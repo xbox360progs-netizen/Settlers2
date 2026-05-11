@@ -77,10 +77,10 @@ public:
 
     // Begin a batch with specific shader and texture
     void Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture);
-    void Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float zOrder);
+    void Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float depth);
     
     // Begin with explicit render type (0 = Single, 1 = Instanced)
-    void Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float zOrder, int renderType);
+    void Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType);
 
     // Submit current batch to ShaderManager queue (for manual control)
     void SubmitBatch(ShaderManager* pShader);
@@ -233,7 +233,7 @@ private:
     std::string m_currentShaderName;  // Shader name for current mode (replaces m_currentShader)
     LPDIRECT3DTEXTURE9 m_currentTexture;
     bool m_isBatching;
-    float m_currentZOrder; // Current Z-order for batch
+    float m_currentDepth; // Current depth for batch (1.0=far, 0.1=near)
     int m_currentRenderType; // 0 = Single, 1 = Instanced
     
     // Ring buffer tracking for vertex accumulation
