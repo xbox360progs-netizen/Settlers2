@@ -41,6 +41,7 @@ public:
         DWORD indexCount;    // Number of indices to draw
         float zOrder;
         std::string shaderName;
+        int renderType;      // 0 = Single Sprite, 1 = Instanced
         
         // Sorting operator: by texture first (expensive switch), then shader, then zOrder
         bool operator<(const DrawBatch& other) const {
@@ -62,10 +63,11 @@ public:
         DWORD vertexStart;
         DWORD vertexCount;
         DWORD primitiveCount;
-        int batchType; // 0 - Standard, 1 - Instanced
+        int batchType; // 0 - Standard (Single), 1 - Instanced
         float zOrder;  // For Z-layer sorting
         RenderStateBlock states;
         std::string shaderName;
+        DWORD batchIndex; // For tracking batch sequence (for vertex offset calculation)
         
         // Sorting operator: by zOrder first, then shader, then texture
         bool operator<(const RenderCommand& other) const {

@@ -271,8 +271,18 @@ bool ShaderManager::HasShader(const char* name) const {
 
 // === Queue-based Rendering System Implementation ===
 
+static DWORD s_currentVertexOffset = 0;
+static DWORD s_batchIndex = 0;
+
 void ShaderManager::Submit(const RenderCommand& cmd) {
-    m_commandQueue.push_back(cmd);
+    RenderCommand cmdWithOffset = cmd;
+    cmdWithOffset.vertexStart = s_currentVertexOffset;
+    cmdWithOffset.batchIndex = s_batchIndex++;
+    
+    // Update vertex offset for next batch
+    s_currentVertexOffset += cmd.vertexCount;
+    
+    m_commandQueue.push_back(cmdWithOffset);
 }
 
 void ShaderManager::SubmitDrawBatch(const DrawBatch& batch) {
@@ -339,12 +349,36 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         SetTexture("g_texture", cmd.pTexture);
         Commit();
         
-        // Draw this command
+        // Draw this command based on batch type (Single vs Instanced)
         BeginPass(0);
-        m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 
-                                       cmd.vertexCount, 
-                                       cmd.vertexStart, 
-                                       cmd.primitiveCount);
+        
+        // Switch based on render type
+        switch (cmd.batchType) {
+            case 0: // Standard/Single sprite rendering
+                m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 
+                                               cmd.vertexCount, 
+                                               cmd.vertexStart, 
+                                               cmd.primitiveCount);
+                break;
+                
+            case 1: // Instanced rendering
+                // For instanced rendering, we would need to set instance buffer here
+                // For now, fall back to standard rendering
+                m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 
+                                               cmd.vertexCount, 
+                                               cmd.vertexStart, 
+                                               cmd.primitiveCount);
+                break;
+                
+            default:
+                // Default to standard rendering
+                m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 
+                                               cmd.vertexCount, 
+                                               cmd.vertexStart, 
+                                               cmd.primitiveCount);
+                break;
+        }
+        
         EndPass();
     }
     
@@ -362,6 +396,10 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     m_pDevice->SetTexture(1, NULL);
     m_pDevice->SetTexture(2, NULL);
     m_pDevice->SetTexture(3, NULL);
+    
+    // Reset vertex offset tracking for next frame
+    s_currentVertexOffset = 0;
+    s_batchIndex = 0;
 }
 
 void ShaderManager::ExecuteBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 

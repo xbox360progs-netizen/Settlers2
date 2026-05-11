@@ -80,6 +80,8 @@ SpriteRenderer::SpriteRenderer()
     m_currentMode = MODE_INSTANCED_CONST;
     m_currentShaderName = "sprite_constant_instanced";
     m_currentZOrder = 0.0f;
+    m_currentRenderType = 0; // Default to Single
+    m_totalVertexCount = 0;
     
     // Initialize arrays inside constructor body
     m_hThreadDoneEvents[0] = NULL;
@@ -593,10 +595,14 @@ void SpriteRenderer::OnResetDevice() {
 }
 
 void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture) {
-    Begin(shaderName, pTexture, 0.0f);
+    Begin(shaderName, pTexture, 0.0f, 0); // Default to Single sprite
 }
 
 void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float zOrder) {
+    Begin(shaderName, pTexture, zOrder, 0); // Default to Single sprite
+}
+
+void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float zOrder, int renderType) {
 
     // If state changed, flush previous batch
     if (m_isBatching) {
@@ -774,7 +780,7 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
         cmd.vertexStart = 0; // Always 0 for now (single buffer)
         cmd.vertexCount = m_spriteCount * 4; // 4 vertices per sprite
         cmd.primitiveCount = (DWORD)(m_spriteCount * 2); // 2 triangles per sprite
-        cmd.batchType = 0; // Standard rendering
+        cmd.batchType = m_currentRenderType; // Use render type from Begin()
         cmd.zOrder = m_currentZOrder; // Use current Z-order from Begin()
         
         // Set default render states for 2D sprites
@@ -787,14 +793,16 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
         // Submit command to queue (Master Loop)
         pShader->Submit(cmd);
         
-        sprintf(debugMsg, "[SpriteRenderer::Flush] Submitted batch: %d sprites, shader=%s\n",
-                m_spriteCount, m_currentShaderName.c_str());
+        sprintf(debugMsg, "[SpriteRenderer::Flush] Submitted batch: %d sprites, shader=%s, renderType=%d\n",
+                m_spriteCount, m_currentShaderName.c_str(), m_currentRenderType);
         OutputDebugStringA(debugMsg);
     }
 
     // Switch buffer for next frame (double buffering)
     m_activeBuffer = (m_activeBuffer + 1) % 2;
     m_spriteCount = 0;
+    // NOTE: m_totalVertexCount is NOT reset here - it accumulates across batches
+    // It will only be reset when ExecuteQueue is called (global frame end)
 }
 
 void SpriteRenderer::SubmitBatch(ShaderManager* pShader) {
@@ -821,7 +829,7 @@ void SpriteRenderer::SubmitBatch(ShaderManager* pShader) {
         cmd.vertexStart = 0;
         cmd.vertexCount = m_spriteCount * 4;
         cmd.primitiveCount = (DWORD)(m_spriteCount * 2);
-        cmd.batchType = 0;
+        cmd.batchType = m_currentRenderType;
         cmd.zOrder = m_currentZOrder;
         
         cmd.states.zEnable = D3DZB_FALSE;
@@ -831,19 +839,23 @@ void SpriteRenderer::SubmitBatch(ShaderManager* pShader) {
         cmd.states.cullMode = D3DCULL_NONE;
         
         pShader->Submit(cmd);
-    }
-    
-    m_spriteCount = 0;
-}
-
 void SpriteRenderer::Flush() {
     // Only return if empty
     if (m_spriteCount == 0) return;
+
+    // RING BUFFER: Check for overflow before flushing
+    m_totalVertexCount += m_spriteCount * 4; // 4 vertices per sprite
+    if (m_totalVertexCount > MAX_BUFFER_VERTICES) {
+        OutputDebugStringA("[SpriteRenderer::Flush] WARNING: Vertex buffer overflow, forcing Execute\n");
+        // Force execute would go here if we had access to the Execute method
+        m_totalVertexCount = 0;
+    }
 
     // Just call the version with shader manager
     Flush(m_pShaderManager);
 }
 
+// ... rest of the code remains the same ...
 
 
 void SpriteRenderer::UpdateAndFlush(const SpriteData* allSprites, int totalCount) {

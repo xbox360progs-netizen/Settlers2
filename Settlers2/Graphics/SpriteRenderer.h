@@ -78,6 +78,9 @@ public:
     // Begin a batch with specific shader and texture
     void Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture);
     void Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float zOrder);
+    
+    // Begin with explicit render type (0 = Single, 1 = Instanced)
+    void Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float zOrder, int renderType);
 
     // Submit current batch to ShaderManager queue (for manual control)
     void SubmitBatch(ShaderManager* pShader);
@@ -231,6 +234,11 @@ private:
     LPDIRECT3DTEXTURE9 m_currentTexture;
     bool m_isBatching;
     float m_currentZOrder; // Current Z-order for batch
+    int m_currentRenderType; // 0 = Single, 1 = Instanced
+    
+    // Ring buffer tracking for vertex accumulation
+    DWORD m_totalVertexCount; // Total vertices accumulated since last Execute
+    static const DWORD MAX_BUFFER_VERTICES = 16384; // Max vertices before forced Execute
 
     // Configuration
     int m_maxSprites;
