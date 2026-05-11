@@ -251,6 +251,12 @@
     <ClInclude Include="Logic\CoordinateSystem.h">
       <Filter>Logic</Filter>
     </ClInclude>
+    <ClInclude Include="Logic\InputController.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Input\InputController.h">
+      <Filter>Input</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -429,6 +435,12 @@
     </ClCompile>
     <ClCompile Include="World\Components\Building.cpp">
       <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Logic\InputController.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Input\InputController.cpp">
+      <Filter>Input</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

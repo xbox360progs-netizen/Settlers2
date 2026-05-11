@@ -262,6 +262,7 @@
     <ClInclude Include="Graphics\TileRenderer.h" />
     <ClInclude Include="Input\Gamepad.h" />
     <ClInclude Include="Input\InputContext.h" />
+    <ClInclude Include="Input\InputController.h" />
     <ClInclude Include="Input\InputManager.h" />
     <ClInclude Include="Input\ScreenKeyboard.h" />
     <ClInclude Include="Logic\CoordinateSystem.h" />
@@ -330,6 +331,7 @@
     <ClCompile Include="Graphics\TileRenderer.cpp" />
     <ClCompile Include="Input\Gamepad.cpp" />
     <ClCompile Include="Input\InputContext.cpp" />
+    <ClCompile Include="Input\InputController.cpp" />
     <ClCompile Include="Input\InputManager.cpp" />
     <ClCompile Include="Input\ScreenKeyboard.cpp" />
     <ClCompile Include="Logic\IsoGrid.cpp" />

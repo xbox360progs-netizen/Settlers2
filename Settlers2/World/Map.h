@@ -2,6 +2,9 @@
 
 #include "TileLayer.h"
 #include <vector>
+#include <d3dx9math.h>
+
+class Camera;
 
 namespace World {
 
@@ -24,6 +27,13 @@ public:
 
     void Resize(int width, int height);
     void Clear();
+
+    // Grid Picking: Get tile under mouse cursor
+    // Returns true if a tile was found, false otherwise
+    bool GetTileUnderMouse(float screenX, float screenY, Camera* camera, LayerType layer, int& tileX, int& tileY);
+
+    // Get tiles in view for frustum culling
+    void GetTilesInView(Camera* camera, LayerType layer, int& minX, int& minY, int& maxX, int& maxY);
 
 private:
     int m_width;

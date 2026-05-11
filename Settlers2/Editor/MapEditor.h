@@ -57,6 +57,9 @@ public:
     int GetCurrentTileIndex() const { return m_currentTileIndex; }
     EditMode GetCurrentMode() const { return m_currentMode; }
 
+    World::Map* GetMap() { return m_map; }
+    const World::Map* GetMap() const { return m_map; }
+
     void PaintArea(int centerX, int centerY);
     void PaintTile(int x, int y);
     void PaintCurrentTile();

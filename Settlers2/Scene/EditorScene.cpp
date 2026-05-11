@@ -1,5 +1,7 @@
 #include "stdafx.h"
 #include "EditorScene.h"
+#include "../Input/InputController.h"
+#include "../Logic/CoordinateSystem.h"
 #include "../Logic/MapConstants.h"
 #include "../World/TileLayer.h"
 #include "../Graphics/RadialMenu.h"
@@ -45,7 +47,10 @@ EditorScene::EditorScene()
     , m_fps(0)
     , m_frameCount(0)
     , m_lastFpsTime(0)
-
+    , m_selectedTileX(0)
+    , m_selectedTileY(0)
+    , m_hasSelection(false)
+    , m_inputController(nullptr)
 {
 }
 
@@ -99,6 +104,13 @@ void EditorScene::Load() {
     if (m_camera) {
         m_camera->Initialize(1280.0f, 720.0f);
         OutputDebugStringA("[EditorScene] Camera initialized\n");
+    }
+
+    // Initialize InputController for world coordinate translation
+    m_inputController = new Logic::InputController();
+    if (m_inputController && m_inputManager) {
+        m_inputController->Initialize(m_camera, m_inputManager->GetGamepad());
+        OutputDebugStringA("[EditorScene] InputController initialized\n");
     }
     
     // Create and initialize RadialMenu
@@ -254,6 +266,29 @@ void EditorScene::Update(float deltaTime) {
 		}
 	}
 
+	// Update InputController for world coordinate translation
+	if (m_inputController) {
+		m_inputController->Update();
+		
+		// Get world cursor position
+		float worldX, worldY;
+		m_inputController->GetWorldCursor(worldX, worldY);
+		
+		// Convert screen cursor position to tile selection
+		float screenX = (worldX + m_camera->GetPosX()) / m_camera->GetZoom();
+		float screenY = (worldY + m_camera->GetPosY()) / m_camera->GetZoom();
+		
+		// Get tile under cursor using Grid Picking
+		if (m_mapEditor && m_mapEditor->GetMap()) {
+			int tileX, tileY;
+			if (m_mapEditor->GetMap()->GetTileUnderMouse(screenX, screenY, m_camera, m_currentLayer, tileX, tileY)) {
+				m_selectedTileX = tileX;
+				m_selectedTileY = tileY;
+				m_hasSelection = true;
+			}
+		}
+	}
+
 	// === CAMERA CONTROL (only when menu is NOT active) ===
 	if (!menuActive && m_camera) {
 		float moveSpeed = 500.0f * deltaTime; // pixels per second
@@ -375,6 +410,28 @@ void EditorScene::Render() {
     // === STEP 2: Render map through MapEditor (fills command queue) ===
     if (m_mapEditor) {
         m_mapEditor->Render();
+    }
+
+    // === STEP 2.5: Render selection hex (white outline) ===
+    if (m_hasSelection && m_mapEditor && m_mapEditor->GetMap()) {
+        float tileCenterX, tileCenterY;
+        CoordinateSystem& coords = CoordinateSystem::GetInstance();
+        
+        if (m_currentLayer == World::Ground) {
+            coords.GroundTileToWorldCenter(m_selectedTileX, m_selectedTileY, tileCenterX, tileCenterY);
+        } else {
+            coords.NodeTileToWorld(m_selectedTileX, m_selectedTileY, tileCenterX, tileCenterY);
+        }
+        
+        // Submit selection hex as a render command
+        // For now, we'll just render a simple white outline using the sprite renderer
+        // This should be replaced with a proper hex outline shader later
+        if (m_spriteRenderer) {
+            // Create a simple white outline effect
+            // This is a placeholder - should use a proper selection shader
+            D3DXVECTOR3 selectionPos(tileCenterX, tileCenterY, 0.1f);
+            // Submit to render queue (implementation depends on your sprite renderer API)
+        }
     }
 
     // === STEP 3: Render UI elements (RadialMenu, GridMenu) ===

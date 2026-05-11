@@ -3,17 +3,18 @@
 
 #include "Scene.h"
 #include "../Logic/MapConstants.h"
-#include "../World/TileLayer.h"
+#include "../Graphics/Camera.h"
 #include "../Graphics/RadialMenu.h"
-#include "../Graphics/TextManager.h"
 #include "../Graphics/GridMenu.h"
-#include "../Graphics/Texture.h"
-#include "../Graphics/Renderer.h"
 #include "../Graphics/SpriteRenderer.h"
+#include "../Graphics/Texture.h"
+#include "../Graphics/TextManager.h"
+#include "../Editor/MapEditor.h"
+#include "../World/Map.h"
+#include "../Graphics/Renderer.h"
 #include "../Graphics/BinFileManager.h"
 #include "../Input/InputManager.h"
-#include "../Editor/MapEditor.h"
-#include "../Graphics/Camera.h"
+#include "../Input/InputController.h"
 
 namespace Scene {
 
@@ -66,6 +67,14 @@ EditorScene();
     int m_fps;
     int m_frameCount;
     DWORD m_lastFpsTime;
+
+    // Selection
+    int m_selectedTileX;
+    int m_selectedTileY;
+    bool m_hasSelection;
+
+    // Input controller for world coordinate translation
+    Logic::InputController* m_inputController;
 };
 
 } // namespace Scene
