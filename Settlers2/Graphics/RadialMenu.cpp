@@ -252,7 +252,7 @@ void RadialMenu::Render()
     cmd.depth = 0.0f; // Minimal depth - always on top (UI layer)
     cmd.layer = 2;     // UI layer
     cmd.isUI = true;   // Screen-space rendering (skip camera matrix)
-    cmd.shaderID = ShaderManager::SHADER_RADIALMENU; // Use shader handle instead of name
+    cmd.shaderID = SHADER_RADIALMENU; // Use shader handle instead of name
     cmd.customDraw = &RadialMenu::StaticDrawCallback;
     cmd.customUserData = this;
     
@@ -397,7 +397,7 @@ void RadialMenu::RenderIcons(SpriteRenderer* spriteRenderer)
         }
 
         // Use SHADER_UI for screen-space UI rendering
-        spriteRenderer->Begin(ShaderManager::SHADER_UI, texture, 0.1f, 0, true);
+        spriteRenderer->Begin(SHADER_UI, texture, 0.1f, 0, true);
 
         // Draw all icons from this atlas
         for (size_t j = 0; j < indices.size(); ++j) {
@@ -426,7 +426,7 @@ void RadialMenu::RenderIcons(SpriteRenderer* spriteRenderer)
         if (centerAtlas) {
             LPDIRECT3DTEXTURE9 centerTexture = centerAtlas->GetTexture();
             if (centerTexture) {
-                spriteRenderer->Begin(ShaderManager::SHADER_UI, centerTexture, 0.05f, 0, true); // Center icon: closest to viewer
+                spriteRenderer->Begin(SHADER_UI, centerTexture, 0.05f, 0, true); // Center icon: closest to viewer
                 uint32_t centerSpriteIndex = centerItem->spriteIndex;
                 const SpriteRegion* centerRegion = centerAtlas->GetRegion(centerSpriteIndex);
                 if (centerRegion) {

@@ -70,23 +70,23 @@ HRESULT Renderer::Initialize() {
     }
 
     // Load default sprite shader
-//	hr = LoadShader("Basic2D", "game:\\Media\\Shaders\\Basic2D.fx", "Basic2D");
+//	hr = LoadShader(SHADER_SPRITE, "game:\\Media\\Shaders\\Basic2D.fx", "Basic2D");
 //    if (FAILED(hr)) {
 //        OutputDebugStringA("Failed to load default Basic2D shader\n");
 //    }
 
-    hr = LoadShader("sprite", "game:\\Media\\Shaders\\SpriteShader.fx", "SpriteBatchTech");
+    hr = LoadShader(SHADER_SPRITE, "game:\\Media\\Shaders\\SpriteShader.fx", "SpriteBatchTech");
     if (FAILED(hr)) {
         OutputDebugStringA("Failed to load default sprite shader\n");
     }
 
     // Load instanced sprite shaders for maximum performance (4096+ sprites)
-    hr = LoadShader("sprite_instanced", "game:\\Media\\Shaders\\SpriteInstanced.fx", "SpriteInstancedTech");
+    hr = LoadShader(SHADER_SPRITE_CONSTANT_INSTANCED, "game:\\Media\\Shaders\\SpriteInstanced.fx", "SpriteInstancedTech");
     if (FAILED(hr)) {
         OutputDebugStringA("Failed to load instanced sprite shader\n");
     }
 
-    hr = LoadShader("sprite_constant_instanced", "game:\\Media\\Shaders\\SpriteConstantInstanced.fx", "SpriteConstantInstancedTech");
+    hr = LoadShader(SHADER_SPRITE_CONSTANT_INSTANCED, "game:\\Media\\Shaders\\SpriteConstantInstanced.fx", "SpriteConstantInstancedTech");
     if (FAILED(hr)) {
         OutputDebugStringA("Failed to load constant instanced sprite shader\n");
     } else {
@@ -109,17 +109,17 @@ HRESULT Renderer::Initialize() {
     return S_OK;
 }
 
-HRESULT Renderer::LoadShader(const char* name, const char* filepath, const char* techniqueName) {
-    return m_shaderManager.LoadShader(name, filepath, techniqueName);
+HRESULT Renderer::LoadShader(ShaderID id, const char* filepath, const char* techniqueName) {
+    return m_shaderManager.LoadShader(id, filepath, techniqueName);
 }
 
-bool Renderer::SetShader(const char* name) {
-    return m_shaderManager.SetActiveShader(name);
+bool Renderer::SetShader(ShaderID id) {
+    return m_shaderManager.SetActiveShader(id);
 }
 
 void Renderer::ResetToDefaultShader() {
     // Force reset to sprite_constant_instanced shader (unified shader approach)
-    m_shaderManager.SetActiveShader("sprite_constant_instanced");
+    m_shaderManager.SetActiveShader(SHADER_SPRITE_CONSTANT_INSTANCED);
 }
 
 void Renderer::Setup2DRenderStates() {
@@ -178,7 +178,7 @@ void Renderer::BeginFrame() {
     
     // Set projection matrix on the sprite shader (but don't BeginShader/BeginPass here)
     // SpriteRenderer manages its own shader state in FlushStandard
-    ShaderManager::Shader* pSpriteShader = m_shaderManager.GetShader("sprite");
+    ShaderManager::Shader* pSpriteShader = m_shaderManager.GetShader(SHADER_SPRITE);
     if (pSpriteShader && pSpriteShader->pEffect && pSpriteShader->hMatOrtho) {
         pSpriteShader->pEffect->SetMatrix(pSpriteShader->hMatOrtho, (D3DXMATRIX*)&m_projMatrix);
     }
@@ -275,9 +275,9 @@ void Renderer::DrawSingleSprite(Texture* texture, float x, float y, float width,
     vertices[3].color = color; vertices[3].u = u0; vertices[3].v = v1;
     vertices[3].padding[0] = 0; vertices[3].padding[1] = 0;
 
-    ShaderManager::Shader* pShader = m_shaderManager.GetShader("sprite");
+    ShaderManager::Shader* pShader = m_shaderManager.GetShader(SHADER_SPRITE);
     if (pShader && pShader->pEffect && m_pVertexDecl) {
-        m_shaderManager.SetActiveShader("sprite");
+        m_shaderManager.SetActiveShader(SHADER_SPRITE);
         m_shaderManager.SetTexture("g_texture", texture->GetTexture());
         m_shaderManager.BeginShader();
         m_shaderManager.BeginPass(0);

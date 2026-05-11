@@ -9,5 +9,6 @@
 #include <xboxmath.h>
 
 #include "Logic/MapConstants.h"
+#include "Graphics/ShaderManager.h"
 
 // TODO: reference additional headers your program requires here

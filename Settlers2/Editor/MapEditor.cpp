@@ -389,7 +389,7 @@ void MapEditor::RenderGridLayer() {
         int mapHeight = groundLayer->GetHeight();
 
         // Use SHADER_SPRITE with Y-depth sorting
-        m_spriteRenderer->BeginWorldObject(ShaderManager::SHADER_SPRITE, m_groundAtlas->GetTexture(), 0.0f, 0.95f, 0.0001f, 0);
+        m_spriteRenderer->BeginWorldObject(SHADER_SPRITE, m_groundAtlas->GetTexture(), 0.0f, 0.95f, 0.0001f, 0);
         
         for (int y = minGroundY; y < maxGroundY; ++y) {
             for (int x = minGroundX; x < maxGroundX; ++x) {
@@ -421,7 +421,7 @@ void MapEditor::RenderGridLayer() {
             int mapHeight = overlayLayer->GetHeight();
 
             // Use SHADER_SPRITE_CONSTANT_INSTANCED with Y-depth sorting
-            m_spriteRenderer->BeginWorldObject(ShaderManager::SHADER_SPRITE_CONSTANT_INSTANCED, m_groundAtlas->GetTexture(), 0.0f, 0.65f, 0.0001f, 1);
+            m_spriteRenderer->BeginWorldObject(SHADER_SPRITE_CONSTANT_INSTANCED, m_groundAtlas->GetTexture(), 0.0f, 0.65f, 0.0001f, 1);
             
             for (int y = 0; y < overlayLayer->GetHeight(); ++y) {
                 for (int x = 0; x < overlayLayer->GetWidth(); ++x) {
@@ -453,7 +453,7 @@ void MapEditor::RenderGridLayer() {
             int mapHeight = NODES_H;
 
             // Use SHADER_SPRITE_CONSTANT_INSTANCED with Y-depth sorting
-            m_spriteRenderer->BeginWorldObject(ShaderManager::SHADER_SPRITE_CONSTANT_INSTANCED, m_dotTexture, 0.0f, 0.65f, 0.0001f, 1);
+            m_spriteRenderer->BeginWorldObject(SHADER_SPRITE_CONSTANT_INSTANCED, m_dotTexture, 0.0f, 0.65f, 0.0001f, 1);
             
             for (int y = 0; y < NODES_H; ++y) {
                 for (int x = 0; x < NODES_W; ++x) {
@@ -490,7 +490,7 @@ void MapEditor::RenderGridLayer() {
             int mapHeight = GRID_HEIGHT;
 
             // Use SHADER_SPRITE_CONSTANT_INSTANCED with Y-depth sorting
-            m_spriteRenderer->BeginWorldObject(ShaderManager::SHADER_SPRITE_CONSTANT_INSTANCED, m_objectAtlas->GetTexture(), 0.0f, 0.65f, 0.0001f, 1);
+            m_spriteRenderer->BeginWorldObject(SHADER_SPRITE_CONSTANT_INSTANCED, m_objectAtlas->GetTexture(), 0.0f, 0.65f, 0.0001f, 1);
             
             for (int y = 0; y < GRID_HEIGHT; ++y) {
                 for (int x = 0; x < GRID_WIDTH; ++x) {
@@ -524,7 +524,7 @@ void MapEditor::RenderGridLayer() {
             int mapHeight = GRID_HEIGHT;
 
             // Use SHADER_SPRITE_CONSTANT_INSTANCED with Y-depth sorting
-            m_spriteRenderer->BeginWorldObject(ShaderManager::SHADER_SPRITE_CONSTANT_INSTANCED, m_objectAtlas->GetTexture(), 0.0f, 0.65f, 0.0001f, 1);
+            m_spriteRenderer->BeginWorldObject(SHADER_SPRITE_CONSTANT_INSTANCED, m_objectAtlas->GetTexture(), 0.0f, 0.65f, 0.0001f, 1);
             
             for (int y = 0; y < GRID_HEIGHT; ++y) {
                 for (int x = 0; x < GRID_WIDTH; ++x) {

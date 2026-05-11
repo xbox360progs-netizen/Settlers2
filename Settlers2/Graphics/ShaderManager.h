@@ -1,9 +1,23 @@
 #pragma once
+
 #include <d3d9.h>
 #include <d3dx9.h>
 #include <map>
-#include <string>
 #include <vector>
+#include <string>
+
+// Global shader ID enum (must be outside class for use across files)
+enum ShaderID {
+    SHADER_INVALID = -1,
+    SHADER_SPRITE = 0,
+    SHADER_SPRITE_CONSTANT_INSTANCED = 1,
+    SHADER_RADIALMENU = 2,
+    SHADER_UI = 3,
+    SHADER_TERRAIN = 4,
+    SHADER_WORLD = 5,
+    SHADER_ENTITY = 6,
+    SHADER_COUNT
+};
 
 // Xbox 360 specific: Ensure we use the right alignment for VMX-related math if needed
 __declspec(align(16))
@@ -58,17 +72,6 @@ public:
 
     // Custom draw callback type for non-standard rendering (e.g. RadialMenu shader)
     typedef void (*CustomDrawFn)(LPDIRECT3DDEVICE9 pDevice, ShaderManager* pShaderMgr, void* pUserData);
-
-    // Shader handle system (type-safe enum for Xbox 360 - C++98 compatible)
-    enum ShaderID {
-        SHADER_INVALID = -1,
-        SHADER_SPRITE = 0,
-        SHADER_SPRITE_CONSTANT_INSTANCED = 1,
-        SHADER_RADIALMENU = 2,
-        SHADER_UI = 3,          // Dedicated UI shader (GridMenu, HUD, etc.)
-        SHADER_TERRAIN = 4,     // Terrain/ground tiles
-        SHADER_COUNT
-    };
 
     // Render command structure for queue-based rendering (Master Loop)
     struct RenderCommand {
@@ -144,11 +147,11 @@ public:
     HRESULT Initialize(LPDIRECT3DDEVICE9 device);
     void Shutdown();
 
-    HRESULT LoadShader(const char* name, const char* filepath, const char* techniqueName = "SpriteBatchTech");
-    bool SetActiveShader(const char* name);
+    HRESULT LoadShader(ShaderID id, const char* filepath, const char* techniqueName = "SpriteBatchTech");
+    bool SetActiveShader(ShaderID id);
 
     Shader* GetActiveShader() { return m_pActiveShader; }
-    Shader* GetShader(const char* name);
+    Shader* GetShader(ShaderID id);
 
     // Rendering Lifecycle
     void BeginShader();
@@ -172,8 +175,8 @@ public:
     void OnLostDevice();
     void OnResetDevice();
 
-    bool HasShader(const char* name) const;
-
+    bool HasShader(ShaderID id) const;
+    
     // === Queue-based Rendering System (Master Loop) ===
     
     // Submit a render command to the queue
@@ -238,6 +241,9 @@ public:
     // Returns false if any shader fails to load
     bool Init();
     
+    // Load base shaders (Sprite.fx, UI.fx) for centralized shader registry
+    bool LoadBaseShaders();
+    
     // Get effect pointer by ShaderID (for direct parameter access when needed)
     ID3DXEffect* GetEffect(ShaderID id);
     
@@ -285,7 +291,7 @@ private:
     LPDIRECT3DDEVICE9 m_pDevice;
     
     // Centralized shader storage (private for ReadOnly protection)
-    std::map<std::string, Shader> m_shaders; // Key is string for LoadShader compatibility
+    std::map<ShaderID, Shader> m_shaders; // Key is ShaderID for fast O(1) lookup
     Shader* m_pActiveShader;
     ID3DXEffect* m_pActiveEffect; // Active effect from centralized m_effects map
     ShaderID m_currentShaderID; // Track current shader for state caching

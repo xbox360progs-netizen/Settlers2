@@ -37,8 +37,8 @@ public:
 
     // Shader management
     ShaderManager* GetShaderManager() { return &m_shaderManager; }
-    HRESULT LoadShader(const char* name, const char* filepath, const char* techniqueName = "SpriteBatchTech");
-    bool SetShader(const char* name);
+    HRESULT LoadShader(ShaderID id, const char* filepath, const char* techniqueName = "SpriteBatchTech");
+    bool SetShader(ShaderID id);
     void ResetToDefaultShader();
     // Prepare render states for UI rendering
     void PrepareForUI();

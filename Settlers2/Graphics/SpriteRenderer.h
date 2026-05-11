@@ -76,12 +76,12 @@ public:
     void OnResetDevice();
 
     // Begin a batch with specific shader and texture
-    void Begin(ShaderManager::ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture);
-    void Begin(ShaderManager::ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth);
-    void Begin(ShaderManager::ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType);
-    void Begin(ShaderManager::ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType, bool isUI);
-    void Begin(ShaderManager::ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, int layer, float yPosition); // Composite depth: layer*1000 + y
-    void Begin(ShaderManager::ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, int layer, float yPosition, int renderType, bool isUI);
+    void Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture);
+    void Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth);
+    void Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType);
+    void Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType, bool isUI);
+    void Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, int layer, float yPosition); // Composite depth: layer*1000 + y
+    void Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, int layer, float yPosition, int renderType, bool isUI);
     
     // Legacy Begin overloads (map shader names to handles for backward compatibility)
     void Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture);
@@ -90,7 +90,7 @@ public:
     void Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType, bool isUI);
     
     // Y-sorting helper for world objects (buildings, units): depth = layer_base + (y * scale)
-    void BeginWorldObject(ShaderManager::ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float worldY, float layerBase = 0.5f, float yScale = 0.0001f, int renderType = 0);
+    void BeginWorldObject(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float worldY, float layerBase = 0.5f, float yScale = 0.0001f, int renderType = 0);
 
     // Submit current batch to ShaderManager queue (for manual control)
     void SubmitBatch(ShaderManager* pShader);
@@ -178,9 +178,9 @@ private:
     void SetRenderMode(RenderMode mode) { 
         m_currentMode = mode; 
         switch(mode) {
-            case MODE_STANDARD:         m_currentShaderID = ShaderManager::SHADER_SPRITE; break;
-            case MODE_INSTANCED_STREAM:   m_currentShaderID = ShaderManager::SHADER_SPRITE; break; // Fallback to sprite
-            case MODE_INSTANCED_CONST:    m_currentShaderID = ShaderManager::SHADER_SPRITE_CONSTANT_INSTANCED; break;
+            case MODE_STANDARD:         m_currentShaderID = SHADER_SPRITE; break;
+            case MODE_INSTANCED_STREAM:   m_currentShaderID = SHADER_SPRITE; break; // Fallback to sprite
+            case MODE_INSTANCED_CONST:    m_currentShaderID = SHADER_SPRITE_CONSTANT_INSTANCED; break;
         }
     }
     RenderMode GetRenderMode() const { return m_currentMode; }
@@ -240,7 +240,7 @@ private:
 
     // State tracking
     RenderMode m_currentMode;
-    ShaderManager::ShaderID m_currentShaderID; // Shader handle (enum) instead of string
+    ShaderID m_currentShaderID; // Shader handle (enum) instead of string
     LPDIRECT3DTEXTURE9 m_currentTexture;
     bool m_isBatching;
     float m_currentDepth; // Current depth for batch (1.0=far, 0.1=near)
