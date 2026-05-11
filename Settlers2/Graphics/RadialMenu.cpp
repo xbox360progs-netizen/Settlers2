@@ -256,7 +256,9 @@ void RadialMenu::Render()
     // This ensures RadialMenu respects the depth-based sorting system
     ShaderManager::RenderCommand cmd;
     cmd.batchType = 2; // Custom callback
-    cmd.depth = 0.08f; // UI layer, behind icons (0.1) but above everything else
+    cmd.depth = 0.0f; // Minimal depth - always on top (UI layer)
+    cmd.layer = 2;     // UI layer
+    cmd.isUI = true;   // Screen-space rendering (skip camera matrix)
     cmd.shaderName = "RadialMenu";
     cmd.customDraw = &RadialMenu::StaticDrawCallback;
     cmd.customUserData = this;

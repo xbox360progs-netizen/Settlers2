@@ -35,6 +35,7 @@ EditorScene::EditorScene()
     , m_binFileManager(nullptr)
     , m_textManager(nullptr)
     , m_shaderManager(nullptr)
+    , m_camera(nullptr)
     , m_radialMenu(nullptr)
     , m_gridMenu(nullptr)
     , m_mapEditor(nullptr)
@@ -61,6 +62,10 @@ EditorScene::~EditorScene() {
         delete m_gridMenu;
         m_gridMenu = nullptr;
     }
+    if (m_camera) {
+        delete m_camera;
+        m_camera = nullptr;
+    }
 }
 
 void EditorScene::Load() {
@@ -80,6 +85,13 @@ void EditorScene::Load() {
     }
 
     OutputDebugStringA("[EditorScene] All dependencies OK, loading RadialMenu...\n");
+    
+    // Initialize Camera for world-space rendering
+    m_camera = new Camera();
+    if (m_camera) {
+        m_camera->Initialize(1280.0f, 720.0f);
+        OutputDebugStringA("[EditorScene] Camera initialized\n");
+    }
     
     // Create and initialize RadialMenu
     m_radialMenu = new RadialMenu(m_renderer->GetDevice(), m_renderer->GetShaderManager(), m_binFileManager);
@@ -188,6 +200,28 @@ void EditorScene::Update(float deltaTime) {
 
 	Input::Gamepad* gamepad = m_inputManager->GetGamepad();
 	if (!gamepad) return;
+
+	// === CAMERA CONTROL ===
+	// Left stick: move camera
+	if (m_camera) {
+		float moveSpeed = 500.0f * deltaTime; // pixels per second
+		float stickX, stickY;
+		gamepad->GetLeftStick(stickX, stickY);
+		
+		if (fabsf(stickX) > 0.1f || fabsf(stickY) > 0.1f) {
+			m_camera->Move(stickX * moveSpeed, -stickY * moveSpeed); // Y inverted for screen coords
+		}
+		
+		// Right stick: zoom camera
+		float rightX, rightY;
+		gamepad->GetRightStick(rightX, rightY);
+		if (fabsf(rightY) > 0.1f) {
+			float zoomSpeed = 1.0f * deltaTime;
+			m_camera->Zoom(-rightY * zoomSpeed); // Push up to zoom in
+		}
+		
+		m_camera->Update();
+	}
 
 	bool menuActive = (m_gridMenu && m_gridMenu->IsVisible()) || (m_radialMenu && m_radialMenu->IsVisible());
 
@@ -364,8 +398,16 @@ void EditorScene::Render() {
         LPDIRECT3DINDEXBUFFER9 pIB = m_spriteRenderer->GetIndexBuffer();
         LPDIRECT3DVERTEXDECLARATION9 pDecl = m_spriteRenderer->GetVertexDeclaration();
         
+        // Calculate ViewProjection matrix from camera for world-space rendering
+        D3DXMATRIX viewProj;
+        if (m_camera) {
+            D3DXMatrixMultiply(&viewProj, &m_camera->GetViewMatrix(), &m_camera->GetProjectionMatrix());
+        } else {
+            D3DXMatrixIdentity(&viewProj);
+        }
+        
         if (pVB && pIB && pDecl) {
-            m_shaderManager->ExecuteQueue(pVB, pIB, pDecl, 32);
+            m_shaderManager->ExecuteQueue(pVB, pIB, pDecl, 32, &viewProj);
         }
     }
 

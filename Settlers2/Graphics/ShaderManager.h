@@ -68,17 +68,22 @@ public:
         DWORD primitiveCount;
         int batchType; // 0 - Standard (Single), 1 - Instanced, 2 - Custom callback
         float depth;   // Z-layer: 1.0=far (ground), 0.5=mid (units), 0.1=near (UI)
+        int layer;     // Logical layer: 0=Terrain, 1=Objects, 2=UI (for composite depth)
+        bool isUI;     // Screen-space rendering (skip camera matrix)
         RenderStateBlock states;
         std::string shaderName;
         DWORD batchIndex; // For tracking batch sequence (for vertex offset calculation)
+        
+        // World position for camera transform (if not isUI)
+        float worldX, worldY;
         
         // Custom draw callback (for batchType == 2)
         CustomDrawFn customDraw;
         void* customUserData;
         
         RenderCommand() : pTexture(NULL), pShader(NULL), vertexStart(0), vertexCount(0),
-            primitiveCount(0), batchType(0), depth(1.0f), batchIndex(0),
-            customDraw(NULL), customUserData(NULL) {}
+            primitiveCount(0), batchType(0), depth(1.0f), layer(0), isUI(false), batchIndex(0),
+            worldX(0), worldY(0), customDraw(NULL), customUserData(NULL) {}
         
         // Sorting operator: back-to-front for alpha blending
         // Higher depth = farther, drawn first. Lower depth = nearer, drawn on top.
@@ -190,7 +195,8 @@ public:
     
     // Execute all commands in the queue (Master Loop - final render pass)
     void ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
-                     LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride);
+                     LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride,
+                     const D3DXMATRIX* pViewProj = NULL); // Optional camera matrix
     
     // Execute draw batches with material-based sorting
     void ExecuteDrawBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 

@@ -78,9 +78,10 @@ public:
     // Begin a batch with specific shader and texture
     void Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture);
     void Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float depth);
-    
-    // Begin with explicit render type (0 = Single, 1 = Instanced)
     void Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType);
+    void Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType, bool isUI);
+    void Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, int layer, float yPosition); // Composite depth: layer*1000 + y
+    void Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, int layer, float yPosition, int renderType, bool isUI);
 
     // Submit current batch to ShaderManager queue (for manual control)
     void SubmitBatch(ShaderManager* pShader);
@@ -235,6 +236,7 @@ private:
     bool m_isBatching;
     float m_currentDepth; // Current depth for batch (1.0=far, 0.1=near)
     int m_currentRenderType; // 0 = Single, 1 = Instanced
+    bool m_currentIsUI; // Screen-space rendering (skip camera matrix)
     
     // Ring buffer tracking for vertex accumulation
     DWORD m_totalVertexCount; // Total vertices accumulated since last Execute

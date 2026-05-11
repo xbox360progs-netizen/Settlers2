@@ -13,6 +13,7 @@
 #include "../Graphics/BinFileManager.h"
 #include "../Input/InputManager.h"
 #include "../Editor/MapEditor.h"
+#include "../Graphics/Camera.h"
 
 namespace Scene {
 
@@ -48,6 +49,7 @@ EditorScene();
     BinFileManager* m_binFileManager;
     class TextManager* m_textManager;
     class ShaderManager* m_shaderManager;
+    class Camera* m_camera;
     RadialMenu* m_radialMenu;
     GridMenu* m_gridMenu;
     Texture m_groundTexture;

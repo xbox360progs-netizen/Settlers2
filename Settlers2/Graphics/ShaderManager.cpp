@@ -321,7 +321,8 @@ void ShaderManager::SortBatches() {
 }
 
 void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
-                                LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride) {
+                                LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride,
+                                const D3DXMATRIX* pViewProj) {
     if (m_commandQueue.empty()) return;
     
     // === SORT COMMANDS BY DEPTH (back-to-front for alpha) ===
@@ -370,6 +371,18 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         
         // Set texture
         SetTexture("g_texture", cmd.pTexture);
+        Commit();
+        
+        // === CAMERA TRANSFORM: Apply ViewProjection matrix for world-space objects ===
+        // If command is not UI and we have a camera matrix, set it in the shader
+        if (!cmd.isUI && pViewProj) {
+            SetMatrix("WorldViewProjection", (const float*)pViewProj);
+        } else {
+            // UI or no camera: use identity matrix (screen-space)
+            D3DXMATRIX identity;
+            D3DXMatrixIdentity(&identity);
+            SetMatrix("WorldViewProjection", (const float*)&identity);
+        }
         Commit();
         
         // Draw this command based on batch type

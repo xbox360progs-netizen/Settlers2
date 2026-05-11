@@ -81,6 +81,7 @@ SpriteRenderer::SpriteRenderer()
     m_currentShaderName = "sprite_constant_instanced";
     m_currentDepth = 1.0f; // Default: far layer (ground)
     m_currentRenderType = 0; // Default to Single
+    m_currentIsUI = false; // Default: world-space (apply camera matrix)
     m_totalVertexCount = 0;
     
     // Initialize arrays inside constructor body
@@ -603,6 +604,10 @@ void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, 
 }
 
 void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType) {
+    Begin(shaderName, pTexture, depth, renderType, false); // Default: world-space
+}
+
+void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType, bool isUI) {
 
     // If state changed, flush previous batch
     if (m_isBatching) {
@@ -619,18 +624,35 @@ void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, 
         if (m_currentRenderType != renderType && m_spriteCount > 0) {
             Flush();
         }
+        // AUTO-FLUSH: If isUI changed (world-space <-> screen-space), flush immediately
+        if (m_currentIsUI != isUI && m_spriteCount > 0) {
+            Flush();
+        }
     }
 
     char debugMsg[128];
-    sprintf(debugMsg, "[SpriteRenderer::Begin] shader=%s, texture=%p, depth=%.2f, renderType=%d\n", shaderName, pTexture, depth, renderType);
+    sprintf(debugMsg, "[SpriteRenderer::Begin] shader=%s, texture=%p, depth=%.2f, renderType=%d, isUI=%d\n", shaderName, pTexture, depth, renderType, isUI);
     OutputDebugStringA(debugMsg);
 
     m_currentShaderName = shaderName;
     m_currentTexture = pTexture;
     m_currentDepth = depth;
+    m_currentRenderType = renderType;
+    m_currentIsUI = isUI;
     m_isBatching = true;
     m_spriteCount = 0;
 
+}
+
+// Composite depth: layer * 1000 + yPosition for hybrid Z-ordering
+void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, int layer, float yPosition) {
+    float compositeDepth = (float)(layer * 1000) + yPosition;
+    Begin(shaderName, pTexture, compositeDepth, 0, false); // Default: world-space, Single sprite
+}
+
+void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, int layer, float yPosition, int renderType, bool isUI) {
+    float compositeDepth = (float)(layer * 1000) + yPosition;
+    Begin(shaderName, pTexture, compositeDepth, renderType, isUI);
 }
 
 void SpriteRenderer::Draw(float x, float y, float width, float height,
@@ -788,6 +810,8 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
         cmd.primitiveCount = (DWORD)(m_spriteCount * 2); // 2 triangles per sprite
         cmd.batchType = m_currentRenderType; // Use render type from Begin()
         cmd.depth = m_currentDepth; // Use current depth from Begin()
+        cmd.layer = 0; // Default layer (will be overridden by caller if needed)
+        cmd.isUI = m_currentIsUI; // Screen-space or world-space
         
         // Set default render states for 2D sprites
         cmd.states.zEnable = D3DZB_FALSE;
@@ -837,6 +861,8 @@ void SpriteRenderer::SubmitBatch(ShaderManager* pShader) {
         cmd.primitiveCount = (DWORD)(m_spriteCount * 2);
         cmd.batchType = m_currentRenderType;
         cmd.depth = m_currentDepth;
+        cmd.layer = 0;
+        cmd.isUI = m_currentIsUI;
         
         cmd.states.zEnable = D3DZB_FALSE;
         cmd.states.alphaBlendEnable = TRUE;
