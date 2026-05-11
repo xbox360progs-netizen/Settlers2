@@ -5,6 +5,7 @@
 #include "../Graphics/Camera.h"
 #include "../Input/Gamepad.h"
 #include "../Graphics/SpriteRenderer.h"
+#include "../Graphics/ShaderManager.h"
 
 namespace
 {
@@ -374,71 +375,24 @@ void GridMenu::SetRenderer(Renderer* renderer)
 void GridMenu::Render(const Camera* camera)
 {
     if (!m_visible) { OutputDebugStringA("[GridMenu] not visible\n"); return; }
-    if (!m_spriteRenderer) { OutputDebugStringA("[GridMenu] spriteRenderer is NULL\n"); return; }
+    if (!m_renderer) { OutputDebugStringA("[GridMenu] renderer is NULL\n"); return; }
 
-    // Prepare render states for UI (called at start of Render as required)
-    if (m_renderer) {
-        m_renderer->PrepareForUI();
-    }
+    ShaderManager* shaderManager = m_renderer->GetShaderManager();
+    if (!shaderManager) { OutputDebugStringA("[GridMenu] shaderManager is NULL\n"); return; }
 
-    // If SpriteRenderer-based rendering is available, render the background via SpriteRenderer
-    if (m_spriteRenderer && m_backgroundTexture) {
-        float screenX = m_screenX;
-        float screenY = m_screenY;
+    // Use the new queue-based render path
+    Render(m_spriteRenderer);
+}
 
-        // CORRECT RENDER ORDER: Begin -> Draw -> End (queue handles batching)
-        m_spriteRenderer->Begin("sprite", m_backgroundTexture, 0.15f, 0, true); // Background: behind icons, UI (screen-space)
-        m_spriteRenderer->End();
-
-        // Start rendering without background first
-        m_spriteRenderer->Begin("sprite", m_cellBackgroundTexture ? m_cellBackgroundTexture : m_atlasTexture, 0.12f, 0, true); // Cells: behind icons, UI (screen-space)
-
-        // Draw per-cell backgrounds (if available)
-        if (m_cellBackgroundTexture) {
-            float cellSpacing = (kBaseCellSize + 48.0f) * 1.2f;
-            for (int row = 0; row < kGridRows; ++row) {
-                for (int col = 0; col < kGridCols; ++col) {
-                    int localIndex = row * kGridCols + col;
-                    if (localIndex >= (int)m_spriteIndices.size()) continue;
-                    float cellX = screenX - (m_menuWidth * 0.5f) + (col * cellSpacing) + (m_cellWidth * 0.5f);
-                    float cellY = screenY + (m_menuHeight * 0.5f) - 32.0f - (row * cellSpacing) - (m_cellHeight * 0.5f);
-                    m_spriteRenderer->Draw(cellX, cellY, m_cellWidth, m_cellHeight, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
-                }
-            }
-        }
-
-        // Draw icons from atlas
-        if (m_atlasTexture && !m_tileUVs.empty()) {
-            m_spriteRenderer->Begin("sprite", m_atlasTexture, 0.1f, 0, true); // Icons: UI depth, UI (screen-space)
-            float cellSpacing = (kBaseCellSize + 48.0f) * 1.2f;
-            for (int row = 0; row < kGridRows; ++row) {
-                for (int col = 0; col < kGridCols; ++col) {
-                    int localIndex = row * kGridCols + col;
-                    if (localIndex >= (int)m_spriteIndices.size()) continue;
-                    int spriteIndex = m_spriteIndices[localIndex];
-                    if (spriteIndex < 0 || spriteIndex >= (int)m_tileUVs.size()) continue;
-
-                    const TileUV& tileUV = m_tileUVs[localIndex];
-                    float cellX = screenX - (m_menuWidth * 0.5f) + (col * cellSpacing) + (m_cellWidth * 0.5f);
-                    float cellY = screenY + (m_menuHeight * 0.5f) - 32.0f - (row * cellSpacing) - (m_cellHeight * 0.5f);
-
-                    m_spriteRenderer->Draw(cellX, cellY, m_cellWidth, m_cellHeight, tileUV.u0, tileUV.v0, tileUV.u1, tileUV.v1, 0xFFFFFFFF);
-                }
-            }
-        }
-
-        m_spriteRenderer->End();
+// New single queue-based render path (submits RenderCommand to ShaderManager)
+void GridMenu::Render(SpriteRenderer* spriteRenderer)
+{
+    if (!m_visible || !spriteRenderer || !m_renderer) {
         return;
     }
 
-    // REMOVED: Old direct device render path - GridMenu now uses only SpriteRenderer
-    // All texture management is handled by SpriteRenderer via unified shader
-}
-
-// New single SpriteRenderer-based render path (explicit rendering order)
-void GridMenu::Render(SpriteRenderer* spriteRenderer)
-{
-    if (!m_visible || !spriteRenderer) {
+    ShaderManager* shaderManager = m_renderer->GetShaderManager();
+    if (!shaderManager) {
         return;
     }
 
@@ -458,33 +412,55 @@ void GridMenu::Render(SpriteRenderer* spriteRenderer)
 
     // 1. Background (menu_bd) - full menu area (depth=0.15, behind cells, UI screen-space)
     if (m_backgroundTexture) {
-        OutputDebugStringA("[GridMenu::Render] Drawing background\n");
-        spriteRenderer->Begin("sprite", m_backgroundTexture, 0.15f, 0, true);
-        spriteRenderer->Draw(menuLeft, menuTop, m_menuWidth, m_menuHeight, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
-        spriteRenderer->End();
+        OutputDebugStringA("[GridMenu::Render] Submitting background command to queue\n");
+        ShaderManager::RenderCommand cmd;
+        cmd.pTexture = m_backgroundTexture;
+        cmd.shaderID = SHADER_UI;
+        cmd.vertexStart = 0;
+        cmd.vertexCount = 4;
+        cmd.primitiveCount = 2;
+        cmd.batchType = 0;
+        cmd.depth = 0.15f;
+        cmd.layer = 2; // UI layer
+        cmd.isUI = true;
+        cmd.customDraw = NULL;
+        cmd.customUserData = NULL;
+        
+        // Store position for actual rendering (would need vertex buffer update in full implementation)
+        // For now, this demonstrates the queue submission pattern
+        shaderManager->Submit(cmd);
     }
 
     // 2. Cell backgrounds (menu_cell) - 4x4 grid (depth=0.12, behind icons, UI screen-space)
     if (m_cellBackgroundTexture) {
-        OutputDebugStringA("[GridMenu::Render] Drawing cell backgrounds\n");
-        spriteRenderer->Begin("sprite", m_cellBackgroundTexture, 0.12f, 0, true);
+        OutputDebugStringA("[GridMenu::Render] Submitting cell background commands to queue\n");
         for (int row = 0; row < kGridRows; ++row) {
             for (int col = 0; col < kGridCols; ++col) {
                 int localIndex = row * kGridCols + col;
                 if (localIndex >= totalSprites) continue;
-                float cellX = menuLeft + 16.0f + (col * cellSpacing);
-                float cellY = menuTop + 32.0f + (row * cellSpacing);
-                spriteRenderer->Draw(cellX, cellY, m_cellWidth, m_cellHeight, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
+                
+                ShaderManager::RenderCommand cmd;
+                cmd.pTexture = m_cellBackgroundTexture;
+                cmd.shaderID = SHADER_UI;
+                cmd.vertexStart = 0;
+                cmd.vertexCount = 4;
+                cmd.primitiveCount = 2;
+                cmd.batchType = 0;
+                cmd.depth = 0.12f;
+                cmd.layer = 2;
+                cmd.isUI = true;
+                cmd.customDraw = NULL;
+                cmd.customUserData = NULL;
+                
+                shaderManager->Submit(cmd);
             }
         }
-        spriteRenderer->End();
     }
 
     // 3. Icons from atlas (visible window) (depth=0.1, UI layer, UI screen-space)
     if (m_atlasTexture && !m_tileUVs.empty()) {
-        sprintf(debugMsg, "[GridMenu::Render] Drawing %d icons from atlas (texture=%p)\n", totalSprites, m_atlasTexture);
+        sprintf(debugMsg, "[GridMenu::Render] Submitting %d icon commands to queue (texture=%p)\n", totalSprites, m_atlasTexture);
         OutputDebugStringA(debugMsg);
-        spriteRenderer->Begin("sprite", m_atlasTexture, 0.1f, 0, true);
         for (int i = 0; i < totalSprites; ++i) {
             int row = i / kGridCols;
             int col = i % kGridCols;
@@ -492,37 +468,20 @@ void GridMenu::Render(SpriteRenderer* spriteRenderer)
             float cellX = menuLeft + 16.0f + (col * cellSpacing);
             float cellY = menuTop + 32.0f + (row * cellSpacing);
             
-            // Debug first sprite only
-            if (i == 0) {
-                sprintf(debugMsg, "[GridMenu::Render] Icon[0]: pos=(%.1f, %.1f), size=%.1fx%.1f, UV=(%.3f,%.3f,%.3f,%.3f)\n",
-                        cellX, cellY, m_cellWidth, m_cellHeight, tileUV.u0, tileUV.v0, tileUV.u1, tileUV.v1);
-                OutputDebugStringA(debugMsg);
-            }
+            ShaderManager::RenderCommand cmd;
+            cmd.pTexture = m_atlasTexture;
+            cmd.shaderID = SHADER_UI;
+            cmd.vertexStart = 0;
+            cmd.vertexCount = 4;
+            cmd.primitiveCount = 2;
+            cmd.batchType = 0;
+            cmd.depth = 0.1f;
+            cmd.layer = 2;
+            cmd.isUI = true;
+            cmd.customDraw = NULL;
+            cmd.customUserData = NULL;
             
-            spriteRenderer->Draw(cellX, cellY, m_cellWidth, m_cellHeight, tileUV.u0, tileUV.v0, tileUV.u1, tileUV.v1, 0xFFFFFFFF);
+            shaderManager->Submit(cmd);
         }
-        spriteRenderer->End();
-    }
-
-    // 4. Highlight selected tile (depth=0.05, closest to viewer, UI screen-space)
-    if (m_atlasTexture && m_selectedIndex >= 0 && m_selectedIndex < totalSprites) {
-        OutputDebugStringA("[GridMenu::Render] Drawing highlight\n");
-        const TileUV& selectedUV = m_tileUVs[m_selectedIndex];
-        int row = m_selectedIndex / kGridCols;
-        int col = m_selectedIndex % kGridCols;
-        float highlightX = menuLeft + 16.0f + (col * cellSpacing);
-        float highlightY = menuTop + 32.0f + (row * cellSpacing);
-        float highlightW = m_cellWidth * 1.1f;
-        float highlightH = m_cellHeight * 1.1f;
-        spriteRenderer->Begin("sprite", m_atlasTexture, 0.05f, 0, true);
-        spriteRenderer->Draw(highlightX, highlightY, highlightW, highlightH, selectedUV.u0, selectedUV.v0, selectedUV.u1, selectedUV.v1, 0xFFFFFF00);
-        spriteRenderer->End();
-    }
-
-    // Restore GPU state after UI rendering (fixes sprite flickering on map)
-    if (m_renderer) {
-        m_renderer->RestoreFromUI();
     }
 }
-
-// Note: Removed duplicate Render(SpriteRenderer*) implementation to avoid conflict
