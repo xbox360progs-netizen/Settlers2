@@ -38,7 +38,7 @@ void ShaderManager::StateCache::ResetDirtyStates(LPDIRECT3DDEVICE9 device, const
 }
 
 ShaderManager::ShaderManager()
-    : m_pDevice(NULL), m_pActiveShader(NULL), m_numPasses(0), m_currentShaderID(SHADER_INVALID) {
+    : m_pDevice(NULL), m_pActiveShader(NULL), m_numPasses(0), m_currentShaderID(SHADER_INVALID), m_isLocked(false) {
     // Reserve memory for command queue to avoid expensive reallocations on Xbox 360
     m_commandQueue.reserve(2000);
     m_drawBatches.reserve(500);
@@ -428,6 +428,34 @@ void ShaderManager::SetLocalUniforms(LPDIRECT3DTEXTURE9 pTexture, float depth) {
     Commit();
 }
 
+// Update constants (unified method for texture + world matrix)
+void ShaderManager::UpdateConstants(LPDIRECT3DTEXTURE9 pTexture, const D3DXMATRIX* pWorldMatrix) {
+    if (!m_pActiveShader) return;
+    if (pTexture) {
+        SetTexture("g_texture", pTexture);
+    }
+    if (pWorldMatrix) {
+        SetMatrix("World", (const float*)pWorldMatrix);
+    }
+    Commit();
+}
+
+// State locking (prevents external state corruption during ExecuteQueue)
+void ShaderManager::Lock() {
+    m_isLocked = true;
+}
+
+void ShaderManager::Unlock() {
+    m_isLocked = false;
+}
+
+// Commit changes (Xbox 360: critical before Draw)
+void ShaderManager::CommitChanges() {
+    if (m_pActiveShader && m_pActiveShader->pEffect) {
+        m_pActiveShader->pEffect->CommitChanges();
+    }
+}
+
 // Validate shader handle
 bool ShaderManager::ValidateShader(ShaderID id) const {
     return id >= SHADER_INVALID && id < SHADER_COUNT;
@@ -461,6 +489,9 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     m_pDevice->SetVertexDeclaration(pDecl);
     m_pDevice->SetStreamSource(0, pVB, 0, vertexStride);
     m_pDevice->SetIndices(pIB);
+    
+    // === STATE LOCKING: Prevent external state corruption during ExecuteQueue ===
+    Lock();
     
     // Process commands in sorted order (Master Loop - final render pass)
     ShaderID currentShaderID = SHADER_INVALID;
@@ -518,6 +549,7 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
             case 1: // Instanced rendering
                 // For instanced rendering, we would need to set instance buffer here
                 // For now, fall back to standard rendering with vertex offset
+                CommitChanges();
                 m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 
                                                cmd.vertexStart, // BaseVertexIndex
                                                0,               // MinIndex
@@ -541,6 +573,9 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     
     // Clean up: end current shader using centralized management
     EndCurrent();
+    
+    // Unlock state after ExecuteQueue completes
+    Unlock();
     
     // Clear command queue after execution
     m_commandQueue.clear();

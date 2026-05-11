@@ -1367,40 +1367,29 @@ void SpriteRenderer::FlushStandard() {
         sprintf(debugMsg, "[SR] FlushStandard: Using shaderID=%d\n", m_currentShaderID);
         OutputDebugStringA(debugMsg);
 
-        m_pShaderManager->Prepare(m_currentShaderID, NULL);
-        m_pShaderManager->BeginShader();
-
-        // Set texture with correct parameter name based on shader
-        // All modern shaders use "g_texture" parameter
-        m_pShaderManager->SetTexture("g_texture", m_currentTexture);
-
-        // Set orthographic projection matrix for 2D sprites
+        // Prepare shader with global uniforms
         D3DXMATRIX matOrtho;
         D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
-        m_pShaderManager->SetMatrix("matOrtho", (const float*)&matOrtho);
+        m_pShaderManager->Prepare(m_currentShaderID, &matOrtho);
+        m_pShaderManager->BeginShader();
+
+        // Set texture via UpdateConstants (unified method)
+        m_pShaderManager->UpdateConstants(m_currentTexture, NULL);
 
         sprintf(debugMsg, "[SR] FlushStandard: Setting texture 0x%p\n", m_currentTexture);
         OutputDebugStringA(debugMsg);
 
         m_pShaderManager->Commit();
 
-        // Xbox 360: Loop through all passes (critical for shader activation)
-        UINT numPasses = m_pShaderManager->GetNumPasses();
-        ShaderManager::Shader* pActiveShader = m_pShaderManager->GetActiveShader();
-        if (pActiveShader && pActiveShader->pEffect) {
-            pActiveShader->pEffect->CommitChanges();
-        }
-
         m_pDevice->SetTexture(0, m_currentTexture);
 
         // Draw for each pass
+        UINT numPasses = m_pShaderManager->GetNumPasses();
         for (UINT pass = 0; pass < numPasses; pass++) {
             m_pShaderManager->BeginPass(pass);
 
             // Xbox 360: CommitChanges() CRITICAL before Draw
-            if (pActiveShader && pActiveShader->pEffect) {
-                pActiveShader->pEffect->CommitChanges();
-            }
+            m_pShaderManager->CommitChanges();
 
             // 6. Draw
             m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, m_spriteCount * 4, 0, m_spriteCount * 2);

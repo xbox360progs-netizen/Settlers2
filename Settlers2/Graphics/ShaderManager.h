@@ -217,6 +217,17 @@ public:
     // Set local uniforms (per-entity data: texture, depth, etc.)
     void SetLocalUniforms(LPDIRECT3DTEXTURE9 pTexture, float depth);
     
+    // Update constants (unified method for texture + world matrix)
+    void UpdateConstants(LPDIRECT3DTEXTURE9 pTexture, const D3DXMATRIX* pWorldMatrix = NULL);
+    
+    // State locking (prevents external state corruption during ExecuteQueue)
+    void Lock();
+    void Unlock();
+    bool IsLocked() const { return m_isLocked; }
+    
+    // Commit changes (Xbox 360: critical before Draw)
+    void CommitChanges();
+    
     // Validate shader handle
     bool ValidateShader(ShaderID id) const;
     
@@ -254,6 +265,9 @@ private:
     Shader* m_pActiveShader;
     ShaderID m_currentShaderID; // Track current shader for state caching
     UINT m_numPasses;
+    
+    // State locking (prevents external state corruption during ExecuteQueue)
+    bool m_isLocked;
 
     // Render command queue for Master Loop rendering
     std::vector<RenderCommand> m_commandQueue;
