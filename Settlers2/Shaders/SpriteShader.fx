@@ -20,7 +20,7 @@ sampler SpriteSampler = sampler_state {
 
 // Структура входных данных
 struct VS_INPUT {
-    float4 Pos   : POSITION;
+    float3 Pos   : POSITION;  // Changed from float4 to float3 to match Renderer vertex declaration
     float2 Tex   : TEXCOORD0;
     float4 Color : COLOR0;
 };
@@ -51,11 +51,11 @@ technique SpriteBatchTech {
     pass P0 {
         VertexShader = compile vs_3_0 RenderSceneVS();
         PixelShader  = compile ps_3_0 RenderScenePS();
-        
-        // Настройки прозрачности
-        AlphaBlendEnable = TRUE;
-        DestBlend = INVSRCALPHA;
-        SrcBlend = SRCALPHA;
-        ZEnable = FALSE; // Для UI обычно Z-буфер не нужен
+
+        // Render states managed by Renderer, not set in shader
+        // AlphaBlendEnable = TRUE;
+        // DestBlend = INVSRCALPHA;
+        // SrcBlend = SRCALPHA;
+        // ZEnable = FALSE;
     }
 }

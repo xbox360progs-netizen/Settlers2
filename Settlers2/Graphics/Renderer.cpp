@@ -304,12 +304,19 @@ void Renderer::DrawSingleSprite(Texture* texture, float x, float y, float width,
 
     ShaderManager::Shader* pShader = m_shaderManager.GetShader(SHADER_SPRITE_CONSTANT_INSTANCED);
     if (pShader && pShader->pEffect && m_pVertexDecl) {
+        // GPU HANG PREVENTION: Check if texture is valid before setting
+        LPDIRECT3DTEXTURE9 tex = texture->GetTexture();
+        if (!tex) {
+            OutputDebugStringA("[Renderer] ERROR: Texture is NULL, skipping DrawSingleSprite to prevent GPU hang\n");
+            return;
+        }
+
         m_shaderManager.SetActiveShader(SHADER_SPRITE_CONSTANT_INSTANCED);
-        m_shaderManager.SetTexture("g_texture", texture->GetTexture());
+        m_shaderManager.SetTexture("g_texture", tex);
         m_shaderManager.BeginShader();
         m_shaderManager.BeginPass(0);
         pShader->pEffect->CommitChanges();
-        m_pDevice->SetTexture(0, texture->GetTexture());
+        m_pDevice->SetTexture(0, tex);
 
         m_pDevice->SetVertexDeclaration(m_pVertexDecl);
         m_pDevice->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 2, vertices, sizeof(SpriteVertex));

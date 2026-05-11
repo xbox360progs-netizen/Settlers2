@@ -184,12 +184,11 @@ bool ShaderManager::LoadBaseShaders() {
         allSuccess = false;
     }
 
-    // Load Sprite.fx (legacy, used for some world objects)
-    // Commented out - Sprite2D.fx doesn't exist, use SpriteShader.fx instead
-    // if (FAILED(LoadShader(SHADER_SPRITE, "game:\\Media\\Shaders\\Sprite2D.fx", "Sprite"))) {
-    //     OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_SPRITE (Sprite.fx)\n");
-    //     allSuccess = false;
-    // }
+    // Load SpriteShader.fx (for sprite rendering with SpriteBatchTech)
+    if (FAILED(LoadShader(SHADER_SPRITE, "game:\\Media\\Shaders\\SpriteShader.fx", "SpriteBatchTech"))) {
+        OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_SPRITE (SpriteShader.fx)\n");
+        allSuccess = false;
+    }
 
     // Load RadialMenu.fx (for radial menu)
     // Commented out - RadialMenu.fx doesn't exist yet
