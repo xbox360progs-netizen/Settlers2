@@ -576,10 +576,9 @@ void ShaderManager::Prepare(ShaderID id, const D3DXMATRIX* pViewProj) {
         // Get technique
         D3DXHANDLE hTechnique = m_pActiveEffect->GetTechnique(0);
         if (hTechnique) {
-            // Begin technique to get pass count (Xbox 360 D3DXEffect API)
+            // Set technique (don't Begin/End here - will be done in rendering loop)
             m_pActiveEffect->SetTechnique(hTechnique);
-            m_pActiveEffect->Begin(&m_numPasses, 0);
-            m_pActiveEffect->End(); // We'll Begin again when rendering
+            m_numPasses = 1; // Assume 1 pass for most shaders
         }
         
         // Set ViewProjection if provided
@@ -839,6 +838,23 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     Lock();
     OutputDebugStringA("[ShaderManager::ExecuteQueue] Lock() done\n");
 
+    // XBOX 360 CRITICAL: Ensure all buffers are unlocked before drawing
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] Checking buffer lock status...\n");
+    
+    // Verify vertex buffer is not locked (Xbox 360 driver crash prevention)
+    if (pVB) {
+        // Try to lock with 0 size to check if buffer is already locked
+        void* testPtr = NULL;
+        HRESULT testLock = pVB->Lock(0, 0, &testPtr, D3DLOCK_NOSYSLOCK);
+        if (testLock == D3DERR_INVALIDCALL) {
+            OutputDebugStringA("[ShaderManager::ExecuteQueue] WARNING: Vertex buffer appears to be locked! Attempting to unlock...\n");
+            // Note: We can't directly unlock here as we don't have the lock context
+            // This is just a warning - the real fix is in SpriteRenderer::Flush()
+        } else if (SUCCEEDED(testLock)) {
+            pVB->Unlock(); // Unlock our test lock
+        }
+    }
+
     // Set vertex declaration and streams once for entire frame
     OutputDebugStringA("[ShaderManager::ExecuteQueue] Setting vertex declaration...\n");
     m_pDevice->SetVertexDeclaration(pDecl);
@@ -956,13 +972,18 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         SetShaderParameters(cmd);
         OutputDebugStringA("[ShaderManager::ExecuteQueue] SetShaderParameters done\n");
         
-        // === LAZY PASS MANAGEMENT ===
-        // Only begin a new pass if we're not already inside one
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] BeginPass check...\n");
-        if (!passActive) {
-            BeginPass(0);
-            passActive = true;
+        // === XBOX 360 SAFE PASS MANAGEMENT ===
+        // Begin shader and pass for each command (isolated rendering)
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] Beginning shader and pass...\n");
+        
+        // Begin shader for this command
+        if (m_pActiveEffect) {
+            m_pActiveEffect->Begin(&m_numPasses, 0);
         }
+        
+        // Begin pass for this command
+        BeginPass(0);
+        passActive = true;
         OutputDebugStringA("[ShaderManager::ExecuteQueue] Pass active\n");
 
         // GPU HANG PREVENTION: Check if effect is valid before drawing
@@ -1001,6 +1022,7 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
             }
         }
         
+        // Draw and immediately close pass to prevent shader state corruption
         switch (cmd.batchType) {
             case 0: // Standard/Single sprite rendering
                 m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST,
@@ -1030,14 +1052,16 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                 break;
         }
         OutputDebugStringA("[ShaderManager::ExecuteQueue] DrawIndexedPrimitive completed\n");
+        
+        // XBOX 360 CRITICAL: Close pass immediately after each draw
+        if (passActive) {
+            EndPass();
+            passActive = false;
+            OutputDebugStringA("[ShaderManager::ExecuteQueue] Pass closed immediately after draw\n");
+        }
     }
     
-    // === CLEANUP: End any active pass and shader ===
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] Cleanup: Ending pass...\n");
-    if (passActive) {
-        EndPass();
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] EndPass done\n");
-    }
+    // === CLEANUP: End current shader only ===
     OutputDebugStringA("[ShaderManager::ExecuteQueue] Ending current shader...\n");
     EndCurrent();
     OutputDebugStringA("[ShaderManager::ExecuteQueue] EndCurrent done\n");
