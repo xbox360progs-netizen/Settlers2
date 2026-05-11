@@ -306,6 +306,9 @@ HRESULT ShaderManager::LoadShader(ShaderID id, const char* filepath, const char*
     shader.hTexture = shader.pEffect->GetParameterByName(NULL, "g_texture");
 
     m_shaders[id] = shader;
+    
+    // Also add to m_effects map for Prepare() to find
+    m_effects[id] = shader.pEffect;
 
     char successMsg[256];
     sprintf_s(successMsg, "[ShaderManager] Shader ID %d loaded successfully\n", id);
