@@ -198,50 +198,24 @@ void MenuScene::Update(float deltaTime) {
 }
 
 void MenuScene::Render() {
-  if (!m_device) {
-    OutputDebugStringA("[MenuScene] No device available for rendering\n");
+  if (!m_spriteRenderer) {
+    OutputDebugStringA("[MenuScene] SpriteRenderer is NULL\n");
     return;
   }
 
-  // Prepare sprite shader (ID 0) to ensure vertex declaration is applied
-  if (m_renderer) {
-    m_renderer->SetShader(SHADER_SPRITE);
-  }
-
-  // Use DrawSingleSprite for background (bypasses complex batching for testing)
+  // === STEP 1: Render background (Layer 0) ===
   LPDIRECT3DTEXTURE9 bgTex = m_backgroundTexture.GetTexture();
 
-  // Debug logging to diagnose empty screen
-  if (!bgTex) {
-    OutputDebugStringA("[MenuScene] ERROR: Background texture is NULL!\n");
-  }
-  if (!m_renderer) {
-    OutputDebugStringA("[MenuScene] ERROR: Renderer is NULL!\n");
-  }
-
-  if (bgTex && m_renderer) {
-    float screenWidth = 1280.0f;
-    float screenHeight = 720.0f;
-
-    OutputDebugStringA("[MenuScene] Drawing background sprite...\n");
-    m_renderer->DrawSingleSprite(&m_backgroundTexture, 0.0f, 0.0f, screenWidth, screenHeight);
-  } else if (bgTex && m_spriteRenderer) {
-    // Try using SpriteRenderer instead
-
-    // SpriteRenderer might have different interface - just output for now
-    OutputDebugStringA("[MenuScene] WARNING: Using SpriteRenderer not implemented yet\n");
+  if (bgTex) {
+    OutputDebugStringA("[MenuScene] Drawing background with SpriteRenderer...\n");
+    m_spriteRenderer->Begin(SHADER_SPRITE, bgTex, 0.0f, 0, false);
+    m_spriteRenderer->Draw(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
+    m_spriteRenderer->End();
   } else {
-    if (!bgTex) {
-      OutputDebugStringA("[MenuScene] WARNING: Background texture is NULL!\n");
-    }
-    if (!m_renderer) {
-      OutputDebugStringA("[MenuScene] WARNING: Renderer is NULL!\n");
-    }
-    if (!m_spriteRenderer) {
-      OutputDebugStringA("[MenuScene] WARNING: SpriteRenderer is NULL!\n");
-    }
+    OutputDebugStringA("[MenuScene] WARNING: Background texture is NULL!\n");
   }
 
+  // === STEP 2: Render UI/Text (Layer 1) ===
   if (m_textManager) {
     m_textManager->Begin();
     for (int i = 0; i < m_menuCount; i++) {

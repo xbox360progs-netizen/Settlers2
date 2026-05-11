@@ -264,6 +264,26 @@ HRESULT SpriteRenderer::Initialize(LPDIRECT3DDEVICE9 device, ShaderManager* shad
 
     // Initialization log removed
 
+    // Set projection matrix for sprite rendering (1280x720 orthographic)
+    if (m_pShaderManager) {
+        D3DXMATRIX ortho;
+        D3DXMatrixOrthoOffCenterLH(&ortho, 0, 1280, 720, 0, 0, 1);
+
+        // Set projection matrix for SHADER_SPRITE (ID 0)
+        ShaderManager::Shader* pSpriteShader = m_pShaderManager->GetShader(SHADER_SPRITE);
+        if (pSpriteShader && pSpriteShader->pEffect) {
+            D3DXHANDLE hWVP = pSpriteShader->pEffect->GetParameterByName(NULL, "WVP");
+            if (hWVP) {
+                pSpriteShader->pEffect->SetMatrix(hWVP, &ortho);
+            }
+            D3DXHANDLE hMatOrtho = pSpriteShader->pEffect->GetParameterByName(NULL, "matOrtho");
+            if (hMatOrtho) {
+                pSpriteShader->pEffect->SetMatrix(hMatOrtho, &ortho);
+            }
+            OutputDebugStringA("[SR] Projection matrix set for SHADER_SPRITE\n");
+        }
+    }
+
     return S_OK;
 }
 
@@ -638,8 +658,22 @@ void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float
         }
     }
 
+    // Set render states for sprite rendering
+    if (m_pDevice) {
+        m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+        m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+        m_pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+        m_pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+        m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+    }
+
+    // Set active shader
+    if (m_pShaderManager) {
+        m_pShaderManager->SetActiveShader(shaderID);
+    }
+
     char debugMsg[128];
-    sprintf(debugMsg, "[SpriteRenderer::Begin] shaderID=%d, texture=%p, depth=%.2f, renderType=%d, isUI=%d\n", 
+    sprintf(debugMsg, "[SpriteRenderer::Begin] shaderID=%d, texture=%p, depth=%.2f, renderType=%d, isUI=%d\n",
             shaderID, pTexture, depth, renderType, isUI);
     OutputDebugStringA(debugMsg);
 
@@ -799,7 +833,14 @@ void SpriteRenderer::End() {
         char debugMsg[128];
         sprintf(debugMsg, "[SpriteRenderer::End] Flushing %d sprites\n", m_spriteCount);
         OutputDebugStringA(debugMsg);
-        Flush();
+
+        // Debug check: if sprites in queue but no draw call happens
+        if (m_spriteCount > 0) {
+            Flush();
+        } else {
+            OutputDebugStringA("[SpriteRenderer::End] WARNING: No sprites to flush\n");
+        }
+
         m_isBatching = false;
     }
     if (m_pDevice) {
