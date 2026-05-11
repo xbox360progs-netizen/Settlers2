@@ -16,6 +16,7 @@
 #include "../Graphics/BinFileManager.h"
 #include "../Input/InputManager.h"
 #include "../Input/InputController.h"
+#include "../UI/WeightMenu.h"
 
 namespace Scene {
 
@@ -26,6 +27,14 @@ enum EditorState
     STATE_SELECTING,
     STATE_PLACING,
     STATE_INPUT_AMOUNT
+};
+
+// Editor modes for different editing operations
+enum EditorMode
+{
+    MODE_TERRAIN = 0,
+    MODE_WEIGHTS,
+    MODE_RESOURCES
 };
 
 class EditorScene : public Scene {
@@ -91,6 +100,14 @@ EditorScene();
     World::ResourceType m_activeResourceType;
     int m_phantomTileX;
     int m_phantomTileY;
+
+    // Editor mode (Terrain, Weights, Resources)
+    EditorMode m_editorMode;
+    bool m_weightMenuVisible;
+    BYTE m_activeWeight;
+
+    // Weight menu for D-pad weight selection
+    UI::WeightMenu* m_weightMenu;
 };
 
 } // namespace Scene

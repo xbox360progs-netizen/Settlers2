@@ -283,14 +283,14 @@
     <ClInclude Include="UI\Panel.h" />
     <ClInclude Include="UI\ResourceBar.h" />
     <ClInclude Include="UI\UIManager.h" />
-    <ClInclude Include="UI\Widget.h" />
-    <ClInclude Include="World\Components\Building.h" />
+    <ClInclude Include="UI\TilePalette.h" />
+    <ClInclude Include="UI\WeightMenu.h" />
+    <ClInclude Include="World\Components\Resource.h" />
     <ClInclude Include="World\Components\Collider.h" />
     <ClInclude Include="World\Components\IComponent.h" />
     <ClInclude Include="World\Components\Model.h" />
     <ClInclude Include="World\Components\ModelComponent.h" />
     <ClInclude Include="World\Components\Resource.h" />
-    <ClInclude Include="World\Components\Sprite.h" />
     <ClInclude Include="World\Components\SpriteComponent.h" />
     <ClInclude Include="World\Components\Transform.h" />
     <ClInclude Include="World\Components\TransformComponent.h" />
@@ -309,7 +309,6 @@
     <ClInclude Include="World\TileLayer.h" />
     <ClInclude Include="World\TileType.h" />
     <ClInclude Include="Editor\MapEditor.h" />
-    <ClInclude Include="UI\TilePalette.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\GameEngine.cpp" />
@@ -360,6 +359,7 @@
     <ClCompile Include="UI\ResourceBar.cpp" />
     <ClCompile Include="UI\UIManager.cpp" />
     <ClCompile Include="UI\Widget.cpp" />
+    <ClCompile Include="UI\WeightMenu.cpp" />
     <ClCompile Include="World\Components\Building.cpp" />
     <ClCompile Include="World\Components\Collider.cpp" />
     <ClCompile Include="World\Components\Model.cpp" />

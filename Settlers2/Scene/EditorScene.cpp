@@ -55,6 +55,10 @@ EditorScene::EditorScene()
     , m_activeResourceType(World::ResourceType_None)
     , m_phantomTileX(0)
     , m_phantomTileY(0)
+    , m_editorMode(MODE_TERRAIN)
+    , m_weightMenuVisible(false)
+    , m_activeWeight(World::Weight_Land)
+    , m_weightMenu(nullptr)
 {
 }
 
@@ -70,6 +74,14 @@ EditorScene::~EditorScene() {
     if (m_gridMenu) {
         delete m_gridMenu;
         m_gridMenu = nullptr;
+    }
+    if (m_weightMenu) {
+        delete m_weightMenu;
+        m_weightMenu = nullptr;
+    }
+    if (m_inputController) {
+        delete m_inputController;
+        m_inputController = nullptr;
     }
     if (m_camera) {
         delete m_camera;
@@ -115,6 +127,15 @@ void EditorScene::Load() {
     if (m_inputController && m_inputManager) {
         m_inputController->Initialize(m_camera, m_inputManager->GetGamepad());
         OutputDebugStringA("[EditorScene] InputController initialized\n");
+    }
+
+    // Initialize WeightMenu for D-pad weight selection
+    m_weightMenu = new UI::WeightMenu();
+    if (m_weightMenu) {
+        // TODO: Load menu_background.png and dpad_cross.png textures
+        // For now, initialize with nullptr (textures can be loaded later)
+        m_weightMenu->Initialize(nullptr, nullptr, m_spriteRenderer, m_textManager);
+        OutputDebugStringA("[EditorScene] WeightMenu initialized\n");
     }
     
     // Create and initialize RadialMenu
@@ -241,7 +262,44 @@ void EditorScene::Update(float deltaTime) {
 		}
 	}
 
-	if (!menuActive) {
+	// Toggle WeightMenu with LT in WEIGHTS mode
+	if (m_editorMode == MODE_WEIGHTS && gamepad->IsButtonPressed(Input::GP_LT)) {
+		if (m_weightMenu) {
+			if (m_weightMenuVisible) {
+				m_weightMenu->Close();
+				m_weightMenuVisible = false;
+			} else {
+				m_weightMenu->Open();
+				m_weightMenuVisible = true;
+			}
+		}
+	}
+
+	// Handle D-pad input for weight selection when menu is visible
+	if (m_weightMenuVisible && m_weightMenu) {
+		if (gamepad->IsButtonPressed(Input::GP_DPadUp)) {
+			m_activeWeight = World::Weight_Block;  // 3
+			m_weightMenu->Close();
+			m_weightMenuVisible = false;
+		}
+		else if (gamepad->IsButtonPressed(Input::GP_DPadDown)) {
+			m_activeWeight = World::Weight_Deep;  // 0
+			m_weightMenu->Close();
+			m_weightMenuVisible = false;
+		}
+		else if (gamepad->IsButtonPressed(Input::GP_DPadLeft)) {
+			m_activeWeight = World::Weight_Shallow;  // 1
+			m_weightMenu->Close();
+			m_weightMenuVisible = false;
+		}
+		else if (gamepad->IsButtonPressed(Input::GP_DPadRight)) {
+			m_activeWeight = World::Weight_Land;  // 2
+			m_weightMenu->Close();
+			m_weightMenuVisible = false;
+		}
+	}
+
+	if (!menuActive && !m_weightMenuVisible) {
 		// Toggle GridMenu with RB
 		if (gamepad->IsButtonPressed(Input::GP_RB)) {
 			if (!m_gridMenu) {
@@ -302,6 +360,28 @@ void EditorScene::Update(float deltaTime) {
 		switch (m_currentState) {
 			case STATE_IDLE:
 				// Normal camera movement and tile painting
+				// Handle weight painting in MODE_WEIGHTS
+				if (m_editorMode == MODE_WEIGHTS && !m_weightMenuVisible) {
+					if (m_inputController->IsButtonAPressed()) {
+						// Paint weight at cursor position using staggered grid math
+						float worldX, worldY;
+						m_inputController->GetWorldCursor(worldX, worldY);
+						
+						// Staggered grid calculation (40x40 Objects layer)
+						// Tile height = 72, Tile width = 119, Offset = 59.5
+						float row = worldY / 72.0f;
+						float offsetX = (fmodf(row, 2.0f) > 0.5f) ? 59.5f : 0.0f;
+						float col = (worldX - offsetX) / 119.0f;
+						
+						int tileX = static_cast<int>(col);
+						int tileY = static_cast<int>(row);
+						
+						// Set weight on the map
+						if (m_mapEditor && m_mapEditor->GetMap()) {
+							m_mapEditor->GetMap()->SetNodeWeight(tileX, tileY, m_activeWeight);
+						}
+					}
+				}
 				break;
 				
 			case STATE_SELECTING:
@@ -537,7 +617,53 @@ void EditorScene::Render() {
         }
     }
 
-    // === STEP 3: Render UI elements (RadialMenu, GridMenu) ===
+    // === STEP 2.8: Render weight debug overlay (in WEIGHTS mode) ===
+    if (m_editorMode == MODE_WEIGHTS && m_mapEditor && m_mapEditor->GetMap()) {
+        World::Map* map = m_mapEditor->GetMap();
+        int layerWidth = map->GetWidth() * 2;  // Objects layer is 40x40
+        int layerHeight = map->GetHeight() * 2;
+        
+        CoordinateSystem& coords = CoordinateSystem::GetInstance();
+        
+        // Color coding for weights:
+        // 0 (Deep): 0xCC0000FF (Blue)
+        // 1 (Shallow): 0xCC00FFFF (Cyan)
+        // 2 (Land): 0xCC00FF00 (Green)
+        // 3 (Block): 0xCCFF0000 (Red)
+        
+        for (int y = 0; y < layerHeight; y++) {
+            for (int x = 0; x < layerWidth; x++) {
+                BYTE weight = map->GetNodeWeight(x, y);
+                
+                // Skip default land weight to reduce clutter
+                if (weight == World::Weight_Land) {
+                    continue;
+                }
+                
+                float worldX, worldY;
+                coords.NodeTileToWorld(x, y, worldX, worldY);
+                
+                // Determine color based on weight
+                D3DCOLOR color = 0xCC00FF00; // Default green (Land)
+                switch (weight) {
+                    case World::Weight_Deep:    color = 0xCC0000FF; break; // Blue
+                    case World::Weight_Shallow: color = 0xCC00FFFF; break; // Cyan
+                    case World::Weight_Land:    color = 0xCC00FF00; break; // Green
+                    case World::Weight_Block:   color = 0xCCFF0000; break; // Red
+                }
+                
+                // Render small square at tile center to indicate weight
+                // This is a placeholder - should use dynamic vertex buffer for performance
+                if (m_spriteRenderer) {
+                    D3DXVECTOR3 weightPos(worldX, worldY, 0.01f);
+                    // TODO: Submit render command with color
+                    // For now, this is just a placeholder
+                }
+            }
+        }
+    }
+
+    // === STEP 3: Render UI elements (RadialMenu, GridMenu, WeightMenu) ===
     // These submit commands with isUI=true and depth=0.0f
     if (m_radialMenu && m_radialMenu->IsVisible()) {
         m_radialMenu->Render();
@@ -546,6 +672,11 @@ void EditorScene::Render() {
     
     if (m_gridMenu && m_gridMenu->IsVisible()) {
         m_gridMenu->Render(m_spriteRenderer);
+    }
+
+    // Render WeightMenu when visible
+    if (m_weightMenuVisible && m_weightMenu) {
+        m_weightMenu->Render();
     }
 
     // Draw FPS counter (top-left)

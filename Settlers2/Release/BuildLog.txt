@@ -1,4 +1,4 @@
-﻿Построение начато 11.05.2026 11:18:31.
+﻿Построение начато 11.05.2026 12:00:08.
      1>Проект "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" в узле 2 (целевые объекты build).
      1>InitializeBuildStatus:
          Обращение к "Release\Settlers2.unsuccessfulbuild".
@@ -48,6 +48,7 @@
          Release\ResourceBar.obj
          Release\UIManager.obj
          Release\Widget.obj
+         Release\WeightMenu.obj
          Release\Building.obj
          Release\Collider.obj
          Release\Model.obj
@@ -79,4 +80,4 @@
 
 Построение успешно завершено.
 
-Затраченное время: 00:00:12.70
+Затраченное время: 00:00:11.31

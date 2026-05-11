@@ -2,6 +2,15 @@
 
 namespace World {
 
+// Weight types for pathfinding (matches Logic::TileWeight)
+enum WeightType
+{
+    Weight_Deep = 0,    // Deep water (impassable or high cost)
+    Weight_Shallow = 1, // Shallow water
+    Weight_Land = 2,    // Land (default)
+    Weight_Block = 3    // Blocked/impassable
+};
+
 // Resource types that can be placed on the map
 enum ResourceType
 {
@@ -17,19 +26,22 @@ enum ResourceType
 // Resource node attached to a grid position
 struct ResourceNode
 {
-    ResourceType type;
-    int amount;
-    bool isVisible;
+    BYTE weight;          // Pathfinding weight (0-3)
+    ResourceType type;    // Resource type
+    int amount;           // Resource amount
+    bool isVisible;       // Visibility in game mode
 
     ResourceNode()
-        : type(ResourceType_None)
+        : weight(Weight_Land)
+        , type(ResourceType_None)
         , amount(0)
         , isVisible(true)
     {
     }
 
-    ResourceNode(ResourceType t, int a, bool visible = true)
-        : type(t)
+    ResourceNode(WeightType w, ResourceType t, int a, bool visible = true)
+        : weight(w)
+        , type(t)
         , amount(a)
         , isVisible(visible)
     {
@@ -47,6 +59,18 @@ inline const char* ResourceTypeToString(ResourceType type)
         case ResourceType_Gold: return "Gold";
         case ResourceType_Iron: return "Iron";
         case ResourceType_Stone: return "Stone";
+        default: return "Unknown";
+    }
+}
+
+inline const char* WeightTypeToString(WeightType weight)
+{
+    switch (weight)
+    {
+        case Weight_Deep: return "Deep";
+        case Weight_Shallow: return "Shallow";
+        case Weight_Land: return "Land";
+        case Weight_Block: return "Block";
         default: return "Unknown";
     }
 }

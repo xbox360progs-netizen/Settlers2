@@ -21,6 +21,9 @@ Map::Map(int groundWidth, int groundHeight, int otherWidth, int otherHeight)
     // Initialize resource map (same size as Objects layer: 40x40)
     int resourceMapSize = otherWidth * otherHeight;
     m_resourceMap.resize(resourceMapSize, World::ResourceNode());
+
+    // Initialize weights to default (Land = 2)
+    InitializeWeights(Weight_Land);
 }
 
 Map::~Map()
@@ -384,6 +387,46 @@ void Map::ClearResources()
 {
     for (size_t i = 0; i < m_resourceMap.size(); ++i) {
         m_resourceMap[i] = World::ResourceNode();
+    }
+}
+
+// Weight management
+BYTE Map::GetNodeWeight(int x, int y) const
+{
+    int layerWidth = m_width * 2;  // Objects layer is 40x40
+    int layerHeight = m_height * 2;
+    
+    if (x < 0 || x >= layerWidth || y < 0 || y >= layerHeight) {
+        return Weight_Land;  // Default to land if out of bounds
+    }
+    
+    int index = y * layerWidth + x;
+    if (index >= 0 && index < static_cast<int>(m_resourceMap.size())) {
+        return m_resourceMap[index].weight;
+    }
+    
+    return Weight_Land;
+}
+
+void Map::SetNodeWeight(int x, int y, BYTE weight)
+{
+    int layerWidth = m_width * 2;  // Objects layer is 40x40
+    int layerHeight = m_height * 2;
+    
+    if (x < 0 || x >= layerWidth || y < 0 || y >= layerHeight) {
+        return;
+    }
+    
+    int index = y * layerWidth + x;
+    if (index >= 0 && index < static_cast<int>(m_resourceMap.size())) {
+        m_resourceMap[index].weight = weight;
+    }
+}
+
+void Map::InitializeWeights(BYTE defaultWeight)
+{
+    for (size_t i = 0; i < m_resourceMap.size(); ++i) {
+        m_resourceMap[i].weight = defaultWeight;
     }
 }
 

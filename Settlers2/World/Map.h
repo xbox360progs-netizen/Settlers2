@@ -47,6 +47,11 @@ public:
     void SetResourceNode(int x, int y, ResourceType type, int amount, bool isVisible = true);
     void ClearResources();
 
+    // Weight management
+    BYTE GetNodeWeight(int x, int y) const;
+    void SetNodeWeight(int x, int y, BYTE weight);
+    void InitializeWeights(BYTE defaultWeight = Weight_Land);
+
 private:
     int m_width;
     int m_height;
