@@ -28,7 +28,7 @@ sampler texSampler = sampler_state
 //--------------------------------------------------------------------------------------
 struct VS_INPUT
 {
-    float3 Position : POSITION;
+    float4 Position : POSITION;  // float4 for Xbox 360 alignment (W=1.0f auto-filled)
     float4 Color : COLOR0;
     float2 TexCoord : TEXCOORD0;
 };
@@ -47,7 +47,7 @@ VS_OUTPUT VS_Main(VS_INPUT Input)
 {
     VS_OUTPUT Output;
     // Transform position by matrix (can be ortho for UI or ViewProj for world)
-    Output.Position = mul(float4(Input.Position, 1.0f), matOrtho);
+    Output.Position = mul(Input.Position, matOrtho);
     Output.Color = Input.Color;
     Output.TexCoord = Input.TexCoord;
     return Output;

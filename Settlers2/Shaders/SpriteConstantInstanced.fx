@@ -48,7 +48,7 @@ float4 SpriteConstantInstPS(VS_OUTPUT input) : COLOR0 {
     return texColor * input.color;
 }
 
-technique SpriteBatchTech {
+technique SpriteConstantInstancedTech {
     pass P0 {
         VertexShader = compile vs_2_0 SpriteConstantInstVS();
         PixelShader  = compile ps_2_0 SpriteConstantInstPS();

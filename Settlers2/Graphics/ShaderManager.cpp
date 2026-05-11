@@ -802,6 +802,12 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         return;
     }
 
+    // CRITICAL: Check device and effect before proceeding
+    if (!m_pDevice) {
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] CRITICAL: m_pDevice is NULL!\n");
+        return;
+    }
+
     OutputDebugStringA("[ShaderManager::ExecuteQueue] Before Clear()\n");
 
     // BLUE SCREEN TEST: If screen turns blue, rendering pipeline works
@@ -817,7 +823,12 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
 
     OutputDebugStringA("[ShaderManager::ExecuteQueue] Getting sprite effect...\n");
     ID3DXEffect* pSpriteEffect = GetEffect(SHADER_SPRITE);
-    OutputDebugStringA(pSpriteEffect ? "[ShaderManager::ExecuteQueue] Got sprite effect\n" : "[ShaderManager::ExecuteQueue] Sprite effect is NULL\n");
+    OutputDebugStringA(pSpriteEffect ? "[ShaderManager::ExecuteQueue] Got sprite effect\n" : "[ShaderManager::ExecuteQueue] Sprite effect is NULL - CANNOT RENDER!\n");
+
+    if (!pSpriteEffect) {
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] ABORTING due to NULL effect\n");
+        return;
+    }
 
     if (pSpriteEffect) {
         OutputDebugStringA("[ShaderManager::ExecuteQueue] Setting WVP matrix...\n");
