@@ -205,11 +205,20 @@ void MenuScene::Render() {
 
   // Use DrawSingleSprite for background (bypasses complex batching for testing)
   LPDIRECT3DTEXTURE9 bgTex = m_backgroundTexture.GetTexture();
-  
+
+  // Debug logging to diagnose empty screen
+  if (!bgTex) {
+    OutputDebugStringA("[MenuScene] ERROR: Background texture is NULL!\n");
+  }
+  if (!m_renderer) {
+    OutputDebugStringA("[MenuScene] ERROR: Renderer is NULL!\n");
+  }
+
   if (bgTex && m_renderer) {
     float screenWidth = 1280.0f;
     float screenHeight = 720.0f;
 
+    OutputDebugStringA("[MenuScene] Drawing background sprite...\n");
     m_renderer->DrawSingleSprite(&m_backgroundTexture, 0.0f, 0.0f, screenWidth, screenHeight);
   } else if (bgTex && m_spriteRenderer) {
     // Try using SpriteRenderer instead
