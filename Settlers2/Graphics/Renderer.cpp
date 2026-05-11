@@ -27,12 +27,8 @@ HRESULT Renderer::Initialize() {
     m_d3dpp.MultiSampleType = D3DMULTISAMPLE_NONE;
     m_d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
     m_d3dpp.EnableAutoDepthStencil = FALSE;
-    // Disable VSync for maximum performance - force IMMEDIATE
-    // The Present interval must be set BEFORE CreateDevice
-    // DO NOT ZeroMemory here - it resets all settings!
     OutputDebugStringA("[R] Setting IMMEDIATE mode\n");
     
-    // Force settings for Xbox 360 performance
     m_d3dpp.BackBufferWidth = 1280;
     m_d3dpp.BackBufferHeight = 720;
     m_d3dpp.BackBufferFormat = D3DFMT_A8R8G8B8;
@@ -40,27 +36,23 @@ HRESULT Renderer::Initialize() {
     m_d3dpp.MultiSampleType = D3DMULTISAMPLE_NONE;
     m_d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
     m_d3dpp.EnableAutoDepthStencil = FALSE;
-    m_d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE; // No VSync for max FPS
+    m_d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
     
     DWORD flags = D3DCREATE_HARDWARE_VERTEXPROCESSING;
 
-    // Xbox 360: ensure no VSync in the created device
     HRESULT hr = m_pD3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, NULL, flags, &m_d3dpp, &m_pDevice);
     if (FAILED(hr)) { OutputDebugStringA("Device Create Failed!\n"); return hr; }
     
-    // Double-check: SetRenderState to ensure no sync
     m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
 
-    // Initialize shader manager
     hr = m_shaderManager.Initialize(m_pDevice);
     if (FAILED(hr)) { OutputDebugStringA("ShaderManager Initialize Failed!\n"); return hr; }
 
-    // Create vertex declaration for VFETCH (32-byte aligned for Xbox 360)
     D3DVERTEXELEMENT9 decl[] = {
         { 0,  0, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0 },
         { 0, 12, D3DDECLTYPE_D3DCOLOR, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_COLOR, 0 },
         { 0, 16, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 0 },
-        { 0, 24, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 1 }, // Padding for 32-byte alignment
+        { 0, 24, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 1 },
         D3DDECL_END()
     };
     HRESULT hrDecl = m_pDevice->CreateVertexDeclaration(decl, &m_pVertexDecl);
@@ -70,13 +62,11 @@ HRESULT Renderer::Initialize() {
         OutputDebugStringA("Vertex declaration created OK\n");
     }
 
-    // Load default sprite shader
     hr = LoadShader(SHADER_SPRITE, "game:\\Media\\Shaders\\SpriteShader.fx", "SpriteBatchTech");
     if (FAILED(hr)) {
         OutputDebugStringA("Failed to load default sprite shader\n");
     }
 
-    // Load instanced sprite shaders for maximum performance (4096+ sprites)
     hr = LoadShader(SHADER_SPRITE_CONSTANT_INSTANCED, "game:\\Media\\Shaders\\SpriteConstantInstanced.fx", "SpriteConstantInstancedTech");
     if (FAILED(hr)) {
         OutputDebugStringA("Failed to load constant instanced sprite shader\n");
@@ -84,7 +74,6 @@ HRESULT Renderer::Initialize() {
         OutputDebugStringA("Successfully loaded sprite_constant_instanced shader\n");
     }
 
-    // Load FontShader.fx for text rendering
     hr = LoadShader(SHADER_FONT, "game:\\Media\\Shaders\\FontShader.fx", "SpriteBatchTech");
     if (FAILED(hr)) {
         OutputDebugStringA("Failed to load FontShader.fx\n");
@@ -117,42 +106,35 @@ bool Renderer::SetShader(ShaderID id) {
 }
 
 void Renderer::ResetToDefaultShader() {
-    // Force reset to sprite_constant_instanced shader (unified shader approach)
     m_shaderManager.SetActiveShader(SHADER_SPRITE_CONSTANT_INSTANCED);
 }
 
 void Renderer::Setup2DRenderStates() {
-    // 2D render states preset to prevent 3D world states from breaking UI
     if (!m_pDevice) return;
 
-    m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE); // Disable depth
-    m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE); // Enable transparency
-    m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE); // Draw both sides of sprite
+    m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+    m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+    m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
     m_pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
     m_pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
 }
 
 void Renderer::PrepareForUI() {
-    // Prepare render states for UI rendering (called by all UI classes at start of Render)
     if (!m_pDevice) return;
 
     m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
     m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
 
-    // Fix: Clamp sampler states to remove stretched pixels ("tails") around sprite edges
     m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
     m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 }
 
 void Renderer::RestoreFromUI() {
-    // Restore render states after UI rendering (for map rendering)
     if (!m_pDevice) return;
 
-    // Restore Z-buffer for map rendering
     m_pDevice->SetRenderState(D3DRS_ZENABLE, TRUE);
     m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
 
-    // Restore sampler states to default (WRAP for map tiles)
     m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_WRAP);
     m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_WRAP);
 }
@@ -171,35 +153,8 @@ void Renderer::Shutdown() {
 void Renderer::BeginFrame() {
     if (!m_pDevice) return;
 
-    // Clear both target and Z-buffer to prevent artifacts from previous frames
     m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0,0,0), 1.0f, 0);
     m_pDevice->BeginScene();
-
-    // Set orthographic projection matrix for current active effect
-    ShaderManager* pShaderManager = GetShaderManager();
-    if (pShaderManager) {
-        ShaderID currentID = pShaderManager->GetCurrentShaderID();
-        if (currentID != SHADER_INVALID) {
-            ID3DXEffect* pEffect = pShaderManager->GetEffect(currentID);
-            if (pEffect) {
-                D3DXMATRIX ortho;
-                D3DXMatrixOrthoOffCenterLH(&ortho, 0, 1280, 720, 0, 0, 1);
-                D3DXHANDLE hWVP = pEffect->GetParameterByName(NULL, "WVP");
-                if (hWVP) {
-                    pEffect->SetMatrix(hWVP, &ortho);
-                    pEffect->CommitChanges();
-                }
-            }
-        }
-    }
-
-    // Set projection matrix on the sprite shader (but don't BeginShader/BeginPass here)
-    // SpriteRenderer manages its own shader state in FlushStandard
-    ShaderManager::Shader* pSpriteShader = m_shaderManager.GetShader(SHADER_SPRITE_CONSTANT_INSTANCED);
-    if (pSpriteShader && pSpriteShader->pEffect && pSpriteShader->hMatOrtho) {
-        pSpriteShader->pEffect->SetMatrix(pSpriteShader->hMatOrtho, (D3DXMATRIX*)&m_projMatrix);
-    }
-
 }
 
 
@@ -227,37 +182,28 @@ void Renderer::EndFrame() {
 }
 
 void Renderer::Clear(D3DCOLOR color) {
-    // Clear both TARGET and ZBUFFER to prevent old objects from overlapping new sprites
     if (m_pDevice) m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, color, 1.0f, 0);
 }
 
 void Renderer::OnLostDevice() {
-
-    // Tell ShaderManager to release effect internal states
     m_shaderManager.OnLostDevice();
 }
 
 void Renderer::OnResetDevice() {
-
-    // Restore ShaderManager (reloads constants and techniques)
     m_shaderManager.OnResetDevice();
 
-    // Restore global device states (since Reset() wipes them)
     m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
     m_pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
     m_pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
     m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
     m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
 
-    // Restore sampler states
     m_pDevice->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
     m_pDevice->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
     m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
     m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 
-    // Update the Projection Matrix for the new state
     SetProjectionMatrix(1280.0f, 720.0f);
-
 }
 
 void Renderer::SetProjectionMatrix(float width, float height) {
@@ -271,7 +217,7 @@ void Renderer::DrawSingleSprite(Texture* texture, float x, float y, float width,
 void Renderer::DrawSingleSprite(Texture* texture, float x, float y, float width, float height,
                                 float u0, float v0, float u1, float v1, D3DCOLOR color) {
     if (!m_pDevice || !texture || !texture->GetTexture()) {
-        OutputDebugStringA("[Renderer] DrawSingleSprite: Invalid inputs (device/texture)\n");
+        OutputDebugStringA("[Renderer] DrawSingleSprite: Invalid inputs\n");
         return;
     }
 
@@ -279,7 +225,7 @@ void Renderer::DrawSingleSprite(Texture* texture, float x, float y, float width,
 
     LPDIRECT3DTEXTURE9 tex = texture->GetTexture();
     if (!tex) {
-        OutputDebugStringA("[Renderer] ERROR: Texture is NULL, skipping DrawSingleSprite\n");
+        OutputDebugStringA("[Renderer] ERROR: Texture is NULL\n");
         return;
     }
 
@@ -301,28 +247,26 @@ void Renderer::DrawSingleSprite(Texture* texture, float x, float y, float width,
     vertices[3].color = color; vertices[3].u = u0; vertices[3].v = v1;
     vertices[3].padding[0] = 0; vertices[3].padding[1] = 0;
 
-    // FIX: Use SHADER_SPRITE shader (which is loaded in Initialize)
     ShaderManager::Shader* pShader = m_shaderManager.GetShader(SHADER_SPRITE);
     if (!pShader || !pShader->pEffect || !m_pVertexDecl) {
-        OutputDebugStringA("[Renderer] DrawSingleSprite: SHADER_SPRITE not found or invalid\n");
+        OutputDebugStringA("[Renderer] DrawSingleSprite: Shader/vertex decl is NULL\n");
         return;
     }
-
-    OutputDebugStringA("[Renderer] Drawing background sprite...\n");
 
     m_shaderManager.SetActiveShader(SHADER_SPRITE);
     m_shaderManager.SetTexture("g_texture", tex);
     m_shaderManager.BeginShader();
     m_shaderManager.BeginPass(0);
 
-    // Set projection matrix (WVP) for sprite shader
+    // Set WVP matrix
     D3DXMATRIX ortho;
     D3DXMatrixOrthoOffCenterLH(&ortho, 0, 1280, 720, 0, 0, 1);
+    
     D3DXHANDLE hWVP = pShader->pEffect->GetParameterByName(NULL, "WVP");
     if (hWVP) {
         pShader->pEffect->SetMatrix(hWVP, &ortho);
     }
-    // Also try matOrtho parameter name (used by some shaders)
+    
     D3DXHANDLE hMatOrtho = pShader->pEffect->GetParameterByName(NULL, "matOrtho");
     if (hMatOrtho) {
         pShader->pEffect->SetMatrix(hMatOrtho, &ortho);

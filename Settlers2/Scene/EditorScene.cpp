@@ -164,11 +164,12 @@ void EditorScene::Load() {
     }
 
     // === TEXTURE SETUP ===
-    
+
     // 1.   ,     (SingleSprites  textures.ini)
     TextureRegistry& registry = TextureRegistry::instance();
     registry.initializeFromManifest("game:\\Media\\Config\\textures.ini", "UI");
     registry.initializeFromManifest("game:\\Media\\Config\\textures.ini", "AtlasTextures");
+    registry.initializeFromManifest("game:\\Media\\Config\\textures.ini", "ResourceIcons");
 
     // 2. ,     .    ,   ,    .
     LPDIRECT3DTEXTURE9 bgTexture    = registry.getTextureOrLoad("menu_bd");

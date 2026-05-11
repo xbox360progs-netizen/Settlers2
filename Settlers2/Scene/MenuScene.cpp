@@ -203,6 +203,11 @@ void MenuScene::Render() {
     return;
   }
 
+  // Prepare sprite shader (ID 0) to ensure vertex declaration is applied
+  if (m_renderer) {
+    m_renderer->SetShader(SHADER_SPRITE);
+  }
+
   // Use DrawSingleSprite for background (bypasses complex batching for testing)
   LPDIRECT3DTEXTURE9 bgTex = m_backgroundTexture.GetTexture();
 
