@@ -1,11 +1,8 @@
 #pragma once
-#include <d3d9.h>
-#include <d3dx9.h>
 #include <vector>
 #include <string>
 #include <memory>
 
-class Quad;
 class Camera;
 class SpriteAtlas;
 class SpriteRenderer;
@@ -34,12 +31,6 @@ private:
     static const int kItemsPerPage;
     static const float kInputDelayTime;
     
-    LPDIRECT3DDEVICE9 m_device;
-    Quad* m_highlightQuad;
-    Quad* m_backgroundQuad;
-    std::vector<Quad*> m_cellQuads;
-    Quad* m_selectionBorderQuad;
-
     LPDIRECT3DTEXTURE9 m_atlasTexture;
     LPDIRECT3DTEXTURE9 m_backgroundTexture;
     SpriteRenderer* m_spriteRenderer;
@@ -77,7 +68,7 @@ private:
     void UpdateFromStick(float stickX, float stickY);
 
 public:
-    GridMenu(LPDIRECT3DDEVICE9 device);
+    GridMenu();
     ~GridMenu();
 
     bool Initialize();

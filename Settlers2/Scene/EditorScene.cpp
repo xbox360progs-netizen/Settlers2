@@ -142,7 +142,7 @@ void EditorScene::Load() {
 
     // Initialize GridMenu with textures
     if (!m_gridMenu && m_renderer) {
-        m_gridMenu = new GridMenu(m_renderer->GetDevice());
+        m_gridMenu = new GridMenu();
         if (m_gridMenu->Initialize()) {
             m_gridMenu->SetTextures(bgTexture, cellTexture, groundTexture);
             
@@ -229,7 +229,7 @@ void EditorScene::Update(float deltaTime) {
 		// Toggle GridMenu with RB
 		if (gamepad->IsButtonPressed(Input::GP_RB)) {
 			if (!m_gridMenu) {
-				m_gridMenu = new GridMenu(m_renderer->GetDevice());
+				m_gridMenu = new GridMenu();
 				if (m_gridMenu->Initialize()) {
 					// Load atlas based on current layer
 					if (m_currentLayer == World::Objects) {

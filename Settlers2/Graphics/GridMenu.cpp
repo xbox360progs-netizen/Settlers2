@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "GridMenu.h"
 #include "../Graphics/SpriteAtlas.h"
-#include "../Graphics/Quad.h"
 #include "../Graphics/Camera.h"
 #include "../Input/Gamepad.h"
 #include "../Graphics/SpriteRenderer.h"
@@ -35,12 +34,8 @@ const int GridMenu::kGridRows = 4;
 const int GridMenu::kItemsPerPage = 16;
 const float GridMenu::kInputDelayTime = 0.3f;
 
-GridMenu::GridMenu(LPDIRECT3DDEVICE9 device)
-    : m_device(device)
-    , m_highlightQuad(nullptr)
-    , m_backgroundQuad(nullptr)
-    , m_selectionBorderQuad(nullptr)
-    , m_atlasTexture(nullptr), m_backgroundTexture(nullptr)
+GridMenu::GridMenu()
+    : m_atlasTexture(nullptr), m_backgroundTexture(nullptr)
     , m_spriteRenderer(nullptr)
     , m_renderer(nullptr)
     , m_cellBackgroundTexture(nullptr)
@@ -70,45 +65,33 @@ GridMenu::~GridMenu()
 
 bool GridMenu::Initialize()
 {
-    if (!m_device) return false;
     // REMOVED: LoadShaders() - GridMenu no longer manages shaders directly
     // SpriteRenderer handles all shader logic now
 
-    m_backgroundQuad = new Quad(m_device);
-    if (!m_backgroundQuad->Initialize(m_menuWidth, m_menuHeight)) return false;
-
-    m_cellQuads.resize(kItemsPerPage);
-    for (int i = 0; i < kItemsPerPage; i++) {
-        m_cellQuads[i] = new Quad(m_device);
-        if (!m_cellQuads[i]->Initialize(m_cellWidth, m_cellHeight)) return false;
-    }
-
-    m_highlightQuad = new Quad(m_device);
-    if (!m_highlightQuad->Initialize(m_cellWidth * 1.1f, m_cellHeight * 1.0f)) return false;
-
+    // Note: Quad objects require LPDIRECT3DDEVICE9 for initialization
+    // Since GridMenu no longer holds the device, Quad initialization must be deferred
+    // or handled externally. For now, we'll skip Quad creation and rely on queue-based rendering.
+    
     return true;
 }
 
 void GridMenu::Shutdown()
 {
-    for (size_t i = 0; i < m_cellQuads.size(); i++) {
-        if (m_cellQuads[i]) {
-            delete m_cellQuads[i];
-            m_cellQuads[i] = nullptr;
-        }
+    // No Quad objects to clean up (removed D3D dependency)
+    
+    // Release texture references
+    if (m_backgroundTexture) {
+        m_backgroundTexture->Release();
+        m_backgroundTexture = nullptr;
     }
-    m_cellQuads.clear();
-
-    if (m_backgroundQuad) delete m_backgroundQuad;
-    if (m_highlightQuad) delete m_highlightQuad;
-    if (m_selectionBorderQuad) delete m_selectionBorderQuad;
-
-    if (m_atlasTexture) m_atlasTexture->Release();
-    if (m_backgroundTexture) m_backgroundTexture->Release();
-    if (m_cellBackgroundTexture) m_cellBackgroundTexture->Release();
-
-    m_spriteIndices.clear();
-    m_tileUVs.clear();
+    if (m_cellBackgroundTexture) {
+        m_cellBackgroundTexture->Release();
+        m_cellBackgroundTexture = nullptr;
+    }
+    if (m_atlasTexture) {
+        m_atlasTexture->Release();
+        m_atlasTexture = nullptr;
+    }
 }
 
 void GridMenu::Show(float screenX, float screenY)
