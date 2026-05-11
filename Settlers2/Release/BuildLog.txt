@@ -1,7 +1,7 @@
-﻿Построение начато 11.05.2026 13:33:45.
+﻿Построение начато 11.05.2026 13:54:10.
      1>Проект "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" в узле 2 (целевые объекты build).
      1>InitializeBuildStatus:
-         Создание "Release\Settlers2.unsuccessfulbuild", так как было задано "AlwaysCreate".
+         Обращение к "Release\Settlers2.unsuccessfulbuild".
        ClCompile:
          Для всех выходных данных обновления не требуется.
          C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Graphics\ShaderManager.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
@@ -80,4 +80,4 @@
 
 Построение успешно завершено.
 
-Затраченное время: 00:00:12.24
+Затраченное время: 00:00:11.86

@@ -105,12 +105,20 @@ void EditorScene::Load() {
         return;
     }
 
+    // Get ShaderManager from Renderer BEFORE initialization
+    if (m_renderer) {
+        m_shaderManager = m_renderer->GetShaderManager();
+        OutputDebugStringA("[EditorScene] Got ShaderManager from Renderer\n");
+    }
+
     // Initialize ShaderManager with centralized shader loading
     if (m_shaderManager) {
         OutputDebugStringA("[EditorScene] Initializing ShaderManager...\n");
         if (!m_shaderManager->Init()) {
             OutputDebugStringA("[EditorScene] WARNING: Some shaders failed to load\n");
         }
+    } else {
+        OutputDebugStringA("[EditorScene] ERROR: m_shaderManager is NULL after GetShaderManager()\n");
     }
 
     OutputDebugStringA("[EditorScene] All dependencies OK, loading RadialMenu...\n");
@@ -217,10 +225,8 @@ void EditorScene::Load() {
         OutputDebugStringA("[EditorScene] MapEditor initialized\n");
     }
 
-    // Get ShaderManager from Renderer for Master Loop rendering
-    if (m_renderer) {
-        m_shaderManager = m_renderer->GetShaderManager();
-    }
+    // ShaderManager already obtained from Renderer earlier in Load()
+    // No need to get it again here
 
     OutputDebugStringA("[EditorScene] Load() complete\n");
 }

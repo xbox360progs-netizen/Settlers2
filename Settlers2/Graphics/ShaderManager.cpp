@@ -588,8 +588,20 @@ void ShaderManager::Prepare(ShaderID id, const D3DXMATRIX* pViewProj) {
     
     // Shader not found in centralized map
     char errorMsg[256];
-    sprintf_s(errorMsg, "[ShaderManager] Prepare: Shader ID %d not found in m_effects\n", id);
+    sprintf_s(errorMsg, "[ShaderManager] Prepare: Shader ID %d not found in m_effects (total effects in map: %d)\n", id, (int)m_effects.size());
     OutputDebugStringA(errorMsg);
+
+    // Log all available shader IDs for debugging
+    char debugMsg[512];
+    sprintf_s(debugMsg, "[ShaderManager] Available shader IDs in m_effects: ");
+    OutputDebugStringA(debugMsg);
+    for (std::map<ShaderID, ID3DXEffect*>::iterator it = m_effects.begin(); it != m_effects.end(); ++it) {
+        char idMsg[64];
+        sprintf_s(idMsg, "%d ", it->first);
+        OutputDebugStringA(idMsg);
+    }
+    OutputDebugStringA("\n");
+
     m_pActiveEffect = NULL;
     m_currentShaderID = SHADER_INVALID;
 }
@@ -884,32 +896,38 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
             BeginPass(0);
             passActive = true;
         }
-        
+
+        // GPU HANG PREVENTION: Check if effect is valid before drawing
+        if (!m_pActiveEffect) {
+            OutputDebugStringA("[ShaderManager] ERROR: m_pActiveEffect is NULL, skipping draw to prevent GPU hang\n");
+            continue;
+        }
+
         // Xbox 360: CommitChanges() CRITICAL before Draw (apply constant buffer updates)
         CommitChanges();
-        
+
         // Draw this command based on batch type
         switch (cmd.batchType) {
             case 0: // Standard/Single sprite rendering
-                m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 
+                m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST,
                                                cmd.vertexStart,
                                                0,
                                                cmd.vertexCount,
                                                0,
                                                cmd.primitiveCount);
                 break;
-                
+
             case 1: // Instanced rendering
-                m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 
+                m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST,
                                                cmd.vertexStart,
                                                0,
                                                cmd.vertexCount,
                                                0,
                                                cmd.primitiveCount);
                 break;
-                
+
             default:
-                m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 
+                m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST,
                                                cmd.vertexStart,
                                                0,
                                                cmd.vertexCount,
