@@ -754,9 +754,18 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     ShaderID currentShaderID = SHADER_INVALID;
     bool passActive = false;  // Track if we're inside a BeginPass/EndPass block
     LPDIRECT3DTEXTURE9 lastTexture = nullptr; // Lazy texture binding
+    bool lastAlphaBlend = false; // Lazy alpha blend state
     
     for (size_t i = 0; i < m_commandQueue.size(); ++i) {
         const RenderCommand& cmd = m_commandQueue[i];
+        
+        // === LAZY ALPHA BLEND STATE FOR UI ===
+        // Automatically enable alpha blend for UI elements (bIsUI == true)
+        bool needsAlphaBlend = cmd.isUI;
+        if (needsAlphaBlend != lastAlphaBlend) {
+            m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, needsAlphaBlend ? TRUE : FALSE);
+            lastAlphaBlend = needsAlphaBlend;
+        }
         
         // === LAZY TEXTURE BINDING ===
         if (cmd.pTexture != lastTexture) {
