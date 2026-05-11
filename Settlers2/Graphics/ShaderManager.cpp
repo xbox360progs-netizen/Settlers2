@@ -815,40 +815,17 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
 
     OutputDebugStringA("[ShaderManager::ExecuteQueue] Clear() completed\n");
 
-    // Set WVP matrix for sprite shader (ID 0)
+    // Set projection matrix for ALL shaders (not just sprite shader)
     OutputDebugStringA("[ShaderManager::ExecuteQueue] Creating ortho matrix...\n");
     D3DXMATRIX ortho;
     D3DXMatrixOrthoOffCenterLH(&ortho, 0, 1280, 720, 0, 0, 1);
     OutputDebugStringA("[ShaderManager::ExecuteQueue] Ortho matrix created\n");
 
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] Getting sprite effect...\n");
-    ID3DXEffect* pSpriteEffect = GetEffect(SHADER_SPRITE);
-    OutputDebugStringA(pSpriteEffect ? "[ShaderManager::ExecuteQueue] Got sprite effect\n" : "[ShaderManager::ExecuteQueue] Sprite effect is NULL - CANNOT RENDER!\n");
-
-    if (!pSpriteEffect) {
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] ABORTING due to NULL effect\n");
-        return;
-    }
-
-    if (pSpriteEffect) {
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] Setting WVP matrix...\n");
-        D3DXHANDLE hWVP = pSpriteEffect->GetParameterByName(NULL, "WVP");
-        if (hWVP) {
-            pSpriteEffect->SetMatrix(hWVP, &ortho);
-            pSpriteEffect->CommitChanges();
-        }
-        // Also try matOrtho parameter name (used by some shaders)
-        D3DXHANDLE hMatOrtho = pSpriteEffect->GetParameterByName(NULL, "matOrtho");
-        if (hMatOrtho) {
-            pSpriteEffect->SetMatrix(hMatOrtho, &ortho);
-            pSpriteEffect->CommitChanges();
-        }
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] Sprite effect configured\n");
-    }
-
     // === GLOBAL CONSTANT BUFFER: Set ViewProj once per frame ===
+    // Use provided pViewProj if available, otherwise use ortho for 2D
+    const D3DXMATRIX* matrixToUse = pViewProj ? pViewProj : &ortho;
     OutputDebugStringA("[ShaderManager::ExecuteQueue] Calling SetFrameViewProj...\n");
-    SetFrameViewProj(pViewProj);
+    SetFrameViewProj(matrixToUse);
     OutputDebugStringA("[ShaderManager::ExecuteQueue] SetFrameViewProj done\n");
 
     // === SORT COMMANDS: shader-first for lazy batching ===
@@ -1058,14 +1035,12 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     // === CLEANUP: End any active pass and shader ===
     OutputDebugStringA("[ShaderManager::ExecuteQueue] Cleanup: Ending pass...\n");
     if (passActive) {
-        // XBOX 360 DEBUG: Temporarily comment out EndPass to test if crash is here
-        // EndPass();
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] EndPass SKIPPED (debug)\n");
+        EndPass();
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] EndPass done\n");
     }
     OutputDebugStringA("[ShaderManager::ExecuteQueue] Ending current shader...\n");
-    // XBOX 360 DEBUG: Temporarily comment out EndCurrent to test if crash is here
-    // EndCurrent();
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] EndCurrent SKIPPED (debug)\n");
+    EndCurrent();
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] EndCurrent done\n");
     
     // Unlock state after ExecuteQueue completes
     OutputDebugStringA("[ShaderManager::ExecuteQueue] Unlocking...\n");
