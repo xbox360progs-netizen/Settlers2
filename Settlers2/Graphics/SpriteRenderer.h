@@ -82,6 +82,9 @@ public:
     void Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType, bool isUI);
     void Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, int layer, float yPosition); // Composite depth: layer*1000 + y
     void Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, int layer, float yPosition, int renderType, bool isUI);
+    
+    // Y-sorting helper for world objects (buildings, units): depth = layer_base + (y * scale)
+    void BeginWorldObject(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float worldY, float layerBase = 0.5f, float yScale = 0.0001f, int renderType = 0);
 
     // Submit current batch to ShaderManager queue (for manual control)
     void SubmitBatch(ShaderManager* pShader);

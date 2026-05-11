@@ -655,6 +655,12 @@ void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, 
     Begin(shaderName, pTexture, compositeDepth, renderType, isUI);
 }
 
+// Y-sorting helper for world objects (buildings, units): depth = layer_base + (y * scale)
+void SpriteRenderer::BeginWorldObject(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float worldY, float layerBase, float yScale, int renderType) {
+    float depth = layerBase + (worldY * yScale);
+    Begin(shaderName, pTexture, depth, renderType, false); // World-space, not UI
+}
+
 void SpriteRenderer::Draw(float x, float y, float width, float height,
                           float u0, float v0, float u1, float v1,
                           DWORD color) {

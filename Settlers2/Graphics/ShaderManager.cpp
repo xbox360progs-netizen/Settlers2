@@ -39,6 +39,10 @@ void ShaderManager::StateCache::ResetDirtyStates(LPDIRECT3DDEVICE9 device, const
 
 ShaderManager::ShaderManager()
     : m_pDevice(NULL), m_pActiveShader(NULL), m_numPasses(0) {
+    // Reserve memory for command queue to avoid expensive reallocations on Xbox 360
+    m_commandQueue.reserve(2000);
+    m_drawBatches.reserve(500);
+    m_batches.reserve(500);
 }
 
 ShaderManager::~ShaderManager() {

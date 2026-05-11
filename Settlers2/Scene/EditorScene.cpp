@@ -201,30 +201,9 @@ void EditorScene::Update(float deltaTime) {
 	Input::Gamepad* gamepad = m_inputManager->GetGamepad();
 	if (!gamepad) return;
 
-	// === CAMERA CONTROL ===
-	// Left stick: move camera
-	if (m_camera) {
-		float moveSpeed = 500.0f * deltaTime; // pixels per second
-		float stickX, stickY;
-		gamepad->GetLeftStick(stickX, stickY);
-		
-		if (fabsf(stickX) > 0.1f || fabsf(stickY) > 0.1f) {
-			m_camera->Move(stickX * moveSpeed, -stickY * moveSpeed); // Y inverted for screen coords
-		}
-		
-		// Right stick: zoom camera
-		float rightX, rightY;
-		gamepad->GetRightStick(rightX, rightY);
-		if (fabsf(rightY) > 0.1f) {
-			float zoomSpeed = 1.0f * deltaTime;
-			m_camera->Zoom(-rightY * zoomSpeed); // Push up to zoom in
-		}
-		
-		m_camera->Update();
-	}
-
 	bool menuActive = (m_gridMenu && m_gridMenu->IsVisible()) || (m_radialMenu && m_radialMenu->IsVisible());
 
+	// === MENU INPUT (priority over camera when menu is open) ===
 	// Toggle RadialMenu with LB - only when GridMenu is NOT visible
 	if (gamepad->IsButtonPressed(Input::GP_LB)) {
 		if (m_gridMenu && m_gridMenu->IsVisible()) {
@@ -265,6 +244,27 @@ void EditorScene::Update(float deltaTime) {
 				m_gridMenu->Show(640.0f, 360.0f);
 			}
 		}
+	}
+
+	// === CAMERA CONTROL (only when menu is NOT active) ===
+	if (!menuActive && m_camera) {
+		float moveSpeed = 500.0f * deltaTime; // pixels per second
+		float stickX, stickY;
+		gamepad->GetLeftStick(stickX, stickY);
+		
+		if (fabsf(stickX) > 0.1f || fabsf(stickY) > 0.1f) {
+			m_camera->Move(stickX * moveSpeed, -stickY * moveSpeed); // Y inverted for screen coords
+		}
+		
+		// Right stick: zoom camera
+		float rightX, rightY;
+		gamepad->GetRightStick(rightX, rightY);
+		if (fabsf(rightY) > 0.1f) {
+			float zoomSpeed = 1.0f * deltaTime;
+			m_camera->Zoom(-rightY * zoomSpeed); // Push up to zoom in
+		}
+		
+		m_camera->Update();
 	}
 
 	// When GridMenu is visible, update it and handle selection
