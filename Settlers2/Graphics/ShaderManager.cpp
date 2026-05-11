@@ -197,7 +197,7 @@ bool ShaderManager::LoadBaseShaders() {
     // }
 
     // Load SpriteConstantInstanced.fx (for instanced sprites)
-    if (FAILED(LoadShader(SHADER_SPRITE_CONSTANT_INSTANCED, "game:\\Media\\Shaders\\SpriteConstantInstanced.fx", "SpriteBatchTech"))) {
+    if (FAILED(LoadShader(SHADER_SPRITE_CONSTANT_INSTANCED, "game:\\Media\\Shaders\\SpriteConstantInstanced.fx", "SpriteConstantInstancedTech"))) {
         OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_SPRITE_CONSTANT_INSTANCED (SpriteConstantInstanced.fx)\n");
         allSuccess = false;
     }
@@ -783,6 +783,24 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
 
     // BLUE SCREEN TEST: If screen turns blue, rendering pipeline works
     m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0, 0, 255), 1.0f, 0);
+
+    // Set WVP matrix for sprite shader (ID 0)
+    D3DXMATRIX ortho;
+    D3DXMatrixOrthoOffCenterLH(&ortho, 0, 1280, 720, 0, 0, 1);
+    ID3DXEffect* pSpriteEffect = GetEffect(SHADER_SPRITE);
+    if (pSpriteEffect) {
+        D3DXHANDLE hWVP = pSpriteEffect->GetParameterByName(NULL, "WVP");
+        if (hWVP) {
+            pSpriteEffect->SetMatrix(hWVP, &ortho);
+            pSpriteEffect->CommitChanges();
+        }
+        // Also try matOrtho parameter name (used by some shaders)
+        D3DXHANDLE hMatOrtho = pSpriteEffect->GetParameterByName(NULL, "matOrtho");
+        if (hMatOrtho) {
+            pSpriteEffect->SetMatrix(hMatOrtho, &ortho);
+            pSpriteEffect->CommitChanges();
+        }
+    }
 
     // === GLOBAL CONSTANT BUFFER: Set ViewProj once per frame ===
     SetFrameViewProj(pViewProj);
