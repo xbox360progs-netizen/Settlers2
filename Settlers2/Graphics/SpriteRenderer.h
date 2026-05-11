@@ -178,9 +178,9 @@ private:
     void SetRenderMode(RenderMode mode) { 
         m_currentMode = mode; 
         switch(mode) {
-            case MODE_STANDARD:         m_currentShaderID = SHADER_SPRITE; break;
-            case MODE_INSTANCED_STREAM:   m_currentShaderID = SHADER_SPRITE; break; // Fallback to sprite
-            case MODE_INSTANCED_CONST:    m_currentShaderID = SHADER_SPRITE_CONSTANT_INSTANCED; break;
+            case MODE_STANDARD:         m_currentShaderID = SHADER_WORLD; break; // Use World shader for standard rendering
+            case MODE_INSTANCED_STREAM:   m_currentShaderID = SHADER_WORLD; break; // Use World shader for instanced stream
+            case MODE_INSTANCED_CONST:    m_currentShaderID = SHADER_WORLD; break; // Use World shader for constant instanced
         }
     }
     RenderMode GetRenderMode() const { return m_currentMode; }

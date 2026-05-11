@@ -77,9 +77,9 @@ SpriteRenderer::SpriteRenderer()
     // Force 4096 max sprites for performance
     m_maxSprites = 4096;
     
-    // Default rendering mode: constant instanced (unified shader approach)
+    // Default rendering mode: use World shader for world-space rendering
     m_currentMode = MODE_INSTANCED_CONST;
-    m_currentShaderID = SHADER_SPRITE_CONSTANT_INSTANCED;
+    m_currentShaderID = SHADER_WORLD; // Use World shader for world-space objects
     m_currentDepth = 1.0f; // Default: far layer (ground)
     m_currentRenderType = 0; // Default to Single
     m_currentIsUI = false; // Default: world-space (apply camera matrix)

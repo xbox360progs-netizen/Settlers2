@@ -164,15 +164,21 @@ bool ShaderManager::LoadBaseShaders() {
 
     bool allSuccess = true;
 
-    // Load Sprite.fx (used for world, objects, terrain)
-    if (FAILED(LoadShader(SHADER_SPRITE, "game:\\Media\\Shaders\\Sprite2D.fx", "Sprite"))) {
-        OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_SPRITE (Sprite.fx)\n");
+    // Load World.fx (for world-space rendering: tiles, trees, units)
+    if (FAILED(LoadShader(SHADER_WORLD, "game:\\Media\\Shaders\\World.fx", "WorldTech"))) {
+        OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_WORLD (World.fx)\n");
         allSuccess = false;
     }
 
-    // Load UI.fx (for UI elements)
-    if (FAILED(LoadShader(SHADER_UI, "game:\\Media\\Shaders\\Sprite2D.fx", "Sprite"))) {
-        OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_UI (Sprite.fx)\n");
+    // Load UI.fx (for UI elements: text, menus, cursor)
+    if (FAILED(LoadShader(SHADER_UI, "game:\\Media\\Shaders\\UI.fx", "UITech"))) {
+        OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_UI (UI.fx)\n");
+        allSuccess = false;
+    }
+
+    // Load Sprite.fx (legacy, used for some world objects)
+    if (FAILED(LoadShader(SHADER_SPRITE, "game:\\Media\\Shaders\\Sprite2D.fx", "Sprite"))) {
+        OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_SPRITE (Sprite.fx)\n");
         allSuccess = false;
     }
 
@@ -638,10 +644,37 @@ void ShaderManager::SetShaderParameters(const RenderCommand& cmd) {
     ShaderID id = static_cast<ShaderID>(cmd.shaderID);
     
     switch (id) {
+        case SHADER_WORLD:
+        {
+            // World shader: set texture + camera ViewProj matrix
+            if (cmd.pTexture) {
+                SetTexture("g_Texture", cmd.pTexture);
+            }
+            // Use camera ViewProj for world-space rendering
+            if (m_hasFrameViewProj) {
+                SetMatrix("gViewProj", (const float*)&m_frameViewProj);
+            }
+            break;
+        }
+            
+        case SHADER_UI:
+        {
+            // UI shader: set texture + screen orthographic matrix
+            if (cmd.pTexture) {
+                SetTexture("g_Texture", cmd.pTexture);
+            }
+            // Use orthographic projection for UI (screen space)
+            D3DXMATRIX matOrtho;
+            D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
+            SetMatrix("gScreenProj", (const float*)&matOrtho);
+            break;
+        }
+            
         case SHADER_SPRITE:
         case SHADER_SPRITE_CONSTANT_INSTANCED:
         case SHADER_TERRAIN:
-            // Sprite shaders: set texture + ortho/world matrix
+        {
+            // Legacy sprite shaders: set texture + ortho/world matrix
             if (cmd.pTexture) {
                 SetTexture("g_texture", cmd.pTexture);
             }
@@ -654,10 +687,11 @@ void ShaderManager::SetShaderParameters(const RenderCommand& cmd) {
                 SetMatrix("matOrtho", (const float*)&m_frameViewProj);
             }
             break;
+        }
             
         case SHADER_RADIALMENU:
-        case SHADER_UI:
-            // UI/RadialMenu shaders: set WorldViewProjection
+        {
+            // RadialMenu shader: set WorldViewProjection
             if (cmd.isUI) {
                 D3DXMATRIX matOrtho;
                 D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
@@ -669,6 +703,7 @@ void ShaderManager::SetShaderParameters(const RenderCommand& cmd) {
                 SetTexture("g_texture", cmd.pTexture);
             }
             break;
+        }
             
         default:
             break;
