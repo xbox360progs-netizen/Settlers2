@@ -1001,6 +1001,29 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
 
         // Draw this command based on batch type
         OutputDebugStringA("[ShaderManager::ExecuteQueue] About to DrawIndexedPrimitive...\n");
+        
+        // XBOX 360 SAFETY: Validate buffer sizes before drawing
+        {
+            char debugBuf[512];
+            sprintf(debugBuf, "[SM] Drawing: vertexStart=%d, vertexCount=%d, primitiveCount=%d, batchType=%d\n",
+                    cmd.vertexStart, cmd.vertexCount, cmd.primitiveCount, cmd.batchType);
+            OutputDebugStringA(debugBuf);
+            
+            // Check for potential buffer overrun
+            if (cmd.primitiveCount > 4096 * 2) { // Max 2 tris per sprite * 4096 sprites
+                sprintf(debugBuf, "[SM] CRITICAL: primitiveCount=%d exceeds maximum! This will cause Xbox 360 crash!\n", cmd.primitiveCount);
+                OutputDebugStringA(debugBuf);
+                continue; // Skip this draw to prevent crash
+            }
+            
+            if (cmd.vertexStart + cmd.vertexCount > 4096 * 4) { // Max 4 vertices per sprite * 4096 sprites
+                sprintf(debugBuf, "[SM] CRITICAL: vertex range exceeds buffer! start=%d + count=%d > max=%d\n", 
+                        cmd.vertexStart, cmd.vertexCount, 4096 * 4);
+                OutputDebugStringA(debugBuf);
+                continue; // Skip this draw to prevent crash
+            }
+        }
+        
         switch (cmd.batchType) {
             case 0: // Standard/Single sprite rendering
                 m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST,
@@ -1035,12 +1058,14 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     // === CLEANUP: End any active pass and shader ===
     OutputDebugStringA("[ShaderManager::ExecuteQueue] Cleanup: Ending pass...\n");
     if (passActive) {
-        EndPass();
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] EndPass done\n");
+        // XBOX 360 DEBUG: Temporarily comment out EndPass to test if crash is here
+        // EndPass();
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] EndPass SKIPPED (debug)\n");
     }
     OutputDebugStringA("[ShaderManager::ExecuteQueue] Ending current shader...\n");
-    EndCurrent();
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] EndCurrent done\n");
+    // XBOX 360 DEBUG: Temporarily comment out EndCurrent to test if crash is here
+    // EndCurrent();
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] EndCurrent SKIPPED (debug)\n");
     
     // Unlock state after ExecuteQueue completes
     OutputDebugStringA("[ShaderManager::ExecuteQueue] Unlocking...\n");

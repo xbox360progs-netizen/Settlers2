@@ -968,18 +968,49 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
     // === NEW QUEUE-BASED APPROACH ===
     // Instead of drawing directly, submit batch to ShaderManager queue
     
+    // XBOX 360 SAFETY: Validate buffer sizes before copying
+    size_t dataSize = m_spriteCount * 4 * sizeof(SpriteVertex);
+    size_t bufferSize = m_maxSprites * 4 * sizeof(SpriteVertex);
+    
+    if (dataSize > bufferSize) {
+        char errorMsg[256];
+        sprintf(errorMsg, "[SR::Flush] CRITICAL: Data size %d exceeds buffer size %d!\n", (int)dataSize, (int)bufferSize);
+        OutputDebugStringA(errorMsg);
+        m_spriteCount = 0;
+        return; // Prevent buffer overrun
+    }
+
     // Copy staging buffer to GPU
     LPDIRECT3DVERTEXBUFFER9 currentVB = m_pVB[m_activeBuffer];
     void* pData = NULL;
     OutputDebugStringA("[SR::Flush] Locking VB...\n");
-    HRESULT hr = currentVB->Lock(0, m_spriteCount * 4 * sizeof(SpriteVertex), &pData, 0);
+    
+    // XBOX 360: Use D3DLOCK_DISCARD for dynamic buffers to avoid GPU sync issues
+    DWORD lockFlags = 0;
+    #ifdef _XBOX
+    lockFlags = 0; // D3DLOCK_DISCARD not available on Xbox 360, use 0
+    #else
+    lockFlags = D3DLOCK_DISCARD; // Only on PC
+    #endif
+    
+    HRESULT hr = currentVB->Lock(0, (UINT)dataSize, &pData, lockFlags);
     if (FAILED(hr)) {
-        OutputDebugStringA("[SR::Flush] FAILED to lock vertex buffer\n");
+        char errorMsg[256];
+        sprintf(errorMsg, "[SR::Flush] FAILED to lock vertex buffer (hr=0x%08X)\n", hr);
+        OutputDebugStringA(errorMsg);
         m_spriteCount = 0;
         return;
     }
     OutputDebugStringA("[SR::Flush] VB locked, copying data...\n");
-    memcpy(pData, m_pStagingBuffer, m_spriteCount * 4 * sizeof(SpriteVertex));
+    
+    // XBOX 360: Validate pData before memcpy
+    if (!pData) {
+        OutputDebugStringA("[SR::Flush] CRITICAL: Lock returned NULL pointer!\n");
+        m_spriteCount = 0;
+        return;
+    }
+    
+    memcpy(pData, m_pStagingBuffer, dataSize);
     currentVB->Unlock();
     OutputDebugStringA("[SR::Flush] VB unlocked\n");
 
@@ -1654,10 +1685,12 @@ void SpriteRenderer::CreateQuad(float x, float y, float width, float height,
                                 DWORD color) {
     OutputDebugStringA("[SR::CreateQuad] ENTRY\n");
 
-    // Check for overflow before writing to staging buffer
+    // XBOX 360 CRITICAL: Check for sprite limit BEFORE any calculations
     if (m_spriteCount >= m_maxSprites) {
-        OutputDebugStringA("[SR::CreateQuad] ERROR: Overflow!\n");
-        return;
+        char errorMsg[256];
+        sprintf(errorMsg, "[SR::CreateQuad] CRITICAL: Sprite limit exceeded! count=%d, max=%d\n", m_spriteCount, m_maxSprites);
+        OutputDebugStringA(errorMsg);
+        return; // Prevent buffer overrun that causes Xbox 360 crash
     }
 
     // ТЕСТ 2: Проверка указателя на staging buffer
@@ -1666,12 +1699,24 @@ void SpriteRenderer::CreateQuad(float x, float y, float width, float height,
         return;
     }
 
-    // Проверка индекса на переполнение
+    // Calculate vertex index with overflow protection
     int vertexIndex = m_spriteCount * 4;
     int maxVertices = m_maxSprites * 4;
     if (vertexIndex >= maxVertices) {
-        OutputDebugStringA("[SR::CreateQuad] CRITICAL: Vertex index overflow!\n");
-        return;
+        char errorMsg[256];
+        sprintf(errorMsg, "[SR::CreateQuad] CRITICAL: Vertex buffer overflow! vertexIndex=%d, max=%d\n", vertexIndex, maxVertices);
+        OutputDebugStringA(errorMsg);
+        return; // Prevent writing beyond buffer bounds
+    }
+
+    // XBOX 360 SAFETY: Check index buffer bounds
+    int indexCount = m_spriteCount * 6; // 6 indices per sprite
+    int maxIndices = m_maxSprites * 6;
+    if (indexCount >= maxIndices) {
+        char errorMsg[256];
+        sprintf(errorMsg, "[SR::CreateQuad] CRITICAL: Index buffer overflow! indexCount=%d, max=%d\n", indexCount, maxIndices);
+        OutputDebugStringA(errorMsg);
+        return; // Prevent index buffer overrun
     }
 
     OutputDebugStringA("[SR::CreateQuad] Calculating coordinates...\n");
