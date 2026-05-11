@@ -77,6 +77,10 @@ public:
 
     // Begin a batch with specific shader and texture
     void Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture);
+    void Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float zOrder);
+
+    // Submit current batch to ShaderManager queue (for manual control)
+    void SubmitBatch(ShaderManager* pShader);
 
     // Draw a sprite at position with UV rect and color
     void Draw(float x, float y, float width, float height,

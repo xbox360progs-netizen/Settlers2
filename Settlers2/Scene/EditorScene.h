@@ -32,6 +32,7 @@ EditorScene();
     void SetInputManager(Input::InputManager* inputManager) { m_inputManager = inputManager; }
     void SetBinFileManager(BinFileManager* binFileManager) { m_binFileManager = binFileManager; }
     void SetTextManager(class TextManager* textManager) { m_textManager = textManager; }
+    void SetShaderManager(class ShaderManager* shaderManager) { m_shaderManager = shaderManager; }
     // Bind three textures to GridMenu externally (no loading here)
     void BindGridMenuTextures(LPDIRECT3DTEXTURE9 bgTexture, LPDIRECT3DTEXTURE9 cellTexture, LPDIRECT3DTEXTURE9 atlasTexture);
 
@@ -46,6 +47,7 @@ EditorScene();
     Input::InputManager* m_inputManager;
     BinFileManager* m_binFileManager;
     class TextManager* m_textManager;
+    class ShaderManager* m_shaderManager;
     RadialMenu* m_radialMenu;
     GridMenu* m_gridMenu;
     Texture m_groundTexture;

@@ -33,6 +33,28 @@ public:
               cullMode(D3DCULL_NONE) {}
     };
 
+    // Draw batch structure for material-based sorting (State Sorting)
+    struct DrawBatch {
+        IDirect3DTexture9* pTexture;
+        Shader* pShader;
+        DWORD vertexOffset;  // Offset in vertex buffer
+        DWORD indexCount;    // Number of indices to draw
+        float zOrder;
+        std::string shaderName;
+        
+        // Sorting operator: by texture first (expensive switch), then shader, then zOrder
+        bool operator<(const DrawBatch& other) const {
+            // Texture switch is most expensive on Xbox 360
+            if (pTexture != other.pTexture)
+                return pTexture < other.pTexture;
+            // Shader switch is second most expensive
+            if (shaderName != other.shaderName)
+                return shaderName < other.shaderName;
+            // Z-order is least expensive
+            return zOrder < other.zOrder;
+        }
+    };
+
     // Render command structure for queue-based rendering (Master Loop)
     struct RenderCommand {
         IDirect3DTexture9* pTexture;
@@ -128,17 +150,26 @@ public:
     // Submit a render command to the queue
     void Submit(const RenderCommand& cmd);
     
+    // Submit a draw batch for material-based sorting
+    void SubmitDrawBatch(const DrawBatch& batch);
+    
     // Submit a render batch to the queue (legacy)
     void SubmitBatch(const RenderBatch& batch);
     
     // Clear all commands from the queue
     void ClearQueue();
     
+    // Clear draw batches
+    void ClearDrawBatches();
+    
     // Clear all batches from the queue (legacy)
     void ClearBatches();
     
     // Sort commands by zOrder, shader, and texture (critical for Xbox 360 performance)
     void SortQueue();
+    
+    // Sort draw batches by material (texture first, then shader) - State Sorting
+    void SortDrawBatches();
     
     // Sort batches by shader and texture (legacy)
     void SortBatches();
@@ -147,12 +178,19 @@ public:
     void ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
                      LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride);
     
+    // Execute draw batches with material-based sorting
+    void ExecuteDrawBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
+                           LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride);
+    
     // Execute all batches in the queue (legacy)
     void ExecuteBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
                        LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride);
     
     // Get command count
     size_t GetCommandCount() const { return m_commandQueue.size(); }
+    
+    // Get draw batch count
+    size_t GetDrawBatchCount() const { return m_drawBatches.size(); }
     
     // Get batch count (legacy)
     size_t GetBatchCount() const { return m_batches.size(); }
@@ -168,6 +206,9 @@ private:
 
     // Render command queue for Master Loop rendering
     std::vector<RenderCommand> m_commandQueue;
+    
+    // Draw batch queue for material-based sorting (State Sorting)
+    std::vector<DrawBatch> m_drawBatches;
     
     // Render queue for batch-based rendering (legacy)
     std::vector<RenderBatch> m_batches;

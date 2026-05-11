@@ -225,20 +225,25 @@ void ShaderManager::SetVector(const char* paramName, const float* vector) {
 }
 
 void ShaderManager::SetTexture(const char* paramName, LPDIRECT3DBASETEXTURE9 pTexture) {
-    if (!m_pActiveShader || !m_pActiveShader->pEffect) return;
-
-    auto it = m_pActiveShader->hParams.find(paramName);
-    D3DXHANDLE hParam = (it != m_pActiveShader->hParams.end()) ? it->second : NULL;
-
-    if (it == m_pActiveShader->hParams.end()) {
-        hParam = m_pActiveShader->pEffect->GetParameterByName(NULL, paramName);
-        m_pActiveShader->hParams[paramName] = hParam;
+    if (!m_pActiveShader || !m_pActiveShader->pEffect) {
+        return;
     }
 
+    D3DXHANDLE hParam = m_pActiveShader->pEffect->GetParameterByName(NULL, paramName);
     if (hParam) {
         m_pActiveShader->pEffect->SetTexture(hParam, pTexture);
         // Removed automatic CommitChanges() for Xbox 360 multi-threading
         // Use explicit Commit() call instead
+    }
+    
+    // === BATCH BREAKING ===
+    // Track texture changes to mark current batch as complete
+    // This allows material-based sorting to work correctly
+    static LPDIRECT3DBASETEXTURE9 s_lastTexture = NULL;
+    if (s_lastTexture != pTexture) {
+        // Texture changed - this is a batch break point
+        s_lastTexture = pTexture;
+        // The sorting system will handle grouping by texture automatically
     }
 }
 
@@ -270,12 +275,20 @@ void ShaderManager::Submit(const RenderCommand& cmd) {
     m_commandQueue.push_back(cmd);
 }
 
+void ShaderManager::SubmitDrawBatch(const DrawBatch& batch) {
+    m_drawBatches.push_back(batch);
+}
+
 void ShaderManager::SubmitBatch(const RenderBatch& batch) {
     m_batches.push_back(batch);
 }
 
 void ShaderManager::ClearQueue() {
     m_commandQueue.clear();
+}
+
+void ShaderManager::ClearDrawBatches() {
+    m_drawBatches.clear();
 }
 
 void ShaderManager::ClearBatches() {
@@ -285,6 +298,11 @@ void ShaderManager::ClearBatches() {
 void ShaderManager::SortQueue() {
     // Sort by zOrder, then shader, then texture (critical for Xbox 360 performance)
     std::sort(m_commandQueue.begin(), m_commandQueue.end());
+}
+
+void ShaderManager::SortDrawBatches() {
+    // Sort by texture first (expensive switch), then shader, then zOrder (State Sorting)
+    std::sort(m_drawBatches.begin(), m_drawBatches.end());
 }
 
 void ShaderManager::SortBatches() {
@@ -337,6 +355,13 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     
     // Clear command queue after execution
     m_commandQueue.clear();
+    
+    // === CLEANUP: Reset all texture slots to NULL ===
+    // This guarantees TextManager starts with clean slate next frame
+    m_pDevice->SetTexture(0, NULL);
+    m_pDevice->SetTexture(1, NULL);
+    m_pDevice->SetTexture(2, NULL);
+    m_pDevice->SetTexture(3, NULL);
 }
 
 void ShaderManager::ExecuteBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
@@ -384,4 +409,60 @@ void ShaderManager::ExecuteBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXB
     
     // Clear batches after execution
     m_batches.clear();
+    
+    // === CLEANUP: Reset all texture slots to NULL ===
+    m_pDevice->SetTexture(0, NULL);
+    m_pDevice->SetTexture(1, NULL);
+    m_pDevice->SetTexture(2, NULL);
+    m_pDevice->SetTexture(3, NULL);
+}
+
+void ShaderManager::ExecuteDrawBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
+                                       LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride) {
+    if (m_drawBatches.empty()) return;
+    
+    // Set vertex declaration and streams once
+    m_pDevice->SetVertexDeclaration(pDecl);
+    m_pDevice->SetStreamSource(0, pVB, 0, vertexStride);
+    m_pDevice->SetIndices(pIB);
+    
+    // Process batches in sorted order (material-based sorting)
+    for (size_t i = 0; i < m_drawBatches.size(); ++i) {
+        const DrawBatch& batch = m_drawBatches[i];
+        
+        // Set shader if changed
+        if (m_pActiveShader != batch.pShader) {
+            if (m_pActiveShader) {
+                EndShader();
+            }
+            m_pActiveShader = batch.pShader;
+            BeginShader();
+        }
+        
+        // Set texture if changed (batch breaking)
+        SetTexture("g_texture", batch.pTexture);
+        Commit();
+        
+        // Draw this batch
+        BeginPass(0);
+        m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 
+                                       batch.indexCount / 3 * 4, 
+                                       batch.vertexOffset, 
+                                       batch.indexCount / 3);
+        EndPass();
+    }
+    
+    // Clean up
+    if (m_pActiveShader) {
+        EndShader();
+    }
+    
+    // Clear draw batches after execution
+    m_drawBatches.clear();
+    
+    // === CLEANUP: Reset all texture slots to NULL ===
+    m_pDevice->SetTexture(0, NULL);
+    m_pDevice->SetTexture(1, NULL);
+    m_pDevice->SetTexture(2, NULL);
+    m_pDevice->SetTexture(3, NULL);
 }

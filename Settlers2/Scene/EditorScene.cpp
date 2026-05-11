@@ -1,8 +1,18 @@
 #include "stdafx.h"
 #include "EditorScene.h"
+#include "../Logic/MapConstants.h"
+#include "../World/TileLayer.h"
+#include "../Graphics/RadialMenu.h"
+#include "../Graphics/TextManager.h"
+#include "../Graphics/GridMenu.h"
+#include "../Graphics/Texture.h"
+#include "../Graphics/Renderer.h"
+#include "../Graphics/SpriteRenderer.h"
+#include "../Graphics/ShaderManager.h"
+#include "../Graphics/BinFileManager.h"
+#include "../Input/InputManager.h"
 #include "../Editor/MapEditor.h"
 #include "../Graphics/SpriteAtlas.h"
-#include "../Graphics/SpriteRenderer.h"
 #include "../Graphics/TextureRegistry.h"
 #include <iostream>
 #include <cstdio>
@@ -24,6 +34,7 @@ EditorScene::EditorScene()
     , m_inputManager(nullptr)
     , m_binFileManager(nullptr)
     , m_textManager(nullptr)
+    , m_shaderManager(nullptr)
     , m_radialMenu(nullptr)
     , m_gridMenu(nullptr)
     , m_mapEditor(nullptr)
@@ -149,6 +160,11 @@ void EditorScene::Load() {
         OutputDebugStringA("[EditorScene] MapEditor initialized\n");
     }
 
+    // Get ShaderManager from Renderer for Master Loop rendering
+    if (m_renderer) {
+        m_shaderManager = m_renderer->GetShaderManager();
+    }
+
     OutputDebugStringA("[EditorScene] Load() complete\n");
 }
 
@@ -249,13 +265,13 @@ void EditorScene::Update(float deltaTime) {
     if (m_radialMenu->HasSelection()) {
         int selectedType = m_radialMenu->GetSelectedTypeId();
         m_currentLayer = static_cast<World::LayerType>(selectedType);
-        if (m_mapEditor) {
-            m_mapEditor->SetLayer(m_currentLayer);
-            if (m_currentLayer != World::Objects) {
-                m_yButtonWasPressed = false;
-            }
+        
+        if (m_currentLayer != World::Objects) {
+            m_yButtonWasPressed = false;
+        }
 
-            // ��������� ����������
+        // Update map editor visibility based on current layer
+        if (m_mapEditor) {
             switch (m_currentLayer) {
                 case World::Ground:
                     m_mapEditor->SetShowObjects(false);
@@ -292,79 +308,8 @@ void EditorScene::Update(float deltaTime) {
 		}
 
 		// A button - paint current tile while held
-if (gamepad->IsButtonDown(Input::GP_A)) {
+		if (gamepad->IsButtonDown(Input::GP_A)) {
 			m_mapEditor->PaintCurrentTile();
-		}
-	
-
-	} else {
-// LB opens RadialMenu
-		if (gamepad->IsButtonPressed(Input::GP_LB)) {
-			if (m_radialMenu) {
-				if (!m_radialMenu->IsVisible()) {
-					m_radialMenu->Show(640.0f, 360.0f);
-				}
-			}
-			if (m_gridMenu && m_gridMenu->IsVisible()) {
-				m_gridMenu->Hide();
-			}
-		}
-		// RB opens GridMenu; hide RadialMenu if visible
-		if (gamepad->IsButtonPressed(Input::GP_RB)) {
-			if (!m_gridMenu) {
-				m_gridMenu = new GridMenu(m_renderer->GetDevice());
-				if (m_gridMenu && m_gridMenu->Initialize()) {
-					if (m_currentLayer == World::Objects) {
-						m_objectAtlasIndex = 0;
-						LoadGridMenuAtlas(kObjectAtlasNames[m_objectAtlasIndex]);
-					} else {
-						LoadGridMenuAtlas("ground");
-					}
-				}
-			}
-			if (m_gridMenu && !m_gridMenu->IsVisible()) {
-				if (m_currentLayer == World::Objects) {
-					LoadGridMenuAtlas(kObjectAtlasNames[m_objectAtlasIndex]);
-				} else {
-					LoadGridMenuAtlas("ground");
-				}
-				m_gridMenu->Show(640.0f, 360.0f);
-			}
-			if (m_radialMenu && m_radialMenu->IsVisible()) {
-				m_radialMenu->Hide();
-			}
-		}
-		// When GridMenu is visible, update it and handle selection
-		if (m_gridMenu && m_gridMenu->IsVisible()) {
-			m_gridMenu->Update(gamepad, deltaTime);
-			if (gamepad->IsButtonPressed(Input::GP_A)) {
-				int selectedIndex = m_gridMenu->GetSelectedSpriteIndex();
-				if (selectedIndex >= 0 && m_mapEditor) {
-					m_mapEditor->SetTileByIndex(selectedIndex);
-				}
-				m_gridMenu->Hide();
-			}
-			if (gamepad->IsButtonPressed(Input::GP_B)) {
-				m_gridMenu->Hide();
-			}
-			// Y button - cycle object atlases (only in Objects layer) with debounce
-			if (m_currentLayer == World::Objects) {
-				if (gamepad->IsButtonDown(Input::GP_Y)) {
-					if (!m_yButtonWasPressed) {
-						CycleObjectAtlas();
-						m_yButtonWasPressed = true;
-					}
-				} else {
-					m_yButtonWasPressed = false;
-				}
-			}
-			// Shoulder triggers to navigate windows
-			if (gamepad->IsButtonPressed(Input::GP_LB)) {
-				m_gridMenu->PrevWindow();
-			}
-			if (gamepad->IsButtonPressed(Input::GP_RB)) {
-				m_gridMenu->NextWindow();
-			}
 		}
 	}
 }
@@ -384,30 +329,15 @@ void EditorScene::Render() {
         m_mapEditor->Render();
     }
 
-    // CRITICAL: Force flush between world and UI to prevent batch mixing
-    if (m_spriteRenderer) {
-        m_spriteRenderer->Flush();
-    }
-
-    // Note: Orthographic matrix is set in SpriteRenderer::FlushStandard shader
-    // No need to set it here - just flush to separate world and UI batches
-
+    // Render RadialMenu (submits commands to queue)
     if (m_radialMenu && m_radialMenu->IsVisible()) {
-        m_spriteRenderer->Flush();
         m_radialMenu->Render();
-        m_spriteRenderer->Flush();
         m_radialMenu->RenderIcons(m_spriteRenderer);
-        m_spriteRenderer->Flush();
     }
+    
+    // Render GridMenu (submits commands to queue)
     if (m_gridMenu && m_gridMenu->IsVisible()) {
-        m_spriteRenderer->Flush();
         m_gridMenu->Render(m_spriteRenderer);
-        m_spriteRenderer->Flush();
-    }
-
-    // Flush to ensure all sprites are rendered before UI text
-    if (m_spriteRenderer) {
-        m_spriteRenderer->Flush();
     }
 
     // Draw FPS counter (top-left)
@@ -425,6 +355,18 @@ void EditorScene::Render() {
             m_textManager->DrawTextToScreen(layerNames[layerIdx], 100.0f, m_renderer->GetScreenHeight() - 40.0f, 0xFFFFFFFF, 0.25f);
         }
         m_textManager->RenderScreen();
+    }
+    
+    // === MASTER LOOP: Execute all queued render commands ===
+    // This is the single render pass for the entire frame
+    if (m_shaderManager && m_spriteRenderer) {
+        LPDIRECT3DVERTEXBUFFER9 pVB = m_spriteRenderer->GetVertexBuffer();
+        LPDIRECT3DINDEXBUFFER9 pIB = m_spriteRenderer->GetIndexBuffer();
+        LPDIRECT3DVERTEXDECLARATION9 pDecl = m_spriteRenderer->GetVertexDeclaration();
+        
+        if (pVB && pIB && pDecl) {
+            m_shaderManager->ExecuteQueue(pVB, pIB, pDecl, 32);
+        }
     }
 
     m_renderer->EndFrame();

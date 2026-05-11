@@ -593,6 +593,10 @@ void SpriteRenderer::OnResetDevice() {
 }
 
 void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture) {
+    Begin(shaderName, pTexture, 0.0f);
+}
+
+void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float zOrder) {
 
     // If state changed, flush previous batch
     if (m_isBatching) {
@@ -790,6 +794,45 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
 
     // Switch buffer for next frame (double buffering)
     m_activeBuffer = (m_activeBuffer + 1) % 2;
+    m_spriteCount = 0;
+}
+
+void SpriteRenderer::SubmitBatch(ShaderManager* pShader) {
+    // Manual batch submission - same logic as Flush but without buffer switch
+    if (m_spriteCount == 0) return;
+    
+    // Copy staging buffer to GPU
+    LPDIRECT3DVERTEXBUFFER9 currentVB = m_pVB[m_activeBuffer];
+    void* pData = NULL;
+    HRESULT hr = currentVB->Lock(0, m_spriteCount * 4 * sizeof(SpriteVertex), &pData, 0);
+    if (FAILED(hr)) {
+        OutputDebugStringA("Failed to lock vertex buffer in SubmitBatch\n");
+        return;
+    }
+    memcpy(pData, m_pStagingBuffer, m_spriteCount * 4 * sizeof(SpriteVertex));
+    currentVB->Unlock();
+
+    // Create render command
+    if (pShader) {
+        ShaderManager::RenderCommand cmd;
+        cmd.pTexture = m_currentTexture;
+        cmd.pShader = pShader->GetShader(m_currentShaderName.c_str());
+        cmd.shaderName = m_currentShaderName;
+        cmd.vertexStart = 0;
+        cmd.vertexCount = m_spriteCount * 4;
+        cmd.primitiveCount = (DWORD)(m_spriteCount * 2);
+        cmd.batchType = 0;
+        cmd.zOrder = m_currentZOrder;
+        
+        cmd.states.zEnable = D3DZB_FALSE;
+        cmd.states.alphaBlendEnable = TRUE;
+        cmd.states.srcBlend = D3DBLEND_SRCALPHA;
+        cmd.states.destBlend = D3DBLEND_INVSRCALPHA;
+        cmd.states.cullMode = D3DCULL_NONE;
+        
+        pShader->Submit(cmd);
+    }
+    
     m_spriteCount = 0;
 }
 
@@ -1007,7 +1050,7 @@ void SpriteRenderer::InternalDraw(const RenderCommand& cmd) {
 }
 
 // Public wrapper for atlas sprite (compatibility wrapper in case direct call is private)
-void SpriteRenderer::DrawAtlasSpritePublic(SpriteAtlas* atlas, uint32_t index, float x, float y, DWORD color) {
+void SpriteRenderer::DrawAtlasSpritePublic(SpriteAtlas* atlas, DWORD index, float x, float y, DWORD color) {
     DrawAtlasSprite(atlas, index, x, y, color);
 }
 
@@ -1500,5 +1543,4 @@ void SpriteRenderer::ComputeRotatedVerticesVMX(const SpriteData& data, SpriteVer
         pOutVertices[i].u = u[i];
         pOutVertices[i].v = v[i];
     }
-}
 }
