@@ -1,5 +1,6 @@
 // World.fx
 float4x4 gViewProj : register(c0); // Матрица камеры
+texture g_Texture; // Текстура
 
 sampler2D texSampler : register(s0) {
     Texture = <g_Texture>;

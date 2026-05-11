@@ -183,19 +183,21 @@ bool ShaderManager::LoadBaseShaders() {
     }
 
     // Load Sprite.fx (legacy, used for some world objects)
-    if (FAILED(LoadShader(SHADER_SPRITE, "game:\\Media\\Shaders\\Sprite2D.fx", "Sprite"))) {
-        OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_SPRITE (Sprite.fx)\n");
-        allSuccess = false;
-    }
+    // Commented out - Sprite2D.fx doesn't exist, use SpriteShader.fx instead
+    // if (FAILED(LoadShader(SHADER_SPRITE, "game:\\Media\\Shaders\\Sprite2D.fx", "Sprite"))) {
+    //     OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_SPRITE (Sprite.fx)\n");
+    //     allSuccess = false;
+    // }
 
     // Load RadialMenu.fx (for radial menu)
-    if (FAILED(LoadShader(SHADER_RADIALMENU, "game:\\Media\\Shaders\\RadialMenu.fx", "RadialMenu"))) {
-        OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_RADIALMENU (RadialMenu.fx)\n");
-        allSuccess = false;
-    }
+    // Commented out - RadialMenu.fx doesn't exist yet
+    // if (FAILED(LoadShader(SHADER_RADIALMENU, "game:\\Media\\Shaders\\RadialMenu.fx", "RadialMenu"))) {
+    //     OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_RADIALMENU (RadialMenu.fx)\n");
+    //     allSuccess = false;
+    // }
 
     // Load SpriteConstantInstanced.fx (for instanced sprites)
-    if (FAILED(LoadShader(SHADER_SPRITE_CONSTANT_INSTANCED, "game:\\Media\\Shaders\\SpriteConstantInstanced.fx", "Sprite"))) {
+    if (FAILED(LoadShader(SHADER_SPRITE_CONSTANT_INSTANCED, "game:\\Media\\Shaders\\SpriteConstantInstanced.fx", "SpriteBatchTech"))) {
         OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_SPRITE_CONSTANT_INSTANCED (SpriteConstantInstanced.fx)\n");
         allSuccess = false;
     }
@@ -774,11 +776,14 @@ void ShaderManager::ApplyShader(int shaderID) {
     Prepare(id, NULL);
 }
 
-void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
+void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB,
                                 LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride,
                                 const D3DXMATRIX* pViewProj) {
     if (m_commandQueue.empty()) return;
-    
+
+    // BLUE SCREEN TEST: If screen turns blue, rendering pipeline works
+    m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0, 0, 255), 1.0f, 0);
+
     // === GLOBAL CONSTANT BUFFER: Set ViewProj once per frame ===
     SetFrameViewProj(pViewProj);
     
