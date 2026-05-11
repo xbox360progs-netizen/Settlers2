@@ -595,7 +595,6 @@ void SpriteRenderer::OnResetDevice() {
     
 }
 
-// Helper: map shader name to shader handle
 static int ShaderNameToID(const char* shaderName) {
     if (!shaderName) return ShaderManager::SHADER_INVALID;
     if (strcmp(shaderName, "sprite") == 0) return ShaderManager::SHADER_SPRITE;
@@ -605,19 +604,19 @@ static int ShaderNameToID(const char* shaderName) {
 }
 
 // New Begin overloads with shaderID
-void SpriteRenderer::Begin(int shaderID, LPDIRECT3DTEXTURE9 pTexture) {
+void SpriteRenderer::Begin(ShaderManager::ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture) {
     Begin(shaderID, pTexture, 1.0f, 0, false); // Default: far layer, Single, world-space
 }
 
-void SpriteRenderer::Begin(int shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth) {
+void SpriteRenderer::Begin(ShaderManager::ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth) {
     Begin(shaderID, pTexture, depth, 0, false); // Default: Single, world-space
 }
 
-void SpriteRenderer::Begin(int shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType) {
+void SpriteRenderer::Begin(ShaderManager::ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType) {
     Begin(shaderID, pTexture, depth, renderType, false); // Default: world-space
 }
 
-void SpriteRenderer::Begin(int shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType, bool isUI) {
+void SpriteRenderer::Begin(ShaderManager::ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType, bool isUI) {
 
     // If state changed, flush previous batch
     if (m_isBatching) {
@@ -639,7 +638,8 @@ void SpriteRenderer::Begin(int shaderID, LPDIRECT3DTEXTURE9 pTexture, float dept
     }
 
     char debugMsg[128];
-    sprintf(debugMsg, "[SpriteRenderer::Begin] shaderID=%d, texture=%p, depth=%.2f, renderType=%d, isUI=%d\n", shaderID, pTexture, depth, renderType, isUI);
+    sprintf(debugMsg, "[SpriteRenderer::Begin] shaderID=%d, texture=%p, depth=%.2f, renderType=%d, isUI=%d\n", 
+            shaderID, pTexture, depth, renderType, isUI);
     OutputDebugStringA(debugMsg);
 
     m_currentShaderID = shaderID;
@@ -651,18 +651,18 @@ void SpriteRenderer::Begin(int shaderID, LPDIRECT3DTEXTURE9 pTexture, float dept
     m_spriteCount = 0;
 }
 
-void SpriteRenderer::Begin(int shaderID, LPDIRECT3DTEXTURE9 pTexture, int layer, float yPosition) {
+void SpriteRenderer::Begin(ShaderManager::ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, int layer, float yPosition) {
     float compositeDepth = (float)(layer * 1000) + yPosition;
     Begin(shaderID, pTexture, compositeDepth, 0, false); // Default: world-space, Single sprite
 }
 
-void SpriteRenderer::Begin(int shaderID, LPDIRECT3DTEXTURE9 pTexture, int layer, float yPosition, int renderType, bool isUI) {
+void SpriteRenderer::Begin(ShaderManager::ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, int layer, float yPosition, int renderType, bool isUI) {
     float compositeDepth = (float)(layer * 1000) + yPosition;
     Begin(shaderID, pTexture, compositeDepth, renderType, isUI);
 }
 
 // Y-sorting helper for world objects (buildings, units): depth = layer_base + (y * scale)
-void SpriteRenderer::BeginWorldObject(int shaderID, LPDIRECT3DTEXTURE9 pTexture, float worldY, float layerBase, float yScale, int renderType) {
+void SpriteRenderer::BeginWorldObject(ShaderManager::ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float worldY, float layerBase, float yScale, int renderType) {
     float depth = layerBase + (worldY * yScale);
     Begin(shaderID, pTexture, depth, renderType, false); // World-space, not UI
 }
@@ -670,22 +670,22 @@ void SpriteRenderer::BeginWorldObject(int shaderID, LPDIRECT3DTEXTURE9 pTexture,
 // Legacy Begin overloads (map shader names to handles for backward compatibility)
 void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture) {
     int shaderID = ShaderNameToID(shaderName);
-    Begin(shaderID, pTexture);
+    Begin(static_cast<ShaderManager::ShaderID>(shaderID), pTexture);
 }
 
 void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float depth) {
     int shaderID = ShaderNameToID(shaderName);
-    Begin(shaderID, pTexture, depth);
+    Begin(static_cast<ShaderManager::ShaderID>(shaderID), pTexture, depth);
 }
 
 void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType) {
     int shaderID = ShaderNameToID(shaderName);
-    Begin(shaderID, pTexture, depth, renderType);
+    Begin(static_cast<ShaderManager::ShaderID>(shaderID), pTexture, depth, renderType);
 }
 
 void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType, bool isUI) {
     int shaderID = ShaderNameToID(shaderName);
-    Begin(shaderID, pTexture, depth, renderType, isUI);
+    Begin(static_cast<ShaderManager::ShaderID>(shaderID), pTexture, depth, renderType, isUI);
 }
 
 void SpriteRenderer::Draw(float x, float y, float width, float height,
@@ -1367,7 +1367,7 @@ void SpriteRenderer::FlushStandard() {
         sprintf(debugMsg, "[SR] FlushStandard: Using shaderID=%d\n", m_currentShaderID);
         OutputDebugStringA(debugMsg);
 
-        m_pShaderManager->ApplyShader(m_currentShaderID);
+        m_pShaderManager->Prepare(m_currentShaderID, NULL);
         m_pShaderManager->BeginShader();
 
         // Set texture with correct parameter name based on shader

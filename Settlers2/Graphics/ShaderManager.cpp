@@ -38,7 +38,7 @@ void ShaderManager::StateCache::ResetDirtyStates(LPDIRECT3DDEVICE9 device, const
 }
 
 ShaderManager::ShaderManager()
-    : m_pDevice(NULL), m_pActiveShader(NULL), m_numPasses(0) {
+    : m_pDevice(NULL), m_pActiveShader(NULL), m_numPasses(0), m_currentShaderID(SHADER_INVALID) {
     // Reserve memory for command queue to avoid expensive reallocations on Xbox 360
     m_commandQueue.reserve(2000);
     m_drawBatches.reserve(500);
@@ -319,55 +319,124 @@ void ShaderManager::SortDrawBatches() {
     std::sort(m_drawBatches.begin(), m_drawBatches.end());
 }
 
-// Apply shader by handle (lazy switching with state caching)
-void ShaderManager::ApplyShader(int shaderID) {
-    if (!ValidateShader(shaderID)) {
-        OutputDebugStringA("[ShaderManager] Invalid shader handle\n");
+// === CENTRALIZED SHADER MANAGEMENT (Xbox 360 Safe) ===
+
+// Load all shaders at startup (FatalError if any fail)
+HRESULT ShaderManager::LoadAll() {
+    HRESULT hr;
+    
+    // Load SPRITE shader
+    hr = LoadShader("SPRITE", "Media/Graphics/Shaders/Sprite.fx", "SpriteBatchTech");
+    if (FAILED(hr)) {
+        OutputDebugStringA("[ShaderManager] FATAL: Failed to load SPRITE shader\n");
+        return hr;
+    }
+    
+    // Load SPRITE_CONSTANT_INSTANCED shader
+    hr = LoadShader("SPRITE_CONSTANT_INSTANCED", "Media/Graphics/Shaders/SpriteConstantInstanced.fx", "SpriteBatchTech");
+    if (FAILED(hr)) {
+        OutputDebugStringA("[ShaderManager] FATAL: Failed to load SPRITE_CONSTANT_INSTANCED shader\n");
+        return hr;
+    }
+    
+    // Load RADIALMENU shader
+    hr = LoadShader("RADIALMENU", "Media/Graphics/Shaders/RadialMenu.fx", "RadialMenuTech");
+    if (FAILED(hr)) {
+        OutputDebugStringA("[ShaderManager] FATAL: Failed to load RADIALMENU shader\n");
+        return hr;
+    }
+    
+    OutputDebugStringA("[ShaderManager] All shaders loaded successfully\n");
+    return S_OK;
+}
+
+// Prepare shader for rendering (activate effect with global uniforms)
+void ShaderManager::Prepare(ShaderID id, const D3DXMATRIX* pViewProj) {
+    if (!ValidateShader(id)) {
+        OutputDebugStringA("[ShaderManager] Prepare: Invalid shader ID\n");
         return;
     }
     
     // Lazy switching: only switch if different from current
-    // Map shaderID to shader name for legacy compatibility
+    if (id == m_currentShaderID) {
+        // Already active, just update global uniforms
+        if (pViewProj) {
+            SetGlobalUniforms(pViewProj);
+        }
+        return;
+    }
+    
+    // End previous shader if active
+    if (m_currentShaderID != SHADER_INVALID) {
+        EndCurrent();
+    }
+    
+    // Map ShaderID to shader name for legacy compatibility
     const char* shaderName = nullptr;
-    switch (shaderID) {
+    switch (id) {
         case SHADER_SPRITE:
-            shaderName = "sprite";
+            shaderName = "SPRITE";
             break;
         case SHADER_SPRITE_CONSTANT_INSTANCED:
-            shaderName = "sprite_constant_instanced";
+            shaderName = "SPRITE_CONSTANT_INSTANCED";
             break;
         case SHADER_RADIALMENU:
-            shaderName = "RadialMenu";
+            shaderName = "RADIALMENU";
             break;
         default:
             return;
     }
     
-    // Use existing shader lookup mechanism
+    // Find and activate shader
     std::map<std::string, Shader>::iterator it = m_shaders.find(shaderName);
     if (it != m_shaders.end() && it->second.pEffect) {
-        if (m_pActiveShader != &(it->second)) {
-            if (m_pActiveShader) {
-                EndShader();
-            }
-            m_pActiveShader = &(it->second);
-            BeginShader();
+        m_pActiveShader = &(it->second);
+        m_currentShaderID = id;
+        
+        // Begin shader
+        BeginShader();
+        
+        // Set global uniforms
+        if (pViewProj) {
+            SetGlobalUniforms(pViewProj);
         }
     }
 }
 
-// Begin frame: reset state cache and prepare global constants
-void ShaderManager::BeginFrame() {
-    // Reset state cache
-    m_stateCache.MarkDirty();
-    
-    // Reset active shader
-    m_pActiveShader = nullptr;
+// End current shader (deactivate effect)
+void ShaderManager::EndCurrent() {
+    if (m_pActiveShader) {
+        EndShader();
+        m_pActiveShader = nullptr;
+    }
+    m_currentShaderID = SHADER_INVALID;
+}
+
+// Set global uniforms (frame-wide data: view/projection matrix, time, etc.)
+void ShaderManager::SetGlobalUniforms(const D3DXMATRIX* pViewProj) {
+    if (!m_pActiveShader || !pViewProj) return;
+    SetMatrix("WorldViewProjection", (const float*)pViewProj);
+    Commit();
+}
+
+// Set local uniforms (per-entity data: texture, depth, etc.)
+void ShaderManager::SetLocalUniforms(LPDIRECT3DTEXTURE9 pTexture, float depth) {
+    if (!m_pActiveShader) return;
+    if (pTexture) {
+        SetTexture("g_texture", pTexture);
+    }
+    Commit();
 }
 
 // Validate shader handle
-bool ShaderManager::ValidateShader(int shaderID) const {
-    return shaderID >= 0 && shaderID < SHADER_COUNT;
+bool ShaderManager::ValidateShader(ShaderID id) const {
+    return id >= SHADER_INVALID && id < SHADER_COUNT;
+}
+
+// Legacy ApplyShader (for backward compatibility with int-based API)
+void ShaderManager::ApplyShader(int shaderID) {
+    ShaderID id = static_cast<ShaderID>(shaderID);
+    Prepare(id, NULL);
 }
 
 void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
@@ -394,7 +463,7 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     m_pDevice->SetIndices(pIB);
     
     // Process commands in sorted order (Master Loop - final render pass)
-    int currentShaderID = SHADER_INVALID;
+    ShaderID currentShaderID = SHADER_INVALID;
     
     for (size_t i = 0; i < m_commandQueue.size(); ++i) {
         const RenderCommand& cmd = m_commandQueue[i];
@@ -408,29 +477,28 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
             continue;
         }
         
-        // Standard/Instanced rendering: managed shader/texture/pass lifecycle
-        // Lazy shader switching using ApplyShader (handles state caching)
-        if (cmd.shaderID != currentShaderID) {
-            ApplyShader(cmd.shaderID);
-            currentShaderID = cmd.shaderID;
+        // Standard/Instanced rendering: centralized shader management
+        // Lazy shader switching using Prepare (handles state caching)
+        ShaderID cmdShaderID = static_cast<ShaderID>(cmd.shaderID);
+        if (cmdShaderID != currentShaderID) {
+            Prepare(cmdShaderID, pViewProj);
+            currentShaderID = cmdShaderID;
         }
         
         // Apply render states for this command
         m_stateCache.ResetDirtyStates(m_pDevice, cmd.states);
         
-        // Set texture
-        SetTexture("g_texture", cmd.pTexture);
-        Commit();
+        // Set local uniforms (texture, depth) via gateway
+        SetLocalUniforms(cmd.pTexture, cmd.depth);
         
         // === CAMERA TRANSFORM: Apply ViewProjection matrix for world-space objects ===
         // If command is not UI and we have a camera matrix, set it in the shader
-        if (!cmd.isUI && pViewProj) {
-            SetMatrix("WorldViewProjection", (const float*)pViewProj);
-        } else {
-            // UI or no camera: use identity matrix (screen-space)
+        // Note: Prepare() already sets global uniforms if pViewProj is provided
+        // For UI elements, we need to override with identity matrix
+        if (cmd.isUI && pViewProj) {
             D3DXMATRIX identity;
             D3DXMatrixIdentity(&identity);
-            SetMatrix("WorldViewProjection", (const float*)&identity);
+            SetGlobalUniforms(&identity);
         }
         Commit();
         
@@ -471,10 +539,8 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         EndPass();
     }
     
-    // Clean up
-    if (m_pActiveShader) {
-        EndShader();
-    }
+    // Clean up: end current shader using centralized management
+    EndCurrent();
     
     // Clear command queue after execution
     m_commandQueue.clear();

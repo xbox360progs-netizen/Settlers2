@@ -59,8 +59,8 @@ public:
     // Custom draw callback type for non-standard rendering (e.g. RadialMenu shader)
     typedef void (*CustomDrawFn)(LPDIRECT3DDEVICE9 pDevice, ShaderManager* pShaderMgr, void* pUserData);
 
-    // Shader handle system (IDs instead of raw pointers for safety)
-    enum ShaderHandle {
+    // Shader handle system (type-safe enum for Xbox 360 - C++98 compatible)
+    enum ShaderID {
         SHADER_INVALID = -1,
         SHADER_SPRITE = 0,
         SHADER_SPRITE_CONSTANT_INSTANCED = 1,
@@ -201,14 +201,27 @@ public:
     // Sort batches by shader and texture (legacy)
     void SortBatches();
     
-    // Apply shader by handle (lazy switching with state caching)
-    void ApplyShader(int shaderID);
+    // === CENTRALIZED SHADER MANAGEMENT (Xbox 360 Safe) ===
+    // Load all shaders at startup (FatalError if any fail)
+    HRESULT LoadAll();
     
-    // Begin frame: reset state cache and prepare global constants
-    void BeginFrame();
+    // Prepare shader for rendering (activate effect with global uniforms)
+    void Prepare(ShaderID id, const D3DXMATRIX* pViewProj = NULL);
+    
+    // End current shader (deactivate effect)
+    void EndCurrent();
+    
+    // Set global uniforms (frame-wide data: view/projection matrix, time, etc.)
+    void SetGlobalUniforms(const D3DXMATRIX* pViewProj);
+    
+    // Set local uniforms (per-entity data: texture, depth, etc.)
+    void SetLocalUniforms(LPDIRECT3DTEXTURE9 pTexture, float depth);
     
     // Validate shader handle
-    bool ValidateShader(int shaderID) const;
+    bool ValidateShader(ShaderID id) const;
+    
+    // Legacy ApplyShader (for backward compatibility)
+    void ApplyShader(int shaderID);
     void ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
                      LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride,
                      const D3DXMATRIX* pViewProj = NULL); // Optional camera matrix
@@ -235,8 +248,11 @@ public:
 
 private:
     LPDIRECT3DDEVICE9 m_pDevice;
-    std::map<std::string, Shader> m_shaders;
+    
+    // Centralized shader storage (private for ReadOnly protection)
+    std::map<std::string, Shader> m_shaders; // Key is string for LoadShader compatibility
     Shader* m_pActiveShader;
+    ShaderID m_currentShaderID; // Track current shader for state caching
     UINT m_numPasses;
 
     // Render command queue for Master Loop rendering
