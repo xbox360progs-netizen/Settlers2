@@ -71,22 +71,12 @@ HRESULT Renderer::Initialize() {
     }
 
     // Load default sprite shader
-//	hr = LoadShader(SHADER_SPRITE, "game:\\Media\\Shaders\\Basic2D.fx", "Basic2D");
-//    if (FAILED(hr)) {
-//        OutputDebugStringA("Failed to load default Basic2D shader\n");
-//    }
-
     hr = LoadShader(SHADER_SPRITE, "game:\\Media\\Shaders\\SpriteShader.fx", "SpriteBatchTech");
     if (FAILED(hr)) {
         OutputDebugStringA("Failed to load default sprite shader\n");
     }
 
     // Load instanced sprite shaders for maximum performance (4096+ sprites)
-    hr = LoadShader(SHADER_SPRITE_CONSTANT_INSTANCED, "game:\\Media\\Shaders\\SpriteInstanced.fx", "SpriteInstancedTech");
-    if (FAILED(hr)) {
-        OutputDebugStringA("Failed to load instanced sprite shader\n");
-    }
-
     hr = LoadShader(SHADER_SPRITE_CONSTANT_INSTANCED, "game:\\Media\\Shaders\\SpriteConstantInstanced.fx", "SpriteConstantInstancedTech");
     if (FAILED(hr)) {
         OutputDebugStringA("Failed to load constant instanced sprite shader\n");
@@ -280,9 +270,18 @@ void Renderer::DrawSingleSprite(Texture* texture, float x, float y, float width,
 
 void Renderer::DrawSingleSprite(Texture* texture, float x, float y, float width, float height,
                                 float u0, float v0, float u1, float v1, D3DCOLOR color) {
-    if (!m_pDevice || !texture || !texture->GetTexture()) return;
+    if (!m_pDevice || !texture || !texture->GetTexture()) {
+        OutputDebugStringA("[Renderer] DrawSingleSprite: Invalid inputs (device/texture)\n");
+        return;
+    }
 
     static_assert(sizeof(SpriteVertex) == 32, "SpriteVertex size mismatch");
+
+    LPDIRECT3DTEXTURE9 tex = texture->GetTexture();
+    if (!tex) {
+        OutputDebugStringA("[Renderer] ERROR: Texture is NULL, skipping DrawSingleSprite\n");
+        return;
+    }
 
     SpriteVertex vertices[4];
 
@@ -302,41 +301,39 @@ void Renderer::DrawSingleSprite(Texture* texture, float x, float y, float width,
     vertices[3].color = color; vertices[3].u = u0; vertices[3].v = v1;
     vertices[3].padding[0] = 0; vertices[3].padding[1] = 0;
 
+    // FIX: Use SHADER_SPRITE shader (which is loaded in Initialize)
     ShaderManager::Shader* pShader = m_shaderManager.GetShader(SHADER_SPRITE);
-    if (pShader && pShader->pEffect && m_pVertexDecl) {
-        // GPU HANG PREVENTION: Check if texture is valid before setting
-        LPDIRECT3DTEXTURE9 tex = texture->GetTexture();
-        if (!tex) {
-            OutputDebugStringA("[Renderer] ERROR: Texture is NULL, skipping DrawSingleSprite to prevent GPU hang\n");
-            return;
-        }
-
-        m_shaderManager.SetActiveShader(SHADER_SPRITE);
-        m_shaderManager.SetTexture("g_texture", tex);
-        m_shaderManager.BeginShader();
-        m_shaderManager.BeginPass(0);
-
-        // Set projection matrix (WVP) for sprite shader
-        D3DXMATRIX ortho;
-        D3DXMatrixOrthoOffCenterLH(&ortho, 0, 1280, 720, 0, 0, 1);
-        D3DXHANDLE hWVP = pShader->pEffect->GetParameterByName(NULL, "WVP");
-        if (hWVP) {
-            pShader->pEffect->SetMatrix(hWVP, &ortho);
-        }
-        // Also try matOrtho parameter name (used by some shaders)
-        D3DXHANDLE hMatOrtho = pShader->pEffect->GetParameterByName(NULL, "matOrtho");
-        if (hMatOrtho) {
-            pShader->pEffect->SetMatrix(hMatOrtho, &ortho);
-        }
-
-        pShader->pEffect->CommitChanges();
-
-        m_pDevice->SetVertexDeclaration(m_pVertexDecl);
-        m_pDevice->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 2, vertices, sizeof(SpriteVertex));
-
-        m_shaderManager.EndPass();
-        m_shaderManager.EndShader();
-    } else {
-        OutputDebugStringA("[Renderer] DrawSingleSprite: shader or vertex decl is NULL\n");
+    if (!pShader || !pShader->pEffect || !m_pVertexDecl) {
+        OutputDebugStringA("[Renderer] DrawSingleSprite: SHADER_SPRITE not found or invalid\n");
+        return;
     }
+
+    OutputDebugStringA("[Renderer] Drawing background sprite...\n");
+
+    m_shaderManager.SetActiveShader(SHADER_SPRITE);
+    m_shaderManager.SetTexture("g_texture", tex);
+    m_shaderManager.BeginShader();
+    m_shaderManager.BeginPass(0);
+
+    // Set projection matrix (WVP) for sprite shader
+    D3DXMATRIX ortho;
+    D3DXMatrixOrthoOffCenterLH(&ortho, 0, 1280, 720, 0, 0, 1);
+    D3DXHANDLE hWVP = pShader->pEffect->GetParameterByName(NULL, "WVP");
+    if (hWVP) {
+        pShader->pEffect->SetMatrix(hWVP, &ortho);
+    }
+    // Also try matOrtho parameter name (used by some shaders)
+    D3DXHANDLE hMatOrtho = pShader->pEffect->GetParameterByName(NULL, "matOrtho");
+    if (hMatOrtho) {
+        pShader->pEffect->SetMatrix(hMatOrtho, &ortho);
+    }
+
+    pShader->pEffect->CommitChanges();
+
+    m_pDevice->SetVertexDeclaration(m_pVertexDecl);
+    m_pDevice->SetTexture(0, tex);
+    m_pDevice->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 2, vertices, sizeof(SpriteVertex));
+
+    m_shaderManager.EndPass();
+    m_shaderManager.EndShader();
 }
