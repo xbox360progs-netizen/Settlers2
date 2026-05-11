@@ -176,6 +176,12 @@ bool ShaderManager::LoadBaseShaders() {
         allSuccess = false;
     }
 
+    // Load FontShader.fx (for text rendering with SpriteBatchTech)
+    if (FAILED(LoadShader(3, "game:\\Media\\Shaders\\FontShader.fx", "SpriteBatchTech"))) {
+        OutputDebugStringA("[ShaderManager] ERROR: Failed to load FontShader.fx\n");
+        allSuccess = false;
+    }
+
     // Load Sprite.fx (legacy, used for some world objects)
     if (FAILED(LoadShader(SHADER_SPRITE, "game:\\Media\\Shaders\\Sprite2D.fx", "Sprite"))) {
         OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_SPRITE (Sprite.fx)\n");
