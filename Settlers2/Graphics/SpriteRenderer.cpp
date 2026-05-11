@@ -731,6 +731,12 @@ void SpriteRenderer::Draw(float x, float y, float width, float height,
         return;
     }
 
+    // Check if vertex buffer is valid to prevent Access Violation
+    if (!m_pVB[m_activeBuffer]) {
+        OutputDebugStringA("[SpriteRenderer::Draw] ERROR: Vertex buffer is NULL\n");
+        return;
+    }
+
     // AUTO-FLUSH: If texture changed and buffer has vertices, flush first
     // This prevents "icon mash" when switching textures
     if (m_currentTexture != NULL && m_spriteCount > 0) {

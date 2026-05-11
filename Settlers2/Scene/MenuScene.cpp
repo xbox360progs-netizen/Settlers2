@@ -44,6 +44,13 @@ MenuScene::~MenuScene() {
 void MenuScene::Load() {
   m_loaded = true;
   std::cout << "[MenuScene] Load() called" << std::endl;
+
+  // Debug logging for m_spriteRenderer initialization
+  if (!m_spriteRenderer) {
+    std::cout << "[MenuScene] WARNING: m_spriteRenderer is NULL in Load()" << std::endl;
+  } else {
+    std::cout << "[MenuScene] m_spriteRenderer is valid in Load()" << std::endl;
+  }
 }
 
 void MenuScene::LoadTextures() {
@@ -203,9 +210,8 @@ void MenuScene::Render() {
     return;
   }
 
-  // === STEP 1: Render background (Layer 0) ===
+  // === STEP 1: Begin batch with shader and texture ===
   LPDIRECT3DTEXTURE9 bgTex = m_backgroundTexture.GetTexture();
-
   if (bgTex) {
     OutputDebugStringA("[MenuScene] Drawing background with SpriteRenderer...\n");
     m_spriteRenderer->Begin(SHADER_SPRITE, bgTex, 0.0f, 0, false);
@@ -215,7 +221,7 @@ void MenuScene::Render() {
     OutputDebugStringA("[MenuScene] WARNING: Background texture is NULL!\n");
   }
 
-  // === STEP 2: Render UI/Text (Layer 1) ===
+  // === STEP 2: Render UI/Text (separate layer) ===
   if (m_textManager) {
     m_textManager->Begin();
     for (int i = 0; i < m_menuCount; i++) {
