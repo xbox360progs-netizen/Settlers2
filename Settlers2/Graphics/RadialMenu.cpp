@@ -60,11 +60,6 @@ RadialMenu::RadialMenu(LPDIRECT3DDEVICE9 device, ShaderManager* shaderManager, B
     , m_centerOuterColor(0.08f, 0.06f, 0.05f, 0.98f)
     , m_screenX(0.0f)
     , m_screenY(0.0f)
-    , m_oldZEnable(0)
-    , m_oldAlphaBlend(0)
-    , m_oldSrcBlend(0)
-    , m_oldDestBlend(0)
-    , m_oldCullMode(0)
 {
 }
 
@@ -320,22 +315,22 @@ void RadialMenu::Render()
 
 void RadialMenu::SetupRenderStates()
 {
-    if (!m_device) {
+    if (!m_device || !m_shaderManager) {
         return;
     }
 
-    m_device->GetRenderState(D3DRS_ZENABLE, &m_oldZEnable);
-    m_device->GetRenderState(D3DRS_ALPHABLENDENABLE, &m_oldAlphaBlend);
-    m_device->GetRenderState(D3DRS_SRCBLEND, &m_oldSrcBlend);
-    m_device->GetRenderState(D3DRS_DESTBLEND, &m_oldDestBlend);
-    m_device->GetRenderState(D3DRS_CULLMODE, &m_oldCullMode);
-
-    m_device->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-    m_device->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
-    m_device->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
-    m_device->SetRenderState(D3DRS_ZENABLE, FALSE);
-    m_device->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
-    m_device->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+    // Use StateCache for centralized state management
+    ShaderManager::StateCache* stateCache = m_shaderManager->GetStateCache();
+    
+    // Set render states through StateCache (tracks changes automatically)
+    if (stateCache) {
+        stateCache->SetRenderState(m_device, D3DRS_ALPHABLENDENABLE, TRUE);
+        stateCache->SetRenderState(m_device, D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+        stateCache->SetRenderState(m_device, D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+        stateCache->SetRenderState(m_device, D3DRS_ZENABLE, FALSE);
+        stateCache->SetRenderState(m_device, D3DRS_ZWRITEENABLE, FALSE);
+        stateCache->SetRenderState(m_device, D3DRS_CULLMODE, D3DCULL_NONE);
+    }
 }
 
 void RadialMenu::RestoreRenderStates()

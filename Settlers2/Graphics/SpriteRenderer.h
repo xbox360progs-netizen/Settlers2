@@ -106,7 +106,24 @@ public:
     void SetupInstancingStates(int spriteCount);
 
 	 // Public wrapper (for compatibility when private access is an issue)
-    void DrawAtlasSpritePublic(SpriteAtlas* atlas, uint32_t index, float x, float y, DWORD color = 0xFFFFFFFF);
+    void DrawAtlasSpritePublic(SpriteAtlas* atlas, DWORD index, float x, float y, DWORD color = 0xFFFFFFFF);
+
+    // Get current sprite count
+    int GetSpriteCount() const { return m_spriteCount; }
+
+    // Get current vertex count
+    int GetVertexCount() const { return m_spriteCount * 4; }
+
+    // Get device for external state management
+    LPDIRECT3DDEVICE9 GetDevice() const { return m_pDevice; }
+
+    // Get rendering resources for queue-based execution
+    LPDIRECT3DVERTEXBUFFER9 GetVertexBuffer() const { return m_pVB[m_activeBuffer]; }
+    LPDIRECT3DINDEXBUFFER9 GetIndexBuffer() const { return m_pIndexBuffer; }
+    LPDIRECT3DVERTEXDECLARATION9 GetVertexDeclaration() const { return m_pVertexDecl; }
+
+    // Public wrapper for staging area (external callers)
+    void FillStagingAreaPublic(int startIdx, int count, const SpriteData* data);
 
     // Shader registry helpers
 private:
@@ -163,24 +180,6 @@ private:
 
     // Shutdown worker threads
     void ShutdownWorkerThreads();
-
-    // Get current sprite count
-    int GetSpriteCount() const { return m_spriteCount; }
-
-    // Get current vertex count
-    int GetVertexCount() const { return m_spriteCount * 4; }
-
-// Get device for external state management
-    LPDIRECT3DDEVICE9 GetDevice() const { return m_pDevice; }
-
-    // Get rendering resources for queue-based execution
-    LPDIRECT3DVERTEXBUFFER9 GetVertexBuffer() const { return m_pVB[m_activeBuffer]; }
-    LPDIRECT3DINDEXBUFFER9 GetIndexBuffer() const { return m_pIndexBuffer; }
-    LPDIRECT3DVERTEXDECLARATION9 GetVertexDeclaration() const { return m_pVertexDecl; }
-
-public:
-    // Public wrapper for staging area (external callers)
-    void FillStagingAreaPublic(int startIdx, int count, const SpriteData* data);
 
  private:
     void CreateQuad(float x, float y, float width, float height,

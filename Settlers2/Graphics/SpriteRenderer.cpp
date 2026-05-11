@@ -767,7 +767,7 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
         batch.pShader = pShader->GetShader(m_currentShaderName.c_str());
         batch.shaderName = m_currentShaderName;
         batch.startVertex = 0; // Always 0 for now (single buffer)
-        batch.primitiveCount = m_spriteCount * 2; // 2 triangles per sprite
+        batch.primitiveCount = (DWORD)(m_spriteCount * 2); // 2 triangles per sprite
         
         // Set default render states for 2D sprites
         batch.states.zEnable = D3DZB_FALSE;

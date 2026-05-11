@@ -280,7 +280,7 @@ void ShaderManager::SortBatches() {
 }
 
 void ShaderManager::ExecuteBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
-                                   LPDIRECT3DVERTEXDECLARATION9 pDecl, uint32_t vertexStride) {
+                                   LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride) {
     if (m_batches.empty()) return;
     
     // Set vertex declaration and streams once

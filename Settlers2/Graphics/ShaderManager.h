@@ -37,8 +37,8 @@ public:
     struct RenderBatch {
         IDirect3DTexture9* pTexture;
         Shader* pShader;
-        uint32_t startVertex;
-        uint32_t primitiveCount;
+        unsigned int startVertex;
+        unsigned int primitiveCount;
         RenderStateBlock states;
         std::string shaderName; // For shader lookup
         
@@ -114,7 +114,7 @@ public:
     
     // Execute all batches in the queue
     void ExecuteBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
-                       LPDIRECT3DVERTEXDECLARATION9 pDecl, uint32_t vertexStride);
+                       LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride);
     
     // Get batch count
     size_t GetBatchCount() const { return m_batches.size(); }
