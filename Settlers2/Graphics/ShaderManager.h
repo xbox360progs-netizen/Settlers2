@@ -65,6 +65,8 @@ public:
         SHADER_SPRITE = 0,
         SHADER_SPRITE_CONSTANT_INSTANCED = 1,
         SHADER_RADIALMENU = 2,
+        SHADER_UI = 3,          // Dedicated UI shader (GridMenu, HUD, etc.)
+        SHADER_TERRAIN = 4,     // Terrain/ground tiles
         SHADER_COUNT
     };
 
@@ -93,14 +95,14 @@ public:
             primitiveCount(0), batchType(0), depth(1.0f), layer(0), isUI(false), batchIndex(0),
             worldX(0), worldY(0), customDraw(NULL), customUserData(NULL) {}
         
-        // Sorting operator: back-to-front for alpha blending
-        // Higher depth = farther, drawn first. Lower depth = nearer, drawn on top.
+        // Sorting operator: shader-first for lazy batching (Xbox 360 optimization)
+        // Shader switch is most expensive, then texture, then depth (back-to-front)
         bool operator<(const RenderCommand& other) const {
-            if (depth != other.depth)
-                return depth > other.depth; // Descending: far objects first
             if (shaderID != other.shaderID)
-                return shaderID < other.shaderID; // Sort by shader ID for batching
-            return pTexture < other.pTexture;
+                return shaderID < other.shaderID; // Batch by shader (most expensive switch)
+            if (pTexture != other.pTexture)
+                return pTexture < other.pTexture; // Then by texture
+            return depth > other.depth; // Then back-to-front for alpha
         }
     };
 
@@ -220,6 +222,17 @@ public:
     // Update constants (unified method for texture + world matrix)
     void UpdateConstants(LPDIRECT3DTEXTURE9 pTexture, const D3DXMATRIX* pWorldMatrix = NULL);
     
+    // Set shader parameters from RenderCommand (centralized parameter dispatch)
+    // Manager decides which .fx parameter gets which data based on shaderID
+    void SetShaderParameters(const RenderCommand& cmd);
+    
+    // Set frame-wide ViewProjection matrix (Global Constant Buffer)
+    // Call once per frame, not per sprite - saves tons of GPU bandwidth
+    void SetFrameViewProj(const D3DXMATRIX* pViewProj);
+    
+    // Get current frame ViewProjection (for external queries)
+    const D3DXMATRIX& GetFrameViewProj() const { return m_frameViewProj; }
+    
     // State locking (prevents external state corruption during ExecuteQueue)
     void Lock();
     void Unlock();
@@ -268,6 +281,10 @@ private:
     
     // State locking (prevents external state corruption during ExecuteQueue)
     bool m_isLocked;
+    
+    // Global Constant Buffer (set once per frame, not per sprite)
+    D3DXMATRIX m_frameViewProj;
+    bool m_hasFrameViewProj;
 
     // Render command queue for Master Loop rendering
     std::vector<RenderCommand> m_commandQueue;

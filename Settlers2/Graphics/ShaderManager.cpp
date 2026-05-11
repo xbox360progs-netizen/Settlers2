@@ -38,11 +38,12 @@ void ShaderManager::StateCache::ResetDirtyStates(LPDIRECT3DDEVICE9 device, const
 }
 
 ShaderManager::ShaderManager()
-    : m_pDevice(NULL), m_pActiveShader(NULL), m_numPasses(0), m_currentShaderID(SHADER_INVALID), m_isLocked(false) {
+    : m_pDevice(NULL), m_pActiveShader(NULL), m_numPasses(0), m_currentShaderID(SHADER_INVALID), m_isLocked(false), m_hasFrameViewProj(false) {
     // Reserve memory for command queue to avoid expensive reallocations on Xbox 360
     m_commandQueue.reserve(2000);
     m_drawBatches.reserve(500);
     m_batches.reserve(500);
+    D3DXMatrixIdentity(&m_frameViewProj);
 }
 
 ShaderManager::~ShaderManager() {
@@ -456,6 +457,64 @@ void ShaderManager::CommitChanges() {
     }
 }
 
+// Set shader parameters from RenderCommand (centralized parameter dispatch)
+// Manager decides which .fx parameter gets which data based on shaderID
+void ShaderManager::SetShaderParameters(const RenderCommand& cmd) {
+    if (!m_pActiveShader) return;
+    
+    ShaderID id = static_cast<ShaderID>(cmd.shaderID);
+    
+    switch (id) {
+        case SHADER_SPRITE:
+        case SHADER_SPRITE_CONSTANT_INSTANCED:
+        case SHADER_TERRAIN:
+            // Sprite shaders: set texture + ortho/world matrix
+            if (cmd.pTexture) {
+                SetTexture("g_texture", cmd.pTexture);
+            }
+            // For world-space objects, apply camera; for UI, use identity
+            if (cmd.isUI) {
+                D3DXMATRIX matOrtho;
+                D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
+                SetMatrix("matOrtho", (const float*)&matOrtho);
+            } else if (m_hasFrameViewProj) {
+                SetMatrix("matOrtho", (const float*)&m_frameViewProj);
+            }
+            break;
+            
+        case SHADER_RADIALMENU:
+        case SHADER_UI:
+            // UI/RadialMenu shaders: set WorldViewProjection
+            if (cmd.isUI) {
+                D3DXMATRIX matOrtho;
+                D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
+                SetMatrix("WorldViewProjection", (const float*)&matOrtho);
+            } else if (m_hasFrameViewProj) {
+                SetMatrix("WorldViewProjection", (const float*)&m_frameViewProj);
+            }
+            if (cmd.pTexture) {
+                SetTexture("g_texture", cmd.pTexture);
+            }
+            break;
+            
+        default:
+            break;
+    }
+    
+    Commit();
+}
+
+// Set frame-wide ViewProjection matrix (Global Constant Buffer)
+void ShaderManager::SetFrameViewProj(const D3DXMATRIX* pViewProj) {
+    if (pViewProj) {
+        m_frameViewProj = *pViewProj;
+        m_hasFrameViewProj = true;
+    } else {
+        D3DXMatrixIdentity(&m_frameViewProj);
+        m_hasFrameViewProj = false;
+    }
+}
+
 // Validate shader handle
 bool ShaderManager::ValidateShader(ShaderID id) const {
     return id >= SHADER_INVALID && id < SHADER_COUNT;
@@ -472,46 +531,56 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                                 const D3DXMATRIX* pViewProj) {
     if (m_commandQueue.empty()) return;
     
-    // === SORT COMMANDS BY DEPTH (back-to-front for alpha) ===
-    // This ensures proper layering regardless of submission order
-    // Ground tiles (depth=1.0) render first, UI (depth=0.1) renders on top
+    // === GLOBAL CONSTANT BUFFER: Set ViewProj once per frame ===
+    SetFrameViewProj(pViewProj);
+    
+    // === SORT COMMANDS: shader-first for lazy batching ===
+    // Sorting: shaderID (most expensive switch) > texture > depth (back-to-front)
     std::sort(m_commandQueue.begin(), m_commandQueue.end());
     
-    // === RESET STATES: Force clean slate at start of render pass ===
-    // This prevents "garbage" states from previous rendering operations
-    m_pDevice->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
-    m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-    m_pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
-    m_pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
-    m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+    // === STATE LOCKING: Prevent external state corruption ===
+    Lock();
     
-    // Set vertex declaration and streams once
+    // Set vertex declaration and streams once for entire frame
     m_pDevice->SetVertexDeclaration(pDecl);
     m_pDevice->SetStreamSource(0, pVB, 0, vertexStride);
     m_pDevice->SetIndices(pIB);
     
-    // === STATE LOCKING: Prevent external state corruption during ExecuteQueue ===
-    Lock();
-    
-    // Process commands in sorted order (Master Loop - final render pass)
+    // === LAZY BATCHING: Process commands with minimal state switches ===
     ShaderID currentShaderID = SHADER_INVALID;
+    bool passActive = false;  // Track if we're inside a BeginPass/EndPass block
     
     for (size_t i = 0; i < m_commandQueue.size(); ++i) {
         const RenderCommand& cmd = m_commandQueue[i];
         
         // Custom draw callback: manages its own shader/state/pass lifecycle
         if (cmd.batchType == 2) {
+            // End current pass if active before custom draw
+            if (passActive) {
+                EndPass();
+                passActive = false;
+            }
             if (cmd.customDraw) {
                 m_stateCache.ResetDirtyStates(m_pDevice, cmd.states);
                 cmd.customDraw(m_pDevice, this, cmd.customUserData);
             }
+            currentShaderID = SHADER_INVALID; // Force shader re-prepare after custom draw
             continue;
         }
         
-        // Standard/Instanced rendering: centralized shader management
-        // Lazy shader switching using Prepare (handles state caching)
+        // === LAZY SHADER SWITCHING ===
         ShaderID cmdShaderID = static_cast<ShaderID>(cmd.shaderID);
         if (cmdShaderID != currentShaderID) {
+            // End previous pass if active
+            if (passActive) {
+                EndPass();
+                passActive = false;
+            }
+            // End previous shader if active
+            if (currentShaderID != SHADER_INVALID) {
+                EndCurrent();
+            }
+            // Prepare new shader (handles BeginShader + global uniforms)
             Prepare(cmdShaderID, pViewProj);
             currentShaderID = cmdShaderID;
         }
@@ -519,59 +588,54 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         // Apply render states for this command
         m_stateCache.ResetDirtyStates(m_pDevice, cmd.states);
         
-        // Set local uniforms (texture, depth) via gateway
-        SetLocalUniforms(cmd.pTexture, cmd.depth);
+        // === CENTRALIZED PARAMETER DISPATCH ===
+        SetShaderParameters(cmd);
         
-        // === CAMERA TRANSFORM: Apply ViewProjection matrix for world-space objects ===
-        // If command is not UI and we have a camera matrix, set it in the shader
-        // Note: Prepare() already sets global uniforms if pViewProj is provided
-        // For UI elements, we need to override with identity matrix
-        if (cmd.isUI && pViewProj) {
-            D3DXMATRIX identity;
-            D3DXMatrixIdentity(&identity);
-            SetGlobalUniforms(&identity);
+        // === LAZY PASS MANAGEMENT ===
+        // Only begin a new pass if we're not already inside one
+        if (!passActive) {
+            BeginPass(0);
+            passActive = true;
         }
-        Commit();
+        
+        // Xbox 360: CommitChanges() CRITICAL before Draw (apply constant buffer updates)
+        CommitChanges();
         
         // Draw this command based on batch type
-        BeginPass(0);
-        
         switch (cmd.batchType) {
             case 0: // Standard/Single sprite rendering
                 m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 
-                                               cmd.vertexStart, // BaseVertexIndex
-                                               0,               // MinIndex
-                                               cmd.vertexCount, // NumVertices
-                                               0,               // StartIndex
+                                               cmd.vertexStart,
+                                               0,
+                                               cmd.vertexCount,
+                                               0,
                                                cmd.primitiveCount);
                 break;
                 
             case 1: // Instanced rendering
-                // For instanced rendering, we would need to set instance buffer here
-                // For now, fall back to standard rendering with vertex offset
-                CommitChanges();
                 m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 
-                                               cmd.vertexStart, // BaseVertexIndex
-                                               0,               // MinIndex
-                                               cmd.vertexCount, // NumVertices
-                                               0,               // StartIndex
+                                               cmd.vertexStart,
+                                               0,
+                                               cmd.vertexCount,
+                                               0,
                                                cmd.primitiveCount);
                 break;
                 
             default:
                 m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 
-                                               cmd.vertexStart, // BaseVertexIndex
-                                               0,               // MinIndex
-                                               cmd.vertexCount, // NumVertices
-                                               0,               // StartIndex
+                                               cmd.vertexStart,
+                                               0,
+                                               cmd.vertexCount,
+                                               0,
                                                cmd.primitiveCount);
                 break;
         }
-        
-        EndPass();
     }
     
-    // Clean up: end current shader using centralized management
+    // === CLEANUP: End any active pass and shader ===
+    if (passActive) {
+        EndPass();
+    }
     EndCurrent();
     
     // Unlock state after ExecuteQueue completes
@@ -581,7 +645,6 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     m_commandQueue.clear();
     
     // === CLEANUP: Reset all texture slots to NULL ===
-    // This guarantees TextManager starts with clean slate next frame
     m_pDevice->SetTexture(0, NULL);
     m_pDevice->SetTexture(1, NULL);
     m_pDevice->SetTexture(2, NULL);
@@ -590,6 +653,9 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     // Reset vertex offset tracking for next frame
     s_currentVertexOffset = 0;
     s_batchIndex = 0;
+    
+    // Clear frame ViewProj for next frame
+    m_hasFrameViewProj = false;
 }
 
 void ShaderManager::ExecuteBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
