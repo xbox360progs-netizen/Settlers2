@@ -83,6 +83,15 @@ HRESULT TextureLoader::Load(LPCWSTR filename, LPDIRECT3DTEXTURE9* texture)
     }
 
     // --- создаём текстуру из памяти, стараясь сохранить исходные размеры ---
+    // Xbox 360: Use D3DPOOL_DEFAULT with D3DUSAGE_WRITEONLY for static textures in fast video memory
+    #ifdef _XBOX
+    DWORD usage = D3DUSAGE_WRITEONLY;
+    D3DPOOL pool = D3DPOOL_DEFAULT;
+    #else
+    DWORD usage = 0;
+    D3DPOOL pool = D3DPOOL_MANAGED;
+    #endif
+    
     HRESULT hr = D3DXCreateTextureFromFileInMemoryEx(
         m_device,
         buffer,
@@ -90,9 +99,9 @@ HRESULT TextureLoader::Load(LPCWSTR filename, LPDIRECT3DTEXTURE9* texture)
         SUCCEEDED(hrInfo) ? info.Width  : D3DX_DEFAULT_NONPOW2,
         SUCCEEDED(hrInfo) ? info.Height : D3DX_DEFAULT_NONPOW2,
         1,                       // без автогенерации мипов для 2D
-        0,
+        usage,
         D3DFMT_A8R8G8B8,
-        D3DPOOL_MANAGED,
+        pool,
         D3DX_FILTER_LINEAR,
         D3DX_FILTER_LINEAR,
         0,

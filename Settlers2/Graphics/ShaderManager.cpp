@@ -753,9 +753,16 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     // === LAZY BATCHING: Process commands with minimal state switches ===
     ShaderID currentShaderID = SHADER_INVALID;
     bool passActive = false;  // Track if we're inside a BeginPass/EndPass block
+    LPDIRECT3DTEXTURE9 lastTexture = nullptr; // Lazy texture binding
     
     for (size_t i = 0; i < m_commandQueue.size(); ++i) {
         const RenderCommand& cmd = m_commandQueue[i];
+        
+        // === LAZY TEXTURE BINDING ===
+        if (cmd.pTexture != lastTexture) {
+            m_pDevice->SetTexture(0, cmd.pTexture);
+            lastTexture = cmd.pTexture;
+        }
         
         // Custom draw callback: manages its own shader/state/pass lifecycle
         if (cmd.batchType == 2) {

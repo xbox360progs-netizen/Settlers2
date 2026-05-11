@@ -412,6 +412,8 @@ void GridMenu::Render(SpriteRenderer* spriteRenderer)
         // Store position for actual rendering (would need vertex buffer update in full implementation)
         // For now, this demonstrates the queue submission pattern
         shaderManager->Submit(cmd);
+    } else {
+        OutputDebugStringA("[GridMenu::Render] WARNING: Background texture is NULL, skipping background render\n");
     }
 
     // 2. Cell backgrounds (menu_cell) - 4x4 grid (depth=0.12, behind icons, UI screen-space)
@@ -438,6 +440,8 @@ void GridMenu::Render(SpriteRenderer* spriteRenderer)
                 shaderManager->Submit(cmd);
             }
         }
+    } else {
+        OutputDebugStringA("[GridMenu::Render] WARNING: Cell background texture is NULL, skipping cell backgrounds\n");
     }
 
     // 3. Icons from atlas (visible window) (depth=0.1, UI layer, UI screen-space)
@@ -465,6 +469,13 @@ void GridMenu::Render(SpriteRenderer* spriteRenderer)
             cmd.customUserData = NULL;
             
             shaderManager->Submit(cmd);
+        }
+    } else {
+        if (!m_atlasTexture) {
+            OutputDebugStringA("[GridMenu::Render] WARNING: Atlas texture is NULL, skipping icons\n");
+        }
+        if (m_tileUVs.empty()) {
+            OutputDebugStringA("[GridMenu::Render] WARNING: No tile UVs available, skipping icons\n");
         }
     }
 }
