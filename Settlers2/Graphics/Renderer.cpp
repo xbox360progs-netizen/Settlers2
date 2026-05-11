@@ -302,7 +302,7 @@ void Renderer::DrawSingleSprite(Texture* texture, float x, float y, float width,
     vertices[3].color = color; vertices[3].u = u0; vertices[3].v = v1;
     vertices[3].padding[0] = 0; vertices[3].padding[1] = 0;
 
-    ShaderManager::Shader* pShader = m_shaderManager.GetShader(SHADER_SPRITE_CONSTANT_INSTANCED);
+    ShaderManager::Shader* pShader = m_shaderManager.GetShader(SHADER_SPRITE);
     if (pShader && pShader->pEffect && m_pVertexDecl) {
         // GPU HANG PREVENTION: Check if texture is valid before setting
         LPDIRECT3DTEXTURE9 tex = texture->GetTexture();
@@ -311,10 +311,24 @@ void Renderer::DrawSingleSprite(Texture* texture, float x, float y, float width,
             return;
         }
 
-        m_shaderManager.SetActiveShader(SHADER_SPRITE_CONSTANT_INSTANCED);
+        m_shaderManager.SetActiveShader(SHADER_SPRITE);
         m_shaderManager.SetTexture("g_texture", tex);
         m_shaderManager.BeginShader();
         m_shaderManager.BeginPass(0);
+
+        // Set projection matrix (WVP) for sprite shader
+        D3DXMATRIX ortho;
+        D3DXMatrixOrthoOffCenterLH(&ortho, 0, 1280, 720, 0, 0, 1);
+        D3DXHANDLE hWVP = pShader->pEffect->GetParameterByName(NULL, "WVP");
+        if (hWVP) {
+            pShader->pEffect->SetMatrix(hWVP, &ortho);
+        }
+        // Also try matOrtho parameter name (used by some shaders)
+        D3DXHANDLE hMatOrtho = pShader->pEffect->GetParameterByName(NULL, "matOrtho");
+        if (hMatOrtho) {
+            pShader->pEffect->SetMatrix(hMatOrtho, &ortho);
+        }
+
         pShader->pEffect->CommitChanges();
 
         m_pDevice->SetVertexDeclaration(m_pVertexDecl);
