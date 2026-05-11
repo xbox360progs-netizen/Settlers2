@@ -311,7 +311,7 @@ HRESULT ShaderManager::LoadShader(ShaderID id, const char* filepath, const char*
     m_effects[id] = shader.pEffect;
 
     char successMsg[256];
-    sprintf_s(successMsg, "[ShaderManager] Shader ID %d loaded successfully\n", id);
+    sprintf_s(successMsg, "[ShaderManager] Shader ID %d stored in effects list\n", id);
     OutputDebugStringA(successMsg);
 
     return S_OK;

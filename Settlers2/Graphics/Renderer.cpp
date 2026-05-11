@@ -6,7 +6,8 @@
 
 Renderer::Renderer()  
     : m_pD3D(NULL), m_pDevice(NULL), m_pBackBuffer(NULL),
-      m_pVertexDecl(NULL), m_pVertexShader(NULL), m_pPixelShader(NULL) {
+      m_pVertexDecl(NULL), m_pVertexShader(NULL), m_pPixelShader(NULL),
+      m_pExternalShaderManager(NULL) {
     ZeroMemory(&m_d3dpp, sizeof(m_d3dpp));
     ZeroMemory(m_projMatrix, sizeof(m_projMatrix));
 }
@@ -183,14 +184,32 @@ void Renderer::BeginFrame() {
     // Clear both target and Z-buffer to prevent artifacts from previous frames
     m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0,0,0), 1.0f, 0);
     m_pDevice->BeginScene();
-    
+
+    // Set orthographic projection matrix for current active effect
+    ShaderManager* pShaderManager = GetShaderManager();
+    if (pShaderManager) {
+        ShaderID currentID = pShaderManager->GetCurrentShaderID();
+        if (currentID != SHADER_INVALID) {
+            ID3DXEffect* pEffect = pShaderManager->GetEffect(currentID);
+            if (pEffect) {
+                D3DXMATRIX ortho;
+                D3DXMatrixOrthoOffCenterLH(&ortho, 0, 1280, 720, 0, 0, 1);
+                D3DXHANDLE hWVP = pEffect->GetParameterByName(NULL, "WVP");
+                if (hWVP) {
+                    pEffect->SetMatrix(hWVP, &ortho);
+                    pEffect->CommitChanges();
+                }
+            }
+        }
+    }
+
     // Set projection matrix on the sprite shader (but don't BeginShader/BeginPass here)
     // SpriteRenderer manages its own shader state in FlushStandard
     ShaderManager::Shader* pSpriteShader = m_shaderManager.GetShader(SHADER_SPRITE);
     if (pSpriteShader && pSpriteShader->pEffect && pSpriteShader->hMatOrtho) {
         pSpriteShader->pEffect->SetMatrix(pSpriteShader->hMatOrtho, (D3DXMATRIX*)&m_projMatrix);
     }
-    
+
 }
 
 

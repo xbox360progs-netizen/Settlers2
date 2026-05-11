@@ -56,6 +56,7 @@ private:
     // Graphics systems
     Renderer* m_renderer;
     SpriteRenderer* m_spriteRenderer;
+    ShaderManager* m_pShaderManager;
     BitmapFont* m_bitmapFont;
     TextManager* m_textManager;
     BinFileManager* m_binFileManager;

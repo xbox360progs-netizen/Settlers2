@@ -25,6 +25,7 @@ GameEngine::GameEngine()
     , m_initialized(false)
     , m_renderer(NULL)
     , m_spriteRenderer(NULL)
+    , m_pShaderManager(NULL)
     , m_bitmapFont(NULL)
     , m_textManager(NULL)
     , m_inputManager(NULL)
@@ -106,6 +107,14 @@ bool GameEngine::Initialize()
         std::cerr << "[GameEngine] Failed to initialize Renderer" << std::endl;
         return false;
     }
+
+    // Create shader manager after renderer has device
+    m_pShaderManager = new ShaderManager();
+    m_pShaderManager->Initialize(m_renderer->GetDevice());
+    m_pShaderManager->Init();
+
+    // Pass shader manager to renderer
+    m_renderer->SetShaderManager(m_pShaderManager);
 
     m_spriteRenderer = new SpriteRenderer();
     hr = m_spriteRenderer->Initialize(m_renderer->GetDevice(), m_renderer->GetShaderManager());
@@ -191,6 +200,13 @@ void GameEngine::Shutdown()
     {
         delete m_bitmapFont;
         m_bitmapFont = NULL;
+    }
+
+    if (m_pShaderManager)
+    {
+        m_pShaderManager->Shutdown();
+        delete m_pShaderManager;
+        m_pShaderManager = NULL;
     }
 
     if (m_inputManager)

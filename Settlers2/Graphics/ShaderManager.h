@@ -261,6 +261,9 @@ public:
     
     // Get current frame ViewProjection (for external queries)
     const D3DXMATRIX& GetFrameViewProj() const { return m_frameViewProj; }
+
+    // Get current active shader ID
+    ShaderID GetCurrentShaderID() const { return m_currentShaderID; }
     
     // State locking (prevents external state corruption during ExecuteQueue)
     void Lock();

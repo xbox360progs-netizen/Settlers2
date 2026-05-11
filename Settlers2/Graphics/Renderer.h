@@ -36,7 +36,8 @@ public:
     LPDIRECT3DVERTEXDECLARATION9 GetVertexDecl() const { return m_pVertexDecl; }
 
     // Shader management
-    ShaderManager* GetShaderManager() { return &m_shaderManager; }
+    ShaderManager* GetShaderManager() { return m_pExternalShaderManager ? m_pExternalShaderManager : &m_shaderManager; }
+    void SetShaderManager(ShaderManager* pShaderManager) { m_pExternalShaderManager = pShaderManager; }
     HRESULT LoadShader(ShaderID id, const char* filepath, const char* techniqueName = "SpriteBatchTech");
     bool SetShader(ShaderID id);
     void ResetToDefaultShader();
@@ -63,6 +64,7 @@ private:
     D3DPRESENT_PARAMETERS m_d3dpp;
 
     ShaderManager m_shaderManager;
+    ShaderManager* m_pExternalShaderManager;
 
     LPDIRECT3DVERTEXSHADER9 m_pVertexShader;
     LPDIRECT3DPIXELSHADER9  m_pPixelShader;
