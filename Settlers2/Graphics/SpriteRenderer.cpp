@@ -128,8 +128,10 @@ HRESULT SpriteRenderer::Initialize(LPDIRECT3DDEVICE9 device, ShaderManager* shad
             &m_pVB[i],
             NULL
         );
+        sprintf(buf, "[SR::Initialize] CreateVertexBuffer[%d] hr=0x%08X, pVB=%p\n", i, hr, m_pVB[i]);
+        OutputDebugStringA(buf);
         if (FAILED(hr)) {
-            OutputDebugStringA("Failed to create vertex buffer\n");
+            OutputDebugStringA("[SR::Initialize] FAILED to create vertex buffer\n");
             return hr;
         }
     }
@@ -144,15 +146,19 @@ HRESULT SpriteRenderer::Initialize(LPDIRECT3DDEVICE9 device, ShaderManager* shad
         &m_pIndexBuffer,
         NULL
     );
+    sprintf(buf, "[SR::Initialize] CreateIndexBuffer hr=0x%08X, pIB=%p, size=%d\n", hr, m_pIndexBuffer, m_indexBufferSize);
+    OutputDebugStringA(buf);
 
     if (FAILED(hr)) {
-        OutputDebugStringA("Failed to create index buffer\n");
+        OutputDebugStringA("[SR::Initialize] FAILED to create index buffer\n");
         return hr;
     }
 
     // Pre-fill index buffer with quad indices (never changes)
     WORD* pIndices = NULL;
     hr = m_pIndexBuffer->Lock(0, 0, (void**)&pIndices, 0);
+    sprintf(buf, "[SR::Initialize] IndexBuffer Lock hr=0x%08X, pIndices=%p\n", hr, pIndices);
+    OutputDebugStringA(buf);
     if (SUCCEEDED(hr)) {
         for (int i = 0; i < m_maxSprites; i++) {
             int baseV = i * 4;
@@ -167,6 +173,7 @@ HRESULT SpriteRenderer::Initialize(LPDIRECT3DDEVICE9 device, ShaderManager* shad
             pIndices[baseI + 5] = baseV + 3;
         }
         m_pIndexBuffer->Unlock();
+        OutputDebugStringA("[SR::Initialize] Index buffer filled and unlocked\n");
     }
 
     // Create vertex declaration (must match SpriteVertex structure - 32 byte aligned)
@@ -179,20 +186,21 @@ HRESULT SpriteRenderer::Initialize(LPDIRECT3DDEVICE9 device, ShaderManager* shad
     };
 
     hr = m_pDevice->CreateVertexDeclaration(decl, &m_pVertexDecl);
+    sprintf(buf, "[SR::Initialize] CreateVertexDeclaration hr=0x%08X, pDecl=%p\n", hr, m_pVertexDecl);
+    OutputDebugStringA(buf);
     if (FAILED(hr)) {
-        OutputDebugStringA("Failed to create vertex declaration\n");
+        OutputDebugStringA("[SR::Initialize] FAILED to create vertex declaration\n");
         return hr;
     }
 
     // Allocate staging buffer in system memory (CPU-side), aligned for VMX (32 bytes for Xbox 360)
-    // Used for multi-threaded rendering on Xbox 360
-    // Use m_maxSprites to ensure enough space for 4096 sprites
     m_pStagingBuffer = (__declspec(align(32)) SpriteVertex*)_aligned_malloc(m_maxSprites * 4 * sizeof(SpriteVertex), 32);
+    sprintf(buf, "[SR::Initialize] StagingBuffer=%p, size=%d\n", m_pStagingBuffer, m_maxSprites * 4 * (int)sizeof(SpriteVertex));
+    OutputDebugStringA(buf);
     if (!m_pStagingBuffer) {
-        OutputDebugStringA("Failed to allocate staging buffer\n");
+        OutputDebugStringA("[SR::Initialize] FAILED to allocate staging buffer\n");
         return E_OUTOFMEMORY;
     }
-    // Zero the buffer to prevent garbage data causing BSOD
     memset(m_pStagingBuffer, 0, m_maxSprites * 4 * sizeof(SpriteVertex));
 
     // Reserve space in CPU mirror (4 vertices per sprite now)
@@ -283,6 +291,11 @@ HRESULT SpriteRenderer::Initialize(LPDIRECT3DDEVICE9 device, ShaderManager* shad
             OutputDebugStringA("[SR] Projection matrix set for SHADER_SPRITE\n");
         }
     }
+
+    // Итоговый лог Initialize
+    sprintf(buf, "[SR::Initialize] COMPLETE this=%p, m_pDevice=%p, m_pVB[0]=%p, m_pVB[1]=%p, m_pIndexBuffer=%p, m_pVertexDecl=%p, m_pStagingBuffer=%p\n",
+            this, m_pDevice, m_pVB[0], m_pVB[1], m_pIndexBuffer, m_pVertexDecl, m_pStagingBuffer);
+    OutputDebugStringA(buf);
 
     return S_OK;
 }
@@ -936,9 +949,20 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
     // DEBUG LOG: Monitor vertex count to detect buffer overflow
     int vertexCount = m_spriteCount * 4;
     char debugMsg[256];
-    sprintf(debugMsg, "[SpriteRenderer::Flush] spriteCount=%d, vertexCount=%d, maxSprites=%d\n",
+    sprintf(debugMsg, "[SR::Flush] spriteCount=%d, vertexCount=%d, maxSprites=%d\n",
             m_spriteCount, vertexCount, m_maxSprites);
     OutputDebugStringA(debugMsg);
+
+    // Проверка буферов перед копированием
+    sprintf(debugMsg, "[SR::Flush] m_pVB[%d]=%p, m_pIndexBuffer=%p, m_pStagingBuffer=%p\n",
+            m_activeBuffer, m_pVB[m_activeBuffer], m_pIndexBuffer, m_pStagingBuffer);
+    OutputDebugStringA(debugMsg);
+
+    if (!m_pVB[m_activeBuffer] || !m_pStagingBuffer) {
+        OutputDebugStringA("[SR::Flush] CRITICAL: VB or StagingBuffer is NULL!\n");
+        m_spriteCount = 0;
+        return;
+    }
 
     // === NEW QUEUE-BASED APPROACH ===
     // Instead of drawing directly, submit batch to ShaderManager queue
@@ -946,14 +970,17 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
     // Copy staging buffer to GPU
     LPDIRECT3DVERTEXBUFFER9 currentVB = m_pVB[m_activeBuffer];
     void* pData = NULL;
+    OutputDebugStringA("[SR::Flush] Locking VB...\n");
     HRESULT hr = currentVB->Lock(0, m_spriteCount * 4 * sizeof(SpriteVertex), &pData, 0);
     if (FAILED(hr)) {
-        OutputDebugStringA("Failed to lock vertex buffer\n");
+        OutputDebugStringA("[SR::Flush] FAILED to lock vertex buffer\n");
         m_spriteCount = 0;
         return;
     }
+    OutputDebugStringA("[SR::Flush] VB locked, copying data...\n");
     memcpy(pData, m_pStagingBuffer, m_spriteCount * 4 * sizeof(SpriteVertex));
     currentVB->Unlock();
+    OutputDebugStringA("[SR::Flush] VB unlocked\n");
 
     // Create render command (Master Loop approach)
     if (pShader) {

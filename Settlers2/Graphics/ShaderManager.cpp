@@ -970,21 +970,26 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         
         // === LAZY PASS MANAGEMENT ===
         // Only begin a new pass if we're not already inside one
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] BeginPass check...\n");
         if (!passActive) {
             BeginPass(0);
             passActive = true;
         }
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] Pass active\n");
 
         // GPU HANG PREVENTION: Check if effect is valid before drawing
         if (!m_pActiveEffect) {
-            OutputDebugStringA("[ShaderManager] ERROR: m_pActiveEffect is NULL, skipping draw to prevent GPU hang\n");
+            OutputDebugStringA("[ShaderManager] ERROR: m_pActiveEffect is NULL, skipping draw\n");
             continue;
         }
 
         // Xbox 360: CommitChanges() CRITICAL before Draw (apply constant buffer updates)
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] CommitChanges...\n");
         CommitChanges();
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] CommitChanges done\n");
 
         // Draw this command based on batch type
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] About to DrawIndexedPrimitive...\n");
         switch (cmd.batchType) {
             case 0: // Standard/Single sprite rendering
                 m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST,
@@ -1013,6 +1018,7 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                                                cmd.primitiveCount);
                 break;
         }
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] DrawIndexedPrimitive completed\n");
     }
     
     // === CLEANUP: End any active pass and shader ===
