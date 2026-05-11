@@ -324,6 +324,19 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                                 LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride) {
     if (m_commandQueue.empty()) return;
     
+    // === SORT COMMANDS BY Z-ORDER ===
+    // This ensures proper layering regardless of submission order
+    // Ground tiles (zOrder=0) render first, UI (zOrder=1+) renders on top
+    std::sort(m_commandQueue.begin(), m_commandQueue.end());
+    
+    // === RESET STATES: Force clean slate at start of render pass ===
+    // This prevents "garbage" states from previous rendering operations
+    m_pDevice->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
+    m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+    m_pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+    m_pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+    m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+    
     // Set vertex declaration and streams once
     m_pDevice->SetVertexDeclaration(pDecl);
     m_pDevice->SetStreamSource(0, pVB, 0, vertexStride);
@@ -355,26 +368,34 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         // Switch based on render type
         switch (cmd.batchType) {
             case 0: // Standard/Single sprite rendering
-                m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 
-                                               cmd.vertexCount, 
-                                               cmd.vertexStart, 
+                // Use BaseVertexIndex parameter for ring buffer support
+                // This tells GPU where this batch's vertices start in the buffer
+                m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 
+                                               cmd.vertexStart, // BaseVertexIndex
+                                               0,               // MinIndex
+                                               cmd.vertexCount, // NumVertices
+                                               0,               // StartIndex
                                                cmd.primitiveCount);
                 break;
                 
             case 1: // Instanced rendering
                 // For instanced rendering, we would need to set instance buffer here
-                // For now, fall back to standard rendering
-                m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 
-                                               cmd.vertexCount, 
-                                               cmd.vertexStart, 
+                // For now, fall back to standard rendering with vertex offset
+                m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 
+                                               cmd.vertexStart, // BaseVertexIndex
+                                               0,               // MinIndex
+                                               cmd.vertexCount, // NumVertices
+                                               0,               // StartIndex
                                                cmd.primitiveCount);
                 break;
                 
             default:
-                // Default to standard rendering
-                m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 
-                                               cmd.vertexCount, 
-                                               cmd.vertexStart, 
+                // Default to standard rendering with vertex offset
+                m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 
+                                               cmd.vertexStart, // BaseVertexIndex
+                                               0,               // MinIndex
+                                               cmd.vertexCount, // NumVertices
+                                               0,               // StartIndex
                                                cmd.primitiveCount);
                 break;
         }

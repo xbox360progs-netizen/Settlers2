@@ -614,6 +614,11 @@ void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, 
         if (m_currentShaderName != shaderName) {
             Flush();
         }
+        // AUTO-FLUSH: If render type changed (Single <-> Instanced), flush immediately
+        // This prevents GPU from applying instance data to regular sprites or vice versa
+        if (m_currentRenderType != renderType && m_spriteCount > 0) {
+            Flush();
+        }
     }
 
     char debugMsg[128];
@@ -839,6 +844,11 @@ void SpriteRenderer::SubmitBatch(ShaderManager* pShader) {
         cmd.states.cullMode = D3DCULL_NONE;
         
         pShader->Submit(cmd);
+    }
+    
+    m_spriteCount = 0;
+}
+
 void SpriteRenderer::Flush() {
     // Only return if empty
     if (m_spriteCount == 0) return;
@@ -854,8 +864,6 @@ void SpriteRenderer::Flush() {
     // Just call the version with shader manager
     Flush(m_pShaderManager);
 }
-
-// ... rest of the code remains the same ...
 
 
 void SpriteRenderer::UpdateAndFlush(const SpriteData* allSprites, int totalCount) {
