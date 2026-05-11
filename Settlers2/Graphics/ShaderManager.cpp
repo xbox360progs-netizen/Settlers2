@@ -129,25 +129,27 @@ bool ShaderManager::Init() {
     }
 
     // Load additional shaders via LoadInternal for centralized m_effects map
-    if (FAILED(LoadInternal(SHADER_SPRITE, "game:\\Media\\Shaders\\Sprite2D.fx", "Sprite"))) {
-        OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_SPRITE to m_effects\n");
-    }
+    // Commented out - these files don't exist and would overwrite successfully loaded shaders
+    // if (FAILED(LoadInternal(SHADER_SPRITE, "game:\\Media\\Shaders\\Sprite2D.fx", "Sprite"))) {
+    //     OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_SPRITE to m_effects\n");
+    // }
 
-    if (FAILED(LoadInternal(SHADER_SPRITE_CONSTANT_INSTANCED, "game:\\Media\\Shaders\\SpriteConstantInstanced.fx", "Sprite"))) {
-        OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_SPRITE_CONSTANT_INSTANCED to m_effects\n");
-    }
+    // if (FAILED(LoadInternal(SHADER_SPRITE_CONSTANT_INSTANCED, "game:\\Media\\Shaders\\SpriteConstantInstanced.fx", "Sprite"))) {
+    //     OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_SPRITE_CONSTANT_INSTANCED to m_effects\n");
+    // }
 
-    if (FAILED(LoadInternal(SHADER_RADIALMENU, "game:\\Media\\Shaders\\RadialMenu.fx", "RadialMenu"))) {
-        OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_RADIALMENU to m_effects\n");
-    }
+    // if (FAILED(LoadInternal(SHADER_RADIALMENU, "game:\\Media\\Shaders\\RadialMenu.fx", "RadialMenu"))) {
+    //     OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_RADIALMENU to m_effects\n");
+    // }
 
-    if (FAILED(LoadInternal(SHADER_UI, "game:\\Media\\Shaders\\Sprite2D.fx", "Sprite"))) {
-        OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_UI to m_effects\n");
-    }
+    // Commented out - Sprite2D.fx doesn't exist
+    // if (FAILED(LoadInternal(SHADER_UI, "game:\\Media\\Shaders\\Sprite2D.fx", "Sprite"))) {
+    //     OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_UI to m_effects\n");
+    // }
 
-    if (FAILED(LoadInternal(SHADER_TERRAIN, "game:\\Media\\Shaders\\Sprite2D.fx", "Sprite"))) {
-        OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_TERRAIN to m_effects\n");
-    }
+    // if (FAILED(LoadInternal(SHADER_TERRAIN, "game:\\Media\\Shaders\\Sprite2D.fx", "Sprite"))) {
+    //     OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_TERRAIN to m_effects\n");
+    // }
 
     OutputDebugStringA("[ShaderManager] Init: All shaders loaded successfully\n");
     return true;

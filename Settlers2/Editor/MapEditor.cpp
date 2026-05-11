@@ -388,8 +388,8 @@ void MapEditor::RenderGridLayer() {
         float th = 148.0f * zoom;
         int mapHeight = groundLayer->GetHeight();
 
-        // Use SHADER_SPRITE with Y-depth sorting
-        m_spriteRenderer->BeginWorldObject(SHADER_SPRITE, m_groundAtlas->GetTexture(), 0.0f, 0.95f, 0.0001f, 0);
+        // Use SHADER_SPRITE_CONSTANT_INSTANCED with Y-depth sorting (ID 1 is valid, ID 0 is missing)
+        m_spriteRenderer->BeginWorldObject(SHADER_SPRITE_CONSTANT_INSTANCED, m_groundAtlas->GetTexture(), 0.0f, 0.95f, 0.0001f, 1);
         
         for (int y = minGroundY; y < maxGroundY; ++y) {
             for (int x = minGroundX; x < maxGroundX; ++x) {

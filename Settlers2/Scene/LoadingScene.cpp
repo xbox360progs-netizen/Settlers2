@@ -59,8 +59,8 @@ void LoadingScene::Load()
         if (m_binFileManager) {
             SetBinFileManagerStatic(m_binFileManager);
         }
-        // Load manifest-based texture paths
-        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "");
+        // Load manifest-based texture paths (Menu section for dpad_cross and cursor)
+        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Menu");
     }
     
     // Clear previous tasks

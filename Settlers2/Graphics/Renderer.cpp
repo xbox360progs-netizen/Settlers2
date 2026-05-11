@@ -205,7 +205,7 @@ void Renderer::BeginFrame() {
 
     // Set projection matrix on the sprite shader (but don't BeginShader/BeginPass here)
     // SpriteRenderer manages its own shader state in FlushStandard
-    ShaderManager::Shader* pSpriteShader = m_shaderManager.GetShader(SHADER_SPRITE);
+    ShaderManager::Shader* pSpriteShader = m_shaderManager.GetShader(SHADER_SPRITE_CONSTANT_INSTANCED);
     if (pSpriteShader && pSpriteShader->pEffect && pSpriteShader->hMatOrtho) {
         pSpriteShader->pEffect->SetMatrix(pSpriteShader->hMatOrtho, (D3DXMATRIX*)&m_projMatrix);
     }
@@ -302,9 +302,9 @@ void Renderer::DrawSingleSprite(Texture* texture, float x, float y, float width,
     vertices[3].color = color; vertices[3].u = u0; vertices[3].v = v1;
     vertices[3].padding[0] = 0; vertices[3].padding[1] = 0;
 
-    ShaderManager::Shader* pShader = m_shaderManager.GetShader(SHADER_SPRITE);
+    ShaderManager::Shader* pShader = m_shaderManager.GetShader(SHADER_SPRITE_CONSTANT_INSTANCED);
     if (pShader && pShader->pEffect && m_pVertexDecl) {
-        m_shaderManager.SetActiveShader(SHADER_SPRITE);
+        m_shaderManager.SetActiveShader(SHADER_SPRITE_CONSTANT_INSTANCED);
         m_shaderManager.SetTexture("g_texture", texture->GetTexture());
         m_shaderManager.BeginShader();
         m_shaderManager.BeginPass(0);
