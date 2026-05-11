@@ -205,23 +205,23 @@ void MenuScene::Update(float deltaTime) {
 }
 
 void MenuScene::Render() {
-  if (!m_spriteRenderer) {
-    OutputDebugStringA("[MenuScene] SpriteRenderer is NULL\n");
-    return;
-  }
+  // 1. Базовая проверка
+  if (!m_spriteRenderer || !m_backgroundTexture.GetTexture()) return;
 
-  // === STEP 1: Begin batch with shader and texture ===
   LPDIRECT3DTEXTURE9 bgTex = m_backgroundTexture.GetTexture();
-  if (bgTex) {
-    OutputDebugStringA("[MenuScene] Drawing background with SpriteRenderer...\n");
-    m_spriteRenderer->Begin(SHADER_SPRITE, bgTex, 0.0f, 0, false);
-    m_spriteRenderer->Draw(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
-    m_spriteRenderer->End();
-  } else {
-    OutputDebugStringA("[MenuScene] WARNING: Background texture is NULL!\n");
-  }
 
-  // === STEP 2: Render UI/Text (separate layer) ===
+  // 2. Подготовка (SR сам выставит шейдер ID 0 и стейты)
+  m_spriteRenderer->Begin(SHADER_SPRITE, bgTex, 0.0f, 0, false);
+
+  // 3. Отправка спрайта (Scene просто передает данные)
+  float w = 1280.0f;
+  float h = 720.0f;
+  m_spriteRenderer->Draw(0.0f, 0.0f, w, h, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
+
+  // 4. Финализация (Здесь произойдет реальный Draw Call)
+  m_spriteRenderer->End();
+
+  // 5. Текст рисуем ПОСЛЕ (так как у него другой шейдер - ID 7)
   if (m_textManager) {
     m_textManager->Begin();
     for (int i = 0; i < m_menuCount; i++) {

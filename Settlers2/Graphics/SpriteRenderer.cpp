@@ -726,14 +726,14 @@ void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, 
 void SpriteRenderer::Draw(float x, float y, float width, float height,
                           float u0, float v0, float u1, float v1,
                           DWORD color) {
-    if (!m_isBatching) {
-        OutputDebugStringA("Draw called without Begin!\n");
+    // CRITICAL: Check device and vertex buffer to prevent Access Violation
+    if (!m_pDevice || !m_pVB[m_activeBuffer]) {
+        OutputDebugStringA("[SR] CRITICAL: Device or Vertex Buffer is NULL!\n");
         return;
     }
 
-    // Check if vertex buffer is valid to prevent Access Violation
-    if (!m_pVB[m_activeBuffer]) {
-        OutputDebugStringA("[SpriteRenderer::Draw] ERROR: Vertex buffer is NULL\n");
+    if (!m_isBatching) {
+        OutputDebugStringA("Draw called without Begin!\n");
         return;
     }
 
