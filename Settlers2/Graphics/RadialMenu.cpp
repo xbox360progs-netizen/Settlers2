@@ -259,7 +259,7 @@ void RadialMenu::Render()
     cmd.depth = 0.0f; // Minimal depth - always on top (UI layer)
     cmd.layer = 2;     // UI layer
     cmd.isUI = true;   // Screen-space rendering (skip camera matrix)
-    cmd.shaderName = "RadialMenu";
+    cmd.shaderID = ShaderManager::SHADER_RADIALMENU; // Use shader handle instead of name
     cmd.customDraw = &RadialMenu::StaticDrawCallback;
     cmd.customUserData = this;
     

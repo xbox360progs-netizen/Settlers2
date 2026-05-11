@@ -59,10 +59,19 @@ public:
     // Custom draw callback type for non-standard rendering (e.g. RadialMenu shader)
     typedef void (*CustomDrawFn)(LPDIRECT3DDEVICE9 pDevice, ShaderManager* pShaderMgr, void* pUserData);
 
+    // Shader handle system (IDs instead of raw pointers for safety)
+    enum ShaderHandle {
+        SHADER_INVALID = -1,
+        SHADER_SPRITE = 0,
+        SHADER_SPRITE_CONSTANT_INSTANCED = 1,
+        SHADER_RADIALMENU = 2,
+        SHADER_COUNT
+    };
+
     // Render command structure for queue-based rendering (Master Loop)
     struct RenderCommand {
         IDirect3DTexture9* pTexture;
-        Shader* pShader;
+        int shaderID;   // Shader handle (ShaderHandle enum) instead of raw pointer
         DWORD vertexStart;
         DWORD vertexCount;
         DWORD primitiveCount;
@@ -71,7 +80,6 @@ public:
         int layer;     // Logical layer: 0=Terrain, 1=Objects, 2=UI (for composite depth)
         bool isUI;     // Screen-space rendering (skip camera matrix)
         RenderStateBlock states;
-        std::string shaderName;
         DWORD batchIndex; // For tracking batch sequence (for vertex offset calculation)
         
         // World position for camera transform (if not isUI)
@@ -81,7 +89,7 @@ public:
         CustomDrawFn customDraw;
         void* customUserData;
         
-        RenderCommand() : pTexture(NULL), pShader(NULL), vertexStart(0), vertexCount(0),
+        RenderCommand() : pTexture(NULL), shaderID(SHADER_INVALID), vertexStart(0), vertexCount(0),
             primitiveCount(0), batchType(0), depth(1.0f), layer(0), isUI(false), batchIndex(0),
             worldX(0), worldY(0), customDraw(NULL), customUserData(NULL) {}
         
@@ -90,8 +98,8 @@ public:
         bool operator<(const RenderCommand& other) const {
             if (depth != other.depth)
                 return depth > other.depth; // Descending: far objects first
-            if (shaderName != other.shaderName)
-                return shaderName < other.shaderName;
+            if (shaderID != other.shaderID)
+                return shaderID < other.shaderID; // Sort by shader ID for batching
             return pTexture < other.pTexture;
         }
     };
@@ -193,7 +201,14 @@ public:
     // Sort batches by shader and texture (legacy)
     void SortBatches();
     
-    // Execute all commands in the queue (Master Loop - final render pass)
+    // Apply shader by handle (lazy switching with state caching)
+    void ApplyShader(int shaderID);
+    
+    // Begin frame: reset state cache and prepare global constants
+    void BeginFrame();
+    
+    // Validate shader handle
+    bool ValidateShader(int shaderID) const;
     void ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
                      LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride,
                      const D3DXMATRIX* pViewProj = NULL); // Optional camera matrix

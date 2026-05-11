@@ -319,9 +319,55 @@ void ShaderManager::SortDrawBatches() {
     std::sort(m_drawBatches.begin(), m_drawBatches.end());
 }
 
-void ShaderManager::SortBatches() {
-    // Sort commands by depth (back-to-front), shader, and texture
-    std::sort(m_batches.begin(), m_batches.end());
+// Apply shader by handle (lazy switching with state caching)
+void ShaderManager::ApplyShader(int shaderID) {
+    if (!ValidateShader(shaderID)) {
+        OutputDebugStringA("[ShaderManager] Invalid shader handle\n");
+        return;
+    }
+    
+    // Lazy switching: only switch if different from current
+    // Map shaderID to shader name for legacy compatibility
+    const char* shaderName = nullptr;
+    switch (shaderID) {
+        case SHADER_SPRITE:
+            shaderName = "sprite";
+            break;
+        case SHADER_SPRITE_CONSTANT_INSTANCED:
+            shaderName = "sprite_constant_instanced";
+            break;
+        case SHADER_RADIALMENU:
+            shaderName = "RadialMenu";
+            break;
+        default:
+            return;
+    }
+    
+    // Use existing shader lookup mechanism
+    std::map<std::string, Shader>::iterator it = m_shaders.find(shaderName);
+    if (it != m_shaders.end() && it->second.pEffect) {
+        if (m_pActiveShader != &(it->second)) {
+            if (m_pActiveShader) {
+                EndShader();
+            }
+            m_pActiveShader = &(it->second);
+            BeginShader();
+        }
+    }
+}
+
+// Begin frame: reset state cache and prepare global constants
+void ShaderManager::BeginFrame() {
+    // Reset state cache
+    m_stateCache.MarkDirty();
+    
+    // Reset active shader
+    m_pActiveShader = nullptr;
+}
+
+// Validate shader handle
+bool ShaderManager::ValidateShader(int shaderID) const {
+    return shaderID >= 0 && shaderID < SHADER_COUNT;
 }
 
 void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
@@ -348,6 +394,8 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     m_pDevice->SetIndices(pIB);
     
     // Process commands in sorted order (Master Loop - final render pass)
+    int currentShaderID = SHADER_INVALID;
+    
     for (size_t i = 0; i < m_commandQueue.size(); ++i) {
         const RenderCommand& cmd = m_commandQueue[i];
         
@@ -361,13 +409,10 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         }
         
         // Standard/Instanced rendering: managed shader/texture/pass lifecycle
-        // Set shader if changed
-        if (m_pActiveShader != cmd.pShader) {
-            if (m_pActiveShader) {
-                EndShader();
-            }
-            m_pActiveShader = cmd.pShader;
-            BeginShader();
+        // Lazy shader switching using ApplyShader (handles state caching)
+        if (cmd.shaderID != currentShaderID) {
+            ApplyShader(cmd.shaderID);
+            currentShaderID = cmd.shaderID;
         }
         
         // Apply render states for this command

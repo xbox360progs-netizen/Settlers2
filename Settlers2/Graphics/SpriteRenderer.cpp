@@ -78,7 +78,7 @@ SpriteRenderer::SpriteRenderer()
     
     // Default rendering mode: constant instanced (unified shader approach)
     m_currentMode = MODE_INSTANCED_CONST;
-    m_currentShaderName = "sprite_constant_instanced";
+    m_currentShaderID = ShaderManager::SHADER_SPRITE_CONSTANT_INSTANCED;
     m_currentDepth = 1.0f; // Default: far layer (ground)
     m_currentRenderType = 0; // Default to Single
     m_currentIsUI = false; // Default: world-space (apply camera matrix)
@@ -397,7 +397,7 @@ void SpriteRenderer::Shutdown() {
 
     m_vertices.clear();
     m_currentTexture = NULL;
-    m_currentShaderName.clear();
+    m_currentShaderID = ShaderManager::SHADER_INVALID;
     m_isBatching = false;
     m_pShaderManager = NULL;
     m_pDevice = NULL;
@@ -595,32 +595,40 @@ void SpriteRenderer::OnResetDevice() {
     
 }
 
-void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture) {
-    Begin(shaderName, pTexture, 1.0f, 0); // Default: far layer (ground), Single sprite
+// Helper: map shader name to shader handle
+static int ShaderNameToID(const char* shaderName) {
+    if (!shaderName) return ShaderManager::SHADER_INVALID;
+    if (strcmp(shaderName, "sprite") == 0) return ShaderManager::SHADER_SPRITE;
+    if (strcmp(shaderName, "sprite_constant_instanced") == 0) return ShaderManager::SHADER_SPRITE_CONSTANT_INSTANCED;
+    if (strcmp(shaderName, "RadialMenu") == 0) return ShaderManager::SHADER_RADIALMENU;
+    return ShaderManager::SHADER_SPRITE; // Default fallback
 }
 
-void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float depth) {
-    Begin(shaderName, pTexture, depth, 0); // Default to Single sprite
+// New Begin overloads with shaderID
+void SpriteRenderer::Begin(int shaderID, LPDIRECT3DTEXTURE9 pTexture) {
+    Begin(shaderID, pTexture, 1.0f, 0, false); // Default: far layer, Single, world-space
 }
 
-void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType) {
-    Begin(shaderName, pTexture, depth, renderType, false); // Default: world-space
+void SpriteRenderer::Begin(int shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth) {
+    Begin(shaderID, pTexture, depth, 0, false); // Default: Single, world-space
 }
 
-void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType, bool isUI) {
+void SpriteRenderer::Begin(int shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType) {
+    Begin(shaderID, pTexture, depth, renderType, false); // Default: world-space
+}
+
+void SpriteRenderer::Begin(int shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType, bool isUI) {
 
     // If state changed, flush previous batch
     if (m_isBatching) {
         // AUTO-FLUSH: If texture changed and buffer has vertices, flush first
-        // This prevents "icon mash" when switching textures
         if (m_currentTexture != pTexture && m_spriteCount > 0) {
             Flush();
         }
-        if (m_currentShaderName != shaderName) {
+        if (m_currentShaderID != shaderID && m_spriteCount > 0) {
             Flush();
         }
         // AUTO-FLUSH: If render type changed (Single <-> Instanced), flush immediately
-        // This prevents GPU from applying instance data to regular sprites or vice versa
         if (m_currentRenderType != renderType && m_spriteCount > 0) {
             Flush();
         }
@@ -631,34 +639,53 @@ void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, 
     }
 
     char debugMsg[128];
-    sprintf(debugMsg, "[SpriteRenderer::Begin] shader=%s, texture=%p, depth=%.2f, renderType=%d, isUI=%d\n", shaderName, pTexture, depth, renderType, isUI);
+    sprintf(debugMsg, "[SpriteRenderer::Begin] shaderID=%d, texture=%p, depth=%.2f, renderType=%d, isUI=%d\n", shaderID, pTexture, depth, renderType, isUI);
     OutputDebugStringA(debugMsg);
 
-    m_currentShaderName = shaderName;
+    m_currentShaderID = shaderID;
     m_currentTexture = pTexture;
     m_currentDepth = depth;
     m_currentRenderType = renderType;
     m_currentIsUI = isUI;
     m_isBatching = true;
     m_spriteCount = 0;
-
 }
 
-// Composite depth: layer * 1000 + yPosition for hybrid Z-ordering
-void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, int layer, float yPosition) {
+void SpriteRenderer::Begin(int shaderID, LPDIRECT3DTEXTURE9 pTexture, int layer, float yPosition) {
     float compositeDepth = (float)(layer * 1000) + yPosition;
-    Begin(shaderName, pTexture, compositeDepth, 0, false); // Default: world-space, Single sprite
+    Begin(shaderID, pTexture, compositeDepth, 0, false); // Default: world-space, Single sprite
 }
 
-void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, int layer, float yPosition, int renderType, bool isUI) {
+void SpriteRenderer::Begin(int shaderID, LPDIRECT3DTEXTURE9 pTexture, int layer, float yPosition, int renderType, bool isUI) {
     float compositeDepth = (float)(layer * 1000) + yPosition;
-    Begin(shaderName, pTexture, compositeDepth, renderType, isUI);
+    Begin(shaderID, pTexture, compositeDepth, renderType, isUI);
 }
 
 // Y-sorting helper for world objects (buildings, units): depth = layer_base + (y * scale)
-void SpriteRenderer::BeginWorldObject(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float worldY, float layerBase, float yScale, int renderType) {
+void SpriteRenderer::BeginWorldObject(int shaderID, LPDIRECT3DTEXTURE9 pTexture, float worldY, float layerBase, float yScale, int renderType) {
     float depth = layerBase + (worldY * yScale);
-    Begin(shaderName, pTexture, depth, renderType, false); // World-space, not UI
+    Begin(shaderID, pTexture, depth, renderType, false); // World-space, not UI
+}
+
+// Legacy Begin overloads (map shader names to handles for backward compatibility)
+void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture) {
+    int shaderID = ShaderNameToID(shaderName);
+    Begin(shaderID, pTexture);
+}
+
+void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float depth) {
+    int shaderID = ShaderNameToID(shaderName);
+    Begin(shaderID, pTexture, depth);
+}
+
+void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType) {
+    int shaderID = ShaderNameToID(shaderName);
+    Begin(shaderID, pTexture, depth, renderType);
+}
+
+void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType, bool isUI) {
+    int shaderID = ShaderNameToID(shaderName);
+    Begin(shaderID, pTexture, depth, renderType, isUI);
 }
 
 void SpriteRenderer::Draw(float x, float y, float width, float height,
@@ -809,8 +836,7 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
     if (pShader) {
         ShaderManager::RenderCommand cmd;
         cmd.pTexture = m_currentTexture;
-        cmd.pShader = pShader->GetShader(m_currentShaderName.c_str());
-        cmd.shaderName = m_currentShaderName;
+        cmd.shaderID = m_currentShaderID;
         cmd.vertexStart = 0; // Always 0 for now (single buffer)
         cmd.vertexCount = m_spriteCount * 4; // 4 vertices per sprite
         cmd.primitiveCount = (DWORD)(m_spriteCount * 2); // 2 triangles per sprite
@@ -829,8 +855,8 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
         // Submit command to queue (Master Loop)
         pShader->Submit(cmd);
         
-        sprintf(debugMsg, "[SpriteRenderer::Flush] Submitted batch: %d sprites, shader=%s, depth=%.2f, renderType=%d\n",
-                m_spriteCount, m_currentShaderName.c_str(), m_currentDepth, m_currentRenderType);
+        sprintf(debugMsg, "[SpriteRenderer::Flush] Submitted batch: %d sprites, shaderID=%d, depth=%.2f, renderType=%d\n",
+                m_spriteCount, m_currentShaderID, m_currentDepth, m_currentRenderType);
         OutputDebugStringA(debugMsg);
     }
 
@@ -860,8 +886,7 @@ void SpriteRenderer::SubmitBatch(ShaderManager* pShader) {
     if (pShader) {
         ShaderManager::RenderCommand cmd;
         cmd.pTexture = m_currentTexture;
-        cmd.pShader = pShader->GetShader(m_currentShaderName.c_str());
-        cmd.shaderName = m_currentShaderName;
+        cmd.shaderID = m_currentShaderID;
         cmd.vertexStart = 0;
         cmd.vertexCount = m_spriteCount * 4;
         cmd.primitiveCount = (DWORD)(m_spriteCount * 2);
@@ -1111,7 +1136,6 @@ void SpriteRenderer::FillStagingAreaPublic(int startIdx, int count, const Sprite
     FillStagingArea(startIdx, count, data);
 }
 
-// (removed duplicate wrappers to keep single source of truth)
 
 void SpriteRenderer::ExecuteBatch() {
     if (m_renderQueue.empty()) return;
@@ -1338,20 +1362,17 @@ void SpriteRenderer::FlushStandard() {
     m_pDevice->SetIndices(m_pIndexBuffer);
 
     // 5. Shader management (if needed)
-    if (m_pShaderManager && !m_currentShaderName.empty()) {
+    if (m_pShaderManager && m_currentShaderID != ShaderManager::SHADER_INVALID) {
         char debugMsg[256];
-        sprintf(debugMsg, "[SR] FlushStandard: Using shader '%s'\n", m_currentShaderName.c_str());
+        sprintf(debugMsg, "[SR] FlushStandard: Using shaderID=%d\n", m_currentShaderID);
         OutputDebugStringA(debugMsg);
 
-        m_pShaderManager->SetActiveShader(m_currentShaderName.c_str());
+        m_pShaderManager->ApplyShader(m_currentShaderID);
         m_pShaderManager->BeginShader();
 
         // Set texture with correct parameter name based on shader
-        if (m_currentShaderName == "Basic2D") {
-            m_pShaderManager->SetTexture("tex", m_currentTexture);
-        } else {
-            m_pShaderManager->SetTexture("g_texture", m_currentTexture);
-        }
+        // All modern shaders use "g_texture" parameter
+        m_pShaderManager->SetTexture("g_texture", m_currentTexture);
 
         // Set orthographic projection matrix for 2D sprites
         D3DXMATRIX matOrtho;
