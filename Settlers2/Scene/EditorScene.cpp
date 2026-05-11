@@ -358,18 +358,24 @@ void EditorScene::Render() {
     
     m_renderer->Clear(D3DCOLOR_XRGB(50, 50, 50));
 
-    // Render map through MapEditor
+    // === STEP 1: Update global camera matrices (once per frame) ===
+    if (m_shaderManager && m_camera) {
+        m_camera->Update();
+        m_shaderManager->UpdateGlobalMatrices(&m_camera->GetViewMatrix(), &m_camera->GetProjectionMatrix());
+    }
+
+    // === STEP 2: Render map through MapEditor (fills command queue) ===
     if (m_mapEditor) {
         m_mapEditor->Render();
     }
 
-    // Render RadialMenu (submits commands to queue)
+    // === STEP 3: Render UI elements (RadialMenu, GridMenu) ===
+    // These submit commands with isUI=true and depth=0.0f
     if (m_radialMenu && m_radialMenu->IsVisible()) {
         m_radialMenu->Render();
         m_radialMenu->RenderIcons(m_spriteRenderer);
     }
     
-    // Render GridMenu (submits commands to queue)
     if (m_gridMenu && m_gridMenu->IsVisible()) {
         m_gridMenu->Render(m_spriteRenderer);
     }
@@ -391,14 +397,14 @@ void EditorScene::Render() {
         m_textManager->RenderScreen();
     }
     
-    // === MASTER LOOP: Execute all queued render commands ===
-    // This is the single render pass for the entire frame
+    // === STEP 4: MASTER LOOP - Execute all queued render commands ===
+    // Camera ViewProj already set via UpdateGlobalMatrices
     if (m_shaderManager && m_spriteRenderer) {
         LPDIRECT3DVERTEXBUFFER9 pVB = m_spriteRenderer->GetVertexBuffer();
         LPDIRECT3DINDEXBUFFER9 pIB = m_spriteRenderer->GetIndexBuffer();
         LPDIRECT3DVERTEXDECLARATION9 pDecl = m_spriteRenderer->GetVertexDeclaration();
         
-        // Calculate ViewProjection matrix from camera for world-space rendering
+        // Pass ViewProj to ExecuteQueue (used for per-command isUI override)
         D3DXMATRIX viewProj;
         if (m_camera) {
             D3DXMatrixMultiply(&viewProj, &m_camera->GetViewMatrix(), &m_camera->GetProjectionMatrix());

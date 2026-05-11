@@ -361,95 +361,68 @@ void MapEditor::RenderGridLayer() {
     float scX = m_renderer->GetScreenWidth() * 0.5f;
     float scY = m_renderer->GetScreenHeight() * 0.5f;
 
-    // Ground layer - всегда основа
+    // === FRUSTUM CULLING: Calculate visible tile range based on camera ===
+    // Screen bounds in world coordinates
+    float screenW = m_renderer->GetScreenWidth();
+    float screenH = m_renderer->GetScreenHeight();
+    float halfW = screenW * 0.5f;
+    float halfH = screenH * 0.5f;
+    
+    // Convert screen bounds to world bounds
+    float minWorldX = camX - halfW / zoom;
+    float maxWorldX = camX + halfW / zoom;
+    float minWorldY = camY - halfH / zoom;
+    float maxWorldY = camY + halfH / zoom;
+    
+    // Convert world bounds to tile bounds with padding for safety
+    // For Ground tiles (20x20 grid)
+    int minGroundX = 0, maxGroundX = groundLayer->GetWidth();
+    int minGroundY = 0, maxGroundY = groundLayer->GetHeight();
+    
+    // Simple culling: iterate all for now, but can be optimized further
+    // For Xbox 360, we'll limit to visible tiles when map gets larger
+
+    // Ground layer - Y-sorting depth: 0.9-1.0 (farthest)
     {
         float tw = 238.0f * zoom;
         float th = 148.0f * zoom;
+        int mapHeight = groundLayer->GetHeight();
 
-        // UNIFIED SHADER: Reset to default shader before drawing background
-        m_renderer->ResetToDefaultShader();
-
-        // FIX: Disable Z-write before drawing background to prevent Z-conflicts
-        if (m_pDevice) {
-            m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
-        }
-
-        m_spriteRenderer->Begin("sprite", m_groundAtlas->GetTexture());
-        for (int y = 0; y < groundLayer->GetHeight(); ++y) {
-            for (int x = 0; x < groundLayer->GetWidth(); ++x) {
+        // Use SHADER_SPRITE with Y-depth sorting
+        m_spriteRenderer->BeginWorldObject(ShaderManager::SHADER_SPRITE, m_groundAtlas->GetTexture(), 0.0f, 0.95f, 0.0001f, 0);
+        
+        for (int y = minGroundY; y < maxGroundY; ++y) {
+            for (int x = minGroundX; x < maxGroundX; ++x) {
                 float wx, wy;
                 CoordinateSystem::GetInstance().GroundTileToWorld(x, y, wx, wy);
+                
+                // Simple frustum check: skip if outside screen bounds
                 float sx = scX + (wx - camX) * zoom;
                 float sy = scY + (wy - camY) * zoom;
+                
+                // Skip if tile is completely off-screen
+                if (sx + tw < 0 || sx - tw > screenW || sy + th < 0 || sy - th > screenH) {
+                    continue;
+                }
+                
                 const World::Tile& tile = groundLayer->GetTile(x, y);
                 m_spriteRenderer->Draw(sx - tw * 0.5f, sy - th * 0.5f, tw, th, tile.u0, tile.v0, tile.u1, tile.v1, 0xFFFFFFFF);
             }
         }
         m_spriteRenderer->End();
-        
-        // FIX: Re-enable Z-write after background is drawn
-        if (m_pDevice) {
-            m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, TRUE);
-        }
     }
 
-    // Objects layer - всегда поверх Ground (40x40)
-    // TEMPORARILY COMMENTED OUT FOR DEBUGGING - testing if this causes background disappearance
-    /*
-    {
-        World::TileLayer* objectsLayer = m_map->GetLayer(World::Objects);
-        if (objectsLayer) {
-            TextureRegistry& registry = TextureRegistry::instance();
-            float ntw = 119.0f * zoom;
-            float nth = 72.0f * zoom;
-
-            std::map<std::string, std::vector<World::Tile>> tilesByAtlas;
-            std::map<std::string, std::vector<std::pair<float, float>>> posByAtlas;
-
-            for (int y = 0; y < objectsLayer->GetHeight(); ++y) {
-                for (int x = 0; x < objectsLayer->GetWidth(); ++x) {
-                    const World::Tile& tile = objectsLayer->GetTile(x, y);
-                    if (tile.u1 <= tile.u0 || tile.v1 <= tile.v0) continue;
-
-                    float wx, wy;
-                    CoordinateSystem::GetInstance().NodeTileToWorld(x, y, wx, wy);
-
-                    float sx = scX + (wx - camX) * zoom;
-                    float sy = scY + (wy - camY) * zoom;
-
-                    std::string atlasName = tile.atlasName.empty() ? "icon_tree" : tile.atlasName;
-                    tilesByAtlas[atlasName].push_back(tile);
-                    posByAtlas[atlasName].push_back(std::make_pair(sx - ntw * 0.5f, sy - nth * 0.5f));
-                }
-            }
-
-            for (std::map<std::string, std::vector<World::Tile>>::iterator it = tilesByAtlas.begin(); it != tilesByAtlas.end(); ++it) {
-                std::string atlasName = it->first;
-                std::tr1::shared_ptr<SpriteAtlas> atlas = registry.getAtlas(atlasName);
-                if (!atlas) continue;
-
-                m_spriteRenderer->Begin("sprite", atlas->GetTexture());
-                for (size_t i = 0; i < it->second.size(); ++i) {
-                    float sx = posByAtlas[atlasName][i].first;
-                    float sy = posByAtlas[atlasName][i].second;
-                    const World::Tile& tile = it->second[i];
-                    m_spriteRenderer->Draw(sx, sy, ntw, nth, tile.u0, tile.v0, tile.u1, tile.v1, 0xFFFFFFFF);
-                }
-                m_spriteRenderer->End();
-            }
-        }
-    }
-    */
-
-    // Overlay layer - всегда поверх Objects (40x40)
+    // Overlay layer - Y-sorting depth: 0.5-0.8 (mid-range)
     {
         World::TileLayer* overlayLayer = m_map->GetLayer(World::Overlay);
         if (overlayLayer && m_groundAtlas) {
             float ntw = 119.0f * zoom;
             float nth = 72.0f * zoom;
+            int mapHeight = overlayLayer->GetHeight();
 
-            // UNIFIED SHADER: Use sprite_constant_instanced
-            m_spriteRenderer->Begin("sprite_constant_instanced", m_groundAtlas->GetTexture());
+            // Use SHADER_SPRITE_CONSTANT_INSTANCED with Y-depth sorting
+            m_spriteRenderer->BeginWorldObject(ShaderManager::SHADER_SPRITE_CONSTANT_INSTANCED, m_groundAtlas->GetTexture(), 0.0f, 0.65f, 0.0001f, 1);
+            
             for (int y = 0; y < overlayLayer->GetHeight(); ++y) {
                 for (int x = 0; x < overlayLayer->GetWidth(); ++x) {
                     const World::Tile& tile = overlayLayer->GetTile(x, y);
@@ -459,6 +432,12 @@ void MapEditor::RenderGridLayer() {
                     CoordinateSystem::GetInstance().NodeTileToWorld(x, y, wx, wy);
                     float sx = scX + (wx - camX) * zoom;
                     float sy = scY + (wy - camY) * zoom;
+                    
+                    // Frustum culling: skip if off-screen
+                    if (sx + ntw < 0 || sx - ntw > screenW || sy + nth < 0 || sy - nth > screenH) {
+                        continue;
+                    }
+                    
                     m_spriteRenderer->Draw(sx - ntw * 0.5f, sy - nth * 0.5f, ntw, nth, tile.u0, tile.v0, tile.u1, tile.v1, 0x80FFFFFF);
                 }
             }
@@ -466,24 +445,28 @@ void MapEditor::RenderGridLayer() {
         }
     }
 
-    // Nodes layer - WeightMap
-    if (m_currentLayer == World::Nodes) {
-        // RenderWeightMap() отображает Nodes
-    }
-
-    // Placement layer - сетка занятых клеток
+    // Placement layer - Y-sorting depth: 0.5-0.8
     if (m_currentLayer == World::Placement) {
         World::TileLayer* placementLayer = m_map->GetLayer(World::Placement);
         if (placementLayer) {
             CoordinateSystem& coords = CoordinateSystem::GetInstance();
-            // UNIFIED SHADER: Use sprite_constant_instanced
-            m_spriteRenderer->Begin("sprite_constant_instanced", m_dotTexture);
+            int mapHeight = NODES_H;
+
+            // Use SHADER_SPRITE_CONSTANT_INSTANCED with Y-depth sorting
+            m_spriteRenderer->BeginWorldObject(ShaderManager::SHADER_SPRITE_CONSTANT_INSTANCED, m_dotTexture, 0.0f, 0.65f, 0.0001f, 1);
+            
             for (int y = 0; y < NODES_H; ++y) {
                 for (int x = 0; x < NODES_W; ++x) {
                     float wx, wy;
                     coords.NodeTileToWorld(x, y, wx, wy);
                     float sx = scX + (wx - camX) * zoom;
                     float sy = scY + (wy - camY) * zoom;
+                    
+                    // Frustum culling: skip if off-screen
+                    if (sx + 8.0f < 0 || sx - 8.0f > screenW || sy + 8.0f < 0 || sy - 8.0f > screenH) {
+                        continue;
+                    }
+                    
                     const World::Tile& tile = placementLayer->GetTile(x, y);
 
                     if (tile.regionIndex >= 0) {
@@ -497,16 +480,18 @@ void MapEditor::RenderGridLayer() {
         }
     }
 
-    // Resources layer - только когда активен
+    // Resources layer - Y-sorting depth: 0.5-0.8
     if (m_currentLayer == World::Resources) {
         World::TileLayer* resourcesLayer = m_map->GetLayer(World::Resources);
         if (resourcesLayer && m_objectAtlas) {
             float ntw = 119.0f * zoom;
             float nth = 72.0f * zoom;
             CoordinateSystem& coords = CoordinateSystem::GetInstance();
+            int mapHeight = GRID_HEIGHT;
 
-            // UNIFIED SHADER: Use sprite_constant_instanced
-            m_spriteRenderer->Begin("sprite_constant_instanced", m_objectAtlas->GetTexture());
+            // Use SHADER_SPRITE_CONSTANT_INSTANCED with Y-depth sorting
+            m_spriteRenderer->BeginWorldObject(ShaderManager::SHADER_SPRITE_CONSTANT_INSTANCED, m_objectAtlas->GetTexture(), 0.0f, 0.65f, 0.0001f, 1);
+            
             for (int y = 0; y < GRID_HEIGHT; ++y) {
                 for (int x = 0; x < GRID_WIDTH; ++x) {
                     const World::Tile& tile = resourcesLayer->GetTile(x, y);
@@ -516,6 +501,12 @@ void MapEditor::RenderGridLayer() {
                     coords.NodeTileToWorld(x, y, wx, wy);
                     float sx = scX + (wx - camX) * zoom;
                     float sy = scY + (wy - camY) * zoom;
+                    
+                    // Frustum culling: skip if off-screen
+                    if (sx + ntw < 0 || sx - ntw > screenW || sy + nth < 0 || sy - nth > screenH) {
+                        continue;
+                    }
+                    
                     m_spriteRenderer->Draw(sx - ntw * 0.5f, sy - nth * 0.5f, ntw, nth, tile.u0, tile.v0, tile.u1, tile.v1, 0xFFFFFFFF);
                 }
             }
@@ -523,16 +514,18 @@ void MapEditor::RenderGridLayer() {
         }
     }
 
-    // Roads layer - только когда активен
+    // Roads layer - Y-sorting depth: 0.5-0.8
     if (m_currentLayer == World::Roads) {
         World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
         if (roadsLayer && m_objectAtlas) {
             float ntw = 119.0f * zoom;
             float nth = 72.0f * zoom;
             CoordinateSystem& coords = CoordinateSystem::GetInstance();
+            int mapHeight = GRID_HEIGHT;
 
-            // UNIFIED SHADER: Use sprite_constant_instanced
-            m_spriteRenderer->Begin("sprite_constant_instanced", m_objectAtlas->GetTexture());
+            // Use SHADER_SPRITE_CONSTANT_INSTANCED with Y-depth sorting
+            m_spriteRenderer->BeginWorldObject(ShaderManager::SHADER_SPRITE_CONSTANT_INSTANCED, m_objectAtlas->GetTexture(), 0.0f, 0.65f, 0.0001f, 1);
+            
             for (int y = 0; y < GRID_HEIGHT; ++y) {
                 for (int x = 0; x < GRID_WIDTH; ++x) {
                     const World::Tile& tile = roadsLayer->GetTile(x, y);
@@ -542,6 +535,12 @@ void MapEditor::RenderGridLayer() {
                     coords.NodeTileToWorld(x, y, wx, wy);
                     float sx = scX + (wx - camX) * zoom;
                     float sy = scY + (wy - camY) * zoom;
+                    
+                    // Frustum culling: skip if off-screen
+                    if (sx + ntw < 0 || sx - ntw > screenW || sy + nth < 0 || sy - nth > screenH) {
+                        continue;
+                    }
+                    
                     m_spriteRenderer->Draw(sx - ntw * 0.5f, sy - nth * 0.5f, ntw, nth, tile.u0, tile.v0, tile.u1, tile.v1, 0xFFFFFFFF);
                 }
             }

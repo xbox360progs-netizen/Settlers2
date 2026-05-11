@@ -44,6 +44,8 @@ ShaderManager::ShaderManager()
     m_drawBatches.reserve(500);
     m_batches.reserve(500);
     D3DXMatrixIdentity(&m_frameViewProj);
+    D3DXMatrixIdentity(&m_cachedView);
+    D3DXMatrixIdentity(&m_cachedProj);
 }
 
 ShaderManager::~ShaderManager() {
@@ -513,6 +515,37 @@ void ShaderManager::SetFrameViewProj(const D3DXMATRIX* pViewProj) {
         D3DXMatrixIdentity(&m_frameViewProj);
         m_hasFrameViewProj = false;
     }
+}
+
+// Update global camera matrices (view + projection) for all loaded shaders
+// Caches internally and propagates to all active effects
+void ShaderManager::UpdateGlobalMatrices(const D3DXMATRIX* pView, const D3DXMATRIX* pProj) {
+    if (pView) m_cachedView = *pView;
+    if (pProj) m_cachedProj = *pProj;
+    
+    // Compute combined ViewProjection
+    D3DXMatrixMultiply(&m_frameViewProj, &m_cachedView, &m_cachedProj);
+    m_hasFrameViewProj = true;
+    
+    // Propagate to all loaded shaders (set WorldViewProjection on each)
+    Shader* pPreviousShader = m_pActiveShader; // Save current shader
+    
+    for (std::map<std::string, Shader>::iterator it = m_shaders.begin(); it != m_shaders.end(); ++it) {
+        if (it->second.pEffect) {
+            m_pActiveShader = &(it->second); // Temporarily set active for SetMatrix
+            
+            // Set WorldViewProjection (common name for most shaders)
+            SetMatrix("WorldViewProjection", (const float*)&m_frameViewProj);
+            
+            // Also set matOrtho for sprite shaders (same as ViewProj for 2D)
+            SetMatrix("matOrtho", (const float*)&m_frameViewProj);
+            
+            // Also set matWVP for sprite shaders (alternative name)
+            SetMatrix("matWVP", (const float*)&m_frameViewProj);
+        }
+    }
+    
+    m_pActiveShader = pPreviousShader; // Restore previous shader
 }
 
 // Validate shader handle

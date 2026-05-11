@@ -230,6 +230,10 @@ public:
     // Call once per frame, not per sprite - saves tons of GPU bandwidth
     void SetFrameViewProj(const D3DXMATRIX* pViewProj);
     
+    // Update global camera matrices (view + projection) for all loaded shaders
+    // Caches internally and propagates to all active effects
+    void UpdateGlobalMatrices(const D3DXMATRIX* pView, const D3DXMATRIX* pProj);
+    
     // Get current frame ViewProjection (for external queries)
     const D3DXMATRIX& GetFrameViewProj() const { return m_frameViewProj; }
     
@@ -285,6 +289,10 @@ private:
     // Global Constant Buffer (set once per frame, not per sprite)
     D3DXMATRIX m_frameViewProj;
     bool m_hasFrameViewProj;
+    
+    // Cached camera matrices (view + projection separately)
+    D3DXMATRIX m_cachedView;
+    D3DXMATRIX m_cachedProj;
 
     // Render command queue for Master Loop rendering
     std::vector<RenderCommand> m_commandQueue;
