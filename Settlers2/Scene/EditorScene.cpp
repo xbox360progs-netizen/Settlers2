@@ -390,7 +390,6 @@ void EditorScene::Render() {
 
     // Draw FPS counter (top-left)
     if (m_textManager) {
-        m_textManager->Begin();
         char fpsText[64];
         sprintf(fpsText, "FPS: %d", m_fps);
         m_textManager->DrawTextToScreen(fpsText, 10.0f, 10.0f, 0xFF00FF00, 0.25f);
@@ -402,7 +401,7 @@ void EditorScene::Render() {
             m_textManager->DrawTextToScreen("Layer:", 10.0f, m_renderer->GetScreenHeight() - 40.0f, 0xFFAAAAAA, 0.25f);
             m_textManager->DrawTextToScreen(layerNames[layerIdx], 100.0f, m_renderer->GetScreenHeight() - 40.0f, 0xFFFFFFFF, 0.25f);
         }
-        m_textManager->RenderScreen();
+        // Text is now submitted to queue via DrawTextToScreen, no need to call RenderScreen()
     }
     
     // === STEP 4: MASTER LOOP - Execute all queued render commands ===

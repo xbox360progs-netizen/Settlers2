@@ -1,71 +1,73 @@
 // Graphics/TextManager.h
-#ifndef TEXTMANAGER_H
-#define TEXTMANAGER_H
+#ifndef TEXTMANAGER_H  
+#define TEXTMANAGER_H  
 
 #pragma once
 #include "BitmapFont.h"
-#include "TextVertex.h"
-#include "Camera.h"
 #include <vector>
 #include <string>
-struct ScreenTextEntry {
-    std::string text;
-    float x, y;
-    D3DCOLOR color;
-    float scale;
+
+class Renderer;
+class ShaderManager;
+
+// Font identifiers for atlas management
+enum FontID {
+    FONT_MENU = 0,
+    FONT_CHAT,
+    FONT_DEBUG,
+    FONT_COUNT
 };
+
+// Glyph structure for character UV coordinates in atlas
+struct Glyph {
+    float u0, v0, u1, v1;  // UV coordinates in atlas
+    float width, height;   // Character dimensions
+    float xOffset, yOffset; // Offset from cursor position
+    float xAdvance;       // Advance to next character
+};
+
 class TextManager
 {
 public:
-    typedef void (*IntegrityHook)(void* ctx, const char* tag);
-
-    TextManager(BitmapFont* font, float screenWidth, float screenHeight, IDirect3DDevice9* device);
+    TextManager(BitmapFont* font, float screenWidth, float screenHeight);
     ~TextManager();
-	std::vector<TextVertex> m_vertices;
-	std::vector<ScreenTextEntry> m_pendingScreenTexts;
-    void Begin(); // Очистка всех буферов вертексов
-
-    // Добавление текста
+    
+    // Initialize with renderer and shader manager for queue-based rendering
+    void Init(Renderer* renderer, ShaderManager* shaderManager);
+    
+    // Set font atlas texture for a specific font ID
+    void SetFontAtlas(FontID fontID, LPDIRECT3DTEXTURE9 texture);
+    
+    // Draw text to screen space (submits RenderCommand to queue)
+    void DrawTextToScreen(const std::string& text, float x, float y, D3DCOLOR color = 0xFFFFFFFF, float scale = 0.10f, FontID fontID = FONT_MENU);
+    
+    // Draw text to world space (submits RenderCommand to queue)
+    void DrawTextToWorld(const std::string& text, float worldX, float worldY, D3DCOLOR color = 0xFFFFFFFF, float scale = 0.1f, FontID fontID = FONT_MENU);
+    
+    // Legacy methods for backward compatibility (will be deprecated)
+    void Begin();
+    void RenderScreen();
+    void RenderWorld(class Camera* camera);
     void AddTextScreen(const std::string& text, const D3DXVECTOR3& pos, D3DCOLOR color = 0xFFFFFFFF, float scale = 0.10f);
-    // Рендер
-    void RenderScreen(); // мировые тексты
-	void DrawTextToScreen(const std::string& text, float x, float y, D3DCOLOR color = 0xFFFFFFFF, float scale = 0.10f);
-
-	void DrawTextToWorld(const std::string& text, float worldX, float worldY, D3DCOLOR color = 0xFFFFFFFF, float scale = 0.1f);
-    void RenderWorld(Camera* camera); // Новый метод для рендеринга world текста
-    void SetIntegrityHook(IntegrityHook hook, void* ctx) { m_integrityHook = hook; m_integrityCtx = ctx; }
 
 private:
     BitmapFont* m_font;
-    IDirect3DDevice9* m_device;
-
+    Renderer* m_renderer;
+    ShaderManager* m_shaderManager;
+    
     float m_screenWidth;
     float m_screenHeight;
-
-
-    std::vector<TextVertex> m_screenVertices; // экранные тексты
-    std::vector<TextVertex> m_worldVertices;  // мировые тексты
-
-	LPDIRECT3DVERTEXBUFFER9 m_screenVB;
+    
+    // Font atlas textures
+    LPDIRECT3DTEXTURE9 m_fontAtlases[FONT_COUNT];
+    
+    // Legacy vertex buffer (for backward compatibility)
+    std::vector<TextVertex> m_screenVertices;
+    std::vector<TextVertex> m_worldVertices;
+    LPDIRECT3DVERTEXBUFFER9 m_screenVB;
     UINT m_screenVBCapacity;
     
     void EnsureScreenVB(size_t vertexCount);
-    void CheckIntegrity(const char* tag) const
-    {
-        if (m_integrityHook)
-            m_integrityHook(m_integrityCtx, tag);
-    }
-
-    IntegrityHook m_integrityHook;
-    void* m_integrityCtx;
-
-	struct WorldText {
-        std::string text;
-        D3DXVECTOR3 position;
-        D3DCOLOR color;
-        float scale;
-    };
-    std::vector<WorldText> m_worldTexts;
 };
 
 #endif // TEXTMANAGER_H

@@ -90,13 +90,24 @@ public:
         // World position for camera transform (if not isUI)
         float worldX, worldY;
         
+        // UV coordinates for partial texture rendering (text, sprites)
+        float u0, v0, u1, v1; // Texture region to sample
+        
+        // Screen position for UI rendering (if isUI)
+        float screenX, screenY, screenW, screenH;
+        
+        // Color tint for the render command
+        D3DCOLOR color;
+        
         // Custom draw callback (for batchType == 2)
         CustomDrawFn customDraw;
         void* customUserData;
         
         RenderCommand() : pTexture(NULL), shaderID(SHADER_INVALID), vertexStart(0), vertexCount(0),
             primitiveCount(0), batchType(0), depth(1.0f), layer(0), isUI(false), batchIndex(0),
-            worldX(0), worldY(0), customDraw(NULL), customUserData(NULL) {}
+            worldX(0), worldY(0), u0(0), v0(0), u1(1), v1(1),
+            screenX(0), screenY(0), screenW(0), screenH(0), color(0xFFFFFFFF),
+            customDraw(NULL), customUserData(NULL) {}
         
         // Sorting operator: shader-first for lazy batching (Xbox 360 optimization)
         // Shader switch is most expensive, then texture, then depth (back-to-front)

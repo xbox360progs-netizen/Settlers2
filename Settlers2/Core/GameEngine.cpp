@@ -134,7 +134,8 @@ bool GameEngine::Initialize()
 		}
 	}
 
-    m_textManager = new TextManager(m_bitmapFont, 1280.0f, 720.0f, m_renderer->GetDevice());
+    m_textManager = new TextManager(m_bitmapFont, 1280.0f, 720.0f);
+    m_textManager->Init(m_renderer, m_renderer->GetShaderManager());
     m_binFileManager = new BinFileManager();
     m_binFileManager->SetDevice(m_renderer->GetDevice());
     m_textureLoader = new TextureLoader(m_renderer->GetDevice());
