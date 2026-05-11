@@ -1,4 +1,4 @@
-﻿Построение начато 11.05.2026 2:59:45.
+﻿Построение начато 11.05.2026 3:05:40.
      1>Проект "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" в узле 2 (целевые объекты build).
      1>InitializeBuildStatus:
          Обращение к "Release\Settlers2.unsuccessfulbuild".
@@ -12,8 +12,11 @@
          ShaderManager.cpp
          SpriteBatch.cpp
          SpriteRenderer.cpp
-     1>Graphics\SpriteRenderer.cpp(1006): error C2511: 'void SpriteRenderer::DrawAtlasSpritePublic(SpriteAtlas *,uint32_t,float,float,DWORD)' : overloaded member function not found in 'SpriteRenderer'
+     1>Graphics\SpriteRenderer.cpp(1010): error C2511: 'void SpriteRenderer::DrawAtlasSpritePublic(SpriteAtlas *,uint32_t,float,float,DWORD)' : overloaded member function not found in 'SpriteRenderer'
                  d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(65) : see declaration of 'SpriteRenderer'
+     1>Graphics\SpriteRenderer.cpp(1504): error C2059: syntax error : '}'
+     1>Graphics\SpriteRenderer.cpp(1504): error C2143: syntax error : missing ';' before '}'
+     1>Graphics\SpriteRenderer.cpp(1504): error C2059: syntax error : '}'
          TileRenderer.cpp
          EditorScene.cpp
          LoadingScene.cpp
@@ -25,4 +28,4 @@
 
 СБОЙ построения.
 
-Затраченное время: 00:00:18.57
+Затраченное время: 00:00:19.02

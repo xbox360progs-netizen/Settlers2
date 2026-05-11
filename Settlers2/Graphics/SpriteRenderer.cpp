@@ -79,6 +79,7 @@ SpriteRenderer::SpriteRenderer()
     // Default rendering mode: constant instanced (unified shader approach)
     m_currentMode = MODE_INSTANCED_CONST;
     m_currentShaderName = "sprite_constant_instanced";
+    m_currentZOrder = 0.0f;
     
     // Initialize arrays inside constructor body
     m_hThreadDoneEvents[0] = NULL;
@@ -760,24 +761,27 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
     memcpy(pData, m_pStagingBuffer, m_spriteCount * 4 * sizeof(SpriteVertex));
     currentVB->Unlock();
 
-    // Create render batch
+    // Create render command (Master Loop approach)
     if (pShader) {
-        ShaderManager::RenderBatch batch;
-        batch.pTexture = m_currentTexture;
-        batch.pShader = pShader->GetShader(m_currentShaderName.c_str());
-        batch.shaderName = m_currentShaderName;
-        batch.startVertex = 0; // Always 0 for now (single buffer)
-        batch.primitiveCount = (DWORD)(m_spriteCount * 2); // 2 triangles per sprite
+        ShaderManager::RenderCommand cmd;
+        cmd.pTexture = m_currentTexture;
+        cmd.pShader = pShader->GetShader(m_currentShaderName.c_str());
+        cmd.shaderName = m_currentShaderName;
+        cmd.vertexStart = 0; // Always 0 for now (single buffer)
+        cmd.vertexCount = m_spriteCount * 4; // 4 vertices per sprite
+        cmd.primitiveCount = (DWORD)(m_spriteCount * 2); // 2 triangles per sprite
+        cmd.batchType = 0; // Standard rendering
+        cmd.zOrder = m_currentZOrder; // Use current Z-order from Begin()
         
         // Set default render states for 2D sprites
-        batch.states.zEnable = D3DZB_FALSE;
-        batch.states.alphaBlendEnable = TRUE;
-        batch.states.srcBlend = D3DBLEND_SRCALPHA;
-        batch.states.destBlend = D3DBLEND_INVSRCALPHA;
-        batch.states.cullMode = D3DCULL_NONE;
+        cmd.states.zEnable = D3DZB_FALSE;
+        cmd.states.alphaBlendEnable = TRUE;
+        cmd.states.srcBlend = D3DBLEND_SRCALPHA;
+        cmd.states.destBlend = D3DBLEND_INVSRCALPHA;
+        cmd.states.cullMode = D3DCULL_NONE;
         
-        // Submit batch to queue
-        pShader->SubmitBatch(batch);
+        // Submit command to queue (Master Loop)
+        pShader->Submit(cmd);
         
         sprintf(debugMsg, "[SpriteRenderer::Flush] Submitted batch: %d sprites, shader=%s\n",
                 m_spriteCount, m_currentShaderName.c_str());
@@ -1496,4 +1500,5 @@ void SpriteRenderer::ComputeRotatedVerticesVMX(const SpriteData& data, SpriteVer
         pOutVertices[i].u = u[i];
         pOutVertices[i].v = v[i];
     }
+}
 }

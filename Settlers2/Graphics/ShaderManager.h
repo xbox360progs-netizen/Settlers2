@@ -33,12 +33,34 @@ public:
               cullMode(D3DCULL_NONE) {}
     };
 
-    // Render batch structure for queue-based rendering
+    // Render command structure for queue-based rendering (Master Loop)
+    struct RenderCommand {
+        IDirect3DTexture9* pTexture;
+        Shader* pShader;
+        DWORD vertexStart;
+        DWORD vertexCount;
+        DWORD primitiveCount;
+        int batchType; // 0 - Standard, 1 - Instanced
+        float zOrder;  // For Z-layer sorting
+        RenderStateBlock states;
+        std::string shaderName;
+        
+        // Sorting operator: by zOrder first, then shader, then texture
+        bool operator<(const RenderCommand& other) const {
+            if (zOrder != other.zOrder)
+                return zOrder < other.zOrder;
+            if (shaderName != other.shaderName)
+                return shaderName < other.shaderName;
+            return pTexture < other.pTexture;
+        }
+    };
+
+    // Render batch structure (legacy, will be replaced by RenderCommand)
     struct RenderBatch {
         IDirect3DTexture9* pTexture;
         Shader* pShader;
-        unsigned int startVertex;
-        unsigned int primitiveCount;
+        DWORD startVertex;
+        DWORD primitiveCount;
         RenderStateBlock states;
         std::string shaderName; // For shader lookup
         
@@ -101,22 +123,38 @@ public:
 
     bool HasShader(const char* name) const;
 
-    // === Queue-based Rendering System ===
+    // === Queue-based Rendering System (Master Loop) ===
     
-    // Submit a render batch to the queue
+    // Submit a render command to the queue
+    void Submit(const RenderCommand& cmd);
+    
+    // Submit a render batch to the queue (legacy)
     void SubmitBatch(const RenderBatch& batch);
     
-    // Clear all batches from the queue
+    // Clear all commands from the queue
+    void ClearQueue();
+    
+    // Clear all batches from the queue (legacy)
     void ClearBatches();
     
-    // Sort batches by shader and texture (critical for Xbox 360 performance)
+    // Sort commands by zOrder, shader, and texture (critical for Xbox 360 performance)
+    void SortQueue();
+    
+    // Sort batches by shader and texture (legacy)
     void SortBatches();
     
-    // Execute all batches in the queue
+    // Execute all commands in the queue (Master Loop - final render pass)
+    void ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
+                     LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride);
+    
+    // Execute all batches in the queue (legacy)
     void ExecuteBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
                        LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride);
     
-    // Get batch count
+    // Get command count
+    size_t GetCommandCount() const { return m_commandQueue.size(); }
+    
+    // Get batch count (legacy)
     size_t GetBatchCount() const { return m_batches.size(); }
 
     // State management
@@ -128,7 +166,10 @@ private:
     Shader* m_pActiveShader;
     UINT m_numPasses;
 
-    // Render queue for batch-based rendering
+    // Render command queue for Master Loop rendering
+    std::vector<RenderCommand> m_commandQueue;
+    
+    // Render queue for batch-based rendering (legacy)
     std::vector<RenderBatch> m_batches;
     
     // State cache for centralized state management

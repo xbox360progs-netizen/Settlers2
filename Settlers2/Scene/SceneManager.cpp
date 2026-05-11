@@ -125,25 +125,26 @@ void SceneManager::Render()
         return;
     }
 
-    // === QUEUE-BASED RENDERING PIPELINE ===
+    // === MASTER LOOP RENDERING PIPELINE ===
     
-    // Step 1: Clear previous batches from ShaderManager
+    // Step 1: Clear previous commands from ShaderManager
     if (m_shaderManager)
     {
-        m_shaderManager->ClearBatches();
+        m_shaderManager->ClearQueue();
     }
 
-    // Step 2: Collect all render commands from scene
-    // The scene will call SpriteRenderer which submits batches to the queue
+    // Step 2: RECORD - Collect all render commands from scene
+    // The scene will call SpriteRenderer which submits commands to the queue
+    // Nobody draws anything at this stage!
     m_currentScene->Render();
 
-    // Step 3: Sort batches by shader and texture (critical for Xbox 360 performance)
+    // Step 3: SORT - Sort commands by zOrder, shader, and texture (critical for Xbox 360 performance)
     if (m_shaderManager)
     {
-        m_shaderManager->SortBatches();
+        m_shaderManager->SortQueue();
     }
 
-    // Step 4: Execute all batches in sorted order
+    // Step 4: EXECUTE - Execute all commands in sorted order (final render pass)
     if (m_shaderManager && m_spriteRenderer)
     {
         // Get vertex buffer and index buffer from SpriteRenderer
@@ -151,15 +152,15 @@ void SceneManager::Render()
         LPDIRECT3DINDEXBUFFER9 pIB = m_spriteRenderer->GetIndexBuffer();
         LPDIRECT3DVERTEXDECLARATION9 pDecl = m_spriteRenderer->GetVertexDeclaration();
         
-        // Execute batches with 32-byte stride (Xbox 360 alignment)
+        // Execute queue with 32-byte stride (Xbox 360 alignment)
         if (pVB && pIB && pDecl)
         {
-            m_shaderManager->ExecuteBatches(pVB, pIB, pDecl, 32);
+            m_shaderManager->ExecuteQueue(pVB, pIB, pDecl, 32);
         }
         else
         {
-            // Fallback: clear batches if resources not available
-            m_shaderManager->ClearBatches();
+            // Fallback: clear queue if resources not available
+            m_shaderManager->ClearQueue();
         }
     }
 }

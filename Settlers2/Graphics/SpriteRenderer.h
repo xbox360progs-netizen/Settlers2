@@ -226,6 +226,7 @@ private:
     std::string m_currentShaderName;  // Shader name for current mode (replaces m_currentShader)
     LPDIRECT3DTEXTURE9 m_currentTexture;
     bool m_isBatching;
+    float m_currentZOrder; // Current Z-order for batch
 
     // Configuration
     int m_maxSprites;

@@ -266,17 +266,77 @@ bool ShaderManager::HasShader(const char* name) const {
 
 // === Queue-based Rendering System Implementation ===
 
+void ShaderManager::Submit(const RenderCommand& cmd) {
+    m_commandQueue.push_back(cmd);
+}
+
 void ShaderManager::SubmitBatch(const RenderBatch& batch) {
     m_batches.push_back(batch);
+}
+
+void ShaderManager::ClearQueue() {
+    m_commandQueue.clear();
 }
 
 void ShaderManager::ClearBatches() {
     m_batches.clear();
 }
 
+void ShaderManager::SortQueue() {
+    // Sort by zOrder, then shader, then texture (critical for Xbox 360 performance)
+    std::sort(m_commandQueue.begin(), m_commandQueue.end());
+}
+
 void ShaderManager::SortBatches() {
     // Sort by shader, then texture (critical for Xbox 360 performance)
     std::sort(m_batches.begin(), m_batches.end());
+}
+
+void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
+                                LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride) {
+    if (m_commandQueue.empty()) return;
+    
+    // Set vertex declaration and streams once
+    m_pDevice->SetVertexDeclaration(pDecl);
+    m_pDevice->SetStreamSource(0, pVB, 0, vertexStride);
+    m_pDevice->SetIndices(pIB);
+    
+    // Process commands in sorted order (Master Loop - final render pass)
+    for (size_t i = 0; i < m_commandQueue.size(); ++i) {
+        const RenderCommand& cmd = m_commandQueue[i];
+        
+        // Set shader if changed
+        if (m_pActiveShader != cmd.pShader) {
+            if (m_pActiveShader) {
+                EndShader();
+            }
+            m_pActiveShader = cmd.pShader;
+            BeginShader();
+        }
+        
+        // Apply render states for this command
+        m_stateCache.ResetDirtyStates(m_pDevice, cmd.states);
+        
+        // Set texture
+        SetTexture("g_texture", cmd.pTexture);
+        Commit();
+        
+        // Draw this command
+        BeginPass(0);
+        m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 
+                                       cmd.vertexCount, 
+                                       cmd.vertexStart, 
+                                       cmd.primitiveCount);
+        EndPass();
+    }
+    
+    // Clean up
+    if (m_pActiveShader) {
+        EndShader();
+    }
+    
+    // Clear command queue after execution
+    m_commandQueue.clear();
 }
 
 void ShaderManager::ExecuteBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
