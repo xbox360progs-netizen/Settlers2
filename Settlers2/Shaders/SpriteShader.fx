@@ -1,16 +1,16 @@
 //--------------------------------------------------------------------------------------
-// SpriteShader.fx - Финальная версия для твоего рендера
+// SpriteShader.fx - Fixed version for sprite rendering
 //--------------------------------------------------------------------------------------
 
 // Матрица трансформации (World-View-Projection)
 float4x4 WVP : register(c0);
 
 // Текстура спрайта
-texture SpriteTexture;
+texture g_texture;
 
 // Сэмплер
 sampler SpriteSampler = sampler_state {
-    Texture = <SpriteTexture>;
+    Texture = <g_texture>;
     MinFilter = Linear;
     MagFilter = Linear;
     MipFilter = Linear;
@@ -20,21 +20,23 @@ sampler SpriteSampler = sampler_state {
 
 // Структура входных данных
 struct VS_INPUT {
-    float3 Pos   : POSITION;  // Changed from float4 to float3 to match Renderer vertex declaration
-    float2 Tex   : TEXCOORD0;
+    float3 Pos   : POSITION;
     float4 Color : COLOR0;
+    float2 Tex   : TEXCOORD0;
+    float2 Padding : TEXCOORD1;
 };
 
 struct VS_OUTPUT {
     float4 Pos   : POSITION;
-    float2 Tex   : TEXCOORD0;
     float4 Color : COLOR0;
+    float2 Tex   : TEXCOORD0;
 };
 
 // Вертексный шейдер
 VS_OUTPUT RenderSceneVS(VS_INPUT In) {
     VS_OUTPUT Out;
-    Out.Pos = mul(In.Pos, WVP);
+    // FIXED: Multiply float4 by matrix (convert float3 to float4)
+    Out.Pos = mul(float4(In.Pos, 1.0f), WVP);
     Out.Tex = In.Tex;
     Out.Color = In.Color;
     return Out;
@@ -46,16 +48,17 @@ float4 RenderScenePS(VS_OUTPUT In) : COLOR0 {
     return texColor * In.Color;
 }
 
-// Техника, которую ищет твой ShaderManager (SpriteBatchTech)
+// Техника для спрайтов (SpriteBatchTech)
 technique SpriteBatchTech {
     pass P0 {
         VertexShader = compile vs_3_0 RenderSceneVS();
         PixelShader  = compile ps_3_0 RenderScenePS();
-
-        // Render states managed by Renderer, not set in shader
-        // AlphaBlendEnable = TRUE;
-        // DestBlend = INVSRCALPHA;
-        // SrcBlend = SRCALPHA;
-        // ZEnable = FALSE;
+        
+        // Alpha blending states
+        AlphaBlendEnable = TRUE;
+        SrcBlend = SRCALPHA;
+        DestBlend = INVSRCALPHA;
+        ZEnable = FALSE;
+        CullMode = NONE;
     }
 }
