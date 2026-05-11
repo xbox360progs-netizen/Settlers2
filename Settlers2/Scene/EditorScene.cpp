@@ -625,51 +625,50 @@ void EditorScene::Render() {
     }
 
     // === STEP 2.8: Render weight debug overlay (in WEIGHTS mode) ===
-    // TEMPORARILY COMMENTED OUT TO ISOLATE GPU HANG
-    // if (m_editorMode == MODE_WEIGHTS && m_mapEditor && m_mapEditor->GetMap()) {
-    //     World::Map* map = m_mapEditor->GetMap();
-    //     int layerWidth = map->GetWidth() * 2;  // Objects layer is 40x40
-    //     int layerHeight = map->GetHeight() * 2;
-    //
-    //     CoordinateSystem& coords = CoordinateSystem::GetInstance();
-    //
-    //     // Color coding for weights:
-    //     // 0 (Deep): 0xCC0000FF (Blue)
-    //     // 1 (Shallow): 0xCC00FFFF (Cyan)
-    //     // 2 (Land): 0xCC00FF00 (Green)
-    //     // 3 (Block): 0xCCFF0000 (Red)
-    //
-    //     for (int y = 0; y < layerHeight; y++) {
-    //         for (int x = 0; x < layerWidth; x++) {
-    //             BYTE weight = map->GetNodeWeight(x, y);
-    //
-    //             // Skip default land weight to reduce clutter
-    //             if (weight == World::Weight_Land) {
-    //                 continue;
-    //             }
-    //
-    //             float worldX, worldY;
-    //             coords.NodeTileToWorld(x, y, worldX, worldY);
-    //
-    //             // Determine color based on weight
-    //             D3DCOLOR color = 0xCC00FF00; // Default green (Land)
-    //             switch (weight) {
-    //                 case World::Weight_Deep:    color = 0xCC0000FF; break; // Blue
-    //                 case World::Weight_Shallow: color = 0xCC00FFFF; break; // Cyan
-    //                 case World::Weight_Land:    color = 0xCC00FF00; break; // Green
-    //                 case World::Weight_Block:   color = 0xCCFF0000; break; // Red
-    //             }
-    //
-    //             // Render small square at tile center to indicate weight
-    //             // This is a placeholder - should use dynamic vertex buffer for performance
-    //             if (m_spriteRenderer) {
-    //                 D3DXVECTOR3 weightPos(worldX, worldY, 0.01f);
-    //                 // TODO: Submit render command with color
-    //                 // For now, this is just a placeholder
-    //             }
-    //         }
-    //     }
-    // }
+    if (m_editorMode == MODE_WEIGHTS && m_mapEditor && m_mapEditor->GetMap()) {
+        World::Map* map = m_mapEditor->GetMap();
+        int layerWidth = map->GetWidth() * 2;  // Objects layer is 40x40
+        int layerHeight = map->GetHeight() * 2;
+
+        CoordinateSystem& coords = CoordinateSystem::GetInstance();
+
+        // Color coding for weights:
+        // 0 (Deep): 0xCC0000FF (Blue)
+        // 1 (Shallow): 0xCC00FFFF (Cyan)
+        // 2 (Land): 0xCC00FF00 (Green)
+        // 3 (Block): 0xCCFF0000 (Red)
+
+        for (int y = 0; y < layerHeight; y++) {
+            for (int x = 0; x < layerWidth; x++) {
+                BYTE weight = map->GetNodeWeight(x, y);
+
+                // Skip default land weight to reduce clutter
+                if (weight == World::Weight_Land) {
+                    continue;
+                }
+
+                float worldX, worldY;
+                coords.NodeTileToWorld(x, y, worldX, worldY);
+
+                // Determine color based on weight
+                D3DCOLOR color = 0xCC00FF00; // Default green (Land)
+                switch (weight) {
+                    case World::Weight_Deep:    color = 0xCC0000FF; break; // Blue
+                    case World::Weight_Shallow: color = 0xCC00FFFF; break; // Cyan
+                    case World::Weight_Land:    color = 0xCC00FF00; break; // Green
+                    case World::Weight_Block:   color = 0xCCFF0000; break; // Red
+                }
+
+                // Render small square at tile center to indicate weight
+                // This is a placeholder - should use dynamic vertex buffer for performance
+                if (m_spriteRenderer) {
+                    D3DXVECTOR3 weightPos(worldX, worldY, 0.01f);
+                    // TODO: Submit render command with color
+                    // For now, this is just a placeholder
+                }
+            }
+        }
+    }
 
     // === STEP 3: Render UI elements (RadialMenu, GridMenu, WeightMenu) ===
     // These submit commands with isUI=true and depth=0.0f

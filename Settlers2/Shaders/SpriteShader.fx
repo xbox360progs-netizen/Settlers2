@@ -19,11 +19,11 @@ sampler SpriteSampler = sampler_state {
 };
 
 // Input vertex structure - MUST match SpriteVertex in Renderer.h
-// SpriteVertex: float3 Pos (12), D3DCOLOR Color (4), float2 Tex (8), float2 Padding (8) = 32 bytes
+// SpriteVertex: float3 Pos (12), float2 Tex (8), D3DCOLOR Color (4), float2 Padding (8) = 32 bytes
 struct VS_INPUT {
     float3 Pos   : POSITION;      // 12 bytes (matches C++ float x,y,z)
-    float4 Color : COLOR0;        // 16 bytes (D3DCOLOR expands to float4 in shader)
     float2 Tex   : TEXCOORD0;     // 8 bytes (matches C++ float u,v)
+    float4 Color : COLOR0;        // 16 bytes (D3DCOLOR expands to float4 in shader)
     float2 Padding : TEXCOORD1;   // 8 bytes (matches C++ float padding[2])
 };
 
