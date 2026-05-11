@@ -123,15 +123,10 @@ bool GameEngine::Initialize()
     }
 
 	m_bitmapFont = new BitmapFont(m_renderer->GetDevice());
-	if (!m_bitmapFont->Initialize())
+	m_bitmapFont->Init(m_renderer, m_renderer->GetShaderManager());
+	if (!m_bitmapFont->LoadFromFile(L"game:\\Media\\fonts\\debug_font.fnt"))
 	{
-		std::cerr << "[GameEngine] Failed to initialize BitmapFont" << std::endl;
-		return false;
-	}else{
-		if (!m_bitmapFont->LoadFromFile(L"game:\\Media\\fonts\\debug_font.fnt"))
-		{
-			OutputDebugStringA("[GameEngine::Initialize] Warning: Failed to load bitmap font file\n");
-		}
+		OutputDebugStringA("[GameEngine::Initialize] Warning: Failed to load bitmap font file\n");
 	}
 
     m_textManager = new TextManager(m_bitmapFont, 1280.0f, 720.0f);

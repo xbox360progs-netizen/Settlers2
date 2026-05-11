@@ -10,109 +10,117 @@
 #include <vector>
 #include "TextVertex.h"
 
+// Forward declarations
+class Renderer;
+class ShaderManager;
+
 // ==========================================================
-// Структура символа шрифта
+// Structure for font character data
 // ==========================================================
 struct FontChar
 {
-    float u0, v0;    // левый верхний угол UV
-    float u1, v1;    // правый нижний угол UV
-    float width;     // ширина символа в пикселях
-    float height;    // высота символа в пикселях
-    float xOffset;   // смещение символа по X
-    float yOffset;   // смещение символа по Y
-    float xAdvance;  // смещение пера для следующего символа
-};
-// ==========================================================
-// Пространство шрифта (для выбора между экранным и мировым)
-// ==========================================================
-enum FontSpace
-{
-    FONT_SPACE_SCREEN = 0, // экранные координаты
-    FONT_SPACE_WORLD       // мировые координаты
+    float u0, v0;    // Top-left UV
+    float u1, v1;    // Bottom-right UV
+    float width;     // Character width in pixels
+    float height;    // Character height in pixels
+    float xOffset;   // Character X offset
+    float yOffset;   // Character Y offset
+    float xAdvance;  // Pen advance for next character
 };
 
 // ==========================================================
-// Класс BitmapFont
+// Font space (screen vs world)
+// ==========================================================
+enum FontSpace
+{
+    FONT_SPACE_SCREEN = 0, // Screen coordinates
+    FONT_SPACE_WORLD       // World coordinates
+};
+
+// ==========================================================
+// BitmapFont class
 // ==========================================================
 class BitmapFont
 {
 public:
     explicit BitmapFont(LPDIRECT3DDEVICE9 device);
     ~BitmapFont();
-	float GetBaseLine() const { return m_baseLine; }
-    // Инициализация шейдеров, VB и декларации вертексов
+    
+    float GetBaseLine() const { return m_baseLine; }
+    
+    // Initialize with renderer and shader manager for queue-based rendering
+    void Init(Renderer* renderer, ShaderManager* shaderManager);
+    
+    // Legacy Initialize method (deprecated - use Init instead)
     bool Initialize();
-
-    // Загрузка шрифта из .fnt и текстуры
+    
+    // Load font from .fnt and texture
     bool LoadFromFile(const wchar_t* fontDefinitionFile);
-
-    // CPU: сборка вертексов для текста
-    void Begin(); // очищает m_vertices
+    
+    // CPU: Build vertices for text
+    void Begin(); // Clears m_vertices
     void DrawText(const std::string& text, DWORD color);
-    void DrawText(const std::string& text); // по умолчанию белый цвет
-
-    // GPU: рендер текста    
-	void Render(
+    void DrawText(const std::string& text); // Default white color
+    
+    // GPU: Render text (legacy method - deprecated, use TextManager instead)
+    void Render(
         const D3DXVECTOR3& origin,
         const D3DXMATRIX& view,
         const D3DXMATRIX& proj,
         float scale,
         bool mirrorX = false,
-		bool mirrorY = false
+        bool mirrorY = false
     );
-
-    // Получить доступ к устройству и текстуре
+    
+    // Get device and texture
     LPDIRECT3DDEVICE9 GetDevice() const { return m_device; }
     IDirect3DTexture9* GetTexture() const { return m_texture; }
-
-	LPDIRECT3DVERTEXDECLARATION9 GetDecl() const { return m_decl; }
-    LPDIRECT3DVERTEXSHADER9 GetVS() const { return m_vs; }
-    LPDIRECT3DPIXELSHADER9 GetPS() const { return m_ps; }
-
-    // Управление CPU вертексами (для TextManager)
+    
+    // CPU vertex management (for TextManager)
     void SetVertices(const std::vector<TextVertex>& vertices) { m_vertices = vertices; }
-	const std::vector<TextVertex>& GetVertices() const { return m_vertices; }
-    // Доступ к массиву символов
+    const std::vector<TextVertex>& GetVertices() const { return m_vertices; }
+    
+    // Access to character array
     const std::vector<FontChar>& GetChars() const { return m_chars; }
-
-    // Основная высота строки (lineHeight из .fnt)
+    
+    // Line height from .fnt
     float GetLineHeight() const { return m_lineHeight; }
 
 private:
-    // Создание/расширение VertexBuffer
+    // Create/expand VertexBuffer
     void EnsureVB(size_t vertexCount);
-
-    // Загрузка текстуры в память
+    
+    // Load texture from memory
     bool LoadTextureFromMemory(const wchar_t* texturePath);
 
 private:
     // ======================================================
-    // D3D объекты
+    // D3D objects
     // ======================================================
     LPDIRECT3DDEVICE9 m_device;
     LPDIRECT3DTEXTURE9 m_texture;
     LPDIRECT3DVERTEXBUFFER9 m_vb;
     UINT m_vbCapacity;
-
-    LPDIRECT3DVERTEXSHADER9 m_vs;		// для 2D
-	LPDIRECT3DVERTEXSHADER9 m_vsWorld;  // для World
-    LPDIRECT3DPIXELSHADER9  m_ps;
-    LPDIRECT3DVERTEXDECLARATION9 m_decl;
-
+    
     // ======================================================
-    // CPU буфер вертексов
+    // Rendering system integration
     // ======================================================
-    std::vector<TextVertex> m_vertices; // локальные / мировые вертексы
-
+    Renderer* m_renderer;
+    ShaderManager* m_shaderManager;
+    
     // ======================================================
-    // Шрифт
+    // CPU vertex buffer
+    // ======================================================
+    std::vector<TextVertex> m_vertices; // Local / world vertices
+    
+    // ======================================================
+    // Font data
     // ======================================================
     std::vector<FontChar> m_chars;
     float m_lineHeight;
     float m_textureWidth;
     float m_textureHeight;
-	float m_baseLine;
+    float m_baseLine;
 };
 
 #endif // BITMAPFONT_H

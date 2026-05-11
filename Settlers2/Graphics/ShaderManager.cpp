@@ -507,21 +507,21 @@ HRESULT ShaderManager::LoadAll() {
     HRESULT hr;
     
     // Load SPRITE shader
-    hr = LoadShader(SHADER_SPRITE, "Media/Graphics/Shaders/Sprite.fx", "SpriteBatchTech");
+    hr = LoadShader(SHADER_SPRITE, "Media/Shaders/Sprite.fx", "SpriteBatchTech");
     if (FAILED(hr)) {
         OutputDebugStringA("[ShaderManager] FATAL: Failed to load SPRITE shader\n");
         return hr;
     }
     
     // Load SPRITE_CONSTANT_INSTANCED shader
-    hr = LoadShader(SHADER_SPRITE_CONSTANT_INSTANCED, "Media/Graphics/Shaders/SpriteConstantInstanced.fx", "SpriteBatchTech");
+    hr = LoadShader(SHADER_SPRITE_CONSTANT_INSTANCED, "Media/Shaders/SpriteConstantInstanced.fx", "SpriteBatchTech");
     if (FAILED(hr)) {
         OutputDebugStringA("[ShaderManager] FATAL: Failed to load SPRITE_CONSTANT_INSTANCED shader\n");
         return hr;
     }
     
     // Load RADIALMENU shader
-    hr = LoadShader(SHADER_RADIALMENU, "Media/Graphics/Shaders/RadialMenu.fx", "RadialMenuTech");
+    hr = LoadShader(SHADER_RADIALMENU, "Media/Shaders/RadialMenu.fx", "RadialMenuTech");
     if (FAILED(hr)) {
         OutputDebugStringA("[ShaderManager] FATAL: Failed to load RADIALMENU shader\n");
         return hr;
