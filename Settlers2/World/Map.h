@@ -32,6 +32,10 @@ public:
     // Returns true if a tile was found, false otherwise
     bool GetTileUnderMouse(float screenX, float screenY, Camera* camera, LayerType layer, int& tileX, int& tileY);
 
+    // Get tile at world coordinates (simpler version, no camera needed)
+    // Returns true if a tile was found, false otherwise
+    bool GetTileAt(float worldX, float worldY, LayerType layer, int& tileX, int& tileY);
+
     // Get tiles in view for frustum culling
     void GetTilesInView(Camera* camera, LayerType layer, int& minX, int& minY, int& maxX, int& maxY);
 

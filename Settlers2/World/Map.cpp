@@ -191,6 +191,75 @@ bool Map::GetTileUnderMouse(float screenX, float screenY, Camera* camera, LayerT
     return true;
 }
 
+// Get tile at world coordinates (simpler version, no camera needed)
+bool Map::GetTileAt(float worldX, float worldY, LayerType layer, int& tileX, int& tileY)
+{
+    // Get coordinate system instance
+    CoordinateSystem& coords = CoordinateSystem::GetInstance();
+
+    // For Ground layer (Layer 0): use simple grid
+    if (layer == Ground) {
+        coords.WorldToGroundTile(worldX, worldY, tileX, tileY);
+        
+        // Check bounds
+        if (tileX < 0 || tileX >= m_width || tileY < 0 || tileY >= m_height) {
+            return false;
+        }
+        return true;
+    }
+
+    // For Objects/Overlay layers (Layer 1): use staggered grid with nearest center
+    // Get initial estimate
+    int initialX, initialY;
+    coords.WorldToNodeTile(worldX, worldY, initialX, initialY);
+
+    // Check bounds
+    int layerWidth = (layer == Ground) ? m_width : m_width * 2;
+    int layerHeight = (layer == Ground) ? m_height : m_height * 2;
+    
+    if (initialX < 0 || initialX >= layerWidth || initialY < 0 || initialY >= layerHeight) {
+        return false;
+    }
+
+    // Nearest center algorithm: check the initial tile and its neighbors
+    float minDist = FLT_MAX;
+    int bestX = initialX;
+    int bestY = initialY;
+
+    // Check 3x3 neighborhood around initial estimate
+    for (int dy = -1; dy <= 1; dy++) {
+        for (int dx = -1; dx <= 1; dx++) {
+            int checkX = initialX + dx;
+            int checkY = initialY + dy;
+
+            // Skip out of bounds
+            if (checkX < 0 || checkX >= layerWidth || checkY < 0 || checkY >= layerHeight) {
+                continue;
+            }
+
+            // Get world position of this tile's center
+            float tileCenterX, tileCenterY;
+            coords.NodeTileToWorld(checkX, checkY, tileCenterX, tileCenterY);
+
+            // Calculate distance from point to tile center
+            float distX = worldX - tileCenterX;
+            float distY = worldY - tileCenterY;
+            float dist = sqrtf(distX * distX + distY * distY);
+
+            // Track closest tile
+            if (dist < minDist) {
+                minDist = dist;
+                bestX = checkX;
+                bestY = checkY;
+            }
+        }
+    }
+
+    tileX = bestX;
+    tileY = bestY;
+    return true;
+}
+
 // Get tiles in view for frustum culling
 void Map::GetTilesInView(Camera* camera, LayerType layer, int& minX, int& minY, int& maxX, int& maxY)
 {
