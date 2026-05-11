@@ -188,7 +188,7 @@ void TextManager::DrawString(const std::string& text, float x, float y, D3DCOLOR
     const float SHADOW_OFFSET = 1.0f;
     D3DCOLOR shadowColor = D3DCOLOR_ARGB(255, 0, 0, 0); // Black shadow
     
-    int shaderID = isUI ? SHADER_UI : SHADER_WORLD;
+    int shaderID = isUI ? SHADER_FONT : SHADER_WORLD;
     
     for (size_t i = 0; i < text.size(); ++i)
     {

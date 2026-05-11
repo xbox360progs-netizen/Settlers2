@@ -93,6 +93,14 @@ HRESULT Renderer::Initialize() {
         OutputDebugStringA("Successfully loaded sprite_constant_instanced shader\n");
     }
 
+    // Load FontShader.fx for text rendering
+    hr = LoadShader(SHADER_FONT, "game:\\Media\\Shaders\\FontShader.fx", "SpriteBatchTech");
+    if (FAILED(hr)) {
+        OutputDebugStringA("Failed to load FontShader.fx\n");
+    } else {
+        OutputDebugStringA("Successfully loaded FontShader.fx\n");
+    }
+
     SetProjectionMatrix(1280.0f, 720.0f);
 
     m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
