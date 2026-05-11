@@ -6,6 +6,7 @@
 #include "BitmapFont.h"
 #include <vector>
 #include <string>
+#include <map>
 
 class Renderer;
 class ShaderManager;
@@ -18,12 +19,28 @@ enum FontID {
     FONT_COUNT
 };
 
+// Font style for text rendering
+enum FontStyle {
+    FONT_STYLE_NORMAL = 0,
+    FONT_STYLE_SHADOW,
+    FONT_STYLE_OUTLINE
+};
+
 // Glyph structure for character UV coordinates in atlas
 struct Glyph {
     float u0, v0, u1, v1;  // UV coordinates in atlas
     float width, height;   // Character dimensions
     float xOffset, yOffset; // Offset from cursor position
     float xAdvance;       // Advance to next character
+};
+
+// Font data structure for atlas management
+struct FontData {
+    LPDIRECT3DTEXTURE9 texture;
+    float lineHeight;
+    float baseLine;
+    Glyph* glyphs; // Raw pointer to glyph array
+    int glyphCount; // Number of glyphs in array
 };
 
 class TextManager
@@ -38,11 +55,12 @@ public:
     // Set font atlas texture for a specific font ID
     void SetFontAtlas(FontID fontID, LPDIRECT3DTEXTURE9 texture);
     
-    // Draw text to screen space (submits RenderCommand to queue)
-    void DrawTextToScreen(const std::string& text, float x, float y, D3DCOLOR color = 0xFFFFFFFF, float scale = 0.10f, FontID fontID = FONT_MENU);
+    // Unified draw method with explicit isUI flag
+    void DrawString(const std::string& text, float x, float y, D3DCOLOR color = 0xFFFFFFFF, float scale = 0.10f, FontID fontID = FONT_MENU, bool isUI = true, FontStyle style = FONT_STYLE_NORMAL, float depth = 0.05f);
     
-    // Draw text to world space (submits RenderCommand to queue)
-    void DrawTextToWorld(const std::string& text, float worldX, float worldY, D3DCOLOR color = 0xFFFFFFFF, float scale = 0.1f, FontID fontID = FONT_MENU);
+    // Convenience methods
+    void DrawTextToScreen(const std::string& text, float x, float y, D3DCOLOR color = 0xFFFFFFFF, float scale = 0.10f, FontID fontID = FONT_MENU, FontStyle style = FONT_STYLE_NORMAL);
+    void DrawTextToWorld(const std::string& text, float worldX, float worldY, D3DCOLOR color = 0xFFFFFFFF, float scale = 0.1f, FontID fontID = FONT_MENU, FontStyle style = FONT_STYLE_NORMAL);
     
     // Legacy methods for backward compatibility (will be deprecated)
     void Begin();
@@ -58,14 +76,17 @@ private:
     float m_screenWidth;
     float m_screenHeight;
     
-    // Font atlas textures
-    LPDIRECT3DTEXTURE9 m_fontAtlases[FONT_COUNT];
+    // Font data management
+    std::map<FontID, FontData> m_fontData;
     
     // Legacy vertex buffer (for backward compatibility)
     std::vector<TextVertex> m_screenVertices;
     std::vector<TextVertex> m_worldVertices;
     LPDIRECT3DVERTEXBUFFER9 m_screenVB;
     UINT m_screenVBCapacity;
+    
+    // Helper to push a single character command
+    void PushLetterCommand(const Glyph& glyph, LPDIRECT3DTEXTURE9 texture, float x, float y, float w, float h, D3DCOLOR color, float depth, bool isUI, int shaderID);
     
     void EnsureScreenVB(size_t vertexCount);
 };

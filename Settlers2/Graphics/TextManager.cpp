@@ -6,26 +6,28 @@
 
 #define DEBUG_TEXT_SKIP_RENDER 0
 
+// Half-pixel UV padding for Xbox 360 to prevent texture bleeding
+static const float UV_PADDING = 0.5f / 512.0f; // Assumes 512x512 atlas, adjust as needed
+
 TextManager::TextManager(BitmapFont* font, float screenWidth, float screenHeight)
 : m_font(font), m_renderer(nullptr), m_shaderManager(nullptr), 
   m_screenWidth(screenWidth), m_screenHeight(screenHeight),
   m_screenVB(nullptr), m_screenVBCapacity(0)
 {
-    // Initialize font atlases to nullptr
-    for (int i = 0; i < FONT_COUNT; ++i) {
-        m_fontAtlases[i] = nullptr;
-    }
 }
 
 TextManager::~TextManager()
 {
-    // Release font atlas references
-    for (int i = 0; i < FONT_COUNT; ++i) {
-        if (m_fontAtlases[i]) {
-            m_fontAtlases[i]->Release();
-            m_fontAtlases[i] = nullptr;
+    // Release font atlas references and glyph data
+    for (std::map<FontID, FontData>::iterator it = m_fontData.begin(); it != m_fontData.end(); ++it) {
+        if (it->second.texture) {
+            it->second.texture->Release();
+        }
+        if (it->second.glyphs) {
+            delete[] it->second.glyphs;
         }
     }
+    m_fontData.clear();
     
     // Release legacy vertex buffer
     if (m_screenVB) {
@@ -44,19 +46,99 @@ void TextManager::SetFontAtlas(FontID fontID, LPDIRECT3DTEXTURE9 texture)
 {
     if (fontID < 0 || fontID >= FONT_COUNT) return;
     
-    // Release old texture reference
-    if (m_fontAtlases[fontID]) {
-        m_fontAtlases[fontID]->Release();
+    // Release old texture and glyph data if exists
+    std::map<FontID, FontData>::iterator it = m_fontData.find(fontID);
+    if (it != m_fontData.end()) {
+        if (it->second.texture) {
+            it->second.texture->Release();
+        }
+        if (it->second.glyphs) {
+            delete[] it->second.glyphs;
+            it->second.glyphs = nullptr;
+        }
     }
     
-    // Set new texture and add reference
-    m_fontAtlases[fontID] = texture;
+    // Create or update font data
+    FontData& data = m_fontData[fontID];
+    data.texture = texture;
+    data.glyphs = nullptr;
+    data.glyphCount = 0;
     if (texture) {
         texture->AddRef();
     }
+    
+    // Copy font metrics from BitmapFont if available
+    if (m_font) {
+        data.lineHeight = m_font->GetLineHeight();
+        data.baseLine = m_font->GetBaseLine();
+        
+        // Build glyph data from font characters
+        const std::vector<FontChar>& chars = m_font->GetChars();
+        data.glyphCount = (int)chars.size();
+        data.glyphs = new Glyph[data.glyphCount];
+        
+        for (size_t i = 0; i < chars.size(); ++i) {
+            const FontChar& ch = chars[i];
+            data.glyphs[i].u0 = ch.u0;
+            data.glyphs[i].v0 = ch.v0;
+            data.glyphs[i].u1 = ch.u1;
+            data.glyphs[i].v1 = ch.v1;
+            data.glyphs[i].width = ch.width;
+            data.glyphs[i].height = ch.height;
+            data.glyphs[i].xOffset = ch.xOffset;
+            data.glyphs[i].yOffset = ch.yOffset;
+            data.glyphs[i].xAdvance = ch.xAdvance;
+        }
+    }
 }
 
-void TextManager::DrawTextToScreen(const std::string& text, float x, float y, D3DCOLOR color, float scale, FontID fontID)
+void TextManager::PushLetterCommand(const Glyph& glyph, LPDIRECT3DTEXTURE9 texture, float x, float y, float w, float h, D3DCOLOR color, float depth, bool isUI, int shaderID)
+{
+    if (!m_renderer || !m_shaderManager) return;
+    
+    ShaderManager* shaderManager = m_renderer->GetShaderManager();
+    if (!shaderManager) return;
+    
+    // Apply UV padding to prevent bleeding on Xbox 360
+    float u0 = glyph.u0 + UV_PADDING;
+    float v0 = glyph.v0 + UV_PADDING;
+    float u1 = glyph.u1 - UV_PADDING;
+    float v1 = glyph.v1 - UV_PADDING;
+    
+    // Clamp UVs to valid range
+    u0 = max(0.0f, min(1.0f, u0));
+    v0 = max(0.0f, min(1.0f, v0));
+    u1 = max(0.0f, min(1.0f, u1));
+    v1 = max(0.0f, min(1.0f, v1));
+    
+    ShaderManager::RenderCommand cmd;
+    cmd.pTexture = texture;
+    cmd.shaderID = shaderID;
+    cmd.vertexStart = 0;
+    cmd.vertexCount = 4;
+    cmd.primitiveCount = 2;
+    cmd.batchType = 0;
+    cmd.depth = depth; // CRITICAL: All letters in a string must have identical depth for batching
+    cmd.layer = isUI ? 2 : 1; // UI layer or Objects layer
+    cmd.isUI = isUI;
+    cmd.u0 = u0;
+    cmd.v0 = v0;
+    cmd.u1 = u1;
+    cmd.v1 = v1;
+    cmd.screenX = x;
+    cmd.screenY = y;
+    cmd.screenW = w;
+    cmd.screenH = h;
+    cmd.worldX = x;
+    cmd.worldY = y;
+    cmd.color = color;
+    cmd.customDraw = NULL;
+    cmd.customUserData = NULL;
+    
+    shaderManager->Submit(cmd);
+}
+
+void TextManager::DrawString(const std::string& text, float x, float y, D3DCOLOR color, float scale, FontID fontID, bool isUI, FontStyle style, float depth)
 {
     if (!m_renderer || !m_shaderManager) {
         OutputDebugStringA("[TextManager] ERROR: Renderer or ShaderManager not set. Call Init() first.\n");
@@ -72,10 +154,22 @@ void TextManager::DrawTextToScreen(const std::string& text, float x, float y, D3
         return;
     }
     
-    // Get font atlas texture
-    LPDIRECT3DTEXTURE9 fontTexture = (fontID >= 0 && fontID < FONT_COUNT) ? m_fontAtlases[fontID] : nullptr;
+    // Get font data
+    std::map<FontID, FontData>::iterator it = m_fontData.find(fontID);
+    LPDIRECT3DTEXTURE9 fontTexture = nullptr;
+    const Glyph* glyphs = nullptr;
+    int glyphCount = 0;
+    float lineHeight = m_font->GetLineHeight();
+    
+    if (it != m_fontData.end()) {
+        fontTexture = it->second.texture;
+        glyphs = it->second.glyphs;
+        glyphCount = it->second.glyphCount;
+        lineHeight = it->second.lineHeight;
+    }
+    
+    // Fallback to default font texture if available
     if (!fontTexture && m_font) {
-        // Fallback to default font texture if available
         fontTexture = m_font->GetTexture();
     }
     
@@ -90,140 +184,75 @@ void TextManager::DrawTextToScreen(const std::string& text, float x, float y, D3
     float penX = x;
     float penY = y;
     
-    const std::vector<FontChar>& chars = m_font->GetChars();
-    if (chars.empty()) return;
+    // Shadow offset
+    const float SHADOW_OFFSET = 1.0f;
+    D3DCOLOR shadowColor = D3DCOLOR_ARGB(255, 0, 0, 0); // Black shadow
+    
+    int shaderID = isUI ? SHADER_UI : SHADER_SPRITE;
     
     for (size_t i = 0; i < text.size(); ++i)
     {
         unsigned char c = (unsigned char)text[i];
         
         // New line handling
-        if (c == '\n') { penX = x; penY += m_font->GetLineHeight() * scale; continue; }
+        if (c == '\n') { penX = x; penY += lineHeight * scale; continue; }
         if (c == '\r') continue;
-        if (c >= chars.size()) {
-            continue;
+        
+        // Get glyph data
+        Glyph glyph;
+        bool hasGlyph = false;
+        
+        if (glyphs && c < (size_t)glyphCount) {
+            glyph = glyphs[c];
+            hasGlyph = true;
+        } else if (m_font) {
+            const std::vector<FontChar>& chars = m_font->GetChars();
+            if (c < chars.size()) {
+                const FontChar& ch = chars[c];
+                glyph.u0 = ch.u0;
+                glyph.v0 = ch.v0;
+                glyph.u1 = ch.u1;
+                glyph.v1 = ch.v1;
+                glyph.width = ch.width;
+                glyph.height = ch.height;
+                glyph.xOffset = ch.xOffset;
+                glyph.yOffset = ch.yOffset;
+                glyph.xAdvance = ch.xAdvance;
+                hasGlyph = true;
+            }
         }
         
-        const FontChar& ch = chars[c];
-        if (ch.width <= 0.0f || ch.height <= 0.0f) { penX += ch.xAdvance * scale; continue; }
+        if (!hasGlyph || glyph.width <= 0.0f || glyph.height <= 0.0f) { 
+            penX += glyph.xAdvance * scale; 
+            continue; 
+        }
         
-        float charX = penX + ch.xOffset * scale;
-        float charY = penY + ch.yOffset * scale;
-        float charW = ch.width * scale;
-        float charH = ch.height * scale;
+        float charX = penX + glyph.xOffset * scale;
+        float charY = penY + glyph.yOffset * scale;
+        float charW = glyph.width * scale;
+        float charH = glyph.height * scale;
         
-        // Create RenderCommand for this character
-        ShaderManager::RenderCommand cmd;
-        cmd.pTexture = fontTexture;
-        cmd.shaderID = SHADER_UI;
-        cmd.vertexStart = 0;
-        cmd.vertexCount = 4;
-        cmd.primitiveCount = 2;
-        cmd.batchType = 0;
-        cmd.depth = 0.05f; // Text layer (above UI background)
-        cmd.layer = 2; // UI layer
-        cmd.isUI = true; // Screen-space rendering
-        cmd.u0 = ch.u0;
-        cmd.v0 = ch.v0;
-        cmd.u1 = ch.u1;
-        cmd.v1 = ch.v1;
-        cmd.screenX = charX;
-        cmd.screenY = charY;
-        cmd.screenW = charW;
-        cmd.screenH = charH;
-        cmd.color = color;
-        cmd.customDraw = NULL;
-        cmd.customUserData = NULL;
+        // Shadow rendering (draw shadow first at slightly higher depth)
+        if (style == FONT_STYLE_SHADOW) {
+            PushLetterCommand(glyph, fontTexture, charX + SHADOW_OFFSET, charY + SHADOW_OFFSET, charW, charH, shadowColor, depth + 0.0001f, isUI, shaderID);
+        }
         
-        shaderManager->Submit(cmd);
+        // Main character rendering (all letters use IDENTICAL depth for batching optimization)
+        PushLetterCommand(glyph, fontTexture, charX, charY, charW, charH, color, depth, isUI, shaderID);
         
         // Advance pen position
-        penX += ch.xAdvance * scale;
+        penX += glyph.xAdvance * scale;
     }
 }
 
-void TextManager::DrawTextToWorld(const std::string& text, float worldX, float worldY, D3DCOLOR color, float scale, FontID fontID)
+void TextManager::DrawTextToScreen(const std::string& text, float x, float y, D3DCOLOR color, float scale, FontID fontID, FontStyle style)
 {
-    if (!m_renderer || !m_shaderManager) {
-        OutputDebugStringA("[TextManager] ERROR: Renderer or ShaderManager not set. Call Init() first.\n");
-        return;
-    }
-    
-    if (!m_font || text.empty() || scale <= 0) {
-        return;
-    }
-    
-    // Limit text length to prevent overflow
-    if (text.length() > 1000) {
-        return;
-    }
-    
-    // Get font atlas texture
-    LPDIRECT3DTEXTURE9 fontTexture = (fontID >= 0 && fontID < FONT_COUNT) ? m_fontAtlases[fontID] : nullptr;
-    if (!fontTexture && m_font) {
-        // Fallback to default font texture if available
-        fontTexture = m_font->GetTexture();
-    }
-    
-    if (!fontTexture) {
-        OutputDebugStringA("[TextManager] WARNING: No font texture available\n");
-        return;
-    }
-    
-    ShaderManager* shaderManager = m_renderer->GetShaderManager();
-    if (!shaderManager) return;
-    
-    float penX = worldX;
-    float penY = worldY;
-    
-    const std::vector<FontChar>& chars = m_font->GetChars();
-    if (chars.empty()) return;
-    
-    for (size_t i = 0; i < text.size(); ++i)
-    {
-        unsigned char c = (unsigned char)text[i];
-        
-        // New line handling
-        if (c == '\n') { penX = worldX; penY += m_font->GetLineHeight() * scale; continue; }
-        if (c == '\r') continue;
-        if (c >= chars.size()) {
-            continue;
-        }
-        
-        const FontChar& ch = chars[c];
-        if (ch.width <= 0.0f || ch.height <= 0.0f) { penX += ch.xAdvance * scale; continue; }
-        
-        float charX = penX + ch.xOffset * scale;
-        float charY = penY + ch.yOffset * scale;
-        float charW = ch.width * scale;
-        float charH = ch.height * scale;
-        
-        // Create RenderCommand for this character (world-space)
-        ShaderManager::RenderCommand cmd;
-        cmd.pTexture = fontTexture;
-        cmd.shaderID = SHADER_SPRITE; // Use sprite shader for world-space text
-        cmd.vertexStart = 0;
-        cmd.vertexCount = 4;
-        cmd.primitiveCount = 2;
-        cmd.batchType = 0;
-        cmd.depth = 0.5f; // Mid-layer for world text
-        cmd.layer = 1; // Objects layer
-        cmd.isUI = false; // World-space rendering (uses camera matrix)
-        cmd.u0 = ch.u0;
-        cmd.v0 = ch.v0;
-        cmd.u1 = ch.u1;
-        cmd.v1 = ch.v1;
-        cmd.worldX = charX;
-        cmd.worldY = charY;
-        cmd.color = color;
-        cmd.customDraw = NULL;
-        cmd.customUserData = NULL;
-        
-        shaderManager->Submit(cmd);
-        
-        // Advance pen position
-        penX += ch.xAdvance * scale;
-    }
+    DrawString(text, x, y, color, scale, fontID, true, style, 0.05f);
+}
+
+void TextManager::DrawTextToWorld(const std::string& text, float worldX, float worldY, D3DCOLOR color, float scale, FontID fontID, FontStyle style)
+{
+    DrawString(text, worldX, worldY, color, scale, fontID, false, style, 0.5f);
 }
 
 // Legacy methods for backward compatibility (will be deprecated)
