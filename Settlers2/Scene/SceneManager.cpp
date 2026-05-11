@@ -136,13 +136,19 @@ void SceneManager::Render()
     // Step 2: RECORD - Collect all render commands from scene
     // The scene will call SpriteRenderer which submits commands to the queue
     // Nobody draws anything at this stage!
+    OutputDebugStringA("[SceneManager::Render] Calling m_currentScene->Render()...\n");
     m_currentScene->Render();
+    OutputDebugStringA("[SceneManager::Render] m_currentScene->Render() returned\n");
 
     // Step 3: SORT - Sort commands by zOrder, shader, and texture (critical for Xbox 360 performance)
+    OutputDebugStringA("[SceneManager::Render] Calling SortQueue()...\n");
     if (m_shaderManager)
     {
         m_shaderManager->SortQueue();
     }
+    OutputDebugStringA("[SceneManager::Render] SortQueue() returned\n");
+
+    OutputDebugStringA("[SceneManager::Render] About to Execute Queue...\n");
 
     // Step 4: EXECUTE - Execute all commands in sorted order (final render pass)
     if (m_shaderManager && m_spriteRenderer)

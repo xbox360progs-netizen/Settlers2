@@ -213,35 +213,31 @@ void MenuScene::Update(float deltaTime) {
 }
 
 void MenuScene::Render() {
-  char buf[512];
-  sprintf(buf, "[MenuScene::Render] this=%p, m_spriteRenderer=%p, m_device=%p\n", this, m_spriteRenderer, m_device);
-  OutputDebugStringA(buf);
-
-  if (m_spriteRenderer) {
-    sprintf(buf, "[MenuScene::Render] m_spriteRenderer->GetDevice()=%p\n", m_spriteRenderer->GetDevice());
-    OutputDebugStringA(buf);
-  }
+  OutputDebugStringA("[MenuScene::Render] ENTRY\n");
 
   // 1. Базовая проверка
   if (!m_spriteRenderer || !m_backgroundTexture.GetTexture()) return;
 
   LPDIRECT3DTEXTURE9 bgTex = m_backgroundTexture.GetTexture();
-  sprintf(buf, "[MenuScene::Render] bgTex=%p\n", bgTex);
-  OutputDebugStringA(buf);
+  OutputDebugStringA("[MenuScene::Render] Got texture pointer\n");
 
   // 2. Подготовка (SR сам выставит шейдер ID 0 и стейты)
+  OutputDebugStringA("[MenuScene::Render] Calling Begin...\n");
   m_spriteRenderer->Begin(SHADER_SPRITE, bgTex, 0.0f, 0, false);
+  OutputDebugStringA("[MenuScene::Render] Begin() returned\n");
 
   // 3. Отправка спрайта (Scene просто передает данные)
-  // ВРЕМЕННО ЗАКОММЕНТИРОВАНО ДЛЯ ДИАГНОСТИКИ
-  // float w = 1280.0f;
-  // float h = 720.0f;
-  // m_spriteRenderer->Draw(0.0f, 0.0f, w, h, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
-  OutputDebugStringA("[MenuScene::Render] Draw() call SKIPPED for diagnosis\n");
+  OutputDebugStringA("[MenuScene::Render] Calling Draw...\n");
+  m_spriteRenderer->Draw(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
+  OutputDebugStringA("[MenuScene::Render] Draw() returned\n");
 
   // 4. Финализация (Здесь произойдет реальный Draw Call)
+  OutputDebugStringA("[MenuScene::Render] Calling End...\n");
   m_spriteRenderer->End();
+  OutputDebugStringA("[MenuScene::Render] End() returned\n");
 
+  OutputDebugStringA("[MenuScene::Render] About to return from Render()...\n");
+/*
   // 5. Текст рисуем ПОСЛЕ (так как у него другой шейдер - ID 7)
   if (m_textManager) {
     m_textManager->Begin();
@@ -252,6 +248,7 @@ void MenuScene::Render() {
     }
     m_textManager->RenderScreen();
   }
+*/
 }
 
 void MenuScene::SetBackground(const std::string& path) {

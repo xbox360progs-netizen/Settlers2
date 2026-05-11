@@ -638,6 +638,7 @@ void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float
 }
 
 void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType, bool isUI) {
+    OutputDebugStringA("[SR::Begin] ENTERED\n");
 
     char buf[256];
     sprintf(buf, "[SR::Begin] ENTRY this=%p, m_pDevice=%p, m_pShaderManager=%p\n", this, m_pDevice, m_pShaderManager);
@@ -659,6 +660,8 @@ void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float
         OutputDebugStringA(buf);
     }
 
+    OutputDebugStringA("[SR::Begin] Setting render states...\n");
+
     // If state changed, flush previous batch
     if (m_isBatching) {
         // AUTO-FLUSH: If texture changed and buffer has vertices, flush first
@@ -678,6 +681,8 @@ void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float
         }
     }
 
+    OutputDebugStringA("[SR::Begin] Setting render states...\n");
+
     // Set render states for sprite rendering
     if (m_pDevice) {
         m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
@@ -685,17 +690,28 @@ void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float
         m_pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
         m_pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
         m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+        OutputDebugStringA("[SR::Begin] Render states set successfully\n");
+    } else {
+        OutputDebugStringA("[SR::Begin] ERROR: Cannot set render states - m_pDevice is NULL\n");
+        return;
     }
+
+    OutputDebugStringA("[SR::Begin] Setting active shader...\n");
 
     // Set active shader
     if (m_pShaderManager) {
         m_pShaderManager->SetActiveShader(shaderID);
+        OutputDebugStringA("[SR::Begin] Active shader set\n");
+    } else {
+        OutputDebugStringA("[SR::Begin] WARNING: m_pShaderManager is NULL\n");
     }
 
     char debugMsg[128];
     sprintf(debugMsg, "[SpriteRenderer::Begin] shaderID=%d, texture=%p, depth=%.2f, renderType=%d, isUI=%d\n",
             shaderID, pTexture, depth, renderType, isUI);
     OutputDebugStringA(debugMsg);
+
+    OutputDebugStringA("[SR::Begin] FINISHED\n");
 
     m_currentShaderID = shaderID;
     m_currentTexture = pTexture;
@@ -777,6 +793,9 @@ void SpriteRenderer::Draw(float x, float y, float width, float height,
         OutputDebugStringA("Draw called without Begin!\n");
         return;
     }
+
+    sprintf(buf, "[SR::Draw] Parameters: x=%.1f, y=%.1f, w=%.1f, h=%.1f, color=0x%08X\n", x, y, width, height, color);
+    OutputDebugStringA(buf);
 
     // AUTO-FLUSH: If texture changed and buffer has vertices, flush first
     // This prevents "icon mash" when switching textures
@@ -876,6 +895,8 @@ void SpriteRenderer::DrawRotated(float x, float y, float width, float height, fl
 }
 
 void SpriteRenderer::End() {
+    OutputDebugStringA("[SR::End] ENTERED\n");
+
     if (m_isBatching) {
         char debugMsg[128];
         sprintf(debugMsg, "[SpriteRenderer::End] Flushing %d sprites\n", m_spriteCount);
@@ -883,16 +904,29 @@ void SpriteRenderer::End() {
 
         // Debug check: if sprites in queue but no draw call happens
         if (m_spriteCount > 0) {
+            OutputDebugStringA("[SR::End] Calling Flush()...\n");
             Flush();
+            OutputDebugStringA("[SR::End] Flush() completed\n");
         } else {
             OutputDebugStringA("[SpriteRenderer::End] WARNING: No sprites to flush\n");
         }
 
         m_isBatching = false;
     }
+
+    OutputDebugStringA("[SR::End] Before SetTexture(0, NULL)...\n");
     if (m_pDevice) {
+        char buf[256];
+        sprintf(buf, "[SR::End] Calling SetTexture(0, NULL) with m_pDevice=%p\n", m_pDevice);
+        OutputDebugStringA(buf);
         m_pDevice->SetTexture(0, NULL);
+        OutputDebugStringA("[SR::End] SetTexture(0, NULL) completed\n");
+    } else {
+        OutputDebugStringA("[SR::End] ERROR: m_pDevice is NULL\n");
     }
+
+    OutputDebugStringA("[SR::End] FINISHED\n");
+    OutputDebugStringA("[SR::End] About to return...\n");
 }
 
 void SpriteRenderer::Flush(ShaderManager* pShader) {
@@ -1590,13 +1624,29 @@ void SpriteRenderer::FillStagingArea(int startIdx, int count, const SpriteData* 
 void SpriteRenderer::CreateQuad(float x, float y, float width, float height,
                                 float u0, float v0, float u1, float v1,
                                 DWORD color) {
+    OutputDebugStringA("[SR::CreateQuad] ENTRY\n");
+
     // Check for overflow before writing to staging buffer
     if (m_spriteCount >= m_maxSprites) {
-        char errBuf[128];
-        sprintf(errBuf, "BSOD PREVENTED: CreateQuad overflow! spriteCount=%d, max=%d\n", m_spriteCount, m_maxSprites);
-        OutputDebugStringA(errBuf);
+        OutputDebugStringA("[SR::CreateQuad] ERROR: Overflow!\n");
         return;
     }
+
+    // ТЕСТ 2: Проверка указателя на staging buffer
+    if (!m_pStagingBuffer) {
+        OutputDebugStringA("[SR::CreateQuad] CRITICAL: m_pStagingBuffer is NULL!\n");
+        return;
+    }
+
+    // Проверка индекса на переполнение
+    int vertexIndex = m_spriteCount * 4;
+    int maxVertices = m_maxSprites * 4;
+    if (vertexIndex >= maxVertices) {
+        OutputDebugStringA("[SR::CreateQuad] CRITICAL: Vertex index overflow!\n");
+        return;
+    }
+
+    OutputDebugStringA("[SR::CreateQuad] Calculating coordinates...\n");
 
     // ALWAYS use staging buffer for all sprites (simple, reliable for PowerPC)
     float x0 = x - 0.5f;
@@ -1605,15 +1655,23 @@ void SpriteRenderer::CreateQuad(float x, float y, float width, float height,
     float y1 = (y + height) - 0.5f;
     float z = 0.0f;
 
+    OutputDebugStringA("[SR::CreateQuad] Getting pointer to staging buffer...\n");
+
     // Write DIRECTLY to staging buffer
-    SpriteVertex* v = &m_pStagingBuffer[m_spriteCount * 4];
+    SpriteVertex* v = &m_pStagingBuffer[vertexIndex];
+
+    OutputDebugStringA("[SR::CreateQuad] About to write vertex data...\n");
 
     v[0].x = x0; v[0].y = y0; v[0].z = z; v[0].color = color; v[0].u = u0; v[0].v = v0;
     v[1].x = x1; v[1].y = y0; v[1].z = z; v[1].color = color; v[1].u = u1; v[1].v = v0;
     v[2].x = x1; v[2].y = y1; v[2].z = z; v[2].color = color; v[2].u = u1; v[2].v = v1;
     v[3].x = x0; v[3].y = y1; v[3].z = z; v[3].color = color; v[3].u = u0; v[3].v = v1;
 
+    OutputDebugStringA("[SR::CreateQuad] Vertex data written\n");
+
     m_spriteCount++;
+
+    OutputDebugStringA("[SR::CreateQuad] FINISHED\n");
 }
 
 void SpriteRenderer::CreateQuadRotated(float x, float y, float width, float height, float angle,

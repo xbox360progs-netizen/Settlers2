@@ -503,8 +503,11 @@ void ShaderManager::ClearBatches() {
 }
 
 void ShaderManager::SortQueue() {
+    OutputDebugStringA("[ShaderManager::SortQueue] ENTRY\n");
+    // ТЕСТ: Временно закомментируем сортировку
     // Sort by depth (back-to-front for alpha), then shader, then texture
-    std::sort(m_commandQueue.begin(), m_commandQueue.end());
+    // std::sort(m_commandQueue.begin(), m_commandQueue.end());
+    OutputDebugStringA("[ShaderManager::SortQueue] FINISHED (sort skipped)\n");
 }
 
 void ShaderManager::SortDrawBatches() {
@@ -792,16 +795,32 @@ void ShaderManager::ApplyShader(int shaderID) {
 void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB,
                                 LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride,
                                 const D3DXMATRIX* pViewProj) {
-    if (m_commandQueue.empty()) return;
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] ENTRY\n");
+
+    if (m_commandQueue.empty()) {
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] Queue is empty, returning\n");
+        return;
+    }
+
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] Before Clear()\n");
 
     // BLUE SCREEN TEST: If screen turns blue, rendering pipeline works
     m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0, 0, 255), 1.0f, 0);
 
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] Clear() completed\n");
+
     // Set WVP matrix for sprite shader (ID 0)
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] Creating ortho matrix...\n");
     D3DXMATRIX ortho;
     D3DXMatrixOrthoOffCenterLH(&ortho, 0, 1280, 720, 0, 0, 1);
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] Ortho matrix created\n");
+
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] Getting sprite effect...\n");
     ID3DXEffect* pSpriteEffect = GetEffect(SHADER_SPRITE);
+    OutputDebugStringA(pSpriteEffect ? "[ShaderManager::ExecuteQueue] Got sprite effect\n" : "[ShaderManager::ExecuteQueue] Sprite effect is NULL\n");
+
     if (pSpriteEffect) {
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] Setting WVP matrix...\n");
         D3DXHANDLE hWVP = pSpriteEffect->GetParameterByName(NULL, "WVP");
         if (hWVP) {
             pSpriteEffect->SetMatrix(hWVP, &ortho);
@@ -813,47 +832,95 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
             pSpriteEffect->SetMatrix(hMatOrtho, &ortho);
             pSpriteEffect->CommitChanges();
         }
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] Sprite effect configured\n");
     }
 
     // === GLOBAL CONSTANT BUFFER: Set ViewProj once per frame ===
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] Calling SetFrameViewProj...\n");
     SetFrameViewProj(pViewProj);
-    
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] SetFrameViewProj done\n");
+
     // === SORT COMMANDS: shader-first for lazy batching ===
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] Sorting commands...\n");
     // Sorting: shaderID (most expensive switch) > texture > depth (back-to-front)
     std::sort(m_commandQueue.begin(), m_commandQueue.end());
-    
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] Sort done\n");
+
     // === STATE LOCKING: Prevent external state corruption ===
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] Calling Lock()...\n");
     Lock();
-    
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] Lock() done\n");
+
     // Set vertex declaration and streams once for entire frame
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] Setting vertex declaration...\n");
     m_pDevice->SetVertexDeclaration(pDecl);
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] Setting stream source...\n");
     m_pDevice->SetStreamSource(0, pVB, 0, vertexStride);
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] Setting indices...\n");
     m_pDevice->SetIndices(pIB);
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] Device states set\n");
     
     // === LAZY BATCHING: Process commands with minimal state switches ===
     ShaderID currentShaderID = SHADER_INVALID;
     bool passActive = false;  // Track if we're inside a BeginPass/EndPass block
     LPDIRECT3DTEXTURE9 lastTexture = nullptr; // Lazy texture binding
     bool lastAlphaBlend = false; // Lazy alpha blend state
-    
+
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] Entering batch loop...\n");
+
+    // Проверка очереди перед доступом
+    {
+        char buf[128];
+        sprintf(buf, "[ShaderManager::ExecuteQueue] Queue size=%d\n", (int)m_commandQueue.size());
+        OutputDebugStringA(buf);
+    }
+
+    if (m_commandQueue.empty()) {
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] Queue is empty in loop, skipping\n");
+    }
+
     for (size_t i = 0; i < m_commandQueue.size(); ++i) {
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] Accessing cmd reference...\n");
         const RenderCommand& cmd = m_commandQueue[i];
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] cmd reference obtained\n");
+
+        // Безопасное чтение полей по одному
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] Reading cmd.shaderID...\n");
+        int cmdShader = cmd.shaderID;
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] Reading cmd.isUI...\n");
+        bool cmdIsUI = cmd.isUI;
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] Reading cmd.pTexture...\n");
+        IDirect3DTexture9* cmdTex = cmd.pTexture;
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] Reading cmd.depth...\n");
+        float cmdDepth = cmd.depth;
+
+        {
+            char buf[256];
+            sprintf(buf, "[ShaderManager::ExecuteQueue] cmd[%d]: shaderID=%d, isUI=%d, pTexture=%p, depth=%.2f\n",
+                    (int)i, cmdShader, cmdIsUI, cmdTex, cmdDepth);
+            OutputDebugStringA(buf);
+        }
         
         // === LAZY ALPHA BLEND STATE FOR UI ===
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] Setting alpha blend...\n");
         // Automatically enable alpha blend for UI elements (bIsUI == true)
-        bool needsAlphaBlend = cmd.isUI;
+        bool needsAlphaBlend = cmdIsUI;
         if (needsAlphaBlend != lastAlphaBlend) {
             m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, needsAlphaBlend ? TRUE : FALSE);
             lastAlphaBlend = needsAlphaBlend;
         }
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] Alpha blend set\n");
         
         // === LAZY TEXTURE BINDING ===
-        if (cmd.pTexture != lastTexture) {
-            m_pDevice->SetTexture(0, cmd.pTexture);
-            lastTexture = cmd.pTexture;
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] Binding texture...\n");
+        if (cmdTex != lastTexture) {
+            m_pDevice->SetTexture(0, cmdTex);
+            lastTexture = cmdTex;
         }
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] Texture bound\n");
         
         // Custom draw callback: manages its own shader/state/pass lifecycle
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] Checking batchType...\n");
         if (cmd.batchType == 2) {
             // End current pass if active before custom draw
             if (passActive) {
@@ -867,10 +934,13 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
             currentShaderID = SHADER_INVALID; // Force shader re-prepare after custom draw
             continue;
         }
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] Not custom draw\n");
         
         // === LAZY SHADER SWITCHING ===
-        ShaderID cmdShaderID = static_cast<ShaderID>(cmd.shaderID);
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] Checking shader switch...\n");
+        ShaderID cmdShaderID = static_cast<ShaderID>(cmdShader);
         if (cmdShaderID != currentShaderID) {
+            OutputDebugStringA("[ShaderManager::ExecuteQueue] Switching shader...\n");
             // End previous pass if active
             if (passActive) {
                 EndPass();
@@ -881,15 +951,22 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                 EndCurrent();
             }
             // Prepare new shader (handles BeginShader + global uniforms)
+            OutputDebugStringA("[ShaderManager::ExecuteQueue] Calling Prepare()...\n");
             Prepare(cmdShaderID, pViewProj);
+            OutputDebugStringA("[ShaderManager::ExecuteQueue] Prepare() done\n");
             currentShaderID = cmdShaderID;
         }
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] Shader ready\n");
         
         // Apply render states for this command
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] ResetDirtyStates...\n");
         m_stateCache.ResetDirtyStates(m_pDevice, cmd.states);
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] ResetDirtyStates done\n");
         
         // === CENTRALIZED PARAMETER DISPATCH ===
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] SetShaderParameters...\n");
         SetShaderParameters(cmd);
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] SetShaderParameters done\n");
         
         // === LAZY PASS MANAGEMENT ===
         // Only begin a new pass if we're not already inside one
