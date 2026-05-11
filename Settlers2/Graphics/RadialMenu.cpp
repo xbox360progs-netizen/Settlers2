@@ -34,8 +34,6 @@ namespace
     }
 }
 
-const std::wstring RadialMenu::SHADER_PATH = L"game:\\Media\\Shaders\\RadialMenu.fx";
-
 RadialMenu::RadialMenu(LPDIRECT3DDEVICE9 device, ShaderManager* shaderManager, BinFileManager* binFileManager)
     : m_device(device)
     , m_shaderManager(shaderManager)
@@ -70,17 +68,12 @@ RadialMenu::~RadialMenu()
 
 bool RadialMenu::Initialize()
 {
-    if (!m_device || !m_shaderManager) {
+    if (!m_device) {
         return false;
     }
 
-    // Load shader through ShaderManager
-    char shaderPathA[512];
-    WideCharToMultiByte(CP_ACP, 0, SHADER_PATH.c_str(), -1, shaderPathA, 512, NULL, NULL);
-    
-    if (FAILED(m_shaderManager->LoadShader("RadialMenu", shaderPathA, "RadialMenu"))) {
-        return false;
-    }
+    // Shader loading is now centralized in ShaderManager::Init()
+    // RadialMenu no longer manages shader lifecycle
 
     m_quad = new Quad(m_device);
     if (!m_quad->Initialize(kMenuSize, kMenuSize)) {
@@ -302,33 +295,27 @@ void RadialMenu::DrawRing(LPDIRECT3DDEVICE9 pDevice, ShaderManager* pShaderMgr)
 
     SetupRenderStates();
 
-    // Set RadialMenu shader
-    m_shaderManager->SetActiveShader("RadialMenu");
-    m_shaderManager->BeginShader();
-    m_shaderManager->BeginPass(0);
-
-    // Set shader parameters
-    m_shaderManager->SetMatrix("WorldViewProjection", (float*)&matWVP);
+    // Set shader parameters only (ShaderManager handles Begin/End pass)
+    pShaderMgr->SetMatrix("WorldViewProjection", (float*)&matWVP);
 
     D3DXVECTOR4 menuParams((float)m_numSectors, (float)m_selectedIndex, m_innerRadius, m_outerRadius);
     D3DXVECTOR4 centerParams(m_centerRadius, 0.018f, 0.040f, 0.060f);
 
-    m_shaderManager->SetVector("MenuParams", (float*)&menuParams);
-    m_shaderManager->SetVector("CenterParams", (float*)&centerParams);
-    m_shaderManager->SetVector("InnerColor", (float*)&m_innerColor);
-    m_shaderManager->SetVector("OuterColor", (float*)&m_outerColor);
-    m_shaderManager->SetVector("HighlightColor", (float*)&m_highlightColor);
-    m_shaderManager->SetVector("LineColor", (float*)&m_lineColor);
-    m_shaderManager->SetVector("CenterInnerColor", (float*)&m_centerInnerColor);
-    m_shaderManager->SetVector("CenterOuterColor", (float*)&m_centerOuterColor);
+    pShaderMgr->SetVector("MenuParams", (float*)&menuParams);
+    pShaderMgr->SetVector("CenterParams", (float*)&centerParams);
+    pShaderMgr->SetVector("InnerColor", (float*)&m_innerColor);
+    pShaderMgr->SetVector("OuterColor", (float*)&m_outerColor);
+    pShaderMgr->SetVector("HighlightColor", (float*)&m_highlightColor);
+    pShaderMgr->SetVector("LineColor", (float*)&m_lineColor);
+    pShaderMgr->SetVector("CenterInnerColor", (float*)&m_centerInnerColor);
+    pShaderMgr->SetVector("CenterOuterColor", (float*)&m_centerOuterColor);
+
+    pShaderMgr->CommitChanges();
 
     m_quad->Render();
 
-    m_shaderManager->EndPass();
-    m_shaderManager->EndShader();
-
     // StateCache will handle state restoration automatically
-    ShaderManager::StateCache* stateCache = m_shaderManager->GetStateCache();
+    ShaderManager::StateCache* stateCache = pShaderMgr->GetStateCache();
     if (stateCache) stateCache->MarkDirty();
 }
 
@@ -409,8 +396,8 @@ void RadialMenu::RenderIcons(SpriteRenderer* spriteRenderer)
             continue;
         }
 
-        // Use simple sprite shader with UI depth (0.1 = nearest, always on top)
-        spriteRenderer->Begin("sprite", texture, 0.1f);
+        // Use SHADER_UI for screen-space UI rendering
+        spriteRenderer->Begin(ShaderManager::SHADER_UI, texture, 0.1f, 0, true);
 
         // Draw all icons from this atlas
         for (size_t j = 0; j < indices.size(); ++j) {
@@ -439,7 +426,7 @@ void RadialMenu::RenderIcons(SpriteRenderer* spriteRenderer)
         if (centerAtlas) {
             LPDIRECT3DTEXTURE9 centerTexture = centerAtlas->GetTexture();
             if (centerTexture) {
-                spriteRenderer->Begin("sprite", centerTexture, 0.05f); // Center icon: closest to viewer
+                spriteRenderer->Begin(ShaderManager::SHADER_UI, centerTexture, 0.05f, 0, true); // Center icon: closest to viewer
                 uint32_t centerSpriteIndex = centerItem->spriteIndex;
                 const SpriteRegion* centerRegion = centerAtlas->GetRegion(centerSpriteIndex);
                 if (centerRegion) {

@@ -28,8 +28,6 @@ public:
             : name(itemName), atlasName("icon_menu"), spriteIndex(spriteIdx), typeId(type) {}
     };
 
-    static const std::wstring SHADER_PATH;
-
     RadialMenu(LPDIRECT3DDEVICE9 device, ShaderManager* shaderManager, BinFileManager* binFileManager);
     ~RadialMenu();
 

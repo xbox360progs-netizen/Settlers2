@@ -234,6 +234,13 @@ public:
     // Caches internally and propagates to all active effects
     void UpdateGlobalMatrices(const D3DXMATRIX* pView, const D3DXMATRIX* pProj);
     
+    // Centralized initialization: load all required shaders at startup
+    // Returns false if any shader fails to load
+    bool Init();
+    
+    // Get effect pointer by ShaderID (for direct parameter access when needed)
+    ID3DXEffect* GetEffect(ShaderID id);
+    
     // Get current frame ViewProjection (for external queries)
     const D3DXMATRIX& GetFrameViewProj() const { return m_frameViewProj; }
     
@@ -280,6 +287,7 @@ private:
     // Centralized shader storage (private for ReadOnly protection)
     std::map<std::string, Shader> m_shaders; // Key is string for LoadShader compatibility
     Shader* m_pActiveShader;
+    ID3DXEffect* m_pActiveEffect; // Active effect from centralized m_effects map
     ShaderID m_currentShaderID; // Track current shader for state caching
     UINT m_numPasses;
     
@@ -293,6 +301,12 @@ private:
     // Cached camera matrices (view + projection separately)
     D3DXMATRIX m_cachedView;
     D3DXMATRIX m_cachedProj;
+
+    // Centralized shader effect storage (mapped by ShaderID)
+    std::map<ShaderID, ID3DXEffect*> m_effects;
+
+    // Private shader loading helper
+    HRESULT LoadInternal(ShaderID id, const char* path, const char* technique);
 
     // Render command queue for Master Loop rendering
     std::vector<RenderCommand> m_commandQueue;

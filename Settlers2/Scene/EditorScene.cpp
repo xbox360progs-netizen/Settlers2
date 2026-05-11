@@ -84,6 +84,14 @@ void EditorScene::Load() {
         return;
     }
 
+    // Initialize ShaderManager with centralized shader loading
+    if (m_shaderManager) {
+        OutputDebugStringA("[EditorScene] Initializing ShaderManager...\n");
+        if (!m_shaderManager->Init()) {
+            OutputDebugStringA("[EditorScene] WARNING: Some shaders failed to load\n");
+        }
+    }
+
     OutputDebugStringA("[EditorScene] All dependencies OK, loading RadialMenu...\n");
     
     // Initialize Camera for world-space rendering

@@ -38,7 +38,7 @@ void ShaderManager::StateCache::ResetDirtyStates(LPDIRECT3DDEVICE9 device, const
 }
 
 ShaderManager::ShaderManager()
-    : m_pDevice(NULL), m_pActiveShader(NULL), m_numPasses(0), m_currentShaderID(SHADER_INVALID), m_isLocked(false), m_hasFrameViewProj(false) {
+    : m_pDevice(NULL), m_pActiveShader(NULL), m_pActiveEffect(NULL), m_numPasses(0), m_currentShaderID(SHADER_INVALID), m_isLocked(false), m_hasFrameViewProj(false) {
     // Reserve memory for command queue to avoid expensive reallocations on Xbox 360
     m_commandQueue.reserve(2000);
     m_drawBatches.reserve(500);
@@ -52,12 +52,138 @@ ShaderManager::~ShaderManager() {
     Shutdown();
 }
 
+// Private shader loading helper
+HRESULT ShaderManager::LoadInternal(ShaderID id, const char* path, const char* technique) {
+    if (!m_pDevice) {
+        OutputDebugStringA("[ShaderManager] ERROR: Device not initialized\n");
+        return E_FAIL;
+    }
+
+    if (m_effects.find(id) != m_effects.end()) {
+        // Shader already loaded
+        return S_OK;
+    }
+
+    ID3DXEffect* pEffect = NULL;
+    ID3DXBuffer* pErrorBuffer = NULL;
+
+    DWORD dwFlags = D3DXSHADER_DEBUG;
+    
+    HRESULT hr = D3DXCreateEffectFromFileA(
+        m_pDevice,
+        path,
+        NULL,
+        NULL,
+        dwFlags,
+        NULL,
+        &pEffect,
+        &pErrorBuffer
+    );
+
+    if (FAILED(hr)) {
+        if (pErrorBuffer) {
+            char errorMsg[512];
+            sprintf_s(errorMsg, "[ShaderManager] ERROR: Failed to load shader '%s': %s\n", 
+                     path, (char*)pErrorBuffer->GetBufferPointer());
+            OutputDebugStringA(errorMsg);
+            pErrorBuffer->Release();
+        } else {
+            char errorMsg[256];
+            sprintf_s(errorMsg, "[ShaderManager] ERROR: Failed to load shader '%s' (HRESULT: 0x%08X)\n", 
+                     path, hr);
+            OutputDebugStringA(errorMsg);
+        }
+        return hr;
+    }
+
+    // Set technique
+    if (technique && pEffect) {
+        D3DXHANDLE hTechnique = pEffect->GetTechniqueByName(technique);
+        if (hTechnique) {
+            pEffect->SetTechnique(hTechnique);
+        }
+    }
+
+    m_effects[id] = pEffect;
+    
+    char logMsg[256];
+    sprintf_s(logMsg, "[ShaderManager] Loaded shader ID %d from '%s'\n", id, path);
+    OutputDebugStringA(logMsg);
+
+    return S_OK;
+}
+
+// Centralized initialization: load all required shaders at startup
+bool ShaderManager::Init() {
+    if (!m_pDevice) {
+        OutputDebugStringA("[ShaderManager] ERROR: Cannot Init - device not initialized\n");
+        return false;
+    }
+
+    OutputDebugStringA("[ShaderManager] Init: Loading all shaders...\n");
+
+    bool allSuccess = true;
+
+    // Load all required shaders with hardcoded paths
+    if (FAILED(LoadInternal(SHADER_SPRITE, "game:\\Media\\Shaders\\Sprite2D.fx", "Sprite"))) {
+        OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_SPRITE\n");
+        allSuccess = false;
+    }
+
+    if (FAILED(LoadInternal(SHADER_SPRITE_CONSTANT_INSTANCED, "game:\\Media\\Shaders\\SpriteConstantInstanced.fx", "Sprite"))) {
+        OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_SPRITE_CONSTANT_INSTANCED\n");
+        allSuccess = false;
+    }
+
+    if (FAILED(LoadInternal(SHADER_RADIALMENU, "game:\\Media\\Shaders\\RadialMenu.fx", "RadialMenu"))) {
+        OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_RADIALMENU\n");
+        allSuccess = false;
+    }
+
+    if (FAILED(LoadInternal(SHADER_UI, "game:\\Media\\Shaders\\Sprite2D.fx", "Sprite"))) {
+        OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_UI\n");
+        allSuccess = false;
+    }
+
+    if (FAILED(LoadInternal(SHADER_TERRAIN, "game:\\Media\\Shaders\\Sprite2D.fx", "Sprite"))) {
+        OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_TERRAIN\n");
+        allSuccess = false;
+    }
+
+    if (allSuccess) {
+        OutputDebugStringA("[ShaderManager] Init: All shaders loaded successfully\n");
+    } else {
+        OutputDebugStringA("[ShaderManager] WARNING: Some shaders failed to load\n");
+    }
+
+    return allSuccess;
+}
+
+// Get effect pointer by ShaderID (for direct parameter access when needed)
+ID3DXEffect* ShaderManager::GetEffect(ShaderID id) {
+    std::map<ShaderID, ID3DXEffect*>::iterator it = m_effects.find(id);
+    if (it != m_effects.end()) {
+        return it->second;
+    }
+    return NULL;
+}
+
 HRESULT ShaderManager::Initialize(LPDIRECT3DDEVICE9 device) {
     m_pDevice = device;
     return S_OK;
 }
 
 void ShaderManager::Shutdown() {
+    // Release centralized shader effects
+    for (std::map<ShaderID, ID3DXEffect*>::iterator it = m_effects.begin();
+         it != m_effects.end(); ++it) {
+        if (it->second) {
+            it->second->Release();
+        }
+    }
+    m_effects.clear();
+
+    // Release legacy shader map
     for (std::map<std::string, Shader>::iterator it = m_shaders.begin();
          it != m_shaders.end(); ++it) {
         if (it->second.pEffect) {
@@ -67,6 +193,7 @@ void ShaderManager::Shutdown() {
     }
     m_shaders.clear();
     m_pActiveShader = NULL;
+    m_pActiveEffect = NULL;
     m_pDevice = NULL;
 }
 
@@ -374,7 +501,30 @@ void ShaderManager::Prepare(ShaderID id, const D3DXMATRIX* pViewProj) {
         EndCurrent();
     }
     
-    // Map ShaderID to shader name for legacy compatibility
+    // Use centralized m_effects map
+    std::map<ShaderID, ID3DXEffect*>::iterator it = m_effects.find(id);
+    if (it != m_effects.end() && it->second) {
+        m_pActiveEffect = it->second;
+        m_currentShaderID = id;
+        
+        // Get technique
+        D3DXHANDLE hTechnique = m_pActiveEffect->GetTechnique(0);
+        if (hTechnique) {
+            // Begin technique to get pass count (Xbox 360 D3DXEffect API)
+            m_pActiveEffect->SetTechnique(hTechnique);
+            m_pActiveEffect->Begin(&m_numPasses, 0);
+            m_pActiveEffect->End(); // We'll Begin again when rendering
+        }
+        
+        // Set ViewProjection if provided
+        if (pViewProj) {
+            SetGlobalUniforms(pViewProj);
+        }
+        
+        return;
+    }
+    
+    // Fallback to legacy m_shaders for compatibility during transition
     const char* shaderName = nullptr;
     switch (id) {
         case SHADER_SPRITE:
@@ -387,22 +537,23 @@ void ShaderManager::Prepare(ShaderID id, const D3DXMATRIX* pViewProj) {
             shaderName = "RADIALMENU";
             break;
         default:
+            char errorMsg[256];
+            sprintf_s(errorMsg, "[ShaderManager] Prepare: Shader ID %d not found in m_effects\n", id);
+            OutputDebugStringA(errorMsg);
             return;
     }
     
-    // Find and activate shader
-    std::map<std::string, Shader>::iterator it = m_shaders.find(shaderName);
-    if (it != m_shaders.end() && it->second.pEffect) {
-        m_pActiveShader = &(it->second);
+    std::map<std::string, Shader>::iterator legacyIt = m_shaders.find(shaderName);
+    if (legacyIt != m_shaders.end() && legacyIt->second.pEffect) {
+        m_pActiveShader = &(legacyIt->second);
         m_currentShaderID = id;
-        
-        // Begin shader
-        BeginShader();
-        
-        // Set global uniforms
         if (pViewProj) {
             SetGlobalUniforms(pViewProj);
         }
+    } else {
+        char errorMsg[256];
+        sprintf_s(errorMsg, "[ShaderManager] Prepare: Shader '%s' not found in legacy m_shaders\n", shaderName);
+        OutputDebugStringA(errorMsg);
     }
 }
 
