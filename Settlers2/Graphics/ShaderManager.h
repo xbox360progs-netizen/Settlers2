@@ -56,6 +56,9 @@ public:
         }
     };
 
+    // Custom draw callback type for non-standard rendering (e.g. RadialMenu shader)
+    typedef void (*CustomDrawFn)(LPDIRECT3DDEVICE9 pDevice, ShaderManager* pShaderMgr, void* pUserData);
+
     // Render command structure for queue-based rendering (Master Loop)
     struct RenderCommand {
         IDirect3DTexture9* pTexture;
@@ -63,11 +66,19 @@ public:
         DWORD vertexStart;
         DWORD vertexCount;
         DWORD primitiveCount;
-        int batchType; // 0 - Standard (Single), 1 - Instanced
+        int batchType; // 0 - Standard (Single), 1 - Instanced, 2 - Custom callback
         float depth;   // Z-layer: 1.0=far (ground), 0.5=mid (units), 0.1=near (UI)
         RenderStateBlock states;
         std::string shaderName;
         DWORD batchIndex; // For tracking batch sequence (for vertex offset calculation)
+        
+        // Custom draw callback (for batchType == 2)
+        CustomDrawFn customDraw;
+        void* customUserData;
+        
+        RenderCommand() : pTexture(NULL), pShader(NULL), vertexStart(0), vertexCount(0),
+            primitiveCount(0), batchType(0), depth(1.0f), batchIndex(0),
+            customDraw(NULL), customUserData(NULL) {}
         
         // Sorting operator: back-to-front for alpha blending
         // Higher depth = farther, drawn first. Lower depth = nearer, drawn on top.

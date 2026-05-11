@@ -252,14 +252,36 @@ void RadialMenu::Render()
         return;
     }
 
-    // Prepare render states for UI (called at start of Render as required)
-    if (m_renderer) {
-        m_renderer->PrepareForUI();
-    }
+    // Submit custom draw command to the queue instead of rendering directly
+    // This ensures RadialMenu respects the depth-based sorting system
+    ShaderManager::RenderCommand cmd;
+    cmd.batchType = 2; // Custom callback
+    cmd.depth = 0.08f; // UI layer, behind icons (0.1) but above everything else
+    cmd.shaderName = "RadialMenu";
+    cmd.customDraw = &RadialMenu::StaticDrawCallback;
+    cmd.customUserData = this;
+    
+    // Set render states for alpha-blended UI
+    cmd.states.zEnable = D3DZB_FALSE;
+    cmd.states.alphaBlendEnable = TRUE;
+    cmd.states.srcBlend = D3DBLEND_SRCALPHA;
+    cmd.states.destBlend = D3DBLEND_INVSRCALPHA;
+    cmd.states.cullMode = D3DCULL_NONE;
+    
+    m_shaderManager->Submit(cmd);
+}
 
-    // Save current shader
-    ShaderManager::Shader* prevShader = m_shaderManager->GetActiveShader();
+// Static callback for queue-based rendering
+void RadialMenu::StaticDrawCallback(LPDIRECT3DDEVICE9 pDevice, ShaderManager* pShaderMgr, void* pUserData)
+{
+    RadialMenu* self = static_cast<RadialMenu*>(pUserData);
+    if (!self) return;
+    self->DrawRing(pDevice, pShaderMgr);
+}
 
+// Actual draw logic (called from queue via callback)
+void RadialMenu::DrawRing(LPDIRECT3DDEVICE9 pDevice, ShaderManager* pShaderMgr)
+{
     D3DVIEWPORT9 viewport;
     float screenWidth = 1280.0f;
     float screenHeight = 720.0f;
@@ -303,14 +325,9 @@ void RadialMenu::Render()
     m_shaderManager->EndPass();
     m_shaderManager->EndShader();
 
-    RestoreRenderStates();
-
-    // Restore previous shader (if any)
-    if (prevShader) {
-        // Note: ShaderManager doesn't have a way to restore by pointer, 
-        // so we rely on the caller (SpriteRenderer) to set its shader
-        // before rendering icons
-    }
+    // StateCache will handle state restoration automatically
+    ShaderManager::StateCache* stateCache = m_shaderManager->GetStateCache();
+    if (stateCache) stateCache->MarkDirty();
 }
 
 void RadialMenu::SetupRenderStates()

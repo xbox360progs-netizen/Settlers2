@@ -59,6 +59,10 @@ public:
     void Render();
     void RenderIcons(SpriteRenderer* spriteRenderer);
     void SetRenderer(Renderer* renderer);
+    
+    // Queue-based rendering: static callback and instance method
+    static void StaticDrawCallback(LPDIRECT3DDEVICE9 pDevice, ShaderManager* pShaderMgr, void* pUserData);
+    void DrawRing(LPDIRECT3DDEVICE9 pDevice, ShaderManager* pShaderMgr);
 
     // Color customization
     void SetInnerColor(float r, float g, float b, float a) { m_innerColor = D3DXVECTOR4(r, g, b, a); }

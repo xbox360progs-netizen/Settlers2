@@ -346,6 +346,16 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     for (size_t i = 0; i < m_commandQueue.size(); ++i) {
         const RenderCommand& cmd = m_commandQueue[i];
         
+        // Custom draw callback: manages its own shader/state/pass lifecycle
+        if (cmd.batchType == 2) {
+            if (cmd.customDraw) {
+                m_stateCache.ResetDirtyStates(m_pDevice, cmd.states);
+                cmd.customDraw(m_pDevice, this, cmd.customUserData);
+            }
+            continue;
+        }
+        
+        // Standard/Instanced rendering: managed shader/texture/pass lifecycle
         // Set shader if changed
         if (m_pActiveShader != cmd.pShader) {
             if (m_pActiveShader) {
@@ -362,14 +372,11 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         SetTexture("g_texture", cmd.pTexture);
         Commit();
         
-        // Draw this command based on batch type (Single vs Instanced)
+        // Draw this command based on batch type
         BeginPass(0);
         
-        // Switch based on render type
         switch (cmd.batchType) {
             case 0: // Standard/Single sprite rendering
-                // Use BaseVertexIndex parameter for ring buffer support
-                // This tells GPU where this batch's vertices start in the buffer
                 m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 
                                                cmd.vertexStart, // BaseVertexIndex
                                                0,               // MinIndex
@@ -390,7 +397,6 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                 break;
                 
             default:
-                // Default to standard rendering with vertex offset
                 m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 
                                                cmd.vertexStart, // BaseVertexIndex
                                                0,               // MinIndex
