@@ -17,6 +17,10 @@ Map::Map(int groundWidth, int groundHeight, int otherWidth, int otherHeight)
     // Other layers: 40x40
     m_layers[static_cast<int>(Objects)] = new TileLayer(Objects, otherWidth, otherHeight);
     m_layers[static_cast<int>(Overlay)] = new TileLayer(Overlay, otherWidth, otherHeight);
+
+    // Initialize resource map (same size as Objects layer: 40x40)
+    int resourceMapSize = otherWidth * otherHeight;
+    m_resourceMap.resize(resourceMapSize, World::ResourceNode());
 }
 
 Map::~Map()
@@ -318,6 +322,69 @@ void Map::GetTilesInView(Camera* camera, LayerType layer, int& minX, int& minY, 
     minY = max(0, minY - 1);
     maxX = maxX + 1;
     maxY = maxY + 1;
+}
+
+// Resource management
+ResourceNode& Map::GetResourceNode(int x, int y)
+{
+    int layerWidth = m_width * 2;  // Objects layer is 40x40
+    int layerHeight = m_height * 2;
+    
+    if (x < 0 || x >= layerWidth || y < 0 || y >= layerHeight) {
+        static ResourceNode invalidNode;
+        return invalidNode;
+    }
+    
+    int index = y * layerWidth + x;
+    if (index >= 0 && index < static_cast<int>(m_resourceMap.size())) {
+        return m_resourceMap[index];
+    }
+    
+    static ResourceNode invalidNode;
+    return invalidNode;
+}
+
+const ResourceNode& Map::GetResourceNode(int x, int y) const
+{
+    int layerWidth = m_width * 2;  // Objects layer is 40x40
+    int layerHeight = m_height * 2;
+    
+    if (x < 0 || x >= layerWidth || y < 0 || y >= layerHeight) {
+        static ResourceNode invalidNode;
+        return invalidNode;
+    }
+    
+    int index = y * layerWidth + x;
+    if (index >= 0 && index < static_cast<int>(m_resourceMap.size())) {
+        return m_resourceMap[index];
+    }
+    
+    static ResourceNode invalidNode;
+    return invalidNode;
+}
+
+void Map::SetResourceNode(int x, int y, ResourceType type, int amount, bool isVisible)
+{
+    int layerWidth = m_width * 2;  // Objects layer is 40x40
+    int layerHeight = m_height * 2;
+    
+    if (x < 0 || x >= layerWidth || y < 0 || y >= layerHeight) {
+        return;
+    }
+    
+    int index = y * layerWidth + x;
+    if (index >= 0 && index < static_cast<int>(m_resourceMap.size())) {
+        m_resourceMap[index].type = type;
+        m_resourceMap[index].amount = amount;
+        m_resourceMap[index].isVisible = isVisible;
+    }
+}
+
+void Map::ClearResources()
+{
+    for (size_t i = 0; i < m_resourceMap.size(); ++i) {
+        m_resourceMap[i] = World::ResourceNode();
+    }
 }
 
 } // namespace World

@@ -299,6 +299,7 @@
     <ClInclude Include="World\EntityManager.h" />
     <ClInclude Include="World\Map.h" />
     <ClInclude Include="World\MapSerializer.h" />
+    <ClInclude Include="World\ResourceNode.h" />
     <ClInclude Include="World\Systems\AISystem.h" />
     <ClInclude Include="World\Systems\EconomySystem.h" />
     <ClInclude Include="World\Systems\PathfindingSystem.h" />

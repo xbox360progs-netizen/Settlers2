@@ -51,6 +51,10 @@ EditorScene::EditorScene()
     , m_selectedTileY(0)
     , m_hasSelection(false)
     , m_inputController(nullptr)
+    , m_currentState(STATE_IDLE)
+    , m_activeResourceType(World::ResourceType_None)
+    , m_phantomTileX(0)
+    , m_phantomTileY(0)
 {
 }
 
@@ -285,11 +289,53 @@ void EditorScene::Update(float deltaTime) {
 				m_selectedTileX = tileX;
 				m_selectedTileY = tileY;
 				m_hasSelection = true;
+				
+				// Update phantom tile position when in PLACING state
+				if (m_currentState == STATE_PLACING) {
+					m_phantomTileX = tileX;
+					m_phantomTileY = tileY;
+				}
 			}
+		}
+
+		// FSM: Handle resource placement state machine
+		switch (m_currentState) {
+			case STATE_IDLE:
+				// Normal camera movement and tile painting
+				break;
+				
+			case STATE_SELECTING:
+				// GridMenu is open, waiting for selection
+				break;
+				
+			case STATE_PLACING:
+				// Phantom resource follows cursor
+				// A button: Place resource and open OSK
+				if (m_inputController->IsButtonAPressed()) {
+					// Transition to INPUT_AMOUNT state
+					m_currentState = STATE_INPUT_AMOUNT;
+					// TODO: Open OSK for amount input
+					// For now, use default amount of 500
+					if (m_mapEditor && m_mapEditor->GetMap()) {
+						m_mapEditor->GetMap()->SetResourceNode(m_phantomTileX, m_phantomTileY, m_activeResourceType, 500, true);
+					}
+					m_currentState = STATE_PLACING; // Return to placing for multiple placements
+				}
+				// B button: Cancel placement
+				if (m_inputController->IsButtonBPressed()) {
+					m_currentState = STATE_IDLE;
+					m_activeResourceType = World::ResourceType_None;
+				}
+				break;
+				
+			case STATE_INPUT_AMOUNT:
+				// OSK is open, waiting for input
+				// This will be handled by OSK callback
+				break;
 		}
 	}
 
-	// === CAMERA CONTROL (only when menu is NOT active) ===
+	// === CAMERA CONTROL (only when menu is NOT active and not in PLACING state) ===
 	if (!menuActive && m_camera) {
 		float moveSpeed = 500.0f * deltaTime; // pixels per second
 		float stickX, stickY;
@@ -431,6 +477,63 @@ void EditorScene::Render() {
             // This is a placeholder - should use a proper selection shader
             D3DXVECTOR3 selectionPos(tileCenterX, tileCenterY, 0.1f);
             // Submit to render queue (implementation depends on your sprite renderer API)
+        }
+    }
+
+    // === STEP 2.6: Render phantom resource (alpha 0.5) ===
+    if (m_currentState == STATE_PLACING && m_activeResourceType != World::ResourceType_None) {
+        float phantomX, phantomY;
+        CoordinateSystem& coords = CoordinateSystem::GetInstance();
+        
+        if (m_currentLayer == World::Ground) {
+            coords.GroundTileToWorldCenter(m_phantomTileX, m_phantomTileY, phantomX, phantomY);
+        } else {
+            coords.NodeTileToWorld(m_phantomTileX, m_phantomTileY, phantomX, phantomY);
+        }
+        
+        // Render phantom resource with alpha 0.5
+        // This is a placeholder - should use proper sprite rendering with alpha
+        if (m_spriteRenderer && m_shaderManager) {
+            // TODO: Get texture for the active resource type
+            // For now, just a placeholder
+            D3DXVECTOR3 phantomPos(phantomX, phantomY, 0.05f);
+            // Submit render command with alpha = 0.5
+        }
+    }
+
+    // === STEP 2.7: Render placed resources on map ===
+    if (m_mapEditor && m_mapEditor->GetMap()) {
+        World::Map* map = m_mapEditor->GetMap();
+        int layerWidth = map->GetWidth() * 2;  // Objects layer is 40x40
+        int layerHeight = map->GetHeight() * 2;
+        
+        CoordinateSystem& coords = CoordinateSystem::GetInstance();
+        
+        for (int y = 0; y < layerHeight; y++) {
+            for (int x = 0; x < layerWidth; x++) {
+                const World::ResourceNode& node = map->GetResourceNode(x, y);
+                if (node.type != World::ResourceType_None && node.isVisible) {
+                    float worldX, worldY;
+                    coords.NodeTileToWorld(x, y, worldX, worldY);
+                    
+                    // TODO: Render resource icon at (worldX, worldY)
+                    // Placeholder for resource rendering
+                    if (m_spriteRenderer) {
+                        D3DXVECTOR3 resourcePos(worldX, worldY, 0.02f);
+                        // Submit render command for resource icon
+                    }
+                    
+                    // Render amount text next to resource
+                    if (m_textManager && node.amount > 0) {
+                        char amountStr[32];
+                        sprintf_s(amountStr, "%d", node.amount);
+                        // Convert world coordinates to screen coordinates for text
+                        float screenX, screenY;
+                        m_camera->WorldToScreen(worldX, worldY, screenX, screenY);
+                        m_textManager->DrawTextToScreen(amountStr, screenX + 20.0f, screenY, 0xFFFFFFFF, 0.8f);
+                    }
+                }
+            }
         }
     }
 

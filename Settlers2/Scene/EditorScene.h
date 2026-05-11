@@ -11,12 +11,22 @@
 #include "../Graphics/TextManager.h"
 #include "../Editor/MapEditor.h"
 #include "../World/Map.h"
+#include "../World/ResourceNode.h"
 #include "../Graphics/Renderer.h"
 #include "../Graphics/BinFileManager.h"
 #include "../Input/InputManager.h"
 #include "../Input/InputController.h"
 
 namespace Scene {
+
+// FSM states for resource placement
+enum EditorState
+{
+    STATE_IDLE = 0,
+    STATE_SELECTING,
+    STATE_PLACING,
+    STATE_INPUT_AMOUNT
+};
 
 class EditorScene : public Scene {
 public:
@@ -75,6 +85,12 @@ EditorScene();
 
     // Input controller for world coordinate translation
     Logic::InputController* m_inputController;
+
+    // FSM state for resource placement
+    EditorState m_currentState;
+    World::ResourceType m_activeResourceType;
+    int m_phantomTileX;
+    int m_phantomTileY;
 };
 
 } // namespace Scene

@@ -1,7 +1,9 @@
 #pragma once
 
-#include "TileLayer.h"
 #include <vector>
+#include "TileLayer.h"
+#include "TileType.h"
+#include "ResourceNode.h"
 #include <d3dx9math.h>
 
 class Camera;
@@ -39,10 +41,19 @@ public:
     // Get tiles in view for frustum culling
     void GetTilesInView(Camera* camera, LayerType layer, int& minX, int& minY, int& maxX, int& maxY);
 
+    // Resource management
+    ResourceNode& GetResourceNode(int x, int y);
+    const ResourceNode& GetResourceNode(int x, int y) const;
+    void SetResourceNode(int x, int y, ResourceType type, int amount, bool isVisible = true);
+    void ClearResources();
+
 private:
     int m_width;
     int m_height;
     std::vector<TileLayer*> m_layers;
+
+    // Resource map for the logical grid (staggered, same size as Objects layer)
+    std::vector<ResourceNode> m_resourceMap;
 };
 
 } // namespace World
