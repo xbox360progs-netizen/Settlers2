@@ -316,7 +316,6 @@ void Renderer::DrawSingleSprite(Texture* texture, float x, float y, float width,
         m_shaderManager.BeginShader();
         m_shaderManager.BeginPass(0);
         pShader->pEffect->CommitChanges();
-        m_pDevice->SetTexture(0, tex);
 
         m_pDevice->SetVertexDeclaration(m_pVertexDecl);
         m_pDevice->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 2, vertices, sizeof(SpriteVertex));
