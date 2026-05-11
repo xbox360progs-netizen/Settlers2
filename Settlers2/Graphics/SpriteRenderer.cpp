@@ -106,8 +106,8 @@ HRESULT SpriteRenderer::Initialize(LPDIRECT3DDEVICE9 device, ShaderManager* shad
     m_pShaderManager = shaderManager;
     // Force 4096 for performance - ignore any passed value
     m_maxSprites = 4096;
-    char buf[128];
-    sprintf(buf, "[SR] Initialized with maxSprites=%d\n", m_maxSprites);
+    char buf[256];
+    sprintf(buf, "[SR::Initialize] this=%p, m_pDevice=%p, m_pShaderManager=%p, maxSprites=%d\n", this, m_pDevice, m_pShaderManager, m_maxSprites);
     OutputDebugStringA(buf);
 
     // Calculate vertex buffer size (4 vertices per sprite * sizeof(SpriteVertex))
@@ -639,6 +639,26 @@ void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float
 
 void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType, bool isUI) {
 
+    char buf[256];
+    sprintf(buf, "[SR::Begin] ENTRY this=%p, m_pDevice=%p, m_pShaderManager=%p\n", this, m_pDevice, m_pShaderManager);
+    OutputDebugStringA(buf);
+
+    if (!m_pDevice) {
+        sprintf(buf, "[SR::Begin] CRITICAL ERROR: m_pDevice is NULL! this=%p\n", this);
+        OutputDebugStringA(buf);
+        return;
+    }
+
+    // Проверка Vertex Declaration
+    if (!m_pVertexDecl) {
+        sprintf(buf, "[SR::Begin] WARNING: Vertex Declaration is MISSING! this=%p\n", this);
+        OutputDebugStringA(buf);
+    }
+    if (!m_pConstantInstancedDecl) {
+        sprintf(buf, "[SR::Begin] WARNING: Constant Instanced Declaration is MISSING! this=%p\n", this);
+        OutputDebugStringA(buf);
+    }
+
     // If state changed, flush previous batch
     if (m_isBatching) {
         // AUTO-FLUSH: If texture changed and buffer has vertices, flush first
@@ -728,9 +748,30 @@ void SpriteRenderer::Draw(float x, float y, float width, float height,
                           DWORD color) {
     // CRITICAL: Check device and vertex buffer to prevent Access Violation
     if (!m_pDevice || !m_pVB[m_activeBuffer]) {
-        OutputDebugStringA("[SR] CRITICAL: Device or Vertex Buffer is NULL!\n");
+        char buf[256];
+        sprintf(buf, "[SR::Draw] CRITICAL: m_pDevice=%p, m_pVB[%d]=%p, this=%p\n", m_pDevice, m_activeBuffer, m_pVB[m_activeBuffer], this);
+        OutputDebugStringA(buf);
         return;
     }
+
+    // ПРОВЕРКА 2: Индекс спрайта
+    if (m_spriteCount >= m_maxSprites) {
+        char buf[256];
+        sprintf(buf, "[SR::Draw] ERROR: Too many sprites! m_spriteCount=%d, m_maxSprites=%d\n", m_spriteCount, m_maxSprites);
+        OutputDebugStringA(buf);
+        return;
+    }
+
+    // Проверка staging buffer
+    if (!m_pStagingBuffer) {
+        char buf[256];
+        sprintf(buf, "[SR::Draw] CRITICAL: Staging buffer is NULL! this=%p\n", this);
+        OutputDebugStringA(buf);
+        return;
+    }
+	char buf[256];
+    sprintf(buf, "[SR::Draw] About to copy data to staging buffer... spriteCount=%d\n", m_spriteCount);
+    OutputDebugStringA(buf);
 
     if (!m_isBatching) {
         OutputDebugStringA("Draw called without Begin!\n");

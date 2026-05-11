@@ -86,7 +86,15 @@ void MenuScene::Initialize(LPDIRECT3DDEVICE9 device, SpriteRenderer* spriteRende
   m_gamepad = gamepad;
   m_textureLoader = textureLoader;
   
+  char buf[256];
+  sprintf(buf, "[MenuScene::Initialize] EXTENDED this=%p, m_device=%p, m_spriteRenderer=%p, m_renderer=%p\n", this, m_device, m_spriteRenderer, m_renderer);
+  OutputDebugStringA(buf);
   std::cout << "[MenuScene] Initialize called" << std::endl;
+  
+  if (m_spriteRenderer) {
+    sprintf(buf, "[MenuScene::Initialize] m_spriteRenderer->GetDevice()=%p\n", m_spriteRenderer->GetDevice());
+    OutputDebugStringA(buf);
+  }
   
   LoadTextures();
 }
@@ -205,18 +213,31 @@ void MenuScene::Update(float deltaTime) {
 }
 
 void MenuScene::Render() {
+  char buf[512];
+  sprintf(buf, "[MenuScene::Render] this=%p, m_spriteRenderer=%p, m_device=%p\n", this, m_spriteRenderer, m_device);
+  OutputDebugStringA(buf);
+
+  if (m_spriteRenderer) {
+    sprintf(buf, "[MenuScene::Render] m_spriteRenderer->GetDevice()=%p\n", m_spriteRenderer->GetDevice());
+    OutputDebugStringA(buf);
+  }
+
   // 1. Базовая проверка
   if (!m_spriteRenderer || !m_backgroundTexture.GetTexture()) return;
 
   LPDIRECT3DTEXTURE9 bgTex = m_backgroundTexture.GetTexture();
+  sprintf(buf, "[MenuScene::Render] bgTex=%p\n", bgTex);
+  OutputDebugStringA(buf);
 
   // 2. Подготовка (SR сам выставит шейдер ID 0 и стейты)
   m_spriteRenderer->Begin(SHADER_SPRITE, bgTex, 0.0f, 0, false);
 
   // 3. Отправка спрайта (Scene просто передает данные)
-  float w = 1280.0f;
-  float h = 720.0f;
-  m_spriteRenderer->Draw(0.0f, 0.0f, w, h, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
+  // ВРЕМЕННО ЗАКОММЕНТИРОВАНО ДЛЯ ДИАГНОСТИКИ
+  // float w = 1280.0f;
+  // float h = 720.0f;
+  // m_spriteRenderer->Draw(0.0f, 0.0f, w, h, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
+  OutputDebugStringA("[MenuScene::Render] Draw() call SKIPPED for diagnosis\n");
 
   // 4. Финализация (Здесь произойдет реальный Draw Call)
   m_spriteRenderer->End();
