@@ -40,7 +40,8 @@ struct VS_OUTPUT
 VS_OUTPUT VS(VS_INPUT Input)
 {
     VS_OUTPUT Output;
-    Output.Position = mul(float4(Input.Position, 1.0), matWVP);
+    // Screen-space rendering: no ViewProj transformation for UI
+    Output.Position = float4(Input.Position, 1.0);
     Output.TexCoord = Input.TexCoord;
     return Output;
 }

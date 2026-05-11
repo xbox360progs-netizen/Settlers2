@@ -23,7 +23,8 @@ struct VS_OUTPUT {
 VS_OUTPUT MainVS(VS_INPUT input)
 {
     VS_OUTPUT output;
-    output.Pos = mul(input.Pos, WorldViewProjection);
+    // Screen-space rendering: no ViewProj transformation for UI
+    output.Pos = input.Pos;
     output.UV = input.UV;
     output.CenterUV = input.UV * 2.0 - 1.0;
     return output;
