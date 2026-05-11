@@ -1,5 +1,6 @@
 //--------------------------------------------------------------------------------------
 // Sprite.fx - Legacy sprite shader for backward compatibility
+// Xbox 360 compatible: uses vs_2_0/ps_2_0 shader profiles
 //--------------------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------------------
@@ -61,14 +62,15 @@ float4 PS_Main(VS_OUTPUT Input) : COLOR0
 }
 
 //--------------------------------------------------------------------------------------
-// Technique
+// Technique - Renamed to SpriteBatchTech for ShaderManager compatibility
+// Xbox 360: uses vs_2_0/ps_2_0 profiles (not vs_3_0/ps_3_0)
 //--------------------------------------------------------------------------------------
-technique Sprite
+technique SpriteBatchTech
 {
     pass P0
     {
-        VertexShader = compile vs_3_0 VS_Main();
-        PixelShader = compile ps_3_0 PS_Main();
+        VertexShader = compile vs_2_0 VS_Main();
+        PixelShader = compile ps_2_0 PS_Main();
         ZEnable = TRUE;
         ZWriteEnable = TRUE;
         AlphaBlendEnable = TRUE;

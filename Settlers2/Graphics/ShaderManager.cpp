@@ -1022,22 +1022,32 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     }
     
     // === CLEANUP: End any active pass and shader ===
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] Cleanup: Ending pass...\n");
     if (passActive) {
         EndPass();
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] EndPass done\n");
     }
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] Ending current shader...\n");
     EndCurrent();
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] EndCurrent done\n");
     
     // Unlock state after ExecuteQueue completes
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] Unlocking...\n");
     Unlock();
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] Unlock done\n");
     
     // Clear command queue after execution
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] Clearing queue...\n");
     m_commandQueue.clear();
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] Queue cleared\n");
     
     // === CLEANUP: Reset all texture slots to NULL ===
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] Resetting textures...\n");
     m_pDevice->SetTexture(0, NULL);
     m_pDevice->SetTexture(1, NULL);
     m_pDevice->SetTexture(2, NULL);
     m_pDevice->SetTexture(3, NULL);
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] Textures reset\n");
     
     // Reset vertex offset tracking for next frame
     s_currentVertexOffset = 0;
@@ -1045,6 +1055,7 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     
     // Clear frame ViewProj for next frame
     m_hasFrameViewProj = false;
+    OutputDebugStringA("[ShaderManager::ExecuteQueue] FINISHED\n");
 }
 
 void ShaderManager::ExecuteBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 

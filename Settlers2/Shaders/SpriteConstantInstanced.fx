@@ -1,5 +1,6 @@
 // Xbox 360 Constant Buffer Sprite Shader
 // Unified register layout for global constants and instance data
+// Xbox 360 compatible: uses vs_2_0/ps_2_0 shader profiles
 
 // === GLOBAL CONSTANTS (c0-c10) ===
 float4x4 matOrtho : register(c0);
@@ -47,10 +48,10 @@ float4 SpriteConstantInstPS(VS_OUTPUT input) : COLOR0 {
     return texColor * input.color;
 }
 
-technique SpriteConstantInstancedTech {
+technique SpriteBatchTech {
     pass P0 {
-        VertexShader = compile vs_3_0 SpriteConstantInstVS();
-        PixelShader  = compile ps_3_0 SpriteConstantInstPS();
+        VertexShader = compile vs_2_0 SpriteConstantInstVS();
+        PixelShader  = compile ps_2_0 SpriteConstantInstPS();
 
         AlphaBlendEnable = TRUE;
         SrcBlend = SRCALPHA;
