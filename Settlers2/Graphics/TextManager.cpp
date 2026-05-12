@@ -261,6 +261,13 @@ void TextManager::DrawTextToScreen(const std::string& text, float x, float y, D3
             text.c_str(), x, y, color);
     OutputDebugStringA(debugBuf);
     
+    // Получаем текстуру атласа напрямую из BitmapFont
+    LPDIRECT3DTEXTURE9 fontTex = m_font->GetTexture();
+    
+    // Логируем адрес текстуры
+    sprintf(debugBuf, "[TextManager] Using texture: %p\n", fontTex);
+    OutputDebugStringA(debugBuf);
+    
     DrawString(text, x, y, color, scale, fontID, true, style, 0.05f);
     
     sprintf(debugBuf, "[TextManager::DrawTextToScreen] Completed drawing '%s'\n", text.c_str());

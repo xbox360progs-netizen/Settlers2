@@ -4,9 +4,51 @@
 #include <vector>
 #include <string>
 #include "Renderer.h"
-#include "ShaderManager.h"
 #include "SpriteAtlas.h"
 #include <xtl.h>
+
+// Render command structure for queue-based rendering (Master Loop)
+struct RenderCommand {
+    IDirect3DTexture9* pTexture;
+    int shaderID;   // Shader handle (ShaderHandle enum) instead of raw pointer
+    DWORD vertexStart;
+    DWORD vertexCount;
+    DWORD primitiveCount;
+    int batchType; // 0 - Standard (Single), 1 - Instanced, 2 - Custom callback
+    float depth;   // Z-layer: 1.0=far (ground), 0.5=mid (units), 0.1=near (UI)
+    int layer;     // Logical layer: 0=Terrain, 1=Objects, 2=UI (for composite depth)
+    bool isUI;     // Screen-space rendering (skip camera matrix)
+    struct RenderStateBlock {
+        DWORD zEnable;
+        DWORD alphaBlendEnable;
+        DWORD srcBlend;
+        DWORD destBlend;
+        DWORD cullMode;
+        
+        RenderStateBlock() 
+            : zEnable(D3DZB_FALSE), alphaBlendEnable(FALSE), 
+              srcBlend(D3DBLEND_SRCALPHA), destBlend(D3DBLEND_INVSRCALPHA),
+              cullMode(D3DCULL_NONE) {}
+    } states;
+    DWORD batchIndex; // For tracking batch sequence (for vertex offset calculation)
+    
+    // World position for camera transform (if not isUI)
+    float worldX, worldY;
+    
+    // UV coordinates for partial texture rendering (text, sprites)
+    float u0, v0, u1, v1; // Texture region to sample
+    
+    // Screen position for UI rendering (if isUI)
+    float screenX, screenY, screenW, screenH;
+    
+    // Color tint for render command
+    D3DCOLOR color;
+    
+    // Custom draw callback (for batchType == 2)
+    typedef void (*CustomDrawFn)(LPDIRECT3DDEVICE9 pDevice, ShaderManager* pShaderMgr, void* pUserData);
+    CustomDrawFn customDraw;
+    void* customUserData;
+};
 
 // Forward declaration for ThreadData struct
 class SpriteRenderer;
@@ -28,24 +70,8 @@ struct ThreadData {
     SpriteRenderer* pRenderer;
 };
 
-// Render command structure for batch sorting (by shaderId)
-struct RenderCommand {
-    SpriteAtlas* pAtlas;
-    int shaderId;            // ID of the shader to use
-    float x, y, w, h;
-    float u0, v0, u1, v1;
-    DWORD color;
-    float depth; // For Z-order sorting
-
-    // Sorting operator: by shaderId, then atlas, then depth
-    bool operator<(const RenderCommand& other) const {
-        if (shaderId != other.shaderId)
-            return shaderId < other.shaderId;
-        if (pAtlas != other.pAtlas)
-            return pAtlas < other.pAtlas;
-        return depth < other.depth;
-    }
-};
+// Use RenderCommand from ShaderManager.h instead of local definition
+#include "ShaderManager.h"
 
 // Instance data structure for hardware instancing on Xbox 360
 struct SpriteInstance {
@@ -202,6 +228,10 @@ private:
     void CreateQuad(float x, float y, float width, float height,
                     float u0, float v0, float u1, float v1,
                     DWORD color);
+
+    void CreateQuadWithTexture(float x, float y, float width, float height,
+                           float u0, float v0, float u1, float v1,
+                           DWORD color, LPDIRECT3DTEXTURE9 pTexture);
 
     void CreateQuadRotated(float x, float y, float width, float height, float angle,
                           float u0, float v0, float u1, float v1,

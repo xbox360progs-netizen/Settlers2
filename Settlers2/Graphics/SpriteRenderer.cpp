@@ -877,7 +877,8 @@ void SpriteRenderer::DrawWithTexture(float x, float y, float width, float height
         m_pDevice->SetTexture(0, pTexture);
     }
 
-    Draw(x, y, width, height, u0, v0, u1, v1, color);
+    // Create quad with texture - pass texture to CreateQuad
+    CreateQuadWithTexture(x, y, width, height, u0, v0, u1, v1, color, pTexture);
 }
 
 void SpriteRenderer::DrawRotated(float x, float y, float width, float height, float angle,
@@ -1682,6 +1683,12 @@ void SpriteRenderer::FillStagingArea(int startIdx, int count, const SpriteData* 
 void SpriteRenderer::CreateQuad(float x, float y, float width, float height,
                                 float u0, float v0, float u1, float v1,
                                 DWORD color) {
+    CreateQuadWithTexture(x, y, width, height, u0, v0, u1, v1, color, m_currentTexture);
+}
+
+void SpriteRenderer::CreateQuadWithTexture(float x, float y, float width, float height,
+                                       float u0, float v0, float u1, float v1,
+                                       DWORD color, LPDIRECT3DTEXTURE9 pTexture) {
     OutputDebugStringA("[SR::CreateQuad] ENTRY\n");
 
     // XBOX 360 CRITICAL: Check for sprite limit BEFORE any calculations
@@ -1740,6 +1747,37 @@ void SpriteRenderer::CreateQuad(float x, float y, float width, float height,
     v[3].x = x0; v[3].y = y1; v[3].z = z; v[3].color = color; v[3].u = u0; v[3].v = v1;
 
     OutputDebugStringA("[SR::CreateQuad] Vertex data written\n");
+
+    // Create command with texture for ShaderManager
+    RenderCommand cmd;
+    
+    // Position and UV
+    cmd.x = x;
+    cmd.y = y;
+    cmd.w = width;
+    cmd.h = height;
+    cmd.u0 = u0;
+    cmd.v0 = v0;
+    cmd.u1 = u1;
+    cmd.v1 = v1;
+    
+    // Color
+    cmd.color = color;
+    
+    // Texture and rendering
+    cmd.pTexture = pTexture; // CRITICAL: Pass texture to ShaderManager
+    cmd.shaderID = SHADER_SPRITE;
+    cmd.vertexStart = 0; // Will be calculated in ExecuteQueue
+    cmd.vertexCount = 4; // 4 vertices for quad
+    cmd.primitiveCount = 2; // 2 triangles for quad
+    cmd.batchType = 0; // Standard batch
+    cmd.depth = 0.0f;
+    cmd.isUI = true;
+    cmd.layer = 2; // UI layer
+    cmd.states = RenderStateBlock(); // Default render states
+
+    // Add command to queue
+    m_pShaderManager->PushCommand(cmd);
 
     m_spriteCount++;
 
