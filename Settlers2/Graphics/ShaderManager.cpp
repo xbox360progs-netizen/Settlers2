@@ -982,7 +982,7 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
             continue;
         }
         
-        // === LAZY SHADER SWITCHING ===
+// === LAZY SHADER SWITCHING ===
         ShaderID cmdShaderID = static_cast<ShaderID>(cmdShader);
         if (cmdShaderID != currentShaderID) {
             // End previous pass if active
@@ -997,6 +997,20 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
             // Prepare new shader (handles BeginShader + global uniforms)
             Prepare(cmdShaderID, pViewProj);
             currentShaderID = cmdShaderID;
+            
+            // Begin shader and pass ONLY when switching shaders
+            if (m_pActiveEffect) {
+                m_pActiveEffect->Begin(&m_numPasses, 0);
+            }
+            BeginPass(0);
+            passActive = true;
+        } else if (!passActive) {
+            // Shader didn't change, but pass is not active - need to reopen
+            if (m_pActiveEffect) {
+                m_pActiveEffect->Begin(&m_numPasses, 0);
+            }
+            BeginPass(0);
+            passActive = true;
         }
         
         // Apply render states for this command
@@ -1005,25 +1019,8 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         // === CENTRALIZED PARAMETER DISPATCH ===
         SetShaderParameters(cmd);
         
-        // === XBOX 360 SAFE PASS MANAGEMENT ===
-        // Begin shader and pass for each command (isolated rendering)
-        
-        // Begin shader for this command
-        if (m_pActiveEffect) {
-            m_pActiveEffect->Begin(&m_numPasses, 0);
-        }
-        
-        // Begin pass for this command
-        BeginPass(0);
-        passActive = true;
-
-        // GPU HANG PREVENTION: Check if effect is valid before drawing
-        if (!m_pActiveEffect) {
-            OutputDebugStringA("[ShaderManager] ERROR: m_pActiveEffect is NULL, skipping draw\n");
-            continue;
-        }
-
         // === DRAW EXECUTION ===
+        // (Removed BeginPass from here - now above)
         
         // XBOX 360 SAFETY: Validate buffer sizes before drawing
         {   
@@ -1037,7 +1034,7 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
             }
         }
         
-// Draw and immediately close pass to prevent shader state corruption
+// Draw without closing pass - keep it open for next draw with same shader
         char drawDebug[256];
         sprintf(drawDebug, "[ExecuteQueue] Drawing cmd %d: start=%d, vertCount=%d, primCount=%d\n",
                 (int)i, cmd.vertexStart, cmd.vertexCount, cmd.primitiveCount);
@@ -1074,16 +1071,18 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                 break;
         }
         
-        // XBOX 360 CRITICAL: Close pass immediately after each draw
-        if (passActive) {
-            EndPass();
-            passActive = false;
-            OutputDebugStringA("[ShaderManager::ExecuteQueue] Pass closed immediately after draw\n");
-        }
-        
+        // NOTE: Don't close pass here - keep it open for next command with same shader
+        // Pass will be closed when shader changes or at end of queue
+
         char loopBuf[256];
         sprintf(loopBuf, "[ShaderManager::ExecuteQueue] Completed cmd %d/%d, continuing loop...\n", (int)i+1, (int)m_commandQueue.size());
         OutputDebugStringA(loopBuf);
+    }
+    
+    // Close pass at end of all draws
+    if (passActive) {
+        EndPass();
+        passActive = false;
     }
     
      // === CLEANUP: End current shader only ===
