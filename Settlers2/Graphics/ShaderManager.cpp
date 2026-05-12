@@ -944,9 +944,26 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
             lastShaderID = static_cast<ShaderID>(cmdShader);
             OutputDebugStringA("[ShaderManager::ExecuteQueue] New shader prepared\n");
             
-            // Use unified vertex declaration for all shaders (text now compatible with sprite)
-            m_pDevice->SetVertexDeclaration(pDecl);
-            m_pDevice->SetStreamSource(0, pVB, 0, vertexStride);
+            // XBOX 360 FIX: Use proper vertex declaration for text (shaderID=7)
+            if (cmdShader == 7) { // FontShader
+                // Text vertex structure: float3 pos + float2 uv + DWORD color + float2 padding
+                D3DVERTEXELEMENT9 textDecl[] = {
+                    { 0, 0, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0 },
+                    { 0, 12, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 0 },
+                    { 0, 20, D3DDECLTYPE_D3DCOLOR, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_COLOR, 0 },
+                    D3DDECL_END()
+                };
+                static LPDIRECT3DVERTEXDECLARATION9 pTextDecl = nullptr;
+                if (!pTextDecl) {
+                    m_pDevice->CreateVertexDeclaration(textDecl, &pTextDecl);
+                }
+                m_pDevice->SetVertexDeclaration(pTextDecl);
+                m_pDevice->SetStreamSource(0, pVB, 0, 32); // 32-byte stride for text vertices
+            } else {
+                // Use sprite vertex declaration for other shaders
+                m_pDevice->SetVertexDeclaration(pDecl);
+                m_pDevice->SetStreamSource(0, pVB, 0, vertexStride);
+            }
             m_pDevice->SetIndices(pIB);
             OutputDebugStringA("[ShaderManager::ExecuteQueue] Vertex declaration and streams set for new shader\n");
         }

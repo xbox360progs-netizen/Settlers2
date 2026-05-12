@@ -140,6 +140,14 @@ bool GameEngine::Initialize()
 
     m_textManager = new TextManager(m_bitmapFont, 1280.0f, 720.0f);
     m_textManager->Init(m_renderer, m_renderer->GetShaderManager());
+    
+    // XBOX 360 CRITICAL: Load font texture into TextManager
+    if (m_bitmapFont->GetTexture()) {
+        m_textManager->SetFontAtlas(FONT_MENU, m_bitmapFont->GetTexture());
+        OutputDebugStringA("[GameEngine::Initialize] Font texture loaded into TextManager\n");
+    } else {
+        OutputDebugStringA("[GameEngine::Initialize] ERROR: Font texture is NULL\n");
+    }
     m_binFileManager = new BinFileManager();
     m_binFileManager->SetDevice(m_renderer->GetDevice());
     m_textureLoader = new TextureLoader(m_renderer->GetDevice());
