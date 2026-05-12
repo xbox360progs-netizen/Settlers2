@@ -259,6 +259,7 @@ private:
     
     // Ring buffer tracking for vertex accumulation
     DWORD m_totalVertexCount; // Total vertices accumulated since last Execute
+    DWORD m_totalIndexCount;  // Total indices accumulated (6 per sprite)
     static const DWORD MAX_BUFFER_VERTICES = 16384; // Max vertices before forced Execute
 
     // Configuration

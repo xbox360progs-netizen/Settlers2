@@ -902,191 +902,63 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     
     // === LAZY BATCHING: Process commands with minimal state switches ===
     ShaderID currentShaderID = SHADER_INVALID;
-    ShaderID lastShaderID = SHADER_INVALID; // Track shader switches
-    bool passActive = false;  // Track if we're inside a BeginPass/EndPass block
-    LPDIRECT3DTEXTURE9 lastTexture = nullptr; // Lazy texture binding
-    bool lastAlphaBlend = false; // Lazy alpha blend state
-
-
+    LPDIRECT3DTEXTURE9 lastTexture = nullptr;
+    bool passActive = false;
 
     for (size_t i = 0; i < m_commandQueue.size(); ++i) {
         const RenderCommand& cmd = m_commandQueue[i];
 
-        int cmdShader = cmd.shaderID;
-        bool cmdIsUI = cmd.isUI;
-        
-        // === SHADER SWITCH DETECTION ===
-        if (cmdShader != lastShaderID) {
-            OutputDebugStringA("[ShaderManager::ExecuteQueue] Shader switch detected!\n");
-            
-            // End previous shader pass if active
-            if (passActive) {
-                EndPass();
-                passActive = false;
-                OutputDebugStringA("[ShaderManager::ExecuteQueue] Previous pass ended\n");
-            }
-            
-            // End previous shader
-            if (lastShaderID != SHADER_INVALID) {
-                EndCurrent();
-                OutputDebugStringA("[ShaderManager::ExecuteQueue] Previous shader ended\n");
-            }
-            
-            // Prepare new shader
-            Prepare(static_cast<ShaderID>(cmdShader), cmdIsUI ? NULL : &m_frameViewProj);
-            lastShaderID = static_cast<ShaderID>(cmdShader);
-            
-            // XBOX 360 FIX: Use unified vertex declaration and stride for all shaders
-            // All 2D objects use sizeof(SpriteVertex) stride regardless of shader type
-            m_pDevice->SetVertexDeclaration(pDecl);
-            m_pDevice->SetStreamSource(0, pVB, 0, sizeof(SpriteVertex)); // Unified stride
-            m_pDevice->SetIndices(pIB);
-        }
-        IDirect3DTexture9* cmdTex = cmd.pTexture;
-        float cmdDepth = cmd.depth;
-		        
-        // === LAZY ALPHA BLEND AND Z-TEST STATE FOR UI ===
-        // XBOX 360 CRITICAL: Disable Z-test for UI elements (text) to ensure visibility
-        bool needsAlphaBlend = cmdIsUI;
-        bool needsZDisable = cmdIsUI; // UI elements should not use depth testing
-        
-        if (needsAlphaBlend != lastAlphaBlend) {
-            m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, needsAlphaBlend ? TRUE : FALSE);
-            lastAlphaBlend = needsAlphaBlend;
-        }
-        
-        // For UI elements (text), disable depth testing to prevent Z-fighting with background
-        static bool lastZState = false;
-        if (needsZDisable != lastZState) {
-            m_pDevice->SetRenderState(D3DRS_ZENABLE, needsZDisable ? FALSE : TRUE);
-            lastZState = needsZDisable;
-        }
-        // === LAZY TEXTURE BINDING ===
-        if (cmdTex != lastTexture) {
-            m_pDevice->SetTexture(0, cmdTex);
-            lastTexture = cmdTex;
-        }
-        
-        // Custom draw callback: manages its own shader/state/pass lifecycle
-        if (cmd.batchType == 2) {
-            // End current pass if active before custom draw
-            if (passActive) {
-                EndPass();
-                passActive = false;
-            }
-            if (cmd.customDraw) {
-                m_stateCache.ResetDirtyStates(m_pDevice, cmd.states);
-                cmd.customDraw(m_pDevice, this, cmd.customUserData);
-            }
-            currentShaderID = SHADER_INVALID; // Force shader re-prepare after custom draw
-            continue;
-        }
-        
-// === LAZY SHADER SWITCHING ===
-        ShaderID cmdShaderID = static_cast<ShaderID>(cmdShader);
-        if (cmdShaderID != currentShaderID) {
-            // End previous pass if active
-            if (passActive) {
-                EndPass();
-                passActive = false;
-            }
-            // End previous shader if active
-            if (currentShaderID != SHADER_INVALID) {
+        // --- SHADER MANAGEMENT ---
+        if (cmd.shaderID != currentShaderID) {
+            if (passActive) { 
+                EndPass(); 
                 EndCurrent();
             }
-            // Prepare new shader (handles BeginShader + global uniforms)
-            Prepare(cmdShaderID, pViewProj);
-            currentShaderID = cmdShaderID;
+
+            Prepare(static_cast<ShaderID>(cmd.shaderID), &m_frameViewProj);
+            currentShaderID = static_cast<ShaderID>(cmd.shaderID);
             
-            // Begin shader and pass ONLY when switching shaders
             if (m_pActiveEffect) {
                 m_pActiveEffect->Begin(&m_numPasses, 0);
-            }
-            BeginPass(0);
-            passActive = true;
-        } else if (!passActive) {
-            // Shader didn't change, but pass is not active - need to reopen
-            if (m_pActiveEffect) {
-                m_pActiveEffect->Begin(&m_numPasses, 0);
-            }
-            BeginPass(0);
-            passActive = true;
-        }
-        
-        // Apply render states for this command
-        m_stateCache.ResetDirtyStates(m_pDevice, cmd.states);
-        
-        // === CENTRALIZED PARAMETER DISPATCH ===
-        SetShaderParameters(cmd);
-        
-        // === DRAW EXECUTION ===
-        // (Removed BeginPass from here - now above)
-        
-        // XBOX 360 SAFETY: Validate buffer sizes before drawing
-        {   
-            // Check for potential buffer overrun
-            if (cmd.primitiveCount > 4096 * 2) { // Max 2 tris per sprite * 4096 sprites
-                continue; // Skip this draw to prevent crash
-            }
-            
-            if (cmd.vertexStart + cmd.vertexCount > 4096 * 4) { // Max 4 vertices per sprite * 4096 sprites
-                continue; // Skip this draw to prevent crash
+                BeginPass(0);
+                passActive = true;
             }
         }
-        
-// Draw without closing pass - keep it open for next draw with same shader
-        char drawDebug[256];
-        sprintf(drawDebug, "[ExecuteQueue] Drawing cmd %d: start=%d, vertCount=%d, primCount=%d\n",
-                (int)i, cmd.vertexStart, cmd.vertexCount, cmd.primitiveCount);
-        OutputDebugStringA(drawDebug);
-        OutputDebugStringA("[ExecuteQueue] About to call DrawIndexedPrimitive NOW...");
 
-        switch (cmd.batchType) {
-            case 0: // Standard/Single sprite rendering
-                m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST,
-                                               cmd.vertexStart,
-                                               0,
-                                               cmd.vertexCount,
-                                               0,
-                                               cmd.primitiveCount);
-                OutputDebugStringA("[ExecuteQueue] DrawIndexedPrimitive DONE!");
-                break;
-
-            case 1: // Instanced rendering
-                m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST,
-                                               cmd.vertexStart,
-                                               0,
-                                               cmd.vertexCount,
-                                               0,
-                                               cmd.primitiveCount);
-                break;
-
-            default:
-                m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST,
-                                               cmd.vertexStart,
-                                               0,
-                                               cmd.vertexCount,
-                                               0,
-                                               cmd.primitiveCount);
-                break;
+        // --- TEXTURE MANAGEMENT ---
+        if (cmd.pTexture != lastTexture) {
+            m_pDevice->SetTexture(0, cmd.pTexture);
+            lastTexture = cmd.pTexture;
+            // IMPORTANT: If texture changes inside same shader, need Commit
+            if (m_pActiveEffect) m_pActiveEffect->CommitChanges();
         }
-        
-        // NOTE: Don't close pass here - keep it open for next command with same shader
-        // Pass will be closed when shader changes or at end of queue
 
-        char loopBuf[256];
-        sprintf(loopBuf, "[ShaderManager::ExecuteQueue] Completed cmd %d/%d, continuing loop...\n", (int)i+1, (int)m_commandQueue.size());
-        OutputDebugStringA(loopBuf);
+        // --- STATES (Alpha, Z-Buffer) ---
+        // For UI (text) disable Z-test so it doesn't conflict with background
+        m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, cmd.isUI ? TRUE : FALSE);
+        m_pDevice->SetRenderState(D3DRS_ZENABLE, cmd.isUI ? FALSE : TRUE);
+
+        // --- RENDER ---
+        if (passActive) {
+            char renderMsg[256];
+            sprintf(renderMsg, "[ExecuteQueue] Drawing: depth=%.2f, startIdx=%d, verts=%d, prims=%d, tex=%p\n",
+                    cmd.depth, cmd.vertexStart, cmd.vertexCount, cmd.primitiveCount, cmd.pTexture);
+            OutputDebugStringA(renderMsg);
+            m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 
+                                          cmd.vertexCount, 
+                                          cmd.vertexStart, 
+                                          cmd.primitiveCount);
+        }
     }
-    
-    // Close pass at end of all draws
+
+    // Close everything after loop
     if (passActive) {
         EndPass();
-        passActive = false;
+        EndCurrent();
     }
-    
-     // === CLEANUP: End current shader only ===
-    EndCurrent();
+        
+    // Unlock state after ExecuteQueue completes
+    Unlock();
     
     // Unlock state after ExecuteQueue completes
     Unlock();

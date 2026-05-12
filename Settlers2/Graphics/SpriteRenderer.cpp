@@ -85,6 +85,7 @@ SpriteRenderer::SpriteRenderer()
     m_currentRenderType = 0; // Default to Single
     m_currentIsUI = false; // Default: world-space (apply camera matrix)
     m_totalVertexCount = 0;
+    m_totalIndexCount = 0; // Reset index count at start
     
     // Initialize arrays inside constructor body
     m_hThreadDoneEvents[0] = NULL;
@@ -660,6 +661,9 @@ void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float
     OutputDebugStringA("[SR::Begin] 5-PARAM VERSION ENTERED NOW!!!\n");
     fflush(stdout);
 
+    // Reset texture to ensure clean state for new batch
+    m_currentTexture = pTexture;
+    
     // NOTE: Do NOT reset m_totalVertexCount here - it accumulates across batches
     // to ensure correct vertex offsets in the buffer
     
@@ -963,10 +967,11 @@ void SpriteRenderer::End() {
 }
 
 void SpriteRenderer::ResetVertexCount() {
-    printf("[SR::ResetVertexCount] CALLED!!! Setting m_totalVertexCount=0\n");
-    OutputDebugStringA("[SR::ResetVertexCount] CALLED!!! Setting m_totalVertexCount=0\n");
+    printf("[SR::ResetVertexCount] CALLED!!! Setting m_totalVertexCount=0, m_totalIndexCount=0\n");
+    OutputDebugStringA("[SR::ResetVertexCount] CALLED!!! Setting m_totalVertexCount=0, m_totalIndexCount=0\n");
     fflush(stdout);
     m_totalVertexCount = 0;
+    m_totalIndexCount = 0;
 }
 
 void SpriteRenderer::Flush(ShaderManager* pShader) {
@@ -1013,8 +1018,16 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
     // XBOX 360: Use 0 for lock flags
     DWORD lockFlags = 0;
     
+    // Calculate offset in bytes - use m_totalVertexCount for correct position
+    DWORD offsetInBytes = m_totalVertexCount * sizeof(SpriteVertex);
+    
+    char offsetMsg[256];
+    sprintf(offsetMsg, "[SR::Flush] Lock VB at offset=%d bytes (vert=%d), size=%d bytes\n", 
+            offsetInBytes, m_totalVertexCount, (int)dataSize);
+    OutputDebugStringA(offsetMsg);
+    
     // Lock and copy
-    HRESULT hr = currentVB->Lock(0, dataSize, &pData, lockFlags);
+    HRESULT hr = currentVB->Lock(offsetInBytes, dataSize, &pData, lockFlags);
     if (FAILED(hr)) {
         char errorMsg[256];
         sprintf(errorMsg, "[SR::Flush] FAILED to lock vertex buffer (hr=0x%08X)\n", hr);
@@ -1046,16 +1059,23 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
         ShaderManager::RenderCommand cmd;
         cmd.pTexture = m_currentTexture;
         cmd.shaderID = m_currentShaderID;
-        cmd.vertexStart = m_totalVertexCount; // Use accumulated count for correct offset
-        cmd.vertexCount = m_spriteCount * 4; // 4 vertices per sprite
-        cmd.primitiveCount = (DWORD)(m_spriteCount * 2); // 2 triangles per sprite
-        cmd.batchType = m_currentRenderType; // Use render type from Begin()
-        cmd.depth = m_currentDepth; // Use current depth from Begin()
         
-        char dbg[512];
-        sprintf(dbg, "[SR::Flush] Submitting batch: sprites=%d, start=%d (m_totalVertexCount=%d), depth=%.2f, texture=%p, shaderID=%d\n",
-                m_spriteCount, cmd.vertexStart, m_totalVertexCount, m_currentDepth, m_currentTexture, m_currentShaderID);
-        OutputDebugStringA(dbg);
+        // cmd.vertexStart is used as StartIndex for DrawIndexedPrimitive (index buffer offset)
+        // Each sprite = 6 indices (2 triangles)
+        // Use m_totalIndexCount which accumulates during the frame
+        cmd.vertexStart = m_totalIndexCount;
+        
+        // Update counts for next batch
+        m_totalIndexCount += m_spriteCount * 6;
+        m_totalVertexCount += m_spriteCount * 4; // Track vertex offset too
+        
+        cmd.vertexCount = m_spriteCount * 4;
+        cmd.primitiveCount = (DWORD)(m_spriteCount * 2);
+        cmd.batchType = m_currentRenderType;
+        cmd.depth = m_currentDepth;
+        
+        printf("[SR::Flush] Batch: startIndex=%d, sprites=%d, idxCount=%d\n", 
+               cmd.vertexStart, m_spriteCount, m_totalIndexCount);
         cmd.layer = 0; // Default layer (will be overridden by caller if needed)
         cmd.isUI = m_currentIsUI; // Screen-space or world-space
         

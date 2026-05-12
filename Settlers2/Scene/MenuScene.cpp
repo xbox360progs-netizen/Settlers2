@@ -214,6 +214,12 @@ void MenuScene::Update(float deltaTime) {
 
 void MenuScene::Render() {
     OutputDebugStringA("[MenuScene::Render] ENTRY\n");
+    
+    // Force reset at start of render to ensure clean state
+    if (m_spriteRenderer) {
+        m_spriteRenderer->ResetVertexCount();
+        printf("[MenuScene] Force reset vertex count\n");
+    }
 
     if (!m_spriteRenderer || !m_backgroundTexture.GetTexture() || !m_textManager) return;
 
@@ -221,16 +227,16 @@ void MenuScene::Render() {
     LPDIRECT3DTEXTURE9 bgTex = m_backgroundTexture.GetTexture();
     m_spriteRenderer->Begin("sprite", bgTex);
     m_spriteRenderer->SetCurrentDepth(0.0f); // Background is behind
-    m_spriteRenderer->Draw(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
+//    m_spriteRenderer->Draw(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
     m_spriteRenderer->End(); // Close background batch
-    
+
     // 2. Begin text batch with depth=0.1f (front)
     m_textManager->BeginTextBatch(FONT_MENU, 0.1f);
     
-    // 3. Render Text - TextManager will NOT call Begin/End
-    m_textManager->DrawTextToScreen("SETTLERS 2 XBOX", 100.0f, 100.0f, 0xFFFF0000, 1.0f); 
+    // 3. Render Text
+    m_textManager->DrawTextToScreen("SETTLERS 2 XBOX", 100.0f, 100.0f, 0xFFFFFFFF, 1.0f); 
 
-    // 4. Close text batch (MenuScene controls the batch, not TextManager)
+    // 4. Close text batch
     m_textManager->EndTextBatch();
 
     OutputDebugStringA("[MenuScene::Render] End() completed\n");
