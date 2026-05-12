@@ -866,6 +866,7 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     
     // === LAZY BATCHING: Process commands with minimal state switches ===
     ShaderID currentShaderID = SHADER_INVALID;
+    ShaderID lastShaderID = SHADER_INVALID; // Track shader switches
     bool passActive = false;  // Track if we're inside a BeginPass/EndPass block
     LPDIRECT3DTEXTURE9 lastTexture = nullptr; // Lazy texture binding
     bool lastAlphaBlend = false; // Lazy alpha blend state
@@ -879,10 +880,6 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         OutputDebugStringA(buf);
     }
 
-    if (m_commandQueue.empty()) {
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] Queue is empty in loop, skipping\n");
-    }
-
     for (size_t i = 0; i < m_commandQueue.size(); ++i) {
         OutputDebugStringA("[ShaderManager::ExecuteQueue] Accessing cmd reference...\n");
         const RenderCommand& cmd = m_commandQueue[i];
@@ -893,6 +890,37 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         int cmdShader = cmd.shaderID;
         OutputDebugStringA("[ShaderManager::ExecuteQueue] Reading cmd.isUI...\n");
         bool cmdIsUI = cmd.isUI;
+        
+        // === SHADER SWITCH DETECTION ===
+        if (cmdShader != lastShaderID) {
+            OutputDebugStringA("[ShaderManager::ExecuteQueue] Shader switch detected!\n");
+            
+            // End previous shader pass if active
+            if (passActive) {
+                EndPass();
+                passActive = false;
+                OutputDebugStringA("[ShaderManager::ExecuteQueue] Previous pass ended\n");
+            }
+            
+            // End previous shader
+            if (lastShaderID != SHADER_INVALID) {
+                EndCurrent();
+                OutputDebugStringA("[ShaderManager::ExecuteQueue] Previous shader ended\n");
+            }
+            
+            // Prepare new shader
+            Prepare(static_cast<ShaderID>(cmdShader), cmdIsUI ? NULL : &m_frameViewProj);
+            lastShaderID = static_cast<ShaderID>(cmdShader);
+            OutputDebugStringA("[ShaderManager::ExecuteQueue] New shader prepared\n");
+            
+            // Use the passed vertex declaration (it should be appropriate for the current shader type)
+            // Note: For proper multi-shader support, different vertex declarations should be passed
+            // from the calling code (SpriteRenderer, TextManager, etc.)
+            m_pDevice->SetVertexDeclaration(pDecl);
+            m_pDevice->SetStreamSource(0, pVB, 0, vertexStride);
+            m_pDevice->SetIndices(pIB);
+            OutputDebugStringA("[ShaderManager::ExecuteQueue] Vertex declaration and streams set for new shader\n");
+        }
         OutputDebugStringA("[ShaderManager::ExecuteQueue] Reading cmd.pTexture...\n");
         IDirect3DTexture9* cmdTex = cmd.pTexture;
         OutputDebugStringA("[ShaderManager::ExecuteQueue] Reading cmd.depth...\n");

@@ -219,36 +219,17 @@ void MenuScene::Render() {
   if (!m_spriteRenderer || !m_backgroundTexture.GetTexture()) return;
 
   LPDIRECT3DTEXTURE9 bgTex = m_backgroundTexture.GetTexture();
-  OutputDebugStringA("[MenuScene::Render] Got texture pointer\n");
-
-  // 2. Подготовка (SR сам выставит шейдер ID 0 и стейты)
-  OutputDebugStringA("[MenuScene::Render] Calling Begin...\n");
+  // Сначала ПОЛНОСТЬЮ рисуем фон
   m_spriteRenderer->Begin(SHADER_SPRITE, bgTex, 0.0f, 0, false);
-  OutputDebugStringA("[MenuScene::Render] Begin() returned\n");
-
-  // 3. Отправка спрайта (Scene просто передает данные)
-  OutputDebugStringA("[MenuScene::Render] Calling Draw...\n");
   m_spriteRenderer->Draw(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
-  OutputDebugStringA("[MenuScene::Render] Draw() returned\n");
+  m_spriteRenderer->End(); // Здесь фон реально улетел на экран
 
-  // 4. Финализация (Здесь произойдет реальный Draw Call)
-  OutputDebugStringA("[MenuScene::Render] Calling End...\n");
-  m_spriteRenderer->End();
-  OutputDebugStringA("[MenuScene::Render] End() returned\n");
-
-  OutputDebugStringA("[MenuScene::Render] About to return from Render()...\n");
-/*
-  // 5. Текст рисуем ПОСЛЕ (так как у него другой шейдер - ID 7)
+  // Теперь ПОЛНОСТЬЮ рисуем текст
   if (m_textManager) {
     m_textManager->Begin();
-    for (int i = 0; i < m_menuCount; i++) {
-      DWORD color = (i == m_selectedIndex) ? COLOR_SELECTED : COLOR_NORMAL;
-      float y = MENU_START_Y + i * MENU_ITEM_HEIGHT;
-      m_textManager->DrawTextToScreen(m_menuItems[i], MENU_START_X, y, color, 0.25f);
-    }
-    m_textManager->RenderScreen();
+    m_textManager->DrawTextToScreen("TEST", 100, 100, 0xFFFFFFFF, 0.1f);
+    m_textManager->RenderScreen(); // Текст улетел на экран поверх фона
   }
-*/
 }
 
 void MenuScene::SetBackground(const std::string& path) {
