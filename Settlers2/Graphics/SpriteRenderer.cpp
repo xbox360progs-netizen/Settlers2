@@ -963,6 +963,7 @@ void SpriteRenderer::End() {
 }
 
 void SpriteRenderer::ResetVertexCount() {
+    printf("[SR::ResetVertexCount] CALLED!!! Setting m_totalVertexCount=0\n");
     OutputDebugStringA("[SR::ResetVertexCount] CALLED!!! Setting m_totalVertexCount=0\n");
     fflush(stdout);
     m_totalVertexCount = 0;

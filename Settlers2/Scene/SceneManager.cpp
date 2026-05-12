@@ -144,8 +144,10 @@ void SceneManager::Render()
     // Reset vertex count at start of frame
     if (m_spriteRenderer) {
         m_spriteRenderer->ResetVertexCount();
+        printf("[SceneManager] Called ResetVertexCount\n");
     }
     
+    printf("[SceneManager] About to call m_currentScene->Render()\n");
     OutputDebugStringA("[SceneManager::Render] Calling m_currentScene->Render()...\n");
     m_currentScene->Render();
     OutputDebugStringA("[SceneManager::Render] m_currentScene->Render() returned\n");
