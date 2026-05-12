@@ -92,7 +92,7 @@ private:
     UINT m_screenVBCapacity;
     
     // Helper to push a single character command
-    void PushLetterCommand(const Glyph& glyph, LPDIRECT3DTEXTURE9 texture, float x, float y, float w, float h, D3DCOLOR color, float depth, bool isUI, int shaderID);
+    void PushLetterCommand(const Glyph& glyph, LPDIRECT3DTEXTURE9 texture, float x, float y, float w, float h, D3DCOLOR color, float depth, bool isUI, int shaderID, int letterCount);
     
     void EnsureScreenVB(size_t vertexCount);
 };

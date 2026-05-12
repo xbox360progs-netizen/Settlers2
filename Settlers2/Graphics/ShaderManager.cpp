@@ -124,39 +124,12 @@ bool ShaderManager::Init() {
         return false;
     }
 
-    OutputDebugStringA("[ShaderManager] Init: Initializing centralized shader loading...\n");
-
     // Load base shaders through centralized registry
     if (!LoadBaseShaders()) {
         OutputDebugStringA("[ShaderManager] ERROR: LoadBaseShaders failed\n");
         return false;
     }
-
-    // Load additional shaders via LoadInternal for centralized m_effects map
-    // Commented out - these files don't exist and would overwrite successfully loaded shaders
-    // if (FAILED(LoadInternal(SHADER_SPRITE, "game:\\Media\\Shaders\\Sprite2D.fx", "Sprite"))) {
-    //     OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_SPRITE to m_effects\n");
-    // }
-
-    // if (FAILED(LoadInternal(SHADER_SPRITE_CONSTANT_INSTANCED, "game:\\Media\\Shaders\\SpriteConstantInstanced.fx", "Sprite"))) {
-    //     OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_SPRITE_CONSTANT_INSTANCED to m_effects\n");
-    // }
-
-    // if (FAILED(LoadInternal(SHADER_RADIALMENU, "game:\\Media\\Shaders\\RadialMenu.fx", "RadialMenu"))) {
-    //     OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_RADIALMENU to m_effects\n");
-    // }
-
-    // Commented out - Sprite2D.fx doesn't exist
-    // if (FAILED(LoadInternal(SHADER_UI, "game:\\Media\\Shaders\\Sprite2D.fx", "Sprite"))) {
-    //     OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_UI to m_effects\n");
-    // }
-
-    // if (FAILED(LoadInternal(SHADER_TERRAIN, "game:\\Media\\Shaders\\Sprite2D.fx", "Sprite"))) {
-    //     OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_TERRAIN to m_effects\n");
-    // }
-
-    OutputDebugStringA("[ShaderManager] Init: All shaders loaded successfully\n");
-    return true;
+	return true;
 }
 
 // Load base shaders (Sprite.fx, UI.fx) for centralized shader registry
@@ -166,7 +139,6 @@ bool ShaderManager::LoadBaseShaders() {
         return false;
     }
 
-    OutputDebugStringA("[ShaderManager] LoadBaseShaders: Loading base shaders...\n");
 
     bool allSuccess = true;
 
@@ -511,6 +483,11 @@ void ShaderManager::Submit(const RenderCommand& cmd) {
     m_commandQueue.push_back(cmdWithOffset);
 }
 
+// Add command to render queue (alias for Submit)
+void ShaderManager::PushCommand(const RenderCommand& cmd) {
+    Submit(cmd);
+}
+
 void ShaderManager::SubmitDrawBatch(const DrawBatch& batch) {
     m_drawBatches.push_back(batch);
 }
@@ -532,11 +509,8 @@ void ShaderManager::ClearBatches() {
 }
 
 void ShaderManager::SortQueue() {
-    OutputDebugStringA("[ShaderManager::SortQueue] ENTRY\n");
-    // ТЕСТ: Временно закомментируем сортировку
     // Sort by depth (back-to-front for alpha), then shader, then texture
     // std::sort(m_commandQueue.begin(), m_commandQueue.end());
-    OutputDebugStringA("[ShaderManager::SortQueue] FINISHED (sort skipped)\n");
 }
 
 void ShaderManager::SortDrawBatches() {
@@ -823,7 +797,6 @@ void ShaderManager::ApplyShader(int shaderID) {
 void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB,
                                 LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride,
                                 const D3DXMATRIX* pViewProj) {
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] ENTRY\n");
 
     if (m_commandQueue.empty()) {
         OutputDebugStringA("[ShaderManager::ExecuteQueue] Queue is empty, returning\n");
@@ -836,39 +809,28 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         return;
     }
 
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] Before Clear()\n");
 
     // BLUE SCREEN TEST: If screen turns blue, rendering pipeline works
     m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0, 0, 255), 1.0f, 0);
 
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] Clear() completed\n");
 
     // Set projection matrix for ALL shaders (not just sprite shader)
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] Creating ortho matrix...\n");
     D3DXMATRIX ortho;
     D3DXMatrixOrthoOffCenterLH(&ortho, 0, 1280, 720, 0, 0, 1);
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] Ortho matrix created\n");
 
     // === GLOBAL CONSTANT BUFFER: Set ViewProj once per frame ===
     // Use provided pViewProj if available, otherwise use ortho for 2D
     const D3DXMATRIX* matrixToUse = pViewProj ? pViewProj : &ortho;
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] Calling SetFrameViewProj...\n");
     SetFrameViewProj(matrixToUse);
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] SetFrameViewProj done\n");
 
     // === SORT COMMANDS: shader-first for lazy batching ===
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] Sorting commands...\n");
     // Sorting: shaderID (most expensive switch) > texture > depth (back-to-front)
     std::sort(m_commandQueue.begin(), m_commandQueue.end());
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] Sort done\n");
 
     // === STATE LOCKING: Prevent external state corruption ===
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] Calling Lock()...\n");
     Lock();
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] Lock() done\n");
 
     // XBOX 360 CRITICAL: Ensure all buffers are unlocked before drawing
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] Checking buffer lock status...\n");
     
     // Verify vertex buffer is not locked (Xbox 360 driver crash prevention)
     if (pVB) {
@@ -885,13 +847,9 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     }
 
     // Set vertex declaration and streams once for entire frame
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] Setting vertex declaration...\n");
     m_pDevice->SetVertexDeclaration(pDecl);
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] Setting stream source...\n");
     m_pDevice->SetStreamSource(0, pVB, 0, sizeof(SpriteVertex));
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] Setting indices...\n");
     m_pDevice->SetIndices(pIB);
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] Device states set\n");
     
     // === LAZY BATCHING: Process commands with minimal state switches ===
     ShaderID currentShaderID = SHADER_INVALID;
@@ -900,33 +858,12 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     LPDIRECT3DTEXTURE9 lastTexture = nullptr; // Lazy texture binding
     bool lastAlphaBlend = false; // Lazy alpha blend state
 
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] Entering batch loop...\n");
 
-    // Проверка очереди перед доступом
-    {
-        char buf[128];
-        sprintf(buf, "[ShaderManager::ExecuteQueue] Queue size=%d\n", (int)m_commandQueue.size());
-        OutputDebugStringA(buf);
-    }
-    
-    // Отладка: Показать все команды в очереди
-    for (size_t i = 0; i < m_commandQueue.size(); ++i) {
-        const RenderCommand& cmd = m_commandQueue[i];
-        char buf[256];
-        sprintf(buf, "[ShaderManager::ExecuteQueue] Queue[%d]: shader=%d, texture=%p, vertexStart=%d, vertexCount=%d\n",
-                (int)i, cmd.shaderID, cmd.pTexture, cmd.vertexStart, cmd.vertexCount);
-        OutputDebugStringA(buf);
-    }
 
     for (size_t i = 0; i < m_commandQueue.size(); ++i) {
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] Accessing cmd reference...\n");
         const RenderCommand& cmd = m_commandQueue[i];
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] cmd reference obtained\n");
 
-        // Безопасное чтение полей по одному
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] Reading cmd.shaderID...\n");
         int cmdShader = cmd.shaderID;
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] Reading cmd.isUI...\n");
         bool cmdIsUI = cmd.isUI;
         
         // === SHADER SWITCH DETECTION ===
@@ -949,36 +886,17 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
             // Prepare new shader
             Prepare(static_cast<ShaderID>(cmdShader), cmdIsUI ? NULL : &m_frameViewProj);
             lastShaderID = static_cast<ShaderID>(cmdShader);
-            OutputDebugStringA("[ShaderManager::ExecuteQueue] New shader prepared\n");
             
             // XBOX 360 FIX: Use unified vertex declaration and stride for all shaders
             // All 2D objects use sizeof(SpriteVertex) stride regardless of shader type
             m_pDevice->SetVertexDeclaration(pDecl);
             m_pDevice->SetStreamSource(0, pVB, 0, sizeof(SpriteVertex)); // Unified stride
             m_pDevice->SetIndices(pIB);
-            OutputDebugStringA("[ShaderManager::ExecuteQueue] Vertex declaration and streams set for new shader\n");
         }
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] Reading cmd.pTexture...\n");
         IDirect3DTexture9* cmdTex = cmd.pTexture;
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] Reading cmd.depth...\n");
         float cmdDepth = cmd.depth;
-
-        {
-            char buf[512];
-            sprintf(buf, "[ShaderManager::ExecuteQueue] cmd[%d]: shaderID=%d, isUI=%d, pTexture=%p, depth=%.2f, vertexStart=%d, vertexCount=%d\n",
-                    (int)i, cmdShader, cmdIsUI, cmdTex, cmdDepth, cmd.vertexStart, cmd.vertexCount);
-            OutputDebugStringA(buf);
-            
-            // Дополнительная отладка для текста
-            if (cmdShader == 7) { // FontShader
-                sprintf(buf, "[ShaderManager::ExecuteQueue] TEXT COMMAND: texture=%p, vertexStart=%d, vertexCount=%d, depth=%.2f\n",
-                        cmdTex, cmd.vertexStart, cmd.vertexCount, cmdDepth);
-                OutputDebugStringA(buf);
-            }
-        }
-        
+		        
         // === LAZY ALPHA BLEND AND Z-TEST STATE FOR UI ===
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] Setting render states...\n");
         // XBOX 360 CRITICAL: Disable Z-test for UI elements (text) to ensure visibility
         bool needsAlphaBlend = cmdIsUI;
         bool needsZDisable = cmdIsUI; // UI elements should not use depth testing
@@ -986,7 +904,6 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         if (needsAlphaBlend != lastAlphaBlend) {
             m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, needsAlphaBlend ? TRUE : FALSE);
             lastAlphaBlend = needsAlphaBlend;
-            OutputDebugStringA("[ShaderManager::ExecuteQueue] Alpha blend state changed\n");
         }
         
         // For UI elements (text), disable depth testing to prevent Z-fighting with background
@@ -994,21 +911,14 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         if (needsZDisable != lastZState) {
             m_pDevice->SetRenderState(D3DRS_ZENABLE, needsZDisable ? FALSE : TRUE);
             lastZState = needsZDisable;
-            char zBuf[128];
-            sprintf(zBuf, "[ShaderManager::ExecuteQueue] Z-test %s for shader %d\n", 
-                    needsZDisable ? "DISABLED" : "ENABLED", cmdShader);
-            OutputDebugStringA(zBuf);
         }
         // === LAZY TEXTURE BINDING ===
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] Binding texture...\n");
         if (cmdTex != lastTexture) {
             m_pDevice->SetTexture(0, cmdTex);
             lastTexture = cmdTex;
         }
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] Texture bound\n");
         
         // Custom draw callback: manages its own shader/state/pass lifecycle
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] Checking batchType...\n");
         if (cmd.batchType == 2) {
             // End current pass if active before custom draw
             if (passActive) {
@@ -1022,13 +932,10 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
             currentShaderID = SHADER_INVALID; // Force shader re-prepare after custom draw
             continue;
         }
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] Not custom draw\n");
         
         // === LAZY SHADER SWITCHING ===
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] Checking shader switch...\n");
         ShaderID cmdShaderID = static_cast<ShaderID>(cmdShader);
         if (cmdShaderID != currentShaderID) {
-            OutputDebugStringA("[ShaderManager::ExecuteQueue] Switching shader...\n");
             // End previous pass if active
             if (passActive) {
                 EndPass();
@@ -1039,26 +946,18 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                 EndCurrent();
             }
             // Prepare new shader (handles BeginShader + global uniforms)
-            OutputDebugStringA("[ShaderManager::ExecuteQueue] Calling Prepare()...\n");
             Prepare(cmdShaderID, pViewProj);
-            OutputDebugStringA("[ShaderManager::ExecuteQueue] Prepare() done\n");
             currentShaderID = cmdShaderID;
         }
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] Shader ready\n");
         
         // Apply render states for this command
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] ResetDirtyStates...\n");
         m_stateCache.ResetDirtyStates(m_pDevice, cmd.states);
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] ResetDirtyStates done\n");
         
         // === CENTRALIZED PARAMETER DISPATCH ===
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] SetShaderParameters...\n");
         SetShaderParameters(cmd);
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] SetShaderParameters done\n");
         
         // === XBOX 360 SAFE PASS MANAGEMENT ===
         // Begin shader and pass for each command (isolated rendering)
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] Beginning shader and pass...\n");
         
         // Begin shader for this command
         if (m_pActiveEffect) {
@@ -1068,7 +967,6 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         // Begin pass for this command
         BeginPass(0);
         passActive = true;
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] Pass active\n");
 
         // GPU HANG PREVENTION: Check if effect is valid before drawing
         if (!m_pActiveEffect) {
@@ -1077,31 +975,15 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         }
 
         // === DRAW EXECUTION ===
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] About to DrawIndexedPrimitive...\n");
         
         // XBOX 360 SAFETY: Validate buffer sizes before drawing
-        {
-            char debugBuf[512];
-            sprintf(debugBuf, "[SM] Drawing: vertexStart=%d, vertexCount=%d, primitiveCount=%d, batchType=%d\n",
-                    cmd.vertexStart, cmd.vertexCount, cmd.primitiveCount, cmd.batchType);
-            OutputDebugStringA(debugBuf);
-            
-            // XBOX 360 DEBUG: Check sizeof and stride
-            sprintf(debugBuf, "[SM] sizeof(SpriteVertex)=%zu, stride=32, vertexStride=%d\n", 
-                    sizeof(SpriteVertex), vertexStride);
-            OutputDebugStringA(debugBuf);
-            
+        {   
             // Check for potential buffer overrun
             if (cmd.primitiveCount > 4096 * 2) { // Max 2 tris per sprite * 4096 sprites
-                sprintf(debugBuf, "[SM] CRITICAL: primitiveCount=%d exceeds maximum! This will cause Xbox 360 crash!\n", cmd.primitiveCount);
-                OutputDebugStringA(debugBuf);
                 continue; // Skip this draw to prevent crash
             }
             
             if (cmd.vertexStart + cmd.vertexCount > 4096 * 4) { // Max 4 vertices per sprite * 4096 sprites
-                sprintf(debugBuf, "[SM] CRITICAL: vertex range exceeds buffer! start=%d + count=%d > max=%d\n", 
-                        cmd.vertexStart, cmd.vertexCount, 4096 * 4);
-                OutputDebugStringA(debugBuf);
                 continue; // Skip this draw to prevent crash
             }
         }
@@ -1135,7 +1017,6 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                                                cmd.primitiveCount);
                 break;
         }
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] DrawIndexedPrimitive completed\n");
         
         // XBOX 360 CRITICAL: Close pass immediately after each draw
         if (passActive) {
@@ -1150,27 +1031,19 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     }
     
      // === CLEANUP: End current shader only ===
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] Ending current shader...\n");
     EndCurrent();
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] EndCurrent done\n");
     
     // Unlock state after ExecuteQueue completes
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] Unlocking...\n");
     Unlock();
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] Unlock done\n");
     
     // Clear command queue after execution
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] Clearing queue...\n");
     m_commandQueue.clear();
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] Queue cleared\n");
     
     // === CLEANUP: Reset all texture slots to NULL ===
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] Resetting textures...\n");
     m_pDevice->SetTexture(0, NULL);
     m_pDevice->SetTexture(1, NULL);
     m_pDevice->SetTexture(2, NULL);
     m_pDevice->SetTexture(3, NULL);
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] Textures reset\n");
     
     // Reset vertex offset tracking for next frame
     s_currentVertexOffset = 0;
@@ -1178,7 +1051,6 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     
     // Clear frame ViewProj for next frame
     m_hasFrameViewProj = false;
-    OutputDebugStringA("[ShaderManager::ExecuteQueue] FINISHED\n");
 }
 
 void ShaderManager::ExecuteBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 

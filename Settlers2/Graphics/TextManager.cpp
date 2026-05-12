@@ -112,14 +112,13 @@ LPDIRECT3DTEXTURE9 TextManager::GetFontTexture(FontID fontID)
     return nullptr;
 }
 
-void TextManager::PushLetterCommand(const Glyph& glyph, LPDIRECT3DTEXTURE9 texture, float x, float y, float w, float h, D3DCOLOR color, float depth, bool isUI, int shaderID)
+void TextManager::PushLetterCommand(const Glyph& glyph, LPDIRECT3DTEXTURE9 texture, float x, float y, float w, float h, D3DCOLOR color, float depth, bool isUI, int shaderID, int letterCount)
 {
     if (!m_spriteRenderer) return;
     
-    static int letterCount = 0;
     char debugBuf[256];
     sprintf(debugBuf, "[TextManager::PushLetterCommand] Letter %d: pos=(%.1f,%.1f) size=(%.1f,%.1f) using SpriteRenderer\n",
-            ++letterCount, x, y, w, h);
+            letterCount, x, y, w, h);
     OutputDebugStringA(debugBuf);
     
     // Apply UV padding to prevent bleeding on Xbox 360
@@ -199,6 +198,8 @@ void TextManager::DrawString(const std::string& text, float x, float y, D3DCOLOR
     
     int shaderID = isUI ? SHADER_SPRITE : SHADER_WORLD;
     
+    int letterCount = 0;
+    
     for (size_t i = 0; i < text.size(); ++i)
     {
         unsigned char c = (unsigned char)text[i];
@@ -243,14 +244,16 @@ void TextManager::DrawString(const std::string& text, float x, float y, D3DCOLOR
         
         // Shadow rendering (draw shadow first at slightly higher depth)
         if (style == FONT_STYLE_SHADOW) {
-            PushLetterCommand(glyph, fontTexture, charX + SHADOW_OFFSET, charY + SHADOW_OFFSET, charW, charH, shadowColor, depth + 0.0001f, isUI, shaderID);
+            PushLetterCommand(glyph, fontTexture, charX + SHADOW_OFFSET, charY + SHADOW_OFFSET, charW, charH, shadowColor, depth + 0.0001f, isUI, shaderID, letterCount);
         }
         
-        // Main character rendering (all letters use IDENTICAL depth for batching optimization)
-        PushLetterCommand(glyph, fontTexture, charX, charY, charW, charH, color, depth, isUI, shaderID);
+        // Main character rendering (increment depth slightly for each character to prevent Z-fighting)
+        PushLetterCommand(glyph, fontTexture, charX, charY, charW, charH, color, depth + (letterCount * 0.00001f), isUI, shaderID, letterCount);
         
         // Advance pen position
         penX += glyph.xAdvance * scale;
+        
+        letterCount++;
     }
 }
 

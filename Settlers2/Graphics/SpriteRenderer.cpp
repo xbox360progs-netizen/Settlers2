@@ -6,6 +6,7 @@
 #include "Texture.h"
 #include <stdio.h>
 #include <string>
+#include <vector>
 #include <algorithm>
 #include <d3d9.h>
 #include <d3dx9.h>
@@ -874,7 +875,9 @@ void SpriteRenderer::DrawWithTexture(float x, float y, float width, float height
     // Set texture if changed (enables per-sprite texture switching)
     if (pTexture != m_currentTexture) {
         m_currentTexture = pTexture;
-        m_pDevice->SetTexture(0, pTexture);
+        if (m_pShaderManager) {
+            m_pShaderManager->SetTexture("g_texture", pTexture);
+        }
     }
 
     // Create quad with texture - pass texture to CreateQuad
@@ -1281,12 +1284,12 @@ void SpriteRenderer::Submit(const char* shader, SpriteAtlas* atlas, uint32_t spr
 
     int sid = GetShaderId(shader);
     RenderCommand cmd;
-    cmd.shaderId = sid;
-    cmd.pAtlas = atlas;
-    cmd.x = x - reg->pivotX;
-    cmd.y = y - reg->pivotY;
-    cmd.w = (float)reg->width;
-    cmd.h = (float)reg->height;
+    cmd.shaderID = sid;
+    cmd.pTexture = atlas ? atlas->GetTexture() : NULL;
+    cmd.worldX = x - reg->pivotX;
+    cmd.worldY = y - reg->pivotY;
+    cmd.screenW = (float)reg->width;
+    cmd.screenH = (float)reg->height;
     cmd.u0 = reg->u0; cmd.v0 = reg->v0;
     cmd.u1 = reg->u1; cmd.v1 = reg->v1;
     cmd.color = color;
@@ -1306,7 +1309,11 @@ int SpriteRenderer::GetShaderId(const char* name) {
     return (int)m_shaderNameRegistry.size() - 1;
 }
 void SpriteRenderer::InternalDraw(const RenderCommand& cmd) {
-    CreateQuad(cmd.x, cmd.y, cmd.w, cmd.h, cmd.u0, cmd.v0, cmd.u1, cmd.v1, cmd.color);
+    if (cmd.isUI) {
+        CreateQuad(cmd.screenX, cmd.screenY, cmd.screenW, cmd.screenH, cmd.u0, cmd.v0, cmd.u1, cmd.v1, cmd.color);
+    } else {
+        CreateQuad(cmd.worldX, cmd.worldY, cmd.screenW, cmd.screenH, cmd.u0, cmd.v0, cmd.u1, cmd.v1, cmd.color);
+    }
 }
 
 // Public wrapper for atlas sprite (compatibility wrapper in case direct call is private)
@@ -1325,23 +1332,23 @@ void SpriteRenderer::ExecuteBatch() {
     // Sort all commands (std::sort is very fast on Xenon)
     std::sort(m_renderQueue.begin(), m_renderQueue.end());
 
-    // Process sorted list by shaderId -> atlas -> depth
-    int currentShaderId = -1;
-    SpriteAtlas* currentAtlas = NULL;
+    // Process sorted list by shaderID -> atlas -> depth
+    int currentShaderID = -1;
+    LPDIRECT3DTEXTURE9 currentTexture = NULL;
     const char* currentShaderName = NULL;
 
     for (size_t i = 0; i < m_renderQueue.size(); ++i) {
         const RenderCommand& cmd = m_renderQueue[i];
 
-        if (cmd.shaderId != currentShaderId || cmd.pAtlas != currentAtlas) {
+        if (cmd.shaderID != currentShaderID || cmd.pTexture != currentTexture) {
             // Flush previous batch
             Flush();
 
             // Update state for new shader/atlas
-            currentShaderId = cmd.shaderId;
-            currentAtlas = cmd.pAtlas;
-            currentShaderName = (currentShaderId >= 0 && currentShaderId < (int)m_shaderNameRegistry.size())
-                                ? m_shaderNameRegistry[currentShaderId].c_str()
+            currentShaderID = cmd.shaderID;
+            currentTexture = cmd.pTexture;
+            currentShaderName = (currentShaderID >= 0 && currentShaderID < (int)m_shaderNameRegistry.size())
+                                ? m_shaderNameRegistry[currentShaderID].c_str()
                                 : NULL;
 
             if (currentShaderName && m_pShaderManager) {
@@ -1354,7 +1361,7 @@ void SpriteRenderer::ExecuteBatch() {
                 }
                 
                 m_pShaderManager->SetActiveShader(shaderID);
-                m_pShaderManager->SetTexture("g_texture", currentAtlas->GetTexture());
+                m_pShaderManager->SetTexture("g_texture", currentTexture);
                 m_pShaderManager->BeginShader();
                 m_pShaderManager->BeginPass(0);
                 m_pShaderManager->Commit();
@@ -1690,6 +1697,14 @@ void SpriteRenderer::CreateQuadWithTexture(float x, float y, float width, float 
                                        float u0, float v0, float u1, float v1,
                                        DWORD color, LPDIRECT3DTEXTURE9 pTexture) {
     OutputDebugStringA("[SR::CreateQuad] ENTRY\n");
+    
+    // Update current texture if different
+    if (pTexture != m_currentTexture) {
+        m_currentTexture = pTexture;
+        if (m_pShaderManager) {
+            m_pShaderManager->SetTexture("g_texture", pTexture);
+        }
+    }
 
     // XBOX 360 CRITICAL: Check for sprite limit BEFORE any calculations
     if (m_spriteCount >= m_maxSprites) {
@@ -1752,10 +1767,10 @@ void SpriteRenderer::CreateQuadWithTexture(float x, float y, float width, float 
     RenderCommand cmd;
     
     // Position and UV
-    cmd.x = x;
-    cmd.y = y;
-    cmd.w = width;
-    cmd.h = height;
+    cmd.screenX = x;
+    cmd.screenY = y;
+    cmd.screenW = width;
+    cmd.screenH = height;
     cmd.u0 = u0;
     cmd.v0 = v0;
     cmd.u1 = u1;
@@ -1767,14 +1782,8 @@ void SpriteRenderer::CreateQuadWithTexture(float x, float y, float width, float 
     // Texture and rendering
     cmd.pTexture = pTexture; // CRITICAL: Pass texture to ShaderManager
     cmd.shaderID = SHADER_SPRITE;
-    cmd.vertexStart = 0; // Will be calculated in ExecuteQueue
-    cmd.vertexCount = 4; // 4 vertices for quad
-    cmd.primitiveCount = 2; // 2 triangles for quad
-    cmd.batchType = 0; // Standard batch
     cmd.depth = 0.0f;
     cmd.isUI = true;
-    cmd.layer = 2; // UI layer
-    cmd.states = RenderStateBlock(); // Default render states
 
     // Add command to queue
     m_pShaderManager->PushCommand(cmd);

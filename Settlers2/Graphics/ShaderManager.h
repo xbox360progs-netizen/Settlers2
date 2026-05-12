@@ -5,6 +5,7 @@
 #include <map>
 #include <vector>
 #include <string>
+#include "RenderTypes.h"
 
 // Global shader ID enum (must be outside class for use across files)
 enum ShaderID {
@@ -33,19 +34,9 @@ public:
         std::map<std::string, D3DXHANDLE> hParams;
     };
 
-    // Render state block for batch rendering
-    struct RenderStateBlock {
-        DWORD zEnable;
-        DWORD alphaBlendEnable;
-        DWORD srcBlend;
-        DWORD destBlend;
-        DWORD cullMode;
-        
-        RenderStateBlock() 
-            : zEnable(D3DZB_FALSE), alphaBlendEnable(FALSE), 
-              srcBlend(D3DBLEND_SRCALPHA), destBlend(D3DBLEND_INVSRCALPHA),
-              cullMode(D3DCULL_NONE) {}
-    };
+    
+    // Use RenderCommand from RenderTypes.h
+    typedef ::RenderCommand RenderCommand;
 
     // Draw batch structure for material-based sorting (State Sorting)
     struct DrawBatch {
@@ -73,53 +64,7 @@ public:
     // Custom draw callback type for non-standard rendering (e.g. RadialMenu shader)
     typedef void (*CustomDrawFn)(LPDIRECT3DDEVICE9 pDevice, ShaderManager* pShaderMgr, void* pUserData);
 
-    // Render command structure for queue-based rendering (Master Loop)
-    struct RenderCommand {
-        IDirect3DTexture9* pTexture;
-        int shaderID;   // Shader handle (ShaderHandle enum) instead of raw pointer
-        DWORD vertexStart;
-        DWORD vertexCount;
-        DWORD primitiveCount;
-        int batchType; // 0 - Standard (Single), 1 - Instanced, 2 - Custom callback
-        float depth;   // Z-layer: 1.0=far (ground), 0.5=mid (units), 0.1=near (UI)
-        int layer;     // Logical layer: 0=Terrain, 1=Objects, 2=UI (for composite depth)
-        bool isUI;     // Screen-space rendering (skip camera matrix)
-        RenderStateBlock states;
-        DWORD batchIndex; // For tracking batch sequence (for vertex offset calculation)
-        
-        // World position for camera transform (if not isUI)
-        float worldX, worldY;
-        
-        // UV coordinates for partial texture rendering (text, sprites)
-        float u0, v0, u1, v1; // Texture region to sample
-        
-        // Screen position for UI rendering (if isUI)
-        float screenX, screenY, screenW, screenH;
-        
-        // Color tint for the render command
-        D3DCOLOR color;
-        
-        // Custom draw callback (for batchType == 2)
-        CustomDrawFn customDraw;
-        void* customUserData;
-        
-        RenderCommand() : pTexture(NULL), shaderID(SHADER_INVALID), vertexStart(0), vertexCount(0),
-            primitiveCount(0), batchType(0), depth(1.0f), layer(0), isUI(false), batchIndex(0),
-            worldX(0), worldY(0), u0(0), v0(0), u1(1), v1(1),
-            screenX(0), screenY(0), screenW(0), screenH(0), color(0xFFFFFFFF),
-            customDraw(NULL), customUserData(NULL) {}
-        
-        // Sorting operator: shader-first for lazy batching (Xbox 360 optimization)
-        // Shader switch is most expensive, then texture, then depth (back-to-front)
-        bool operator<(const RenderCommand& other) const {
-            if (shaderID != other.shaderID)
-                return shaderID < other.shaderID; // Batch by shader (most expensive switch)
-            if (pTexture != other.pTexture)
-                return pTexture < other.pTexture; // Then by texture
-            return depth > other.depth; // Then back-to-front for alpha
-        }
-    };
-
+    
     // Render batch structure (legacy, will be replaced by RenderCommand)
     struct RenderBatch {
         IDirect3DTexture9* pTexture;
@@ -192,6 +137,9 @@ public:
     
     // Submit a render command to the queue
     void Submit(const RenderCommand& cmd);
+    
+    // Add command to render queue (alias for Submit)
+    void PushCommand(const RenderCommand& cmd);
     
     // Submit a draw batch for material-based sorting
     void SubmitDrawBatch(const DrawBatch& batch);

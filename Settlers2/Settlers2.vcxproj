@@ -250,6 +250,7 @@
     <ClInclude Include="Graphics\Quad.h" />
     <ClInclude Include="Graphics\RadialMenu.h" />
     <ClInclude Include="Graphics\Renderer.h" />
+    <ClInclude Include="Graphics\RenderTypes.h" />
     <ClInclude Include="Graphics\ShaderManager.h" />
     <ClInclude Include="Graphics\SpriteAtlas.h" />
     <ClInclude Include="Graphics\SpriteBatch.h" />
