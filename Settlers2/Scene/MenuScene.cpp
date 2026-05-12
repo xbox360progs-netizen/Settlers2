@@ -213,28 +213,24 @@ void MenuScene::Update(float deltaTime) {
 }
 
 void MenuScene::Render() {
-  OutputDebugStringA("[MenuScene::Render] ENTRY\n");
+    OutputDebugStringA("[MenuScene::Render] ENTRY\n");
 
-  // 1. Базовая проверка
-  if (!m_spriteRenderer) return;
+    if (!m_spriteRenderer || !m_backgroundTexture.GetTexture() || !m_textManager) return;
 
-  m_spriteRenderer->Begin(SHADER_SPRITE, nullptr, 0.0f, 0, false);
-  m_spriteRenderer->Draw(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
-  
-  // Добавляем текст в ту же очередь
-  if (m_textManager) {
-    LPDIRECT3DTEXTURE9 fontTexture = m_textManager->GetFontTexture(FONT_MENU);
-    char debugBuf[256];
-    sprintf(debugBuf, "[MenuScene::Render] TextManager exists, FONT_MENU=%d, fontTexture=%p\n", FONT_MENU, (void*)fontTexture);
-    OutputDebugStringA(debugBuf);
-    // Ничего не нужно - TextManager теперь работает через SpriteRenderer
-    m_textManager->DrawTextToScreen("T", 100, 100, 0xFFFF0000, 0.2f); // Тест с одной буквой
-    OutputDebugStringA("[MenuScene::Render] DrawTextToScreen called\n");
-  }
-  
-  // 2. Вызываем End() ОДИН РАЗ - это выполнит ExecuteQueue для всех команд (фон + текст)
-  m_spriteRenderer->End(); // Здесь фон И текст улетают на экран вместе
-  OutputDebugStringA("[MenuScene::Render] End() completed - all rendering executed\n");
+    // 1. Render Background with depth=0.0f (back)
+    LPDIRECT3DTEXTURE9 bgTex = m_backgroundTexture.GetTexture();
+    m_spriteRenderer->Begin("sprite", bgTex);
+    m_spriteRenderer->SetCurrentDepth(0.0f); // Background is behind
+    m_spriteRenderer->Draw(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
+    m_spriteRenderer->End(); // Close background batch
+    
+    // 2. Render Text with depth=0.1f (front) - TextManager will NOT call End()
+    m_textManager->DrawTextToScreen("SETTLERS 2 XBOX", 100.0f, 100.0f, 0xFFFF0000, 3.0f); 
+
+    // 3. Close text batch (MenuScene controls the batch, not TextManager)
+    m_spriteRenderer->End();
+
+    OutputDebugStringA("[MenuScene::Render] End() completed\n");
 }
 
 void MenuScene::SetBackground(const std::string& path) {

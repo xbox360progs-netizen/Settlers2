@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include <d3d9.h>
 #include "TextManager.h"
 #include "Renderer.h"
 #include "ShaderManager.h"
@@ -127,6 +128,12 @@ void TextManager::PushLetterCommand(const Glyph& glyph, LPDIRECT3DTEXTURE9 textu
     float u1 = glyph.u1 - UV_PADDING;
     float v1 = glyph.v1 - UV_PADDING;
     
+    // Normalize UV coordinates by texture dimensions
+    u0 = u0 / m_font->GetTextureWidth();
+    v0 = v0 / m_font->GetTextureHeight();
+    u1 = u1 / m_font->GetTextureWidth();
+    v1 = v1 / m_font->GetTextureHeight();
+    
     // Clamp UVs to valid range
     u0 = max(0.0f, min(1.0f, u0));
     v0 = max(0.0f, min(1.0f, v0));
@@ -143,14 +150,27 @@ void TextManager::PushLetterCommand(const Glyph& glyph, LPDIRECT3DTEXTURE9 textu
 
 void TextManager::DrawString(const std::string& text, float x, float y, D3DCOLOR color, float scale, FontID fontID, bool isUI, FontStyle style, float depth)
 {
-    if (!m_renderer || !m_shaderManager) {
-        OutputDebugStringA("[TextManager] ERROR: Renderer or ShaderManager not set. Call Init() first.\n");
-        return;
-    }
+    char dbg[256];
+    sprintf(dbg, "[TextManager::DrawString] ENTRY text='%s' x=%.1f y=%.1f m_font=%p m_spriteRenderer=%p\n",
+            text.c_str(), x, y, m_font, m_spriteRenderer);
+    OutputDebugStringA(dbg);
+
+    if (!m_font) return;
     
-    if (!m_font || text.empty() || scale <= 0) {
-        return;
-    }
+    // Shadow offset
+    D3DCOLOR shadowColor = D3DCOLOR_ARGB(255, 0, 0, 0); // Black shadow
+    
+    // Get font texture
+    LPDIRECT3DTEXTURE9 fontTexture = m_font->GetTexture();
+    if (!fontTexture) return;
+    
+    // Calculate line height
+    float lineHeight = m_font->GetLineHeight() * scale;
+    float baseDepth = depth;
+    
+    // Starting position
+    float penX = x;
+    float penY = y;
     
     // Limit text length to prevent overflow
     if (text.length() > 1000) {
@@ -159,48 +179,38 @@ void TextManager::DrawString(const std::string& text, float x, float y, D3DCOLOR
     
     // Get font data
     std::map<FontID, FontData>::iterator it = m_fontData.find(fontID);
-    LPDIRECT3DTEXTURE9 fontTexture = nullptr;
+    fontTexture = m_font->GetTexture(); 
     const Glyph* glyphs = nullptr;
     int glyphCount = 0;
-    float lineHeight = m_font->GetLineHeight();
+    lineHeight = m_font->GetLineHeight();
     
     if (it != m_fontData.end()) {
         fontTexture = it->second.texture;
-        glyphs = it->second.glyphs;
         glyphCount = it->second.glyphCount;
         lineHeight = it->second.lineHeight;
     }
     
-    // Fallback to default font texture if available
-    if (!fontTexture && m_font) {
-        fontTexture = m_font->GetTexture();
+    penX = x;
+    penY = y;
+    
+    // Optimized text rendering: draw each character with DrawWithTexture
+    if (text.empty()) return;
+    
+    // Calculate total vertices needed (4 per character + 6 for shadow if needed)
+    size_t textLength = text.size();
+    
+    // Calculate bounding box for the text
+    float textWidth = 0.0f;
+    float textHeight = lineHeight;
+    
+    // Begin batch for this text
+    if (m_spriteRenderer) {
+        m_spriteRenderer->Begin("sprite", fontTexture);
+        m_spriteRenderer->SetCurrentDepth(0.1f); // Text is in front of background
     }
-    
-    char debugBuf2[256];
-    sprintf(debugBuf2, "[TextManager::DrawString] fontTexture=%p, glyphs=%p, glyphCount=%d\n", 
-            fontTexture, glyphs, glyphCount);
-    OutputDebugStringA(debugBuf2);
-    
-    if (!fontTexture) {
-        OutputDebugStringA("[TextManager] WARNING: No font texture available\n");
-        return;
-    }
-    
-    ShaderManager* shaderManager = m_renderer->GetShaderManager();
-    if (!shaderManager) return;
-    
-    float penX = x;
-    float penY = y;
-    
-    // Shadow offset
-    const float SHADOW_OFFSET = 1.0f;
-    D3DCOLOR shadowColor = D3DCOLOR_ARGB(255, 0, 0, 0); // Black shadow
-    
-    int shaderID = isUI ? SHADER_SPRITE : SHADER_WORLD;
     
     int letterCount = 0;
-    
-    for (size_t i = 0; i < text.size(); ++i)
+    for (size_t i = 0; i < textLength; ++i)
     {
         unsigned char c = (unsigned char)text[i];
         
@@ -212,48 +222,79 @@ void TextManager::DrawString(const std::string& text, float x, float y, D3DCOLOR
         Glyph glyph;
         bool hasGlyph = false;
         
-        if (glyphs && c < (size_t)glyphCount) {
+        if (glyphs && c < glyphCount) {
             glyph = glyphs[c];
             hasGlyph = true;
         } else if (m_font) {
             const std::vector<FontChar>& chars = m_font->GetChars();
             if (c < chars.size()) {
-                const FontChar& ch = chars[c];
-                glyph.u0 = ch.u0;
-                glyph.v0 = ch.v0;
-                glyph.u1 = ch.u1;
-                glyph.v1 = ch.v1;
-                glyph.width = ch.width;
-                glyph.height = ch.height;
-                glyph.xOffset = ch.xOffset;
-                glyph.yOffset = ch.yOffset;
-                glyph.xAdvance = ch.xAdvance;
+                const FontChar& fc = chars[c];
+                glyph.u0 = fc.u0;
+                glyph.v0 = fc.v0;
+                glyph.u1 = fc.u1;
+                glyph.v1 = fc.v1;
+                glyph.width = fc.width;
+                glyph.height = fc.height;
+                glyph.xOffset = fc.xOffset;
+                glyph.yOffset = fc.yOffset;
+                glyph.xAdvance = fc.xAdvance;
                 hasGlyph = true;
             }
         }
         
-        if (!hasGlyph || glyph.width <= 0.0f || glyph.height <= 0.0f) { 
-            penX += glyph.xAdvance * scale; 
-            continue; 
-        }
+        if (!hasGlyph) continue; // Skip missing glyphs
         
-        float charX = penX + glyph.xOffset * scale;
-        float charY = penY + glyph.yOffset * scale;
+        // Calculate character position and UVs
         float charW = glyph.width * scale;
         float charH = glyph.height * scale;
+        float charX = penX + glyph.xOffset * scale;
+        float charY = penY + glyph.yOffset * scale;
         
-        // Shadow rendering (draw shadow first at slightly higher depth)
-        if (style == FONT_STYLE_SHADOW) {
-            PushLetterCommand(glyph, fontTexture, charX + SHADOW_OFFSET, charY + SHADOW_OFFSET, charW, charH, shadowColor, depth + 0.0001f, isUI, shaderID, letterCount);
-        }
+        // UV coordinates from BitmapFont are already normalized (0-1)
+        // Just add small padding to prevent atlas bleeding
+        float uvPadding = 0.001f; // Small UV-space padding
+        float u0 = glyph.u0 + uvPadding;
+        float v0 = glyph.v0 + uvPadding;
+        float u1 = glyph.u1 - uvPadding;
+        float v1 = glyph.v1 - uvPadding;
         
-        // Main character rendering (increment depth slightly for each character to prevent Z-fighting)
-        PushLetterCommand(glyph, fontTexture, charX, charY, charW, charH, color, depth + (letterCount * 0.00001f), isUI, shaderID, letterCount);
+        char dbg[256];
+        sprintf(dbg, "[TextManager] char='%c' uv=(%.4f,%.4f,%.4f,%.4f) size=(%.1f,%.1f)\n", 
+                c, u0, v0, u1, v1, charW, charH);
+        OutputDebugStringA(dbg);
         
-        // Advance pen position
-        penX += glyph.xAdvance * scale;
+        // Clamp UVs to valid range
+        u0 = max(0.0f, min(1.0f, u0));
+        v0 = max(0.0f, min(1.0f, v0));
+        u1 = max(0.0f, min(1.0f, u1));
+        v1 = max(0.0f, min(1.0f, v1));
         
-        letterCount++;
+		// Draw shadow first if needed
+		if (style == FONT_STYLE_SHADOW && m_spriteRenderer) {
+			float shadowX = charX + 1.0f;
+			float shadowY = charY + 1.0f;
+			m_spriteRenderer->DrawWithTexture(shadowX, shadowY, charW, charH, u0, v0, u1, v1, fontTexture, 0xFF000000);
+		}
+        
+		// Draw main character
+		if (m_spriteRenderer) {
+			m_spriteRenderer->DrawWithTexture(charX, charY, charW, charH, u0, v0, u1, v1, fontTexture, color);
+		}
+
+		// Update text dimensions
+		textWidth += charW;
+		textHeight = (textHeight > charH) ? textHeight : charH; //  max  
+
+		// Advance pen position
+		penX += glyph.xAdvance * scale;
+		letterCount++;
+	}   
+    
+// End batch and flush to GPU
+    if (m_spriteRenderer) {
+        m_spriteRenderer->End();
+        // REMOVED Flush() - let MenuScene control batch timing
+        // m_spriteRenderer->Flush();
     }
 }
 

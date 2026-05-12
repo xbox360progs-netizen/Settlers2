@@ -76,6 +76,10 @@ public:
     LPDIRECT3DDEVICE9 GetDevice() const { return m_device; }
     IDirect3DTexture9* GetTexture() const { return m_texture; }
     
+    // Get texture dimensions for UV normalization
+    float GetTextureWidth() const { return m_textureWidth; }
+    float GetTextureHeight() const { return m_textureHeight; }
+    
     // CPU vertex management (for TextManager)
     void SetVertices(const std::vector<SpriteVertex>& vertices) { m_vertices = vertices; }
     const std::vector<SpriteVertex>& GetVertices() const { return m_vertices; }

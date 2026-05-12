@@ -136,6 +136,12 @@ void SceneManager::Render()
     // Step 2: RECORD - Collect all render commands from scene
     // The scene will call SpriteRenderer which submits commands to the queue
     // Nobody draws anything at this stage!
+    
+    // Reset vertex count at start of frame
+    if (m_spriteRenderer) {
+        m_spriteRenderer->ResetVertexCount();
+    }
+    
     OutputDebugStringA("[SceneManager::Render] Calling m_currentScene->Render()...\n");
     m_currentScene->Render();
     OutputDebugStringA("[SceneManager::Render] m_currentScene->Render() returned\n");
@@ -153,6 +159,9 @@ void SceneManager::Render()
     // Step 4: EXECUTE - Execute all commands in sorted order (final render pass)
     if (m_shaderManager && m_spriteRenderer)
     {
+        // NOTE: Flush() is called by SpriteRenderer::End() during scene rendering
+        // No need to call here again
+        
         // Get vertex buffer and index buffer from SpriteRenderer
         LPDIRECT3DVERTEXBUFFER9 pVB = m_spriteRenderer->GetVertexBuffer();
         LPDIRECT3DINDEXBUFFER9 pIB = m_spriteRenderer->GetIndexBuffer();

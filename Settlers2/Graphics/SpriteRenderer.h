@@ -12,6 +12,21 @@
 // Forward declaration for ThreadData struct
 class SpriteRenderer;
 
+
+struct TextsVertex {
+    D3DXVECTOR3 pos;
+    DWORD color;
+    D3DXVECTOR2 tex;
+
+    // Конструктор для VS2010
+    TextsVertex(float x, float y, float z, DWORD c, float u, float v) {
+        pos = D3DXVECTOR3(x, y, z);
+        color = c;
+        tex = D3DXVECTOR2(u, v);
+    }
+    TextsVertex() {} 
+};
+
 // SpriteData structure for thread-safe data passing
 struct SpriteData {
     float x, y;
@@ -77,6 +92,9 @@ public:
     // Submit current batch to ShaderManager queue (for manual control)
     void SubmitBatch(ShaderManager* pShader);
 
+    // Set current depth for sorting (background=0.0f, foreground=0.1f)
+    void SetCurrentDepth(float depth) { m_currentDepth = depth; }
+
     // Draw a sprite at position with UV rect and color
     void Draw(float x, float y, float width, float height,
               float u0, float v0, float u1, float v1,
@@ -95,6 +113,9 @@ public:
 
     // End batch and flush remaining sprites
     void End();
+
+    // Reset vertex count for new frame
+    void ResetVertexCount();
 
     // Flush with explicit ShaderManager pointer for multi-threaded rendering
     void Flush(ShaderManager* pShader);
@@ -120,6 +141,9 @@ public:
     LPDIRECT3DVERTEXBUFFER9 GetVertexBuffer() const { return m_pVB[m_activeBuffer]; }
     LPDIRECT3DINDEXBUFFER9 GetIndexBuffer() const { return m_pIndexBuffer; }
     LPDIRECT3DVERTEXDECLARATION9 GetVertexDeclaration() const { return m_pVertexDecl; }
+    
+    // Push command to queue for batch rendering
+    void PushCommand(const RenderCommand& cmd);
 
     // Public wrapper for staging area (external callers)
     void FillStagingAreaPublic(int startIdx, int count, const SpriteData* data);

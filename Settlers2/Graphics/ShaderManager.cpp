@@ -394,15 +394,28 @@ void ShaderManager::SetVector(const char* paramName, const float* vector) {
 }
 
 void ShaderManager::SetTexture(const char* paramName, LPDIRECT3DBASETEXTURE9 pTexture) {
+    char dbgBuf[256];
+    sprintf(dbgBuf, "[SM::SetTexture] paramName=%s, pTexture=%p, m_pActiveShader=%p\n", 
+            paramName ? paramName : "NULL", pTexture, m_pActiveShader);
+    OutputDebugStringA(dbgBuf);
+
     if (!m_pActiveShader || !m_pActiveShader->pEffect) {
+        OutputDebugStringA("[SM::SetTexture] ERROR: No active shader or effect\n");
         return;
     }
 
     D3DXHANDLE hParam = m_pActiveShader->pEffect->GetParameterByName(NULL, paramName);
     if (hParam) {
+        sprintf(dbgBuf, "[SM::SetTexture] hParam=%p, calling SetTexture\n", hParam);
+        OutputDebugStringA(dbgBuf);
         m_pActiveShader->pEffect->SetTexture(hParam, pTexture);
+        sprintf(dbgBuf, "[SM::SetTexture] SetTexture returned, pTexture=%p\n", pTexture);
+        OutputDebugStringA(dbgBuf);
         // Removed automatic CommitChanges() for Xbox 360 multi-threading
         // Use explicit Commit() call instead
+    } else {
+        sprintf(dbgBuf, "[SM::SetTexture] WARNING: hParam is NULL for paramName=%s\n", paramName ? paramName : "NULL");
+        OutputDebugStringA(dbgBuf);
     }
     
     // === BATCH BREAKING ===
@@ -474,7 +487,8 @@ void ShaderManager::Submit(const RenderCommand& cmd) {
         s_batchIndex = 0;
     }
     
-    cmdWithOffset.vertexStart = s_currentVertexOffset;
+    // Use vertexStart as-is - SpriteRenderer already calculates correct offset
+    cmdWithOffset.vertexStart = cmd.vertexStart;
     cmdWithOffset.batchIndex = s_batchIndex++;
     
     // Update vertex offset for next batch
@@ -509,8 +523,34 @@ void ShaderManager::ClearBatches() {
 }
 
 void ShaderManager::SortQueue() {
-    // Sort by depth (back-to-front for alpha), then shader, then texture
-    // std::sort(m_commandQueue.begin(), m_commandQueue.end());
+    // Sort by depth (back-to-front for alpha)
+    // Lower depth = draw FIRST (background)
+    // Higher depth = draw LAST (foreground)
+    
+    // Debug: log depths before sorting
+    char dbg[256];
+    sprintf(dbg, "[SortQueue] Before: %d commands\n", (int)m_commandQueue.size());
+    OutputDebugStringA(dbg);
+    for (size_t i = 0; i < m_commandQueue.size() && i < 5; i++) {
+        sprintf(dbg, "[SortQueue] cmd[%d]: depth=%.2f, texture=%p\n", 
+                (int)i, m_commandQueue[i].depth, m_commandQueue[i].pTexture);
+        OutputDebugStringA(dbg);
+    }
+    
+    // Sort by depth ASCENDING (lower depth = background = draw first)
+    std::sort(m_commandQueue.begin(), m_commandQueue.end(), 
+              [](const RenderCommand& a, const RenderCommand& b) {
+                  return a.depth < b.depth; // Lower depth first
+              });
+    
+    // Debug: log depths after sorting
+    sprintf(dbg, "[SortQueue] After:\n");
+    OutputDebugStringA(dbg);
+    for (size_t i = 0; i < m_commandQueue.size() && i < 5; i++) {
+        sprintf(dbg, "[SortQueue] cmd[%d]: depth=%.2f, texture=%p\n", 
+                (int)i, m_commandQueue[i].depth, m_commandQueue[i].pTexture);
+        OutputDebugStringA(dbg);
+    }
 }
 
 void ShaderManager::SortDrawBatches() {
@@ -688,13 +728,17 @@ void ShaderManager::SetShaderParameters(const RenderCommand& cmd) {
             
         case SHADER_UI:
         {
-            // UI shader: set texture + screen orthographic matrix
+            // UI shader: set texture + screen orthographic matrix + disable Z-write
             if (cmd.pTexture) {
                 SetTexture("g_texture", cmd.pTexture);
             }
+            // Disable Z-write for UI to prevent depth conflicts
+            m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+            m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+            
             // Use orthographic projection for UI (screen space)
             D3DXMATRIX matOrtho;
-            D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
+            D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 1.0f);
             SetMatrix("gScreenProj", (const float*)&matOrtho);
             break;
         }
@@ -798,6 +842,10 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                                 LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride,
                                 const D3DXMATRIX* pViewProj) {
 
+    // Reset vertex offset at start of each frame
+    s_currentVertexOffset = 0;
+    s_batchIndex = 0;
+    
     if (m_commandQueue.empty()) {
         OutputDebugStringA("[ShaderManager::ExecuteQueue] Queue is empty, returning\n");
         return;
@@ -809,10 +857,8 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         return;
     }
 
-
-    // BLUE SCREEN TEST: If screen turns blue, rendering pipeline works
-    m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0, 0, 255), 1.0f, 0);
-
+    // NOTE: Removed D3DCLEAR_TARGET - it was wiping out previous renderings (including UI text)
+    // If you need to clear for debugging, do it BEFORE rendering, not after
 
     // Set projection matrix for ALL shaders (not just sprite shader)
     D3DXMATRIX ortho;
@@ -823,9 +869,12 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     const D3DXMATRIX* matrixToUse = pViewProj ? pViewProj : &ortho;
     SetFrameViewProj(matrixToUse);
 
-    // === SORT COMMANDS: shader-first for lazy batching ===
-    // Sorting: shaderID (most expensive switch) > texture > depth (back-to-front)
-    std::sort(m_commandQueue.begin(), m_commandQueue.end());
+    // === SORT COMMANDS: depth-first for correct rendering order ===
+    // Sort by depth ASCENDING (lower depth = background = draw first)
+    std::sort(m_commandQueue.begin(), m_commandQueue.end(), 
+              [](const RenderCommand& a, const RenderCommand& b) {
+                  return a.depth < b.depth;
+              });
 
     // === STATE LOCKING: Prevent external state corruption ===
     Lock();
@@ -988,7 +1037,13 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
             }
         }
         
-        // Draw and immediately close pass to prevent shader state corruption
+// Draw and immediately close pass to prevent shader state corruption
+        char drawDebug[256];
+        sprintf(drawDebug, "[ExecuteQueue] Drawing cmd %d: start=%d, vertCount=%d, primCount=%d\n",
+                (int)i, cmd.vertexStart, cmd.vertexCount, cmd.primitiveCount);
+        OutputDebugStringA(drawDebug);
+        OutputDebugStringA("[ExecuteQueue] About to call DrawIndexedPrimitive NOW...");
+
         switch (cmd.batchType) {
             case 0: // Standard/Single sprite rendering
                 m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST,
@@ -997,6 +1052,7 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                                                cmd.vertexCount,
                                                0,
                                                cmd.primitiveCount);
+                OutputDebugStringA("[ExecuteQueue] DrawIndexedPrimitive DONE!");
                 break;
 
             case 1: // Instanced rendering

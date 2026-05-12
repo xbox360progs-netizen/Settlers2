@@ -657,6 +657,9 @@ void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float
 void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType, bool isUI) {
     OutputDebugStringA("[SR::Begin] ENTERED\n");
 
+    // NOTE: Do NOT reset m_totalVertexCount here - it accumulates across batches
+    // to ensure correct vertex offsets in the buffer
+    
     char buf[256];
     sprintf(buf, "[SR::Begin] ENTRY this=%p, m_pDevice=%p, m_pShaderManager=%p\n", this, m_pDevice, m_pShaderManager);
     OutputDebugStringA(buf);
@@ -757,6 +760,9 @@ void SpriteRenderer::BeginWorldObject(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTex
 
 // Legacy Begin overloads (map shader names to handles for backward compatibility)
 void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture) {
+    char dbg[256];
+    sprintf(dbg, "[SR::Begin] shaderName=%s, texture=%p\n", shaderName ? shaderName : "NULL", pTexture);
+    OutputDebugStringA(dbg);
     int shaderID = ShaderNameToID(shaderName);
     Begin(static_cast<ShaderID>(shaderID), pTexture);
 }
@@ -867,6 +873,11 @@ void SpriteRenderer::DrawWithTexture(float x, float y, float width, float height
                                      float u0, float v0, float u1, float v1,
                                      LPDIRECT3DTEXTURE9 pTexture,
                                      DWORD color) {
+    char dbg[256];
+    sprintf(dbg, "[SR::DrawWithTexture] ENTRY x=%.1f y=%.1f w=%.1f h=%.1f tex=%p m_isBatching=%d\n",
+            x, y, width, height, pTexture, m_isBatching);
+    OutputDebugStringA(dbg);
+
     if (!m_isBatching) {
         OutputDebugStringA("DrawWithTexture called without Begin!\n");
         return;
@@ -874,6 +885,8 @@ void SpriteRenderer::DrawWithTexture(float x, float y, float width, float height
 
     // Set texture if changed (enables per-sprite texture switching)
     if (pTexture != m_currentTexture) {
+        sprintf(dbg, "[SR::DrawWithTexture] Texture changed: old=%p new=%p\n", m_currentTexture, pTexture);
+        OutputDebugStringA(dbg);
         m_currentTexture = pTexture;
         if (m_pShaderManager) {
             m_pShaderManager->SetTexture("g_texture", pTexture);
@@ -915,35 +928,18 @@ void SpriteRenderer::End() {
     OutputDebugStringA("[SR::End] ENTERED\n");
 
     if (m_isBatching) {
-        char debugMsg[128];
-        sprintf(debugMsg, "[SpriteRenderer::End] Flushing %d sprites\n", m_spriteCount);
-        OutputDebugStringA(debugMsg);
-
-        // Debug check: if sprites in queue but no draw call happens
+        // Flush remaining sprites to vertex buffer
+        // This will submit batch to ShaderManager queue for SceneManager::ExecuteQueue
         if (m_spriteCount > 0) {
             OutputDebugStringA("[SR::End] Calling Flush()...\n");
             Flush();
             OutputDebugStringA("[SR::End] Flush() completed\n");
-        } else {
-            OutputDebugStringA("[SpriteRenderer::End] WARNING: No sprites to flush\n");
         }
-
-        m_isBatching = false;
     }
+}
 
-    OutputDebugStringA("[SR::End] Before SetTexture(0, NULL)...\n");
-    if (m_pDevice) {
-        char buf[256];
-        sprintf(buf, "[SR::End] Calling SetTexture(0, NULL) with m_pDevice=%p\n", m_pDevice);
-        OutputDebugStringA(buf);
-        m_pDevice->SetTexture(0, NULL);
-        OutputDebugStringA("[SR::End] SetTexture(0, NULL) completed\n");
-    } else {
-        OutputDebugStringA("[SR::End] ERROR: m_pDevice is NULL\n");
-    }
-
-    OutputDebugStringA("[SR::End] FINISHED\n");
-    OutputDebugStringA("[SR::End] About to return...\n");
+void SpriteRenderer::ResetVertexCount() {
+    m_totalVertexCount = 0;
 }
 
 void SpriteRenderer::Flush(ShaderManager* pShader) {
@@ -957,7 +953,6 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
             m_spriteCount, vertexCount, m_maxSprites);
     OutputDebugStringA(debugMsg);
 
-    // Проверка буферов перед копированием
     sprintf(debugMsg, "[SR::Flush] m_pVB[%d]=%p, m_pIndexBuffer=%p, m_pStagingBuffer=%p\n",
             m_activeBuffer, m_pVB[m_activeBuffer], m_pIndexBuffer, m_pStagingBuffer);
     OutputDebugStringA(debugMsg);
@@ -983,20 +978,16 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
         return; // Prevent buffer overrun
     }
 
-    // Copy staging buffer to GPU
+// Copy staging buffer to GPU
     LPDIRECT3DVERTEXBUFFER9 currentVB = m_pVB[m_activeBuffer];
     void* pData = NULL;
-    OutputDebugStringA("[SR::Flush] Locking VB...\n");
+    OutputDebugStringA("[SR::Flush] Locking VB...");
     
-    // XBOX 360: Use D3DLOCK_DISCARD for dynamic buffers to avoid GPU sync issues
+    // XBOX 360: Use 0 for lock flags
     DWORD lockFlags = 0;
-    #ifdef _XBOX
-    lockFlags = 0; // D3DLOCK_DISCARD not available on Xbox 360, use 0
-    #else
-    lockFlags = D3DLOCK_DISCARD; // Only on PC
-    #endif
     
-    HRESULT hr = currentVB->Lock(0, (UINT)dataSize, &pData, lockFlags);
+    // Lock and copy
+    HRESULT hr = currentVB->Lock(0, dataSize, &pData, lockFlags);
     if (FAILED(hr)) {
         char errorMsg[256];
         sprintf(errorMsg, "[SR::Flush] FAILED to lock vertex buffer (hr=0x%08X)\n", hr);
@@ -1004,29 +995,40 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
         m_spriteCount = 0;
         return;
     }
-    OutputDebugStringA("[SR::Flush] VB locked, copying data...\n");
     
-    // XBOX 360: Validate pData before memcpy
-    if (!pData) {
-        OutputDebugStringA("[SR::Flush] CRITICAL: Lock returned NULL pointer!\n");
-        m_spriteCount = 0;
-        return;
-    }
-    
+    OutputDebugStringA("[SR::Flush] Copying data to VB...");
     memcpy(pData, m_pStagingBuffer, dataSize);
     currentVB->Unlock();
-    OutputDebugStringA("[SR::Flush] VB unlocked\n");
+    OutputDebugStringA("[SR::Flush] Data copied successfully!");
 
+    // Update statistics
+    sprintf(debugMsg, "[SR::Flush] Copied %d bytes to VB, %d sprites ready for render\n", 
+            (int)dataSize, m_spriteCount);
+    OutputDebugStringA(debugMsg);
+    
+    // DEBUG: Log first vertex position to verify data
+    if (m_pStagingBuffer && m_spriteCount > 0) {
+        sprintf(debugMsg, "[SR::Flush] First vertex: x=%.1f, y=%.1f, u=%.4f, v=%.4f\n",
+                m_pStagingBuffer[0].x, m_pStagingBuffer[0].y,
+                m_pStagingBuffer[0].u, m_pStagingBuffer[0].v);
+        OutputDebugStringA(debugMsg);
+    }
+    
     // Create render command (Master Loop approach)
     if (pShader) {
         ShaderManager::RenderCommand cmd;
         cmd.pTexture = m_currentTexture;
         cmd.shaderID = m_currentShaderID;
-        cmd.vertexStart = 0; // Always 0 for now (single buffer)
+        cmd.vertexStart = m_totalVertexCount; // Use accumulated count for correct offset
         cmd.vertexCount = m_spriteCount * 4; // 4 vertices per sprite
         cmd.primitiveCount = (DWORD)(m_spriteCount * 2); // 2 triangles per sprite
         cmd.batchType = m_currentRenderType; // Use render type from Begin()
         cmd.depth = m_currentDepth; // Use current depth from Begin()
+        
+        char dbg[256];
+        sprintf(dbg, "[SR::Flush] Submitting batch: sprites=%d, start=%d, depth=%.2f, texture=%p\n",
+                m_spriteCount, cmd.vertexStart, m_currentDepth, m_currentTexture);
+        OutputDebugStringA(dbg);
         cmd.layer = 0; // Default layer (will be overridden by caller if needed)
         cmd.isUI = m_currentIsUI; // Screen-space or world-space
         
@@ -1698,11 +1700,18 @@ void SpriteRenderer::CreateQuadWithTexture(float x, float y, float width, float 
                                        DWORD color, LPDIRECT3DTEXTURE9 pTexture) {
     OutputDebugStringA("[SR::CreateQuad] ENTRY\n");
     
+    char texBuf[256];
+    sprintf(texBuf, "[SR::CreateQuad] pTexture=%p, m_currentTexture=%p\n", pTexture, m_currentTexture);
+    OutputDebugStringA(texBuf);
+    
     // Update current texture if different
     if (pTexture != m_currentTexture) {
         m_currentTexture = pTexture;
         if (m_pShaderManager) {
+            sprintf(texBuf, "[SR::CreateQuad] Calling SM::SetTexture with texture=%p\n", pTexture);
+            OutputDebugStringA(texBuf);
             m_pShaderManager->SetTexture("g_texture", pTexture);
+            OutputDebugStringA("[SR::CreateQuad] SM::SetTexture returned\n");
         }
     }
 
@@ -1779,14 +1788,20 @@ void SpriteRenderer::CreateQuadWithTexture(float x, float y, float width, float 
     // Color
     cmd.color = color;
     
+    // Vertex buffer info - each sprite = 4 vertices, 2 primitives
+    // Disabled: Using Flush() path only now (SceneManager calls Flush before ExecuteQueue)
+    // cmd.vertexStart = (m_spriteCount - 1) * 4; 
+    // cmd.vertexCount = 4; 
+    // cmd.primitiveCount = 2;
+    
     // Texture and rendering
-    cmd.pTexture = pTexture; // CRITICAL: Pass texture to ShaderManager
+    cmd.pTexture = pTexture;
     cmd.shaderID = SHADER_SPRITE;
-    cmd.depth = 0.0f;
+    cmd.depth = m_currentDepth; // Use current depth set by SetCurrentDepth()
     cmd.isUI = true;
 
-    // Add command to queue
-    m_pShaderManager->PushCommand(cmd);
+    // DISABLED: Let Flush() create the batch command instead of per-sprite commands
+    // m_pShaderManager->PushCommand(cmd);
 
     m_spriteCount++;
 
