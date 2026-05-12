@@ -12,6 +12,7 @@ struct SpriteVertex {
 static_assert(sizeof(SpriteVertex) == 32, "SpriteVertex must be 32 bytes");
 
 class Texture;
+class SpriteRenderer;
 
 class Renderer {
 public:
@@ -37,6 +38,10 @@ public:
 
     // Shader management
     ShaderManager* GetShaderManager() { return m_pExternalShaderManager ? m_pExternalShaderManager : &m_shaderManager; }
+    
+    // SpriteRenderer access
+    SpriteRenderer* GetSpriteRenderer() { return m_pSpriteRenderer; }
+    void SetSpriteRenderer(SpriteRenderer* pSpriteRenderer);
     void SetShaderManager(ShaderManager* pShaderManager) { m_pExternalShaderManager = pShaderManager; }
     HRESULT LoadShader(ShaderID id, const char* filepath, const char* techniqueName = "SpriteBatchTech");
     bool SetShader(ShaderID id);
@@ -64,6 +69,7 @@ private:
     D3DPRESENT_PARAMETERS m_d3dpp;
 
     ShaderManager m_shaderManager;
+    SpriteRenderer* m_pSpriteRenderer;
     ShaderManager* m_pExternalShaderManager;
 
     LPDIRECT3DVERTEXSHADER9 m_pVertexShader;

@@ -138,7 +138,7 @@ bool GameEngine::Initialize()
 		OutputDebugStringA("[GameEngine::Initialize] Warning: Failed to load bitmap font file\n");
 	}
 
-    m_textManager = new TextManager(m_bitmapFont, 1280.0f, 720.0f);
+    m_textManager = new TextManager(m_bitmapFont, 1280.0f, 720.0f, m_renderer->GetSpriteRenderer());
     m_textManager->Init(m_renderer, m_renderer->GetShaderManager());
     
     // XBOX 360 CRITICAL: Load font texture into TextManager

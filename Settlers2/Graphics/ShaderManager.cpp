@@ -182,11 +182,7 @@ bool ShaderManager::LoadBaseShaders() {
         allSuccess = false;
     }
 
-    // Load FontShader.fx (for text rendering with SpriteBatchTech)
-    if (FAILED(LoadShader(SHADER_FONT, "game:\\Media\\Shaders\\FontShader.fx", "SpriteBatchTech"))) {
-        OutputDebugStringA("[ShaderManager] ERROR: Failed to load FontShader.fx\n");
-        allSuccess = false;
-    }
+    // Font shader removed - text now uses SHADER_SPRITE through SpriteRenderer
 
     // Load SpriteShader.fx (for sprite rendering with SpriteBatchTech)
     if (FAILED(LoadShader(SHADER_SPRITE, "game:\\Media\\Shaders\\SpriteShader.fx", "SpriteBatchTech"))) {

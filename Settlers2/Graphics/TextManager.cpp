@@ -2,6 +2,7 @@
 #include "TextManager.h"
 #include "Renderer.h"
 #include "ShaderManager.h"
+#include "SpriteRenderer.h"
 #include <d3dx9.h>
 
 #define DEBUG_TEXT_SKIP_RENDER 0
@@ -9,8 +10,8 @@
 // Half-pixel UV padding for Xbox 360 to prevent texture bleeding
 static const float UV_PADDING = 0.5f / 512.0f; // Assumes 512x512 atlas, adjust as needed
 
-TextManager::TextManager(BitmapFont* font, float screenWidth, float screenHeight)
-: m_font(font), m_renderer(nullptr), m_shaderManager(nullptr), 
+TextManager::TextManager(BitmapFont* font, float screenWidth, float screenHeight, SpriteRenderer* spriteRenderer)
+: m_font(font), m_renderer(nullptr), m_shaderManager(nullptr), m_spriteRenderer(spriteRenderer),
   m_screenWidth(screenWidth), m_screenHeight(screenHeight),
   m_screenVB(nullptr), m_screenVBCapacity(0)
 {
@@ -42,9 +43,9 @@ void TextManager::Init(Renderer* renderer, ShaderManager* shaderManager)
     m_shaderManager = shaderManager;
 }
 
-void TextManager::SetFontAtlas(FontID fontID, LPDIRECT3DTEXTURE9 texture)
+LPDIRECT3DTEXTURE9 TextManager::SetFontAtlas(FontID fontID, LPDIRECT3DTEXTURE9 texture)
 {
-    if (fontID < 0 || fontID >= FONT_COUNT) return;
+    if (fontID < 0 || fontID >= FONT_COUNT) return nullptr;
     
     // Release old texture and glyph data if exists
     std::map<FontID, FontData>::iterator it = m_fontData.find(fontID);
@@ -62,10 +63,6 @@ void TextManager::SetFontAtlas(FontID fontID, LPDIRECT3DTEXTURE9 texture)
     FontData& data = m_fontData[fontID];
     data.texture = texture;
     data.glyphs = nullptr;
-    data.glyphCount = 0;
-    if (texture) {
-        texture->AddRef();
-    }
     
     // Copy font metrics from BitmapFont if available
     if (m_font) {
@@ -90,20 +87,40 @@ void TextManager::SetFontAtlas(FontID fontID, LPDIRECT3DTEXTURE9 texture)
             data.glyphs[i].xAdvance = ch.xAdvance;
         }
     }
+    
+    if (texture) {
+        texture->AddRef();
+    }
+    
+    return data.texture;
+}
+
+LPDIRECT3DTEXTURE9 TextManager::GetFontTexture(FontID fontID)
+{
+    if (fontID < 0 || fontID >= FONT_COUNT) return nullptr;
+    
+    std::map<FontID, FontData>::iterator it = m_fontData.find(fontID);
+    if (it != m_fontData.end()) {
+        return it->second.texture;
+    }
+    
+    // Fallback to default font texture if available
+    if (m_font) {
+        return m_font->GetTexture();
+    }
+    
+    return nullptr;
 }
 
 void TextManager::PushLetterCommand(const Glyph& glyph, LPDIRECT3DTEXTURE9 texture, float x, float y, float w, float h, D3DCOLOR color, float depth, bool isUI, int shaderID)
 {
-    if (!m_renderer || !m_shaderManager) return;
+    if (!m_spriteRenderer) return;
     
     static int letterCount = 0;
     char debugBuf[256];
-    sprintf(debugBuf, "[TextManager::PushLetterCommand] Letter %d: pos=(%.1f,%.1f) size=(%.1f,%.1f) shaderID=%d\n",
-            ++letterCount, x, y, w, h, shaderID);
+    sprintf(debugBuf, "[TextManager::PushLetterCommand] Letter %d: pos=(%.1f,%.1f) size=(%.1f,%.1f) using SpriteRenderer\n",
+            ++letterCount, x, y, w, h);
     OutputDebugStringA(debugBuf);
-    
-    ShaderManager* shaderManager = m_renderer->GetShaderManager();
-    if (!shaderManager) return;
     
     // Apply UV padding to prevent bleeding on Xbox 360
     float u0 = glyph.u0 + UV_PADDING;
@@ -117,31 +134,12 @@ void TextManager::PushLetterCommand(const Glyph& glyph, LPDIRECT3DTEXTURE9 textu
     u1 = max(0.0f, min(1.0f, u1));
     v1 = max(0.0f, min(1.0f, v1));
     
-    ShaderManager::RenderCommand cmd;
-    cmd.pTexture = texture;
-    cmd.shaderID = shaderID;
-    cmd.vertexStart = 0;
-    cmd.vertexCount = 4;
-    cmd.primitiveCount = 2;
-    cmd.batchType = 0;
-    cmd.depth = depth; // CRITICAL: All letters in a string must have identical depth for batching
-    cmd.layer = isUI ? 2 : 1; // UI layer or Objects layer
-    cmd.isUI = isUI;
-    cmd.u0 = u0;
-    cmd.v0 = v0;
-    cmd.u1 = u1;
-    cmd.v1 = v1;
-    cmd.screenX = x;
-    cmd.screenY = y;
-    cmd.screenW = w;
-    cmd.screenH = h;
-    cmd.worldX = x;
-    cmd.worldY = y;
-    cmd.color = color;
-    cmd.customDraw = NULL;
-    cmd.customUserData = NULL;
-    
-    shaderManager->Submit(cmd);
+    // Use SpriteRenderer->DrawWithTexture instead of RenderCommand
+    char debugBuf2[512];
+    sprintf(debugBuf2, "[TextManager::PushLetterCommand] Drawing: pos=(%.1f,%.1f) size=(%.1f,%.1f) uv=(%.3f,%.3f,%.3f,%.3f) color=0x%08X texture=%p\n",
+            x, y, w, h, u0, v0, u1, v1, color, texture);
+    OutputDebugStringA(debugBuf2);
+    m_spriteRenderer->DrawWithTexture(x, y, w, h, u0, v0, u1, v1, texture, color);
 }
 
 void TextManager::DrawString(const std::string& text, float x, float y, D3DCOLOR color, float scale, FontID fontID, bool isUI, FontStyle style, float depth)
@@ -179,6 +177,11 @@ void TextManager::DrawString(const std::string& text, float x, float y, D3DCOLOR
         fontTexture = m_font->GetTexture();
     }
     
+    char debugBuf2[256];
+    sprintf(debugBuf2, "[TextManager::DrawString] fontTexture=%p, glyphs=%p, glyphCount=%d\n", 
+            fontTexture, glyphs, glyphCount);
+    OutputDebugStringA(debugBuf2);
+    
     if (!fontTexture) {
         OutputDebugStringA("[TextManager] WARNING: No font texture available\n");
         return;
@@ -194,7 +197,7 @@ void TextManager::DrawString(const std::string& text, float x, float y, D3DCOLOR
     const float SHADOW_OFFSET = 1.0f;
     D3DCOLOR shadowColor = D3DCOLOR_ARGB(255, 0, 0, 0); // Black shadow
     
-    int shaderID = isUI ? SHADER_FONT : SHADER_WORLD;
+    int shaderID = isUI ? SHADER_SPRITE : SHADER_WORLD;
     
     for (size_t i = 0; i < text.size(); ++i)
     {

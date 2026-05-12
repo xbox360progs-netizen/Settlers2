@@ -369,10 +369,10 @@ void MapEditor::RenderGridLayer() {
     float halfH = screenH * 0.5f;
     
     // Convert screen bounds to world bounds
-    float minWorldX = camX - halfW / zoom;
-    float maxWorldX = camX + halfW / zoom;
-    float minWorldY = camY - halfH / zoom;
-    float maxWorldY = camY + halfH / zoom;
+    float minWorldX = camX - halfW / static_cast<float>(zoom);
+    float maxWorldX = camX + halfW / static_cast<float>(zoom);
+    float minWorldY = camY - halfH / static_cast<float>(zoom);
+    float maxWorldY = camY + halfH / static_cast<float>(zoom);
     
     // Convert world bounds to tile bounds with padding for safety
     // For Ground tiles (20x20 grid)

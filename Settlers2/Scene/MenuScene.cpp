@@ -216,19 +216,18 @@ void MenuScene::Render() {
   OutputDebugStringA("[MenuScene::Render] ENTRY\n");
 
   // 1. Базовая проверка
-  if (!m_spriteRenderer || !m_backgroundTexture.GetTexture()) return;
+  if (!m_spriteRenderer) return;
 
-  LPDIRECT3DTEXTURE9 bgTex = m_backgroundTexture.GetTexture();
-  
-  // 1. Собираем все команды рендеринга (фон + текст)
-  m_spriteRenderer->Begin(SHADER_SPRITE, bgTex, 0.0f, 0, false);
-//  m_spriteRenderer->Draw(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
+  m_spriteRenderer->Begin(SHADER_SPRITE, nullptr, 0.0f, 0, false);
+  m_spriteRenderer->Draw(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
   
   // Добавляем текст в ту же очередь
   if (m_textManager) {
-    OutputDebugStringA("[MenuScene::Render] TextManager exists, preparing to draw text...\n");
-    m_textManager->Begin();
-    OutputDebugStringA("[MenuScene::Render] TextManager Begin() called\n");
+    LPDIRECT3DTEXTURE9 fontTexture = m_textManager->GetFontTexture(FONT_MENU);
+    char debugBuf[256];
+    sprintf(debugBuf, "[MenuScene::Render] TextManager exists, FONT_MENU=%d, fontTexture=%p\n", FONT_MENU, (void*)fontTexture);
+    OutputDebugStringA(debugBuf);
+    // Ничего не нужно - TextManager теперь работает через SpriteRenderer
     m_textManager->DrawTextToScreen("T", 100, 100, 0xFFFF0000, 0.2f); // Тест с одной буквой
     OutputDebugStringA("[MenuScene::Render] DrawTextToScreen called\n");
   }

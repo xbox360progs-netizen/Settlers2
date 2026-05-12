@@ -11,6 +11,7 @@
 
 class Renderer;
 class ShaderManager;
+class SpriteRenderer;
 
 // Font identifiers for atlas management
 enum FontID {
@@ -47,14 +48,17 @@ struct FontData {
 class TextManager
 {
 public:
-    TextManager(BitmapFont* font, float screenWidth, float screenHeight);
+    TextManager(BitmapFont* font, float screenWidth, float screenHeight, SpriteRenderer* spriteRenderer);
     ~TextManager();
     
     // Initialize with renderer and shader manager for queue-based rendering
     void Init(Renderer* renderer, ShaderManager* shaderManager);
     
     // Set font atlas texture for a specific font ID
-    void SetFontAtlas(FontID fontID, LPDIRECT3DTEXTURE9 texture);
+    LPDIRECT3DTEXTURE9 SetFontAtlas(FontID fontID, LPDIRECT3DTEXTURE9 texture);
+    
+    // Get font atlas texture for a specific font ID
+    LPDIRECT3DTEXTURE9 GetFontTexture(FontID fontID);
     
     // Unified draw method with explicit isUI flag
     void DrawString(const std::string& text, float x, float y, D3DCOLOR color = 0xFFFFFFFF, float scale = 0.10f, FontID fontID = FONT_MENU, bool isUI = true, FontStyle style = FONT_STYLE_NORMAL, float depth = 0.05f);
@@ -73,6 +77,7 @@ private:
     BitmapFont* m_font;
     Renderer* m_renderer;
     ShaderManager* m_shaderManager;
+    SpriteRenderer* m_spriteRenderer;
     
     float m_screenWidth;
     float m_screenHeight;

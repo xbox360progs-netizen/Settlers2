@@ -1,13 +1,14 @@
 #include "stdafx.h"
 #include "Renderer.h"
 #include "Texture.h"
+#include "SpriteRenderer.h"
 #include <stdio.h>
 #include <d3dx9.h>
 
 Renderer::Renderer()  
     : m_pD3D(NULL), m_pDevice(NULL), m_pBackBuffer(NULL),
       m_pVertexDecl(NULL), m_pVertexShader(NULL), m_pPixelShader(NULL),
-      m_pExternalShaderManager(NULL) {
+      m_pExternalShaderManager(NULL), m_pSpriteRenderer(NULL) {
     ZeroMemory(&m_d3dpp, sizeof(m_d3dpp));
     ZeroMemory(m_projMatrix, sizeof(m_projMatrix));
 }
@@ -47,7 +48,7 @@ HRESULT Renderer::Initialize() {
 
     hr = m_shaderManager.Initialize(m_pDevice);
     if (FAILED(hr)) { OutputDebugStringA("ShaderManager Initialize Failed!\n"); return hr; }
-
+    
     D3DVERTEXELEMENT9 decl[] = {
         { 0,  0, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0 },
         { 0, 12, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 0 },
@@ -77,12 +78,7 @@ HRESULT Renderer::Initialize() {
         OutputDebugStringA("Successfully loaded sprite_constant_instanced shader\n");
     }
 
-    hr = LoadShader(SHADER_FONT, "game:\\Media\\Shaders\\FontShader.fx", "SpriteBatchTech");
-    if (FAILED(hr)) {
-        OutputDebugStringA("Failed to load FontShader.fx\n");
-    } else {
-        OutputDebugStringA("Successfully loaded FontShader.fx\n");
-    }
+    // Font shader removed - text now uses SHADER_SPRITE through SpriteRenderer
 
     SetProjectionMatrix(1280.0f, 720.0f);
 
@@ -98,6 +94,10 @@ HRESULT Renderer::Initialize() {
     m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 
     return S_OK;
+}
+
+void Renderer::SetSpriteRenderer(SpriteRenderer* pSpriteRenderer) {
+    m_pSpriteRenderer = pSpriteRenderer;
 }
 
 HRESULT Renderer::LoadShader(ShaderID id, const char* filepath, const char* techniqueName) {

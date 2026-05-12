@@ -19,7 +19,7 @@ OverlayFPS::OverlayFPS(IDirect3DDevice9* device, float screenWidth, float screen
     
     m_font = new BitmapFont(device);
     if (m_font->LoadFromFile(L"game:\\Media\\Fonts\\debug_font.fnt") && m_font->Initialize()) {
-        m_textMgr = new TextManager(m_font, screenWidth, screenHeight);
+        m_textMgr = new TextManager(m_font, screenWidth, screenHeight, nullptr);
         m_enabled = true;
         m_lastTime = GetTickCount();
         m_lastGrowTime = GetTickCount();

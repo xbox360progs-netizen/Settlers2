@@ -158,9 +158,16 @@ void SceneManager::Render()
         LPDIRECT3DINDEXBUFFER9 pIB = m_spriteRenderer->GetIndexBuffer();
         LPDIRECT3DVERTEXDECLARATION9 pDecl = m_spriteRenderer->GetVertexDeclaration();
         
+        // DEBUG: Check if we have valid resources before ExecuteQueue
+        char debugBuf[256];
+        sprintf(debugBuf, "[SceneManager::Render] Resources: pVB=%p, pIB=%p, pDecl=%p\n", pVB, pIB, pDecl);
+        OutputDebugStringA(debugBuf);
+        
         // Execute queue with 32-byte stride (Xbox 360 alignment)
         if (pVB && pIB && pDecl)
         {
+            sprintf(debugBuf, "[SceneManager::Render] Calling ExecuteQueue with stride=32\n");
+            OutputDebugStringA(debugBuf);
             m_shaderManager->ExecuteQueue(pVB, pIB, pDecl, 32);
         }
         else

@@ -871,11 +871,8 @@ void SpriteRenderer::DrawWithTexture(float x, float y, float width, float height
         return;
     }
 
-    // Flush batch if texture changed (enables per-sprite texture switching)
+    // Set texture if changed (enables per-sprite texture switching)
     if (pTexture != m_currentTexture) {
-        if (m_spriteCount > 0) {
-            Flush();
-        }
         m_currentTexture = pTexture;
         m_pDevice->SetTexture(0, pTexture);
     }

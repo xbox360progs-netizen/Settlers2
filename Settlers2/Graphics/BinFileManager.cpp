@@ -595,8 +595,8 @@ AtlasPtr BinFileManager::CreateAtlasFromSingleTexture(LPDIRECT3DDEVICE9 pDevice,
     // 5. Создаем регион на всю текстуру
     SpriteRegion region;
     region.name = "default";
-    region.width = (float)desc.Width;
-    region.height = (float)desc.Height;
+    region.width = static_cast<float>(desc.Width);
+    region.height = static_cast<float>(desc.Height);
     region.u0 = 0.0f; region.v0 = 0.0f;
     region.u1 = 1.0f; region.v1 = 1.0f;
     region.pivotX = 0.0f; region.pivotY = 0.0f;
