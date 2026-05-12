@@ -13,10 +13,10 @@ sampler FontSampler = sampler_state {
     AddressV = Clamp;
 };
 
-struct VS_INPUT {
-    float4 Pos   : POSITION;
-    float2 Tex   : TEXCOORD0;
-    float4 Color : COLOR0;
+struct VS_INPUT{
+    float3 Pos   : POSITION;   // Match CommonVertex2D.pos (D3DXVECTOR3)
+    float2 Tex   : TEXCOORD0;   // Match CommonVertex2D.uv (D3DXVECTOR2)
+    float4 Color : COLOR0;     // Match CommonVertex2D.color (D3DCOLOR)
 };
 
 struct VS_OUTPUT {
