@@ -4,6 +4,7 @@
 
 #pragma once
 #include "BitmapFont.h"
+#include "Renderer.h" // For SpriteVertex
 #include <vector>
 #include <string>
 #include <map>
@@ -80,8 +81,8 @@ private:
     std::map<FontID, FontData> m_fontData;
     
     // Legacy vertex buffer (for backward compatibility)
-    std::vector<TextVertex> m_screenVertices;
-    std::vector<TextVertex> m_worldVertices;
+    std::vector<SpriteVertex> m_screenVertices;
+    std::vector<SpriteVertex> m_worldVertices;
     LPDIRECT3DVERTEXBUFFER9 m_screenVB;
     UINT m_screenVBCapacity;
     

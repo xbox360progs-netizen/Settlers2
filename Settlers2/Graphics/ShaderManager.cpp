@@ -956,9 +956,9 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
             OutputDebugStringA("[ShaderManager::ExecuteQueue] New shader prepared\n");
             
             // XBOX 360 FIX: Use unified vertex declaration and stride for all shaders
-            // All 2D objects use 32-byte stride regardless of shader type
+            // All 2D objects use sizeof(SpriteVertex) stride regardless of shader type
             m_pDevice->SetVertexDeclaration(pDecl);
-            m_pDevice->SetStreamSource(0, pVB, 0, 32); // Unified 32-byte stride
+            m_pDevice->SetStreamSource(0, pVB, 0, sizeof(SpriteVertex)); // Unified stride
             m_pDevice->SetIndices(pIB);
             OutputDebugStringA("[ShaderManager::ExecuteQueue] Vertex declaration and streams set for new shader\n");
         }

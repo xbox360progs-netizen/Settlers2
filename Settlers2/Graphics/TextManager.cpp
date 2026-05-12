@@ -315,10 +315,23 @@ void TextManager::AddTextScreen(const std::string& text, const D3DXVECTOR3& pos,
         float x1 = penX + (ch.xOffset + ch.width) * scale;
         float y1 = penY + (ch.yOffset + ch.height) * scale;
 
-        TextVertex v0(D3DXVECTOR3(x0, y0, pos.z), color, D3DXVECTOR2(ch.u0, ch.v0));
-        TextVertex v1(D3DXVECTOR3(x1, y0, pos.z), color, D3DXVECTOR2(ch.u1, ch.v0));
-        TextVertex v2(D3DXVECTOR3(x0, y1, pos.z), color, D3DXVECTOR2(ch.u0, ch.v1));
-        TextVertex v3(D3DXVECTOR3(x1, y1, pos.z), color, D3DXVECTOR2(ch.u1, ch.v1));
+        // Пример корректного заполнения одной вершины буквы
+        SpriteVertex v0, v1, v2, v3;
+        v0.x = x0; v0.y = y0; v0.z = pos.z; // Используйте глубину (Z) для сортировки
+        v0.color = color;                          // Передавайте DWORD цвет
+        v0.u = ch.u0; v0.v = ch.v0;                // Координаты из атласа шрифта
+        
+        v1.x = x1; v1.y = y0; v1.z = pos.z;
+        v1.color = color;
+        v1.u = ch.u1; v1.v = ch.v0;
+        
+        v2.x = x0; v2.y = y1; v2.z = pos.z;
+        v2.color = color;
+        v2.u = ch.u0; v2.v = ch.v1;
+        
+        v3.x = x1; v3.y = y1; v3.z = pos.z;
+        v3.color = color;
+        v3.u = ch.u1; v3.v = ch.v1;
 
         m_screenVertices.push_back(v0);
         m_screenVertices.push_back(v1);
