@@ -358,9 +358,9 @@ void TextManager::RenderScreen()
         
         if (pVB) {
             void* pData = NULL;
-            HRESULT hr = pVB->Lock(0, m_screenVertices.size() * sizeof(TextVertex), &pData, 0);
+            HRESULT hr = pVB->Lock(0, m_screenVertices.size() * sizeof(SpriteVertex), &pData, 0);
             if (SUCCEEDED(hr)) {
-                memcpy(pData, m_screenVertices.data(), m_screenVertices.size() * sizeof(TextVertex));
+                memcpy(pData, m_screenVertices.data(), m_screenVertices.size() * sizeof(SpriteVertex));
                 pVB->Unlock();
                 OutputDebugStringA("[TextManager::RenderScreen] Text vertices copied to shared buffer\n");
             } else {

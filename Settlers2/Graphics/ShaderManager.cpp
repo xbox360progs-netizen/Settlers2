@@ -892,7 +892,7 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     OutputDebugStringA("[ShaderManager::ExecuteQueue] Setting vertex declaration...\n");
     m_pDevice->SetVertexDeclaration(pDecl);
     OutputDebugStringA("[ShaderManager::ExecuteQueue] Setting stream source...\n");
-    m_pDevice->SetStreamSource(0, pVB, 0, vertexStride);
+    m_pDevice->SetStreamSource(0, pVB, 0, sizeof(SpriteVertex));
     OutputDebugStringA("[ShaderManager::ExecuteQueue] Setting indices...\n");
     m_pDevice->SetIndices(pIB);
     OutputDebugStringA("[ShaderManager::ExecuteQueue] Device states set\n");
@@ -1191,7 +1191,7 @@ void ShaderManager::ExecuteBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXB
     
     // Set vertex declaration and streams once
     m_pDevice->SetVertexDeclaration(pDecl);
-    m_pDevice->SetStreamSource(0, pVB, 0, vertexStride);
+    m_pDevice->SetStreamSource(0, pVB, 0, sizeof(SpriteVertex));
     m_pDevice->SetIndices(pIB);
     
     // Process batches in sorted order
@@ -1244,7 +1244,7 @@ void ShaderManager::ExecuteDrawBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DIN
     
     // Set vertex declaration and streams once
     m_pDevice->SetVertexDeclaration(pDecl);
-    m_pDevice->SetStreamSource(0, pVB, 0, vertexStride);
+    m_pDevice->SetStreamSource(0, pVB, 0, sizeof(SpriteVertex));
     m_pDevice->SetIndices(pIB);
     
     // Process batches in sorted order (material-based sorting)

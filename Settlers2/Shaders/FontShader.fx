@@ -14,9 +14,9 @@ sampler FontSampler = sampler_state {
 };
 
 struct VS_INPUT{
-    float3 Pos   : POSITION;   // Match CommonVertex2D.pos (D3DXVECTOR3)
-    float2 Tex   : TEXCOORD0;   // Match CommonVertex2D.uv (D3DXVECTOR2)
-    float4 Color : COLOR0;     // Match CommonVertex2D.color (D3DCOLOR)
+    float3 Pos   : POSITION;   // Match SpriteVertex pos (x, y, z)
+    float4 Color : COLOR0;     // Match SpriteVertex color (DWORD) - Сначала цвет
+    float2 Tex   : TEXCOORD0;   // Match SpriteVertex tex (u, v) - Потом UV
 };
 
 struct VS_OUTPUT {
