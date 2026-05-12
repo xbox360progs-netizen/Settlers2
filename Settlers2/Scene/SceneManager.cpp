@@ -127,6 +127,10 @@ void SceneManager::Render()
 
     // === MASTER LOOP RENDERING PIPELINE ===
     
+    // Step 0: Begin frame and clear screen (CRITICAL!)
+    // Note: BeginFrame/EndFrame will be called by GameEngine, not here
+    // SceneManager only handles scene rendering and command execution
+    
     // Step 1: Clear previous commands from ShaderManager
     if (m_shaderManager)
     {
@@ -185,6 +189,10 @@ void SceneManager::Render()
             m_shaderManager->ClearQueue();
         }
     }
+    
+    // Step 5: END FRAME - Present to screen (CRITICAL!)
+    // Note: EndFrame will be called by GameEngine, not here
+    // SceneManager only handles scene rendering and command execution
 }
 
 void SceneManager::Clear()

@@ -224,11 +224,14 @@ void MenuScene::Render() {
     m_spriteRenderer->Draw(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
     m_spriteRenderer->End(); // Close background batch
     
-    // 2. Render Text with depth=0.1f (front) - TextManager will NOT call End()
-    m_textManager->DrawTextToScreen("SETTLERS 2 XBOX", 100.0f, 100.0f, 0xFFFF0000, 3.0f); 
+    // 2. Begin text batch with depth=0.1f (front)
+    m_textManager->BeginTextBatch(FONT_MENU, 0.1f);
+    
+    // 3. Render Text - TextManager will NOT call Begin/End
+    m_textManager->DrawTextToScreen("SETTLERS 2 XBOX", 100.0f, 100.0f, 0xFFFF0000, 1.0f); 
 
-    // 3. Close text batch (MenuScene controls the batch, not TextManager)
-    m_spriteRenderer->End();
+    // 4. Close text batch (MenuScene controls the batch, not TextManager)
+    m_textManager->EndTextBatch();
 
     OutputDebugStringA("[MenuScene::Render] End() completed\n");
 }

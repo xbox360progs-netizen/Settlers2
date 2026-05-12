@@ -63,6 +63,10 @@ public:
     // Unified draw method with explicit isUI flag
     void DrawString(const std::string& text, float x, float y, D3DCOLOR color = 0xFFFFFFFF, float scale = 0.10f, FontID fontID = FONT_MENU, bool isUI = true, FontStyle style = FONT_STYLE_NORMAL, float depth = 0.05f);
     
+    // Text batching methods for proper performance
+    void BeginTextBatch(FontID fontID = FONT_MENU, float depth = 0.1f);
+    void EndTextBatch();
+    
     // Convenience methods
     void DrawTextToScreen(const std::string& text, float x, float y, D3DCOLOR color = 0xFFFFFFFF, float scale = 0.10f, FontID fontID = FONT_MENU, FontStyle style = FONT_STYLE_NORMAL);
     void DrawTextToWorld(const std::string& text, float worldX, float worldY, D3DCOLOR color = 0xFFFFFFFF, float scale = 0.1f, FontID fontID = FONT_MENU, FontStyle style = FONT_STYLE_NORMAL);

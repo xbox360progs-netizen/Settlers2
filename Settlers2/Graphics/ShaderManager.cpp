@@ -738,8 +738,8 @@ void ShaderManager::SetShaderParameters(const RenderCommand& cmd) {
             
             // Use orthographic projection for UI (screen space)
             D3DXMATRIX matOrtho;
-            D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 1.0f);
-            SetMatrix("gScreenProj", (const float*)&matOrtho);
+            D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, -1.0f, 1.0f);
+            SetMatrix("matOrtho", (const float*)&matOrtho);
             break;
         }
             
@@ -754,7 +754,7 @@ void ShaderManager::SetShaderParameters(const RenderCommand& cmd) {
             // For world-space objects, apply camera; for UI, use identity
             if (cmd.isUI) {
                 D3DXMATRIX matOrtho;
-                D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
+                D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, -1.0f, 1.0f);
                 SetMatrix("matOrtho", (const float*)&matOrtho);
             } else if (m_hasFrameViewProj) {
                 SetMatrix("matOrtho", (const float*)&m_frameViewProj);

@@ -643,6 +643,8 @@ static int ShaderNameToID(const char* shaderName) {
 
 // New Begin overloads with shaderID
 void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture) {
+    OutputDebugStringA("[SR::Begin] ShaderID version CALLED\n");
+    fflush(stdout);
     Begin(shaderID, pTexture, 1.0f, 0, false); // Default: far layer, Single, world-space
 }
 
@@ -655,7 +657,8 @@ void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float
 }
 
 void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType, bool isUI) {
-    OutputDebugStringA("[SR::Begin] ENTERED\n");
+    OutputDebugStringA("[SR::Begin] 5-PARAM VERSION ENTERED NOW!!!\n");
+    fflush(stdout);
 
     // NOTE: Do NOT reset m_totalVertexCount here - it accumulates across batches
     // to ensure correct vertex offsets in the buffer
@@ -663,6 +666,13 @@ void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float
     char buf[256];
     sprintf(buf, "[SR::Begin] ENTRY this=%p, m_pDevice=%p, m_pShaderManager=%p\n", this, m_pDevice, m_pShaderManager);
     OutputDebugStringA(buf);
+    fflush(stdout);
+
+    if (!m_pDevice) {
+        sprintf(buf, "[SR::Begin] CRITICAL ERROR: m_pDevice is NULL! this=%p\n", this);
+        OutputDebugStringA(buf);
+        return;
+    }
 
     if (!m_pDevice) {
         sprintf(buf, "[SR::Begin] CRITICAL ERROR: m_pDevice is NULL! this=%p\n", this);
@@ -683,20 +693,25 @@ void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float
     OutputDebugStringA("[SR::Begin] Setting render states...\n");
 
     // If state changed, flush previous batch
-    if (m_isBatching) {
+    if (m_isBatching && m_spriteCount > 0) {
+        // Only auto-flush if there are pending sprites to flush
         // AUTO-FLUSH: If texture changed and buffer has vertices, flush first
-        if (m_currentTexture != pTexture && m_spriteCount > 0) {
+        if (m_currentTexture != pTexture) {
+            OutputDebugStringA("[SR::Begin] AUTO-FLUSH: texture changed\n");
             Flush();
         }
-        if (m_currentShaderID != shaderID && m_spriteCount > 0) {
+        if (m_currentShaderID != shaderID) {
+            OutputDebugStringA("[SR::Begin] AUTO-FLUSH: shader changed\n");
             Flush();
         }
         // AUTO-FLUSH: If render type changed (Single <-> Instanced), flush immediately
-        if (m_currentRenderType != renderType && m_spriteCount > 0) {
+        if (m_currentRenderType != renderType) {
+            OutputDebugStringA("[SR::Begin] AUTO-FLUSH: renderType changed\n");
             Flush();
         }
         // AUTO-FLUSH: If isUI changed (world-space <-> screen-space), flush immediately
-        if (m_currentIsUI != isUI && m_spriteCount > 0) {
+        if (m_currentIsUI != isUI) {
+            OutputDebugStringA("[SR::Begin] AUTO-FLUSH: isUI changed\n");
             Flush();
         }
     }
@@ -760,11 +775,17 @@ void SpriteRenderer::BeginWorldObject(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTex
 
 // Legacy Begin overloads (map shader names to handles for backward compatibility)
 void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture) {
-    char dbg[256];
-    sprintf(dbg, "[SR::Begin] shaderName=%s, texture=%p\n", shaderName ? shaderName : "NULL", pTexture);
-    OutputDebugStringA(dbg);
+    OutputDebugStringA("[SR::Begin] char* version CALLED\n");
+    fflush(stdout);
     int shaderID = ShaderNameToID(shaderName);
+    OutputDebugStringA("[SR::Begin] Calling ShaderID version with ID=");
+    char tmp[32];
+    sprintf(tmp, "%d\n", shaderID);
+    OutputDebugStringA(tmp);
+    fflush(stdout);
     Begin(static_cast<ShaderID>(shaderID), pTexture);
+    OutputDebugStringA("[SR::Begin] Returned from ShaderID version\n");
+    fflush(stdout);
 }
 
 void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float depth) {
@@ -925,7 +946,10 @@ void SpriteRenderer::DrawRotated(float x, float y, float width, float height, fl
 }
 
 void SpriteRenderer::End() {
-    OutputDebugStringA("[SR::End] ENTERED\n");
+    OutputDebugStringA("[SR::End] ENTERED - m_isBatching=");
+    char dbg[32];
+    sprintf(dbg, "%d, m_spriteCount=%d\n", m_isBatching, m_spriteCount);
+    OutputDebugStringA(dbg);
 
     if (m_isBatching) {
         // Flush remaining sprites to vertex buffer
@@ -939,6 +963,8 @@ void SpriteRenderer::End() {
 }
 
 void SpriteRenderer::ResetVertexCount() {
+    OutputDebugStringA("[SR::ResetVertexCount] CALLED!!! Setting m_totalVertexCount=0\n");
+    fflush(stdout);
     m_totalVertexCount = 0;
 }
 
@@ -1025,9 +1051,9 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
         cmd.batchType = m_currentRenderType; // Use render type from Begin()
         cmd.depth = m_currentDepth; // Use current depth from Begin()
         
-        char dbg[256];
-        sprintf(dbg, "[SR::Flush] Submitting batch: sprites=%d, start=%d, depth=%.2f, texture=%p\n",
-                m_spriteCount, cmd.vertexStart, m_currentDepth, m_currentTexture);
+        char dbg[512];
+        sprintf(dbg, "[SR::Flush] Submitting batch: sprites=%d, start=%d (m_totalVertexCount=%d), depth=%.2f, texture=%p, shaderID=%d\n",
+                m_spriteCount, cmd.vertexStart, m_totalVertexCount, m_currentDepth, m_currentTexture, m_currentShaderID);
         OutputDebugStringA(dbg);
         cmd.layer = 0; // Default layer (will be overridden by caller if needed)
         cmd.isUI = m_currentIsUI; // Screen-space or world-space

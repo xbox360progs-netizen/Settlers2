@@ -204,10 +204,15 @@ void TextManager::DrawString(const std::string& text, float x, float y, D3DCOLOR
     float textHeight = lineHeight;
     
     // Begin batch for this text
-    if (m_spriteRenderer) {
-        m_spriteRenderer->Begin("sprite", fontTexture);
-        m_spriteRenderer->SetCurrentDepth(0.1f); // Text is in front of background
-    }
+    // REMOVED: Begin/End calls moved to TextManager level for proper batching
+    // if (m_spriteRenderer) {
+    //     OutputDebugStringA("[TextManager] About to call SpriteRenderer::Begin...\n");
+    //     m_spriteRenderer->Begin("sprite", fontTexture);
+    //     OutputDebugStringA("[TextManager] After SpriteRenderer::Begin\n");
+    //     m_spriteRenderer->SetCurrentDepth(0.1f); // Text is in front of background
+    // } else {
+    //     OutputDebugStringA("[TextManager] WARNING: m_spriteRenderer is NULL!\n");
+    // }
     
     int letterCount = 0;
     for (size_t i = 0; i < textLength; ++i)
@@ -241,15 +246,16 @@ void TextManager::DrawString(const std::string& text, float x, float y, D3DCOLOR
                 hasGlyph = true;
             }
         }
-        
+            
         if (!hasGlyph) continue; // Skip missing glyphs
-        
+            
         // Calculate character position and UVs
+        // Use scale directly - no normalization needed
         float charW = glyph.width * scale;
         float charH = glyph.height * scale;
         float charX = penX + glyph.xOffset * scale;
         float charY = penY + glyph.yOffset * scale;
-        
+            
         // UV coordinates from BitmapFont are already normalized (0-1)
         // Just add small padding to prevent atlas bleeding
         float uvPadding = 0.001f; // Small UV-space padding
@@ -259,8 +265,8 @@ void TextManager::DrawString(const std::string& text, float x, float y, D3DCOLOR
         float v1 = glyph.v1 - uvPadding;
         
         char dbg[256];
-        sprintf(dbg, "[TextManager] char='%c' uv=(%.4f,%.4f,%.4f,%.4f) size=(%.1f,%.1f)\n", 
-                c, u0, v0, u1, v1, charW, charH);
+        sprintf(dbg, "[TextManager] char='%c' pos=(%.1f,%.1f) uv=(%.4f,%.4f,%.4f,%.4f) size=(%.1f,%.1f)\n", 
+                c, charX, charY, u0, v0, u1, v1, charW, charH);
         OutputDebugStringA(dbg);
         
         // Clamp UVs to valid range
@@ -273,12 +279,22 @@ void TextManager::DrawString(const std::string& text, float x, float y, D3DCOLOR
 		if (style == FONT_STYLE_SHADOW && m_spriteRenderer) {
 			float shadowX = charX + 1.0f;
 			float shadowY = charY + 1.0f;
+			char dbg[256];
+			sprintf(dbg, "[TextManager] About to call DrawWithTexture for SHADOW at (%.1f,%.1f)\n", shadowX, shadowY);
+			OutputDebugStringA(dbg);
 			m_spriteRenderer->DrawWithTexture(shadowX, shadowY, charW, charH, u0, v0, u1, v1, fontTexture, 0xFF000000);
 		}
         
 		// Draw main character
 		if (m_spriteRenderer) {
+			char dbg[256];
+			sprintf(dbg, "[TextManager] About to call DrawWithTexture for MAIN char at (%.1f,%.1f)\n", charX, charY);
+			OutputDebugStringA(dbg);
 			m_spriteRenderer->DrawWithTexture(charX, charY, charW, charH, u0, v0, u1, v1, fontTexture, color);
+			sprintf(dbg, "[TextManager] DrawWithTexture for MAIN char returned\n");
+			OutputDebugStringA(dbg);
+		} else {
+			OutputDebugStringA("[TextManager] ERROR: m_spriteRenderer is NULL in DrawString!\n");
 		}
 
 		// Update text dimensions
@@ -291,11 +307,12 @@ void TextManager::DrawString(const std::string& text, float x, float y, D3DCOLOR
 	}   
     
 // End batch and flush to GPU
-    if (m_spriteRenderer) {
-        m_spriteRenderer->End();
-        // REMOVED Flush() - let MenuScene control batch timing
-        // m_spriteRenderer->Flush();
-    }
+    // REMOVED: Begin/End calls moved to TextManager level for proper batching
+    // if (m_spriteRenderer) {
+    //     m_spriteRenderer->End();
+    //     // REMOVED Flush() - let MenuScene control batch timing
+    //     // m_spriteRenderer->Flush();
+    // }
 }
 
 void TextManager::DrawTextToScreen(const std::string& text, float x, float y, D3DCOLOR color, float scale, FontID fontID, FontStyle style)
@@ -321,6 +338,49 @@ void TextManager::DrawTextToScreen(const std::string& text, float x, float y, D3
 void TextManager::DrawTextToWorld(const std::string& text, float worldX, float worldY, D3DCOLOR color, float scale, FontID fontID, FontStyle style)
 {
     DrawString(text, worldX, worldY, color, scale, fontID, false, style, 0.5f);
+}
+
+void TextManager::BeginTextBatch(FontID fontID, float depth)
+{
+    char dbg[256];
+    sprintf(dbg, "[TextManager::BeginTextBatch] ENTRY m_spriteRenderer=%p\n", m_spriteRenderer);
+    OutputDebugStringA(dbg);
+    
+    if (!m_spriteRenderer) {
+        OutputDebugStringA("[TextManager::BeginTextBatch] ERROR: m_spriteRenderer is NULL!\n");
+        return;
+    }
+    
+    LPDIRECT3DTEXTURE9 fontTexture = GetFontTexture(fontID);
+    sprintf(dbg, "[TextManager::BeginTextBatch] fontTexture=%p\n", fontTexture);
+    OutputDebugStringA(dbg);
+    
+    if (!fontTexture) {
+        // Fallback to default font texture
+        if (m_font) {
+            fontTexture = m_font->GetTexture();
+            sprintf(dbg, "[TextManager::BeginTextBatch] Using fallback fontTexture=%p\n", fontTexture);
+            OutputDebugStringA(dbg);
+        }
+    }
+    
+    if (fontTexture) {
+        OutputDebugStringA("[TextManager] BeginTextBatch - calling SpriteRenderer::Begin...\n");
+        m_spriteRenderer->Begin("sprite", fontTexture);
+        m_spriteRenderer->SetCurrentDepth(depth);
+        OutputDebugStringA("[TextManager] BeginTextBatch completed\n");
+    } else {
+        OutputDebugStringA("[TextManager::BeginTextBatch] ERROR: No font texture available!\n");
+    }
+}
+
+void TextManager::EndTextBatch()
+{
+    if (m_spriteRenderer) {
+        OutputDebugStringA("[TextManager] EndTextBatch - calling SpriteRenderer::End...\n");
+        m_spriteRenderer->End();
+        OutputDebugStringA("[TextManager] EndTextBatch completed\n");
+    }
 }
 
 void TextManager::Begin()
