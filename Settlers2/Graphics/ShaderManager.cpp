@@ -471,8 +471,30 @@ bool ShaderManager::HasShader(ShaderID id) const {
 static DWORD s_currentVertexOffset = 0;
 static DWORD s_batchIndex = 0;
 
+void ShaderManager::CopyTextVertices(const void* vertices, size_t vertexCount) {
+    char debugBuf[256];
+    sprintf(debugBuf, "[ShaderManager::CopyTextVertices] Copying %zu text vertices\n", vertexCount);
+    OutputDebugStringA(debugBuf);
+    
+    // Copy to the end of current vertex buffer
+    if (s_currentVertexOffset + vertexCount > 4096 * 4) {
+        OutputDebugStringA("[ShaderManager::CopyTextVertices] ERROR: Vertex buffer overflow!\n");
+        return;
+    }
+    
+    // This will be copied during ExecuteQueue Lock phase
+    // For now, just store the vertices for later copying
+}
+
 void ShaderManager::Submit(const RenderCommand& cmd) {
     RenderCommand cmdWithOffset = cmd;
+    
+    // XBOX 360 FIX: Reset vertex offset for background (shaderID 0) to ensure vertexStart=0
+    if (cmd.shaderID == 0) {
+        s_currentVertexOffset = 0;
+        s_batchIndex = 0;
+    }
+    
     cmdWithOffset.vertexStart = s_currentVertexOffset;
     cmdWithOffset.batchIndex = s_batchIndex++;
     
@@ -879,6 +901,15 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         sprintf(buf, "[ShaderManager::ExecuteQueue] Queue size=%d\n", (int)m_commandQueue.size());
         OutputDebugStringA(buf);
     }
+    
+    // Отладка: Показать все команды в очереди
+    for (size_t i = 0; i < m_commandQueue.size(); ++i) {
+        const RenderCommand& cmd = m_commandQueue[i];
+        char buf[256];
+        sprintf(buf, "[ShaderManager::ExecuteQueue] Queue[%d]: shader=%d, texture=%p, vertexStart=%d, vertexCount=%d\n",
+                (int)i, cmd.shaderID, cmd.pTexture, cmd.vertexStart, cmd.vertexCount);
+        OutputDebugStringA(buf);
+    }
 
     for (size_t i = 0; i < m_commandQueue.size(); ++i) {
         OutputDebugStringA("[ShaderManager::ExecuteQueue] Accessing cmd reference...\n");
@@ -913,9 +944,7 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
             lastShaderID = static_cast<ShaderID>(cmdShader);
             OutputDebugStringA("[ShaderManager::ExecuteQueue] New shader prepared\n");
             
-            // Use the passed vertex declaration (it should be appropriate for the current shader type)
-            // Note: For proper multi-shader support, different vertex declarations should be passed
-            // from the calling code (SpriteRenderer, TextManager, etc.)
+            // Use unified vertex declaration for all shaders (text now compatible with sprite)
             m_pDevice->SetVertexDeclaration(pDecl);
             m_pDevice->SetStreamSource(0, pVB, 0, vertexStride);
             m_pDevice->SetIndices(pIB);
@@ -927,22 +956,41 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         float cmdDepth = cmd.depth;
 
         {
-            char buf[256];
-            sprintf(buf, "[ShaderManager::ExecuteQueue] cmd[%d]: shaderID=%d, isUI=%d, pTexture=%p, depth=%.2f\n",
-                    (int)i, cmdShader, cmdIsUI, cmdTex, cmdDepth);
+            char buf[512];
+            sprintf(buf, "[ShaderManager::ExecuteQueue] cmd[%d]: shaderID=%d, isUI=%d, pTexture=%p, depth=%.2f, vertexStart=%d, vertexCount=%d\n",
+                    (int)i, cmdShader, cmdIsUI, cmdTex, cmdDepth, cmd.vertexStart, cmd.vertexCount);
             OutputDebugStringA(buf);
+            
+            // Дополнительная отладка для текста
+            if (cmdShader == 7) { // FontShader
+                sprintf(buf, "[ShaderManager::ExecuteQueue] TEXT COMMAND: texture=%p, vertexStart=%d, vertexCount=%d, depth=%.2f\n",
+                        cmdTex, cmd.vertexStart, cmd.vertexCount, cmdDepth);
+                OutputDebugStringA(buf);
+            }
         }
         
-        // === LAZY ALPHA BLEND STATE FOR UI ===
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] Setting alpha blend...\n");
-        // Automatically enable alpha blend for UI elements (bIsUI == true)
+        // === LAZY ALPHA BLEND AND Z-TEST STATE FOR UI ===
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] Setting render states...\n");
+        // XBOX 360 CRITICAL: Disable Z-test for UI elements (text) to ensure visibility
         bool needsAlphaBlend = cmdIsUI;
+        bool needsZDisable = cmdIsUI; // UI elements should not use depth testing
+        
         if (needsAlphaBlend != lastAlphaBlend) {
             m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, needsAlphaBlend ? TRUE : FALSE);
             lastAlphaBlend = needsAlphaBlend;
+            OutputDebugStringA("[ShaderManager::ExecuteQueue] Alpha blend state changed\n");
         }
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] Alpha blend set\n");
         
+        // For UI elements (text), disable depth testing to prevent Z-fighting with background
+        static bool lastZState = false;
+        if (needsZDisable != lastZState) {
+            m_pDevice->SetRenderState(D3DRS_ZENABLE, needsZDisable ? FALSE : TRUE);
+            lastZState = needsZDisable;
+            char zBuf[128];
+            sprintf(zBuf, "[ShaderManager::ExecuteQueue] Z-test %s for shader %d\n", 
+                    needsZDisable ? "DISABLED" : "ENABLED", cmdShader);
+            OutputDebugStringA(zBuf);
+        }
         // === LAZY TEXTURE BINDING ===
         OutputDebugStringA("[ShaderManager::ExecuteQueue] Binding texture...\n");
         if (cmdTex != lastTexture) {
@@ -1087,6 +1135,10 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
             passActive = false;
             OutputDebugStringA("[ShaderManager::ExecuteQueue] Pass closed immediately after draw\n");
         }
+        
+        char loopBuf[256];
+        sprintf(loopBuf, "[ShaderManager::ExecuteQueue] Completed cmd %d/%d, continuing loop...\n", (int)i+1, (int)m_commandQueue.size());
+        OutputDebugStringA(loopBuf);
     }
     
     // === CLEANUP: End current shader only ===

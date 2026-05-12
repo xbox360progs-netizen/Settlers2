@@ -96,6 +96,12 @@ void TextManager::PushLetterCommand(const Glyph& glyph, LPDIRECT3DTEXTURE9 textu
 {
     if (!m_renderer || !m_shaderManager) return;
     
+    static int letterCount = 0;
+    char debugBuf[256];
+    sprintf(debugBuf, "[TextManager::PushLetterCommand] Letter %d: pos=(%.1f,%.1f) size=(%.1f,%.1f) shaderID=%d\n",
+            ++letterCount, x, y, w, h, shaderID);
+    OutputDebugStringA(debugBuf);
+    
     ShaderManager* shaderManager = m_renderer->GetShaderManager();
     if (!shaderManager) return;
     
@@ -247,7 +253,15 @@ void TextManager::DrawString(const std::string& text, float x, float y, D3DCOLOR
 
 void TextManager::DrawTextToScreen(const std::string& text, float x, float y, D3DCOLOR color, float scale, FontID fontID, FontStyle style)
 {
+    char debugBuf[256];
+    sprintf(debugBuf, "[TextManager::DrawTextToScreen] Drawing '%s' at (%.1f,%.1f) with color=0x%08X\n", 
+            text.c_str(), x, y, color);
+    OutputDebugStringA(debugBuf);
+    
     DrawString(text, x, y, color, scale, fontID, true, style, 0.05f);
+    
+    sprintf(debugBuf, "[TextManager::DrawTextToScreen] Completed drawing '%s'\n", text.c_str());
+    OutputDebugStringA(debugBuf);
 }
 
 void TextManager::DrawTextToWorld(const std::string& text, float worldX, float worldY, D3DCOLOR color, float scale, FontID fontID, FontStyle style)
@@ -255,11 +269,13 @@ void TextManager::DrawTextToWorld(const std::string& text, float worldX, float w
     DrawString(text, worldX, worldY, color, scale, fontID, false, style, 0.5f);
 }
 
-// Legacy methods for backward compatibility (will be deprecated)
 void TextManager::Begin()
 {
     m_screenVertices.clear();
-    m_worldVertices.clear();
+    
+    if (m_renderer && m_renderer->GetShaderManager()) {
+        m_renderer->GetShaderManager()->ClearQueue();
+    }
 }
 
 void TextManager::AddTextScreen(const std::string& text, const D3DXVECTOR3& pos, D3DCOLOR color, float scale)
@@ -317,9 +333,13 @@ void TextManager::AddTextScreen(const std::string& text, const D3DXVECTOR3& pos,
 
 void TextManager::RenderScreen()
 {
-    // Legacy method - no-op with queue-based rendering
-    // Text is now rendered via DrawTextToScreen which submits to the queue
+    // Text vertices are now submitted to queue via PushLetterCommand
+    // No need to copy to buffer - ShaderManager handles it
+    if (!m_screenVertices.empty()) {
+        OutputDebugStringA("[TextManager::RenderScreen] Text rendering completed\n");
+    }
 }
+
 
 void TextManager::RenderWorld(Camera* camera)
 {

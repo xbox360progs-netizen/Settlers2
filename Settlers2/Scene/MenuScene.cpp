@@ -219,17 +219,23 @@ void MenuScene::Render() {
   if (!m_spriteRenderer || !m_backgroundTexture.GetTexture()) return;
 
   LPDIRECT3DTEXTURE9 bgTex = m_backgroundTexture.GetTexture();
-  // Сначала ПОЛНОСТЬЮ рисуем фон
+  
+  // 1. Собираем все команды рендеринга (фон + текст)
   m_spriteRenderer->Begin(SHADER_SPRITE, bgTex, 0.0f, 0, false);
-  m_spriteRenderer->Draw(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
-  m_spriteRenderer->End(); // Здесь фон реально улетел на экран
-
-  // Теперь ПОЛНОСТЬЮ рисуем текст
+//  m_spriteRenderer->Draw(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
+  
+  // Добавляем текст в ту же очередь
   if (m_textManager) {
+    OutputDebugStringA("[MenuScene::Render] TextManager exists, preparing to draw text...\n");
     m_textManager->Begin();
-    m_textManager->DrawTextToScreen("TEST", 100, 100, 0xFFFFFFFF, 0.1f);
-    m_textManager->RenderScreen(); // Текст улетел на экран поверх фона
+    OutputDebugStringA("[MenuScene::Render] TextManager Begin() called\n");
+    m_textManager->DrawTextToScreen("TEST", 100, 100, 0xFFFF0000, 0.2f);
+    OutputDebugStringA("[MenuScene::Render] DrawTextToScreen called\n");
   }
+  
+  // 2. Вызываем End() ОДИН РАЗ - это выполнит ExecuteQueue для всех команд (фон + текст)
+  m_spriteRenderer->End(); // Здесь фон И текст улетают на экран вместе
+  OutputDebugStringA("[MenuScene::Render] End() completed - all rendering executed\n");
 }
 
 void MenuScene::SetBackground(const std::string& path) {

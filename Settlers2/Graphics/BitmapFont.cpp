@@ -145,8 +145,19 @@ void BitmapFont::EnsureVB(size_t vertexCount)
 // ==========================================================
 bool BitmapFont::LoadFromFile(const wchar_t* fontDefinitionFile)
 {
+    char debugBuf[256];
+    sprintf(debugBuf, "[BitmapFont::LoadFromFile] Loading font: %ls\n", fontDefinitionFile);
+    OutputDebugStringA(debugBuf);
+    
     FILE* file = _wfopen(fontDefinitionFile,L"r");
-    if (!file) return false;
+    if (!file) {
+        sprintf(debugBuf, "[BitmapFont::LoadFromFile] ERROR: Cannot open font file: %ls\n", fontDefinitionFile);
+        OutputDebugStringA(debugBuf);
+        return false;
+    }
+    
+    sprintf(debugBuf, "[BitmapFont::LoadFromFile] Font file opened successfully\n");
+    OutputDebugStringA(debugBuf);
 
     char line[512];
     wchar_t textureFileName[512]={0};
@@ -166,7 +177,10 @@ bool BitmapFont::LoadFromFile(const wchar_t* fontDefinitionFile)
             char fileName[256];
             if (sscanf(line,"page id=%*d file=\"%255[^\"]\"",&fileName)==1)
             {
-                swprintf(textureFileName,511,L"game:\\Media\\fonts\\%S",fileName);
+                swprintf(textureFileName,511,L"game:\\Media\\Fonts\\%S",fileName);
+                char debugBuf[512];
+                sprintf(debugBuf, "[BitmapFont::LoadFromFile] Found texture file in .fnt: %s, full path: %ls\n", fileName, textureFileName);
+                OutputDebugStringA(debugBuf);
             }
         }
         else if (strstr(line,"common ")!=nullptr)
@@ -207,8 +221,16 @@ bool BitmapFont::LoadFromFile(const wchar_t* fontDefinitionFile)
 
 bool BitmapFont::LoadTextureFromMemory(const wchar_t* texturePath)
 {
+    char debugBuf[256];
+    sprintf(debugBuf, "[BitmapFont::LoadTextureFromMemory] Loading texture: %ls\n", texturePath);
+    OutputDebugStringA(debugBuf);
+    
     FILE* file=_wfopen(texturePath,L"rb");
-    if (!file) return false;
+    if (!file) {
+        sprintf(debugBuf, "[BitmapFont::LoadTextureFromMemory] ERROR: Cannot open texture file: %ls\n", texturePath);
+        OutputDebugStringA(debugBuf);
+        return false;
+    }
     fseek(file,0,SEEK_END);
     long size=ftell(file);
     fseek(file,0,SEEK_SET);
@@ -217,5 +239,14 @@ bool BitmapFont::LoadTextureFromMemory(const wchar_t* texturePath)
 
     HRESULT hr=D3DXCreateTextureFromFileInMemory(m_device,buffer,size,&m_texture);
     delete[] buffer;
+    
+    if (SUCCEEDED(hr)) {
+        sprintf(debugBuf, "[BitmapFont::LoadTextureFromMemory] SUCCESS: Texture loaded, m_texture=0x%p\n", m_texture);
+        OutputDebugStringA(debugBuf);
+    } else {
+        sprintf(debugBuf, "[BitmapFont::LoadTextureFromMemory] ERROR: Failed to load texture, hr=0x%08X\n", hr);
+        OutputDebugStringA(debugBuf);
+    }
+    
     return SUCCEEDED(hr);
 }

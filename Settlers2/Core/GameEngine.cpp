@@ -133,7 +133,7 @@ bool GameEngine::Initialize()
 
 	m_bitmapFont = new BitmapFont(m_renderer->GetDevice());
 	m_bitmapFont->Init(m_renderer, m_renderer->GetShaderManager());
-	if (!m_bitmapFont->LoadFromFile(L"game:\\Media\\fonts\\debug_font.fnt"))
+	if (!m_bitmapFont->LoadFromFile(L"game:\\Media\\Fonts\\debug_font.fnt"))
 	{
 		OutputDebugStringA("[GameEngine::Initialize] Warning: Failed to load bitmap font file\n");
 	}
