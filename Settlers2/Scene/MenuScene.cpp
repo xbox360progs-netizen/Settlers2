@@ -229,7 +229,7 @@ void MenuScene::Render() {
     OutputDebugStringA("[MenuScene::Render] TextManager exists, preparing to draw text...\n");
     m_textManager->Begin();
     OutputDebugStringA("[MenuScene::Render] TextManager Begin() called\n");
-    m_textManager->DrawTextToScreen("TEST", 100, 100, 0xFFFF0000, 0.2f);
+    m_textManager->DrawTextToScreen("T", 100, 100, 0xFFFF0000, 0.2f); // Тест с одной буквой
     OutputDebugStringA("[MenuScene::Render] DrawTextToScreen called\n");
   }
   
