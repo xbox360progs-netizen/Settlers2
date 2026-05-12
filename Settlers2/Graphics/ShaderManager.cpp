@@ -1,5 +1,9 @@
 #include "stdafx.h"
 #include "ShaderManager.h"
+#include "Renderer.h"
+#include "SpriteRenderer.h"
+#include <d3dx9.h>
+#include <d3d9.h>
 #include <stdio.h>
 #include <string>
 #include <algorithm>
@@ -470,6 +474,13 @@ bool ShaderManager::HasShader(ShaderID id) const {
 
 static DWORD s_currentVertexOffset = 0;
 static DWORD s_batchIndex = 0;
+
+LPDIRECT3DVERTEXBUFFER9 ShaderManager::GetSharedVertexBuffer() {
+    // For now, return nullptr - TextManager will skip buffer copy
+    // The actual buffer copying should be handled by SpriteRenderer
+    OutputDebugStringA("[ShaderManager::GetSharedVertexBuffer] Returning nullptr - buffer copy skipped\n");
+    return nullptr;
+}
 
 void ShaderManager::CopyTextVertices(const void* vertices, size_t vertexCount) {
     char debugBuf[256];
@@ -1069,12 +1080,7 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
             continue;
         }
 
-        // Xbox 360: CommitChanges() CRITICAL before Draw (apply constant buffer updates)
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] CommitChanges...\n");
-        CommitChanges();
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] CommitChanges done\n");
-
-        // Draw this command based on batch type
+        // === DRAW EXECUTION ===
         OutputDebugStringA("[ShaderManager::ExecuteQueue] About to DrawIndexedPrimitive...\n");
         
         // XBOX 360 SAFETY: Validate buffer sizes before drawing
@@ -1082,6 +1088,11 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
             char debugBuf[512];
             sprintf(debugBuf, "[SM] Drawing: vertexStart=%d, vertexCount=%d, primitiveCount=%d, batchType=%d\n",
                     cmd.vertexStart, cmd.vertexCount, cmd.primitiveCount, cmd.batchType);
+            OutputDebugStringA(debugBuf);
+            
+            // XBOX 360 DEBUG: Check sizeof and stride
+            sprintf(debugBuf, "[SM] sizeof(SpriteVertex)=%zu, stride=32, vertexStride=%d\n", 
+                    sizeof(SpriteVertex), vertexStride);
             OutputDebugStringA(debugBuf);
             
             // Check for potential buffer overrun
@@ -1142,7 +1153,7 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         OutputDebugStringA(loopBuf);
     }
     
-    // === CLEANUP: End current shader only ===
+     // === CLEANUP: End current shader only ===
     OutputDebugStringA("[ShaderManager::ExecuteQueue] Ending current shader...\n");
     EndCurrent();
     OutputDebugStringA("[ShaderManager::ExecuteQueue] EndCurrent done\n");

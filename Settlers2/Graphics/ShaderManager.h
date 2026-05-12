@@ -289,6 +289,9 @@ public:
     // Copy text vertices to shared vertex buffer
     void CopyTextVertices(const void* vertices, size_t vertexCount);
     
+    // Get shared vertex buffer for text rendering
+    LPDIRECT3DVERTEXBUFFER9 GetSharedVertexBuffer();
+    
     // Execute all batches in the queue (legacy)
     void ExecuteBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
                        LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride);

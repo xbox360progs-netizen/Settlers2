@@ -333,10 +333,27 @@ void TextManager::AddTextScreen(const std::string& text, const D3DXVECTOR3& pos,
 
 void TextManager::RenderScreen()
 {
-    // Text vertices are now submitted to queue via PushLetterCommand
-    // No need to copy to buffer - ShaderManager handles it
-    if (!m_screenVertices.empty()) {
-        OutputDebugStringA("[TextManager::RenderScreen] Text rendering completed\n");
+    // XBOX 360 CRITICAL: Copy text vertices to shared buffer like SpriteRenderer
+    if (!m_screenVertices.empty() && m_renderer && m_renderer->GetShaderManager()) {
+        char debugBuf[256];
+        sprintf(debugBuf, "[TextManager::RenderScreen] Copying %zu text vertices to buffer\n", m_screenVertices.size());
+        OutputDebugStringA(debugBuf);
+        
+        // Get the shared vertex buffer from SpriteRenderer
+        ShaderManager* shaderManager = m_renderer->GetShaderManager();
+        LPDIRECT3DVERTEXBUFFER9 pVB = shaderManager->GetSharedVertexBuffer();
+        
+        if (pVB) {
+            void* pData = NULL;
+            HRESULT hr = pVB->Lock(0, m_screenVertices.size() * sizeof(TextVertex), &pData, 0);
+            if (SUCCEEDED(hr)) {
+                memcpy(pData, m_screenVertices.data(), m_screenVertices.size() * sizeof(TextVertex));
+                pVB->Unlock();
+                OutputDebugStringA("[TextManager::RenderScreen] Text vertices copied to shared buffer\n");
+            } else {
+                OutputDebugStringA("[TextManager::RenderScreen] ERROR: Failed to lock shared vertex buffer\n");
+            }
+        }
     }
 }
 
