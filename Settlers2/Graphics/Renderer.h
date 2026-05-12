@@ -4,10 +4,10 @@
 #include <d3dx9.h>
 
 struct SpriteVertex {
-    float x, y, z;        // 12 bytes (offset 0)
-    float u, v;           // 8 bytes (offset 12)
-    DWORD color;          // 4 bytes (offset 20)
-    float padding[2];     // 8 bytes (offset 24)
+    float x, y, z;        // POSITION - 12 bytes (offset 0)
+    float u, v;           // TEXCOORD0 - 8 bytes (offset 12)
+    DWORD color;          // COLOR0 - 4 bytes (offset 20)
+    float padding[2];     // TEXCOORD1/Padding - 8 bytes (offset 24)
 };
 static_assert(sizeof(SpriteVertex) == 32, "SpriteVertex must be 32 bytes");
 

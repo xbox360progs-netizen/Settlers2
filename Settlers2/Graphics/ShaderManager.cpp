@@ -707,7 +707,7 @@ void ShaderManager::SetShaderParameters(const RenderCommand& cmd) {
         {
             // World shader: set texture + camera ViewProj matrix
             if (cmd.pTexture) {
-                SetTexture("g_Texture", cmd.pTexture);
+                SetTexture("g_texture", cmd.pTexture);
             }
             // Use camera ViewProj for world-space rendering
             if (m_hasFrameViewProj) {
@@ -720,7 +720,7 @@ void ShaderManager::SetShaderParameters(const RenderCommand& cmd) {
         {
             // UI shader: set texture + screen orthographic matrix
             if (cmd.pTexture) {
-                SetTexture("g_Texture", cmd.pTexture);
+                SetTexture("g_texture", cmd.pTexture);
             }
             // Use orthographic projection for UI (screen space)
             D3DXMATRIX matOrtho;

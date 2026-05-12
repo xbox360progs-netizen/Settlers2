@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "BitmapFont.h"
-#include "Renderer.h"
+#include "Renderer.h" // For SpriteVertex
 #include "ShaderManager.h"
 
 // ==========================================================
@@ -76,10 +76,10 @@ void BitmapFont::DrawText(const std::string& text, DWORD color)
         float x1 = x0 + ch.width;
         float y1 = y0 + ch.height;
 
-        TextVertex v0; v0.pos = D3DXVECTOR3(x0, y0, 0); v0.col = color; v0.uv = D3DXVECTOR2(ch.u0, ch.v0);
-        TextVertex v1; v1.pos = D3DXVECTOR3(x1, y0, 0); v1.col = color; v1.uv = D3DXVECTOR2(ch.u1, ch.v0);
-        TextVertex v2; v2.pos = D3DXVECTOR3(x0, y1, 0); v2.col = color; v2.uv = D3DXVECTOR2(ch.u0, ch.v1);
-        TextVertex v3; v3.pos = D3DXVECTOR3(x1, y1, 0); v3.col = color; v3.uv = D3DXVECTOR2(ch.u1, ch.v1);
+        SpriteVertex v0; v0.x = x0; v0.y = y0; v0.z = 0; v0.color = color; v0.u = ch.u0; v0.v = ch.v0;
+        SpriteVertex v1; v1.x = x1; v1.y = y0; v1.z = 0; v1.color = color; v1.u = ch.u1; v1.v = ch.v0;
+        SpriteVertex v2; v2.x = x0; v2.y = y1; v2.z = 0; v2.color = color; v2.u = ch.u0; v2.v = ch.v1;
+        SpriteVertex v3; v3.x = x1; v3.y = y1; v3.z = 0; v3.color = color; v3.u = ch.u1; v3.v = ch.v1;
 
         // Two triangles
         m_vertices.push_back(v0);
@@ -126,7 +126,7 @@ void BitmapFont::EnsureVB(size_t vertexCount)
     m_vbCapacity = (UINT)vertexCount;
 
     HRESULT hr = m_device->CreateVertexBuffer(
-        sizeof(TextVertex) * m_vbCapacity,
+        sizeof(SpriteVertex) * m_vbCapacity,
         D3DUSAGE_WRITEONLY,
         0,
         D3DPOOL_DEFAULT,

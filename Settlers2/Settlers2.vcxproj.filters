@@ -77,9 +77,6 @@
     <ClInclude Include="Graphics\TextManager.h">
       <Filter>Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\TextVertex.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\SpriteRenderer.h">
       <Filter>Graphics</Filter>
     </ClInclude>
@@ -128,9 +125,6 @@
     <ClInclude Include="World\TileType.h">
       <Filter>World</Filter>
     </ClInclude>
-    <ClInclude Include="World\Components\Building.h">
-      <Filter>World\Components</Filter>
-    </ClInclude>
     <ClInclude Include="World\Components\Collider.h">
       <Filter>World\Components</Filter>
     </ClInclude>
@@ -144,9 +138,6 @@
       <Filter>World\Components</Filter>
     </ClInclude>
     <ClInclude Include="World\Components\Resource.h">
-      <Filter>World\Components</Filter>
-    </ClInclude>
-    <ClInclude Include="World\Components\Sprite.h">
       <Filter>World\Components</Filter>
     </ClInclude>
     <ClInclude Include="World\Components\SpriteComponent.h">
@@ -212,9 +203,6 @@
     <ClInclude Include="UI\UIManager.h">
       <Filter>UI</Filter>
     </ClInclude>
-    <ClInclude Include="UI\Widget.h">
-      <Filter>UI</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\TextureLoader.h">
       <Filter>Graphics</Filter>
     </ClInclude>
@@ -251,11 +239,17 @@
     <ClInclude Include="Logic\CoordinateSystem.h">
       <Filter>Logic</Filter>
     </ClInclude>
-    <ClInclude Include="Logic\InputController.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Input\InputController.h">
       <Filter>Input</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\WeightMenu.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\Resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="World\ResourceNode.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -436,11 +430,11 @@
     <ClCompile Include="World\Components\Building.cpp">
       <Filter>UI</Filter>
     </ClCompile>
-    <ClCompile Include="Logic\InputController.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Input\InputController.cpp">
       <Filter>Input</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\WeightMenu.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -258,7 +258,6 @@
     <ClInclude Include="Graphics\Texture.h" />
     <ClInclude Include="Graphics\TextureLoader.h" />
     <ClInclude Include="Graphics\TextureRegistry.h" />
-    <ClInclude Include="Graphics\TextVertex.h" />
     <ClInclude Include="Graphics\TileRenderer.h" />
     <ClInclude Include="Input\Gamepad.h" />
     <ClInclude Include="Input\InputContext.h" />

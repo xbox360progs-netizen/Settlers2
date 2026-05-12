@@ -8,7 +8,7 @@
 #include <d3dx9.h>
 #include <string>
 #include <vector>
-#include "TextVertex.h"
+#include "Renderer.h" // For SpriteVertex
 
 // Forward declarations
 class Renderer;
@@ -77,8 +77,8 @@ public:
     IDirect3DTexture9* GetTexture() const { return m_texture; }
     
     // CPU vertex management (for TextManager)
-    void SetVertices(const std::vector<TextVertex>& vertices) { m_vertices = vertices; }
-    const std::vector<TextVertex>& GetVertices() const { return m_vertices; }
+    void SetVertices(const std::vector<SpriteVertex>& vertices) { m_vertices = vertices; }
+    const std::vector<SpriteVertex>& GetVertices() const { return m_vertices; }
     
     // Access to character array
     const std::vector<FontChar>& GetChars() const { return m_chars; }
@@ -111,7 +111,7 @@ private:
     // ======================================================
     // CPU vertex buffer
     // ======================================================
-    std::vector<TextVertex> m_vertices; // Local / world vertices
+    std::vector<SpriteVertex> m_vertices; // Local / world vertices
     
     // ======================================================
     // Font data
