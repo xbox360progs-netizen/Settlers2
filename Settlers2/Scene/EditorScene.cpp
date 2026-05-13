@@ -683,7 +683,7 @@ void EditorScene::Render() {
     // === STEP 3: Render UI elements (RadialMenu, GridMenu, WeightMenu) ===
     // These submit commands with isUI=true and depth=0.0f
     if (m_radialMenu && m_radialMenu->IsVisible()) {
-        m_radialMenu->Render();
+        m_radialMenu->Render(m_spriteRenderer);
         m_radialMenu->RenderIcons(m_spriteRenderer);
     }
     

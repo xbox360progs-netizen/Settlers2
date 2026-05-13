@@ -239,31 +239,54 @@ void RadialMenu::CalculateSelectedSector(float stickX, float stickY)
     m_selectedIndex = (int)(normAngle * m_numSectors) % m_numSectors;
 }
 
-void RadialMenu::Render()
+void RadialMenu::Render(SpriteRenderer* spriteRenderer)
 {
-    if (!m_visible || !m_quad || !m_device || !m_shaderManager) {
+    if (!m_visible || !spriteRenderer || !m_shaderManager) {
         return;
     }
 
-    // Submit custom draw command to the queue instead of rendering directly
-    // This ensures RadialMenu respects the depth-based sorting system
-    ShaderManager::RenderCommand cmd;
-    cmd.batchType = 2; // Custom callback
-    cmd.depth = 0.0f; // Minimal depth - always on top (UI layer)
-    cmd.layer = 2;     // UI layer
-    cmd.isUI = true;   // Screen-space rendering (skip camera matrix)
-    cmd.shaderID = SHADER_RADIALMENU; // Use shader handle instead of name
-    cmd.customDraw = &RadialMenu::StaticDrawCallback;
-    cmd.customUserData = this;
-    
-    // Set render states for alpha-blended UI
-    cmd.states.zEnable = D3DZB_FALSE;
-    cmd.states.alphaBlendEnable = TRUE;
-    cmd.states.srcBlend = D3DBLEND_SRCALPHA;
-    cmd.states.destBlend = D3DBLEND_INVSRCALPHA;
-    cmd.states.cullMode = D3DCULL_NONE;
-    
-    m_shaderManager->Submit(cmd);
+    // Get a dummy texture from TextureRegistry (any texture will work since shader doesn't sample it)
+    TextureRegistry& registry = TextureRegistry::instance();
+    LPDIRECT3DTEXTURE9 dummyTexture = registry.getTextureOrLoad("menu_bd");
+    if (!dummyTexture) {
+        dummyTexture = registry.getTextureOrLoad("menu_cell");
+    }
+    if (!dummyTexture) {
+        OutputDebugStringA("[RadialMenu] ERROR: No dummy texture available!\n");
+        return;
+    }
+
+    // Set shader parameters before rendering
+    D3DXVECTOR4 menuParams((float)m_numSectors, (float)m_selectedIndex, m_innerRadius, m_outerRadius);
+    D3DXVECTOR4 centerParams(m_centerRadius, 0.018f, 0.040f, 0.060f);
+
+    m_shaderManager->SetVector("MenuParams", (float*)&menuParams);
+    m_shaderManager->SetVector("CenterParams", (float*)&centerParams);
+    m_shaderManager->SetVector("InnerColor", (float*)&m_innerColor);
+    m_shaderManager->SetVector("OuterColor", (float*)&m_outerColor);
+    m_shaderManager->SetVector("HighlightColor", (float*)&m_highlightColor);
+    m_shaderManager->SetVector("LineColor", (float*)&m_lineColor);
+    m_shaderManager->SetVector("CenterInnerColor", (float*)&m_centerInnerColor);
+    m_shaderManager->SetVector("CenterOuterColor", (float*)&m_centerOuterColor);
+    m_shaderManager->CommitChanges();
+
+    // Use SpriteRenderer with dummy texture for UI rendering
+    spriteRenderer->Begin(SHADER_RADIALMENU, dummyTexture, 0.0f, 0, false);
+
+    float menuRadius = kMenuSize * 0.5f;
+    float size = menuRadius * 2.0f;
+
+    // Draw quad with UV [0..1] - shader converts to [-1..1] for radial calculations
+    spriteRenderer->Draw(
+        m_screenX - menuRadius,
+        m_screenY - menuRadius,
+        size,
+        size,
+        0.0f, 0.0f, 1.0f, 1.0f,
+        0xFFFFFFFF
+    );
+
+    spriteRenderer->End();
 }
 
 // Static callback for queue-based rendering

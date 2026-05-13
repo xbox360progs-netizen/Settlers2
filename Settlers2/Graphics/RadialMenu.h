@@ -54,7 +54,7 @@ public:
     void Update(Input::Gamepad* gamepad);
     void UpdateFromStick(float stickX, float stickY);
 
-    void Render();
+    void Render(SpriteRenderer* spriteRenderer);
     void RenderIcons(SpriteRenderer* spriteRenderer);
     void SetRenderer(Renderer* renderer);
     
