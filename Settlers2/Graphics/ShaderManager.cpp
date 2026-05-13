@@ -172,11 +172,10 @@ bool ShaderManager::LoadBaseShaders() {
     }
 
     // Load RadialMenu.fx (for radial menu)
-    // Commented out - RadialMenu.fx doesn't exist yet
-    // if (FAILED(LoadShader(SHADER_RADIALMENU, "game:\\Media\\Shaders\\RadialMenu.fx", "RadialMenu"))) {
-    //     OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_RADIALMENU (RadialMenu.fx)\n");
-    //     allSuccess = false;
-    // }
+    if (FAILED(LoadShader(SHADER_RADIALMENU, "game:\\Media\\Shaders\\RadialMenu.fx", "RadialMenu"))) {
+        OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_RADIALMENU (RadialMenu.fx)\n");
+        allSuccess = false;
+    }
 
     // Load SpriteConstantInstanced.fx (for instanced sprites)
     if (FAILED(LoadShader(SHADER_SPRITE_CONSTANT_INSTANCED, "game:\\Media\\Shaders\\SpriteConstantInstanced.fx", "SpriteConstantInstancedTech"))) {
