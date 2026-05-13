@@ -965,7 +965,7 @@ void SpriteRenderer::DrawRotated(float x, float y, float width, float height, fl
 void SpriteRenderer::End() {
     OutputDebugStringA("[SR::End] DEFERRED: ENTERED - m_isBatching=");
     char dbg[64];
-    sprintf(dbg, "%d, pendingCommands=%d\n", m_isBatching, (int)m_pendingCommands.size());
+    sprintf(dbg, "%d, pendingCommands=%d, spriteCount=%d\n", m_isBatching, (int)m_pendingCommands.size(), m_spriteCount);
     OutputDebugStringA(dbg);
 
     if (m_isBatching) {
@@ -974,6 +974,14 @@ void SpriteRenderer::End() {
             OutputDebugStringA("[SR::End] DEFERRED: Calling Flush()...\n");
             Flush();
             OutputDebugStringA("[SR::End] DEFERRED: Flush() completed\n");
+        }
+        
+        // IMMEDIATE MODE: Flush staging buffer data if spriteCount > 0 but no pending commands
+        // This handles DrawWithTexture path which writes directly to staging buffer
+        if (m_spriteCount > 0 && m_pendingCommands.empty()) {
+            OutputDebugStringA("[SR::End] IMMEDIATE: Submitting batch with spriteCount\n");
+            SubmitBatch(m_pShaderManager);
+            OutputDebugStringA("[SR::End] IMMEDIATE: SubmitBatch completed\n");
         }
     }
     
@@ -1149,24 +1157,32 @@ void SpriteRenderer::SubmitBatch(ShaderManager* pShader) {
     // Manual batch submission - same logic as Flush but without buffer switch
     if (m_spriteCount == 0) return;
     
-    // Copy staging buffer to GPU
+    char dbg[256];
+    sprintf(dbg, "[SR::SubmitBatch] spriteCount=%d, totalVertexCount=%d\n", m_spriteCount, m_totalVertexCount);
+    OutputDebugStringA(dbg);
+    
+    // Calculate offset for this batch
+    DWORD vertexOffset = m_totalVertexCount * sizeof(SpriteVertex);
+    int vertexCount = m_spriteCount * 4;
+    
+    // Copy staging buffer to GPU at correct offset
     LPDIRECT3DVERTEXBUFFER9 currentVB = m_pVB[m_activeBuffer];
     void* pData = NULL;
-    HRESULT hr = currentVB->Lock(0, m_spriteCount * 4 * sizeof(SpriteVertex), &pData, 0);
+    HRESULT hr = currentVB->Lock(vertexOffset, vertexCount * sizeof(SpriteVertex), &pData, 0);
     if (FAILED(hr)) {
         OutputDebugStringA("Failed to lock vertex buffer in SubmitBatch\n");
         return;
     }
-    memcpy(pData, m_pStagingBuffer, m_spriteCount * 4 * sizeof(SpriteVertex));
+    memcpy(pData, m_pStagingBuffer, vertexCount * sizeof(SpriteVertex));
     currentVB->Unlock();
 
-    // Create render command
+    // Create render command with correct offset
     if (pShader) {
         ShaderManager::RenderCommand cmd;
         cmd.pTexture = m_currentTexture;
         cmd.shaderID = m_currentShaderID;
-        cmd.vertexStart = 0;
-        cmd.vertexCount = m_spriteCount * 4;
+        cmd.vertexStart = m_totalVertexCount; // Use cumulative offset!
+        cmd.vertexCount = vertexCount;
         cmd.primitiveCount = (DWORD)(m_spriteCount * 2);
         cmd.batchType = m_currentRenderType;
         cmd.depth = m_currentDepth;
@@ -1179,9 +1195,15 @@ void SpriteRenderer::SubmitBatch(ShaderManager* pShader) {
         cmd.states.destBlend = D3DBLEND_INVSRCALPHA;
         cmd.states.cullMode = D3DCULL_NONE;
         
+        sprintf(dbg, "[SR::SubmitBatch] Submitting: vertexStart=%d, vertexCount=%d, depth=%.2f\n", 
+                cmd.vertexStart, cmd.vertexCount, cmd.depth);
+        OutputDebugStringA(dbg);
+        
         pShader->Submit(cmd);
     }
     
+    // Update total vertex count for next batch
+    m_totalVertexCount += m_spriteCount * 4;
     m_spriteCount = 0;
 }
 

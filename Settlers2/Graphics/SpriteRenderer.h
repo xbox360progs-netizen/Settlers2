@@ -122,6 +122,7 @@ public:
 
     // Manual flush (uses internal shader manager)
     void Flush();
+    
     // Configure streams for hardware instancing (Stream 0: geometry, Stream 1: per-instance data)
     void SetupInstancingStates(int spriteCount);
 
