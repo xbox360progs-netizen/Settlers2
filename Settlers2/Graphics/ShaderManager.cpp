@@ -987,13 +987,14 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                     memcpy(vertexDest, cmd.vertices, cmd.vertexCount * sizeof(SpriteVertex));
                     vertexDest += cmd.vertexCount;
 
-                    // Generate quad indices (0,1,2, 0,2,3 pattern)
-                    indexDest[0] = currentVertexOffset + 0;
-                    indexDest[1] = currentVertexOffset + 1;
-                    indexDest[2] = currentVertexOffset + 2;
-                    indexDest[3] = currentVertexOffset + 0;
-                    indexDest[4] = currentVertexOffset + 2;
-                    indexDest[5] = currentVertexOffset + 3;
+                    // Generate LOCAL quad indices (0,1,2, 0,2,3 pattern) - always relative to 0
+                    // baseVertex will shift them to correct position in buffer
+                    indexDest[0] = 0;
+                    indexDest[1] = 1;
+                    indexDest[2] = 2;
+                    indexDest[3] = 0;
+                    indexDest[4] = 2;
+                    indexDest[5] = 3;
                     indexDest += 6;
 
                     // Update command offsets for drawing
@@ -1017,6 +1018,11 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     }
 
     // === LAZY BATCHING: Process commands with minimal state switches ===
+    // CRITICAL: Disable Z-buffer for entire 2D UI rendering (stable state for Xbox 360)
+    m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+    m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+    m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+
     ShaderID currentShaderID = SHADER_INVALID;
     LPDIRECT3DTEXTURE9 lastTexture = nullptr;
     bool passActive = false;
@@ -1048,12 +1054,6 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
             // IMPORTANT: If texture changes inside same shader, need Commit
             if (m_pActiveEffect) m_pActiveEffect->CommitChanges();
         }
-
-        // --- STATES (Alpha, Z-Buffer) ---
-        // DEFERRED RENDERING: Disable Z-testing for 2D rendering (no depth sorting needed)
-        m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-        m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
-        m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
 
         // --- RENDER ---
         if (passActive) {
