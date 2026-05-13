@@ -218,15 +218,14 @@ void MenuScene::Render() {
 
     if (!m_spriteRenderer || !m_backgroundTexture.GetTexture() || !m_textManager) return;
 
-    // 1. Render Background using new layer system (LAYER_FOREGROUND for background - renders first/behind)
+    // 1. Render Background (depth=1.0 - renders first/behind)
     LPDIRECT3DTEXTURE9 bgTex = m_backgroundTexture.GetTexture();
-    float bgDepth = LayerUtils::GetUIDepth(LAYER_FOREGROUND);
-    m_spriteRenderer->Begin(SHADER_SPRITE, bgTex, bgDepth, 0, true); // UI rendering
+    m_spriteRenderer->Begin(SHADER_SPRITE, bgTex, 1.0f, 0, true); // UI rendering
     m_spriteRenderer->Draw(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
     m_spriteRenderer->End(); // Close background batch
 
-    // 2. Render UI text using new layer system (LAYER_BACKGROUND for text - renders last/on top)
-    float textDepth = LayerUtils::GetUIDepth(LAYER_BACKGROUND);
+    // 2. Render UI text (depth=0.0 - renders last/on top)
+    float textDepth = 0.0f;
     m_textManager->BeginTextBatch(FONT_MENU, textDepth);
     
     // 3. Render Text

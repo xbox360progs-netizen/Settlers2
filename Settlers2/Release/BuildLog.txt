@@ -1,12 +1,11 @@
-﻿Построение начато 13.05.2026 4:55:36.
+﻿Построение начато 13.05.2026 5:00:03.
      1>Проект "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" в узле 2 (целевые объекты build).
      1>InitializeBuildStatus:
          Создание "Release\Settlers2.unsuccessfulbuild", так как было задано "AlwaysCreate".
        ClCompile:
          Для всех выходных данных обновления не требуется.
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Graphics\ShaderManager.cpp Graphics\SpriteRenderer.cpp Scene\MenuScene.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Graphics\ShaderManager.cpp Scene\MenuScene.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
          ShaderManager.cpp
-         SpriteRenderer.cpp
          MenuScene.cpp
          Generating Code...
        Link:
@@ -83,4 +82,4 @@
 
 Построение успешно завершено.
 
-Затраченное время: 00:00:13.90
+Затраченное время: 00:00:13.41

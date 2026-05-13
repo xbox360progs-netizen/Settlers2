@@ -1007,7 +1007,7 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
             pVB->Unlock();
             pIB->Unlock();
             char debugMsg[256];
-            sprintf(debugMsg, "[ExecuteQueue] Copied %zu vertices and %zu indices from commands to GPU buffers\n", totalVertices, totalIndices);
+            sprintf(debugMsg, "[ExecuteQueue] Copied %d vertices and %d indices from commands to GPU buffers\n", (int)totalVertices, (int)totalIndices);
             OutputDebugStringA(debugMsg);
         } else {
             if (SUCCEEDED(hrVB)) pVB->Unlock();
