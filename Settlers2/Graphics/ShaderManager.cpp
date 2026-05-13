@@ -21,6 +21,12 @@ ShaderManager::StateCache::StateCache()
 }
 
 void ShaderManager::StateCache::SetRenderState(LPDIRECT3DDEVICE9 device, D3DRENDERSTATETYPE state, DWORD value) {
+    // Guard against invalid state indexes
+    const size_t MAX_STATES = sizeof(m_currentStates) / sizeof(m_currentStates[0]);
+    if ((size_t)state >= MAX_STATES) {
+        return;
+    }
+
     if (m_currentStates[state] != value) {
         device->SetRenderState(state, value);
         m_currentStates[state] = value;
@@ -50,6 +56,9 @@ ShaderManager::ShaderManager()
     D3DXMatrixIdentity(&m_frameViewProj);
     D3DXMatrixIdentity(&m_cachedView);
     D3DXMatrixIdentity(&m_cachedProj);
+    // Initialize synchronization primitive
+    InitializeCriticalSection(&m_cs);
+    m_sharedVB = NULL;
 }
 
 ShaderManager::~ShaderManager() {
@@ -199,27 +208,39 @@ HRESULT ShaderManager::Initialize(LPDIRECT3DDEVICE9 device) {
 }
 
 void ShaderManager::Shutdown() {
-    // Release centralized shader effects
+    // Release centralized shader effects (each effect is owned once in m_effects)
     for (std::map<ShaderID, ID3DXEffect*>::iterator it = m_effects.begin();
          it != m_effects.end(); ++it) {
         if (it->second) {
             it->second->Release();
+            it->second = NULL;
         }
     }
     m_effects.clear();
 
-    // Release legacy shader map
+    // Clear legacy shader map without double-releasing effect pointers
     for (std::map<ShaderID, Shader>::iterator it = m_shaders.begin();
          it != m_shaders.end(); ++it) {
-        if (it->second.pEffect) {
-            it->second.pEffect->Release();
-            it->second.pEffect = NULL;
-        }
+        it->second.pEffect = NULL;
+        it->second.hTechnique = NULL;
+        it->second.hMatOrtho = NULL;
+        it->second.hTexture = NULL;
+        it->second.hParams.clear();
     }
     m_shaders.clear();
+
     m_pActiveShader = NULL;
     m_pActiveEffect = NULL;
+    // Release shared VB if created
+    if (m_sharedVB) {
+        m_sharedVB->Release();
+        m_sharedVB = NULL;
+    }
+
     m_pDevice = NULL;
+    // Delete critical section
+    DeleteCriticalSection(&m_cs);
+    m_hasFrameViewProj = false;
 }
 
 HRESULT ShaderManager::LoadShader(ShaderID id, const char* filepath, const char* techniqueName) {
@@ -404,15 +425,22 @@ void ShaderManager::SetTexture(const char* paramName, LPDIRECT3DBASETEXTURE9 pTe
         return;
     }
 
-    D3DXHANDLE hParam = m_pActiveShader->pEffect->GetParameterByName(NULL, paramName);
+    // Try cached handle first
+    D3DXHANDLE hParam = NULL;
+    auto it = m_pActiveShader->hParams.find(paramName);
+    if (it != m_pActiveShader->hParams.end()) {
+        hParam = it->second;
+    } else {
+        hParam = m_pActiveShader->pEffect->GetParameterByName(NULL, paramName);
+        m_pActiveShader->hParams[paramName] = hParam; // cache even if NULL to avoid repeated lookups
+    }
+
     if (hParam) {
-        sprintf(dbgBuf, "[SM::SetTexture] hParam=%p, calling SetTexture\n", hParam);
+        sprintf(dbgBuf, "[SM::SetTexture] hParam=%p (cached), calling SetTexture\n", hParam);
         OutputDebugStringA(dbgBuf);
         m_pActiveShader->pEffect->SetTexture(hParam, pTexture);
         sprintf(dbgBuf, "[SM::SetTexture] SetTexture returned, pTexture=%p\n", pTexture);
         OutputDebugStringA(dbgBuf);
-        // Removed automatic CommitChanges() for Xbox 360 multi-threading
-        // Use explicit Commit() call instead
     } else {
         sprintf(dbgBuf, "[SM::SetTexture] WARNING: hParam is NULL for paramName=%s\n", paramName ? paramName : "NULL");
         OutputDebugStringA(dbgBuf);
@@ -457,10 +485,29 @@ static DWORD s_currentVertexOffset = 0;
 static DWORD s_batchIndex = 0;
 
 LPDIRECT3DVERTEXBUFFER9 ShaderManager::GetSharedVertexBuffer() {
-    // For now, return nullptr - TextManager will skip buffer copy
-    // The actual buffer copying should be handled by SpriteRenderer
-    OutputDebugStringA("[ShaderManager::GetSharedVertexBuffer] Returning nullptr - buffer copy skipped\n");
-    return nullptr;
+    // Lazily create a shared VB used for text/sprite staging if needed
+    if (m_sharedVB) return m_sharedVB;
+
+    if (!m_pDevice) {
+        OutputDebugStringA("[ShaderManager::GetSharedVertexBuffer] ERROR: Device not initialized\n");
+        return nullptr;
+    }
+
+    // Create a reasonably large VB (match SpriteRenderer MAX vertices)
+    const size_t MAX_VERTICES = 16384; // same as SpriteRenderer MAX_BUFFER_VERTICES
+    const UINT vbSize = (UINT)(MAX_VERTICES * sizeof(SpriteVertex));
+
+    HRESULT hr = m_pDevice->CreateVertexBuffer(vbSize, 0, 0, D3DPOOL_DEFAULT, &m_sharedVB, NULL);
+    if (FAILED(hr) || !m_sharedVB) {
+        char buf[256];
+        sprintf(buf, "[ShaderManager::GetSharedVertexBuffer] Failed to create VB (hr=0x%08X)\n", hr);
+        OutputDebugStringA(buf);
+        m_sharedVB = NULL;
+        return NULL;
+    }
+
+    OutputDebugStringA("[ShaderManager::GetSharedVertexBuffer] Created shared VB successfully\n");
+    return m_sharedVB;
 }
 
 void ShaderManager::CopyTextVertices(const void* vertices, size_t vertexCount) {
@@ -487,14 +534,17 @@ void ShaderManager::Submit(const RenderCommand& cmd) {
         s_batchIndex = 0;
     }
     
-    // Use vertexStart as-is - SpriteRenderer already calculates correct offset
+    // Use vertexStart and baseVertex as-is - SpriteRenderer already calculates correct offsets
     cmdWithOffset.vertexStart = cmd.vertexStart;
+    cmdWithOffset.baseVertex = cmd.baseVertex;
     cmdWithOffset.batchIndex = s_batchIndex++;
     
     // Update vertex offset for next batch
     s_currentVertexOffset += cmd.vertexCount;
     
+    Lock();
     m_commandQueue.push_back(cmdWithOffset);
+    Unlock();
 }
 
 // Add command to render queue (alias for Submit)
@@ -503,23 +553,33 @@ void ShaderManager::PushCommand(const RenderCommand& cmd) {
 }
 
 void ShaderManager::SubmitDrawBatch(const DrawBatch& batch) {
+    Lock();
     m_drawBatches.push_back(batch);
+    Unlock();
 }
 
 void ShaderManager::SubmitBatch(const RenderBatch& batch) {
+    Lock();
     m_batches.push_back(batch);
+    Unlock();
 }
 
 void ShaderManager::ClearQueue() {
+    Lock();
     m_commandQueue.clear();
+    Unlock();
 }
 
 void ShaderManager::ClearDrawBatches() {
+    Lock();
     m_drawBatches.clear();
+    Unlock();
 }
 
 void ShaderManager::ClearBatches() {
+    Lock();
     m_batches.clear();
+    Unlock();
 }
 
 void ShaderManager::SortQueue() {
@@ -537,11 +597,8 @@ void ShaderManager::SortQueue() {
         OutputDebugStringA(dbg);
     }
     
-    // Sort by depth ASCENDING (lower depth = background = draw first)
-    std::sort(m_commandQueue.begin(), m_commandQueue.end(), 
-              [](const RenderCommand& a, const RenderCommand& b) {
-                  return a.depth < b.depth; // Lower depth first
-              });
+    // Use RenderCommand::operator< for consistent ordering (depth-first, then shader, then texture)
+    std::sort(m_commandQueue.begin(), m_commandQueue.end());
     
     // Debug: log depths after sorting
     sprintf(dbg, "[SortQueue] After:\n");
@@ -691,11 +748,13 @@ void ShaderManager::UpdateConstants(LPDIRECT3DTEXTURE9 pTexture, const D3DXMATRI
 
 // State locking (prevents external state corruption during ExecuteQueue)
 void ShaderManager::Lock() {
+    EnterCriticalSection(&m_cs);
     m_isLocked = true;
 }
 
 void ShaderManager::Unlock() {
     m_isLocked = false;
+    LeaveCriticalSection(&m_cs);
 }
 
 // Commit changes (Xbox 360: critical before Draw)
@@ -829,7 +888,8 @@ void ShaderManager::UpdateGlobalMatrices(const D3DXMATRIX* pView, const D3DXMATR
 
 // Validate shader handle
 bool ShaderManager::ValidateShader(ShaderID id) const {
-    return id >= SHADER_INVALID && id < SHADER_COUNT;
+    // Valid IDs are (SHADER_INVALID + 1) .. (SHADER_COUNT - 1)
+    return id > SHADER_INVALID && id < SHADER_COUNT;
 }
 
 // Legacy ApplyShader (for backward compatibility with int-based API)
@@ -895,7 +955,67 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     m_pDevice->SetVertexDeclaration(pDecl);
     m_pDevice->SetStreamSource(0, pVB, 0, sizeof(SpriteVertex));
     m_pDevice->SetIndices(pIB);
-    
+
+    // === COPY VERTICES FROM COMMANDS TO GPU BUFFER ===
+    // CRITICAL: RenderCommand stores vertices in cmd.vertices[], but ExecuteQueue draws from GPU buffer
+    // We must copy all vertices from commands to the GPU buffer before drawing
+    if (pVB && pIB && !m_commandQueue.empty()) {
+        void* pVertexData = NULL;
+        void* pIndexData = NULL;
+        size_t totalVertices = 0;
+        size_t totalIndices = 0;
+        for (size_t i = 0; i < m_commandQueue.size(); ++i) {
+            totalVertices += m_commandQueue[i].vertexCount;
+            totalIndices += m_commandQueue[i].primitiveCount * 3;
+        }
+
+        // Lock vertex buffer
+        HRESULT hrVB = pVB->Lock(0, totalVertices * sizeof(SpriteVertex), &pVertexData, 0);
+        // Lock index buffer
+        HRESULT hrIB = pIB->Lock(0, totalIndices * sizeof(WORD), &pIndexData, 0);
+
+        if (SUCCEEDED(hrVB) && SUCCEEDED(hrIB) && pVertexData && pIndexData) {
+            SpriteVertex* vertexDest = (SpriteVertex*)pVertexData;
+            WORD* indexDest = (WORD*)pIndexData;
+            int currentVertexOffset = 0;
+            int currentIndexOffset = 0;
+
+            for (size_t i = 0; i < m_commandQueue.size(); ++i) {
+                RenderCommand& cmd = m_commandQueue[i];
+                if (cmd.vertexCount > 0 && cmd.vertexCount <= 4) {
+                    // Copy vertices
+                    memcpy(vertexDest, cmd.vertices, cmd.vertexCount * sizeof(SpriteVertex));
+                    vertexDest += cmd.vertexCount;
+
+                    // Generate quad indices (0,1,2, 0,2,3 pattern)
+                    indexDest[0] = currentVertexOffset + 0;
+                    indexDest[1] = currentVertexOffset + 1;
+                    indexDest[2] = currentVertexOffset + 2;
+                    indexDest[3] = currentVertexOffset + 0;
+                    indexDest[4] = currentVertexOffset + 2;
+                    indexDest[5] = currentVertexOffset + 3;
+                    indexDest += 6;
+
+                    // Update command offsets for drawing
+                    cmd.baseVertex = currentVertexOffset;
+                    cmd.vertexStart = currentIndexOffset;
+
+                    currentVertexOffset += cmd.vertexCount;
+                    currentIndexOffset += cmd.primitiveCount * 3; // 3 indices per triangle
+                }
+            }
+            pVB->Unlock();
+            pIB->Unlock();
+            char debugMsg[256];
+            sprintf(debugMsg, "[ExecuteQueue] Copied %zu vertices and %zu indices from commands to GPU buffers\n", totalVertices, totalIndices);
+            OutputDebugStringA(debugMsg);
+        } else {
+            if (SUCCEEDED(hrVB)) pVB->Unlock();
+            if (SUCCEEDED(hrIB)) pIB->Unlock();
+            OutputDebugStringA("[ExecuteQueue] ERROR: Failed to lock buffers for copying!\n");
+        }
+    }
+
     // === LAZY BATCHING: Process commands with minimal state switches ===
     ShaderID currentShaderID = SHADER_INVALID;
     LPDIRECT3DTEXTURE9 lastTexture = nullptr;
@@ -938,10 +1058,10 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         // --- RENDER ---
         if (passActive) {
             char renderMsg[256];
-            sprintf(renderMsg, "[ExecuteQueue] Drawing: depth=%.2f, startIdx=%d, verts=%d, prims=%d, tex=%p\n",
-                    cmd.depth, cmd.vertexStart, cmd.vertexCount, cmd.primitiveCount, cmd.pTexture);
+            sprintf(renderMsg, "[ExecuteQueue] Drawing: depth=%.2f, baseVert=%d, startIdx=%d, verts=%d, prims=%d, tex=%p\n",
+                    cmd.depth, cmd.baseVertex, cmd.vertexStart, cmd.vertexCount, cmd.primitiveCount, cmd.pTexture);
             OutputDebugStringA(renderMsg);
-            m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 
+            m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, cmd.baseVertex, 0, 
                                           cmd.vertexCount, 
                                           cmd.vertexStart, 
                                           cmd.primitiveCount);
@@ -954,9 +1074,6 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         EndCurrent();
     }
         
-    // Unlock state after ExecuteQueue completes
-    Unlock();
-    
     // Unlock state after ExecuteQueue completes
     Unlock();
     

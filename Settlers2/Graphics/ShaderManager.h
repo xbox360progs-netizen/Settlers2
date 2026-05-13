@@ -294,6 +294,12 @@ private:
     // State cache for centralized state management
     StateCache m_stateCache;
 
+    // Shared vertex buffer for text/sprite staging (created lazily)
+    LPDIRECT3DVERTEXBUFFER9 m_sharedVB;
+
+    // Critical section for thread safety when accessing command queues and state
+    CRITICAL_SECTION m_cs;
+
     // Critical Section for Thread Safety if multiple cores access the Manager
     // CRITICAL_SECTION m_cs;
 };

@@ -1,15 +1,15 @@
 #pragma once
 
 // Render layer enumeration for proper depth sorting
-// Lower numbers = rendered later (on top)
-// Higher numbers = rendered earlier (behind)
+// Higher numbers = rendered later (on top)
+// Lower numbers = rendered earlier (behind)
 enum RenderLayer {
-    LAYER_BACKGROUND = 0,       // Far background elements (draw first)
+    LAYER_BACKGROUND = 0,       // Far background elements (behind, draw first)
     LAYER_TERRAIN = 100,       // Ground/terrain tiles
     LAYER_WORLD = 500,          // World objects (buildings, units)
     LAYER_EFFECTS = 800,        // Visual effects, particles
     LAYER_UI = 900,             // UI elements, menus
-    LAYER_FOREGROUND = 1000     // Text, cursors, tooltips (always on top, draw last)
+    LAYER_FOREGROUND = 1000     // Text, cursors, tooltips (on top, draw last)
 };
 
 // Helper functions for depth calculation

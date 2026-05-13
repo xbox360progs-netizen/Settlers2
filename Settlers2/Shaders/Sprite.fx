@@ -28,9 +28,9 @@ sampler texSampler = sampler_state
 //--------------------------------------------------------------------------------------
 struct VS_INPUT
 {
-    float4 Position : POSITION;  // float4 for Xbox 360 alignment (W=1.0f auto-filled)
-    float4 Color : COLOR0;
-    float2 TexCoord : TEXCOORD0;
+    float3 Position : POSITION;  // Matches vertex declaration: FLOAT3 at offset 0
+    float2 TexCoord : TEXCOORD0; // Matches vertex declaration: FLOAT2 at offset 12
+    float4 Color : COLOR0;       // Matches vertex declaration: D3DCOLOR at offset 20
 };
 
 struct VS_OUTPUT

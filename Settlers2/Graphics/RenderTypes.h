@@ -33,7 +33,8 @@ struct RenderStateBlock {
 struct RenderCommand {
     LPDIRECT3DTEXTURE9 pTexture;
     int shaderID;   // Shader handle (ShaderHandle enum) instead of raw pointer
-    int vertexStart;
+    int vertexStart; // Start index in index buffer
+    int baseVertex;  // Base vertex offset in vertex buffer (for DrawIndexedPrimitive)
     int vertexCount;
     int primitiveCount;
     int batchType; // 0 - Standard (Single), 1 - Instanced, 2 - Custom callback
@@ -62,7 +63,7 @@ struct RenderCommand {
     CustomDrawFn customDraw;
     void* customUserData;
     
-    RenderCommand() : pTexture(NULL), shaderID(-1), vertexStart(0), vertexCount(0),
+    RenderCommand() : pTexture(NULL), shaderID(-1), vertexStart(0), baseVertex(0), vertexCount(0),
         primitiveCount(0), batchType(0), depth(1.0f), layer(0), isUI(false), batchIndex(0),
         worldX(0), worldY(0), u0(0), v0(0), u1(1), v1(1),
         screenX(0), screenY(0), screenW(0), screenH(0), color(0xFFFFFFFF),

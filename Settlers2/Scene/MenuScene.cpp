@@ -215,24 +215,18 @@ void MenuScene::Update(float deltaTime) {
 
 void MenuScene::Render() {
     OutputDebugStringA("[MenuScene::Render] ENTRY\n");
-    
-    // Force reset at start of render to ensure clean state
-    if (m_spriteRenderer) {
-        m_spriteRenderer->ResetVertexCount();
-        printf("[MenuScene] Force reset vertex count\n");
-    }
 
     if (!m_spriteRenderer || !m_backgroundTexture.GetTexture() || !m_textManager) return;
 
-    // 1. Render Background using new layer system (LAYER_BACKGROUND)
+    // 1. Render Background using new layer system (LAYER_FOREGROUND for background - renders first/behind)
     LPDIRECT3DTEXTURE9 bgTex = m_backgroundTexture.GetTexture();
-    float bgDepth = LayerUtils::GetUIDepth(LAYER_BACKGROUND);
+    float bgDepth = LayerUtils::GetUIDepth(LAYER_FOREGROUND);
     m_spriteRenderer->Begin(SHADER_SPRITE, bgTex, bgDepth, 0, true); // UI rendering
     m_spriteRenderer->Draw(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
     m_spriteRenderer->End(); // Close background batch
 
-    // 2. Render UI text using new layer system (LAYER_FOREGROUND for text)
-    float textDepth = LayerUtils::GetUIDepth(LAYER_FOREGROUND);
+    // 2. Render UI text using new layer system (LAYER_BACKGROUND for text - renders last/on top)
+    float textDepth = LayerUtils::GetUIDepth(LAYER_BACKGROUND);
     m_textManager->BeginTextBatch(FONT_MENU, textDepth);
     
     // 3. Render Text

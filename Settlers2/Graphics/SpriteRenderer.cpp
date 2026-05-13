@@ -165,12 +165,12 @@ HRESULT SpriteRenderer::Initialize(LPDIRECT3DDEVICE9 device, ShaderManager* shad
         for (int i = 0; i < m_maxSprites; i++) {
             int baseV = i * 4;
             int baseI = i * 6;
-            // Triangle 1: 0-1-3 (top-left to top-right to bottom-right) - covers top-right half
+            // Triangle 1: 0-1-3 (CW - top-left to top-right to bottom-right)
             pIndices[baseI + 0] = baseV + 0;
             pIndices[baseI + 1] = baseV + 1;
             pIndices[baseI + 2] = baseV + 3;
-            // Triangle 2: 0-3-2 (top-left to bottom-right to bottom-left) - covers bottom-left half
-            pIndices[baseI + 3] = baseV + 0;
+            // Triangle 2: 1-3-2 (CW - top-right to bottom-right to bottom-left)
+            pIndices[baseI + 3] = baseV + 1;
             pIndices[baseI + 4] = baseV + 3;
             pIndices[baseI + 5] = baseV + 2;
         }
@@ -964,10 +964,15 @@ void SpriteRenderer::DrawRotated(float x, float y, float width, float height, fl
 
 void SpriteRenderer::End() {
     OutputDebugStringA("[SR::End] DEFERRED: ENTERED - m_isBatching=");
-    char dbg[64];
-    sprintf(dbg, "%d, pendingCommands=%d, spriteCount=%d\n", m_isBatching, (int)m_pendingCommands.size(), m_spriteCount);
+char dbg[128];
+    sprintf(dbg, "[SR::End] ENTRY: m_isBatching=%d, m_pendingCommands=%d, m_spriteCount=%d\n", 
+            m_isBatching, (int)m_pendingCommands.size(), m_spriteCount);
     OutputDebugStringA(dbg);
-
+    fflush(stdout);
+    printf("[SR::End] ENTRY: m_isBatching=%d, m_pendingCommands=%d, m_spriteCount=%d\n", 
+            m_isBatching, (int)m_pendingCommands.size(), m_spriteCount);
+    fflush(stdout);
+    
     if (m_isBatching) {
         // DEFERRED RENDERING: Flush remaining pending commands
         if (!m_pendingCommands.empty()) {
@@ -975,14 +980,17 @@ void SpriteRenderer::End() {
             Flush();
             OutputDebugStringA("[SR::End] DEFERRED: Flush() completed\n");
         }
-        
-        // IMMEDIATE MODE: Flush staging buffer data if spriteCount > 0 but no pending commands
+
+        // IMMEDIATE MODE: Always submit staging buffer data if spriteCount > 0
         // This handles DrawWithTexture path which writes directly to staging buffer
-        if (m_spriteCount > 0 && m_pendingCommands.empty()) {
+        // CRITICAL: Must submit even if pendingCommands existed (they were already flushed above)
+        if (m_spriteCount > 0) {
             OutputDebugStringA("[SR::End] IMMEDIATE: Submitting batch with spriteCount\n");
             SubmitBatch(m_pShaderManager);
             OutputDebugStringA("[SR::End] IMMEDIATE: SubmitBatch completed\n");
         }
+    } else {
+        OutputDebugStringA("[SR::End] WARNING: m_isBatching is false!\n");
     }
     
     m_isBatching = false;
@@ -1003,8 +1011,18 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
     }
 
     char debugMsg[256];
-    sprintf(debugMsg, "[SR::Flush] DEFERRED: Processing %d pending commands\n", (int)m_pendingCommands.size());
+    
+    // FORCE RESET if counts look wrong (> 1000 suggests accumulation across frames)
+    if (m_totalVertexCount > 1000 || m_totalIndexCount > 3000) {
+        OutputDebugStringA("[SR::Flush] WARNING: Counts too high, forcing reset!\n");
+        m_totalVertexCount = 0;
+        m_totalIndexCount = 0;
+    }
+    
+    sprintf(debugMsg, "[SR::Flush] DEFERRED: Processing %d pending commands, m_totalVertexCount=%d, m_totalIndexCount=%d\n", 
+            (int)m_pendingCommands.size(), m_totalVertexCount, m_totalIndexCount);
     OutputDebugStringA(debugMsg);
+    fflush(stdout);
 
     // === DEFERRED RENDERING: Sort commands by depth ===
     // Sort back-to-front for proper alpha blending and layer ordering
@@ -1054,20 +1072,38 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
     }
 
     // === DEFERRED RENDERING: Copy to GPU ===
-    LPDIRECT3DVERTEXBUFFER9 currentVB = m_pVB[m_activeBuffer];
+    // Prefer shared VB from ShaderManager when available
+    LPDIRECT3DVERTEXBUFFER9 destVB = nullptr;
+    if (pShader) destVB = pShader->GetSharedVertexBuffer();
+    if (!destVB) destVB = m_pVB[m_activeBuffer];
+
     void* pData = NULL;
-    
-    HRESULT hr = currentVB->Lock(0, (DWORD)totalBytes, &pData, 0);
+
+    // If using ShaderManager shared VB, lock ShaderManager for thread-safety
+    if (pShader) pShader->Lock();
+
+    // Determine vertex offset in bytes
+    UINT vbOffsetBytes = 0;
+    if (pShader) {
+        vbOffsetBytes = (UINT)(m_totalVertexCount * sizeof(SpriteVertex));
+    } else {
+        vbOffsetBytes = 0; // local VB uses start of buffer for this flush
+    }
+
+    HRESULT hr = destVB->Lock(vbOffsetBytes, (DWORD)totalBytes, &pData, 0);
     if (FAILED(hr)) {
         char errorMsg[256];
         sprintf(errorMsg, "[SR::Flush] DEFERRED: Failed to lock VB (hr=0x%08X)\n", hr);
         OutputDebugStringA(errorMsg);
+        if (pShader) pShader->Unlock();
         m_pendingCommands.clear();
         return;
     }
-    
+
     memcpy(pData, m_pStagingBuffer, totalBytes);
-    currentVB->Unlock();
+    destVB->Unlock();
+
+    if (pShader) pShader->Unlock();
     
     sprintf(debugMsg, "[SR::Flush] DEFERRED: Copied %d vertices (%d bytes) to GPU\n", 
             (int)totalVertices, (int)totalBytes);
@@ -1078,7 +1114,8 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
         DWORD currentVertexOffset = 0;
         LPDIRECT3DTEXTURE9 currentTexture = NULL;
         int currentShaderID = -1;
-        DWORD batchStartIndex = m_totalIndexCount; // Use cumulative index offset!
+        DWORD batchStartIndex = m_totalIndexCount; // Start index in index buffer
+        DWORD batchStartVertex = m_totalVertexCount; // Start vertex in vertex buffer
         DWORD batchVertexCount = 0;
         int spritesInCurrentBatch = 0;
         
@@ -1096,7 +1133,8 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
                 RenderCommand batchCmd;
                 batchCmd.pTexture = currentTexture;
                 batchCmd.shaderID = currentShaderID;
-                batchCmd.vertexStart = batchStartIndex; // Use INDEX offset, not vertex!
+                batchCmd.vertexStart = batchStartIndex; // Index buffer offset
+                batchCmd.baseVertex = batchStartVertex; // Vertex buffer offset
                 batchCmd.vertexCount = batchVertexCount;
                 batchCmd.primitiveCount = batchVertexCount / 2; // 2 triangles per quad
                 batchCmd.batchType = 0; // Standard rendering
@@ -1104,14 +1142,15 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
                 batchCmd.isUI = m_pendingCommands[i-1].isUI;
                 batchCmd.states = m_pendingCommands[i-1].states;
                 
-                sprintf(debugMsg, "[SR::Flush] DEFERRED: Batch submitted: startIdx=%d, verts=%d, sprites=%d\n", 
-                        batchStartIndex, batchVertexCount, spritesInCurrentBatch);
+                sprintf(debugMsg, "[SR::Flush] DEFERRED: Batch submitted: baseVert=%d, startIdx=%d, verts=%d, sprites=%d\n", 
+                        batchStartVertex, batchStartIndex, batchVertexCount, spritesInCurrentBatch);
                 OutputDebugStringA(debugMsg);
                 
                 pShader->Submit(batchCmd);
                 
-                // Move index offset for next batch
+                // Move offsets for next batch
                 batchStartIndex += spritesInCurrentBatch * 6;
+                batchStartVertex += spritesInCurrentBatch * 4;
                 spritesInCurrentBatch = 0;
             }
             
@@ -1133,6 +1172,7 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
             batchCmd.pTexture = currentTexture;
             batchCmd.shaderID = currentShaderID;
             batchCmd.vertexStart = batchStartIndex;
+            batchCmd.baseVertex = batchStartVertex;
             batchCmd.vertexCount = batchVertexCount;
             batchCmd.primitiveCount = batchVertexCount / 2;
             batchCmd.batchType = 0;
@@ -1140,14 +1180,15 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
             batchCmd.isUI = m_pendingCommands.back().isUI;
             batchCmd.states = m_pendingCommands.back().states;
             
-            sprintf(debugMsg, "[SR::Flush] DEFERRED: FINAL batch: startIdx=%d, verts=%d, sprites=%d\n", 
-                    batchStartIndex, batchVertexCount, spritesInCurrentBatch);
+            sprintf(debugMsg, "[SR::Flush] DEFERRED: FINAL batch: baseVert=%d, startIdx=%d, verts=%d, sprites=%d\n", 
+                    batchStartVertex, batchStartIndex, batchVertexCount, spritesInCurrentBatch);
             OutputDebugStringA(debugMsg);
             
             pShader->Submit(batchCmd);
             
             // Update total counts for NEXT batch
             batchStartIndex += spritesInCurrentBatch * 6;
+            batchStartVertex += spritesInCurrentBatch * 4;
             
             sprintf(debugMsg, "[SR::Flush] DEFERRED: Final batch submitted: %d vertices\n", batchVertexCount);
             OutputDebugStringA(debugMsg);
@@ -1187,11 +1228,29 @@ void SpriteRenderer::SubmitBatch(ShaderManager* pShader) {
     sprintf(dbg, "[SR::SubmitBatch] spriteCount=%d, totalVertexCount=%d, totalIndexCount=%d\n", 
             m_spriteCount, m_totalVertexCount, m_totalIndexCount);
     OutputDebugStringA(dbg);
+    fflush(stdout);
     
-    // Calculate offsets for this batch
+    // Calculate offsets for this batch - ALWAYS start from 0 for FIRST batch of frame
+    // The cumulative offsets come from m_totalVertexCount which should be reset at frame start
     DWORD vertexOffset = m_totalVertexCount * sizeof(SpriteVertex);
     int vertexCount = m_spriteCount * 4;
     int indexCount = m_spriteCount * 6; // 6 indices per sprite
+    
+    // FORCE RESET if counts look wrong (> 1000 suggests accumulation across frames)
+    if (m_totalVertexCount > 1000 || m_totalIndexCount > 3000) {
+        OutputDebugStringA("[SR::SubmitBatch] WARNING: Counts too high, forcing reset!\n");
+        m_totalVertexCount = 0;
+        m_totalIndexCount = 0;
+        vertexOffset = 0;
+    }
+    
+    // DEBUG: Force start from 0 if this appears to be first batch
+    if (m_totalVertexCount == 0 && m_totalIndexCount == 0) {
+        vertexOffset = 0;
+        sprintf(dbg, "[SR::SubmitBatch] FIRST BATCH - using offset 0!\n");
+        OutputDebugStringA(dbg);
+    }
+    fflush(stdout);
     
     // Copy staging buffer to GPU at correct offset
     LPDIRECT3DVERTEXBUFFER9 currentVB = m_pVB[m_activeBuffer];
@@ -1204,12 +1263,13 @@ void SpriteRenderer::SubmitBatch(ShaderManager* pShader) {
     memcpy(pData, m_pStagingBuffer, vertexCount * sizeof(SpriteVertex));
     currentVB->Unlock();
 
-    // Create render command with correct INDEX offset (NOT vertex offset!)
+    // Create render command with correct INDEX and VERTEX offsets
     if (pShader) {
         ShaderManager::RenderCommand cmd;
         cmd.pTexture = m_currentTexture;
         cmd.shaderID = m_currentShaderID;
-        cmd.vertexStart = m_totalIndexCount; // Use INDEX count, not vertex count!
+        cmd.vertexStart = m_totalIndexCount; // Index buffer offset
+        cmd.baseVertex = m_totalVertexCount; // Vertex buffer offset
         cmd.vertexCount = vertexCount;
         cmd.primitiveCount = (DWORD)(m_spriteCount * 2);
         cmd.batchType = m_currentRenderType;
@@ -1223,8 +1283,8 @@ void SpriteRenderer::SubmitBatch(ShaderManager* pShader) {
         cmd.states.destBlend = D3DBLEND_INVSRCALPHA;
         cmd.states.cullMode = D3DCULL_NONE;
         
-        sprintf(dbg, "[SR::SubmitBatch] Submitting: vertexStart=%d (INDEX offset!), vertexCount=%d, depth=%.2f\n", 
-                cmd.vertexStart, cmd.vertexCount, cmd.depth);
+        sprintf(dbg, "[SR::SubmitBatch] Submitting: baseVert=%d, startIdx=%d, vertexCount=%d, depth=%.2f\n", 
+                cmd.baseVertex, cmd.vertexStart, cmd.vertexCount, cmd.depth);
         OutputDebugStringA(dbg);
         
         pShader->Submit(cmd);
@@ -1297,6 +1357,7 @@ void SpriteRenderer::UpdateAndFlush(const SpriteData* allSprites, int totalCount
     // Use buffer 0 (single buffer mode)
     LPDIRECT3DVERTEXBUFFER9 currentVB = m_pVB[0];
 
+    // Lock vertex buffer and copy from staging buffer
     // Lock vertex buffer and copy from staging buffer
     void* pData = NULL;
     HRESULT hr = currentVB->Lock(0, m_spriteCount * 4 * sizeof(SpriteVertex), &pData, 0);
