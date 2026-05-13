@@ -165,14 +165,14 @@ HRESULT SpriteRenderer::Initialize(LPDIRECT3DDEVICE9 device, ShaderManager* shad
         for (int i = 0; i < m_maxSprites; i++) {
             int baseV = i * 4;
             int baseI = i * 6;
-            // Triangle 1: 0-1-2
+            // Triangle 1: 0-1-3 (top-left to top-right to bottom-right) - covers top-right half
             pIndices[baseI + 0] = baseV + 0;
             pIndices[baseI + 1] = baseV + 1;
-            pIndices[baseI + 2] = baseV + 2;
-            // Triangle 2: 0-2-3
+            pIndices[baseI + 2] = baseV + 3;
+            // Triangle 2: 0-3-2 (top-left to bottom-right to bottom-left) - covers bottom-left half
             pIndices[baseI + 3] = baseV + 0;
-            pIndices[baseI + 4] = baseV + 2;
-            pIndices[baseI + 5] = baseV + 3;
+            pIndices[baseI + 4] = baseV + 3;
+            pIndices[baseI + 5] = baseV + 2;
         }
         m_pIndexBuffer->Unlock();
         OutputDebugStringA("[SR::Initialize] Index buffer filled and unlocked\n");
@@ -1078,8 +1078,9 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
         DWORD currentVertexOffset = 0;
         LPDIRECT3DTEXTURE9 currentTexture = NULL;
         int currentShaderID = -1;
-        DWORD batchStartVertex = 0;
+        DWORD batchStartIndex = m_totalIndexCount; // Use cumulative index offset!
         DWORD batchVertexCount = 0;
+        int spritesInCurrentBatch = 0;
         
         for (size_t i = 0; i < m_pendingCommands.size(); ++i) {
             const RenderCommand& cmd = m_pendingCommands[i];
@@ -1095,32 +1096,35 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
                 RenderCommand batchCmd;
                 batchCmd.pTexture = currentTexture;
                 batchCmd.shaderID = currentShaderID;
-                batchCmd.vertexStart = batchStartVertex;
+                batchCmd.vertexStart = batchStartIndex; // Use INDEX offset, not vertex!
                 batchCmd.vertexCount = batchVertexCount;
                 batchCmd.primitiveCount = batchVertexCount / 2; // 2 triangles per quad
                 batchCmd.batchType = 0; // Standard rendering
-                batchCmd.depth = m_pendingCommands[i-1].depth; // Use depth of last command in batch
+                batchCmd.depth = m_pendingCommands[i-1].depth;
                 batchCmd.isUI = m_pendingCommands[i-1].isUI;
                 batchCmd.states = m_pendingCommands[i-1].states;
                 
+                sprintf(debugMsg, "[SR::Flush] DEFERRED: Batch submitted: startIdx=%d, verts=%d, sprites=%d\n", 
+                        batchStartIndex, batchVertexCount, spritesInCurrentBatch);
+                OutputDebugStringA(debugMsg);
+                
                 pShader->Submit(batchCmd);
                 
-                sprintf(debugMsg, "[SR::Flush] DEFERRED: Batch submitted: %d vertices, tex=%p, shader=%d\n", 
-                        batchVertexCount, currentTexture, currentShaderID);
-                OutputDebugStringA(debugMsg);
+                // Move index offset for next batch
+                batchStartIndex += spritesInCurrentBatch * 6;
+                spritesInCurrentBatch = 0;
             }
             
             // Start new batch
             if (newBatch) {
                 currentTexture = cmd.pTexture;
                 currentShaderID = cmd.shaderID;
-                batchStartVertex = currentVertexOffset;
                 batchVertexCount = 0;
             }
             
             // Add current command's vertices to batch
             batchVertexCount += 4;
-            currentVertexOffset += 4;
+            spritesInCurrentBatch++;
         }
         
         // Submit final batch
@@ -1128,7 +1132,7 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
             RenderCommand batchCmd;
             batchCmd.pTexture = currentTexture;
             batchCmd.shaderID = currentShaderID;
-            batchCmd.vertexStart = batchStartVertex;
+            batchCmd.vertexStart = batchStartIndex;
             batchCmd.vertexCount = batchVertexCount;
             batchCmd.primitiveCount = batchVertexCount / 2;
             batchCmd.batchType = 0;
@@ -1136,12 +1140,34 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
             batchCmd.isUI = m_pendingCommands.back().isUI;
             batchCmd.states = m_pendingCommands.back().states;
             
+            sprintf(debugMsg, "[SR::Flush] DEFERRED: FINAL batch: startIdx=%d, verts=%d, sprites=%d\n", 
+                    batchStartIndex, batchVertexCount, spritesInCurrentBatch);
+            OutputDebugStringA(debugMsg);
+            
             pShader->Submit(batchCmd);
+            
+            // Update total counts for NEXT batch
+            batchStartIndex += spritesInCurrentBatch * 6;
             
             sprintf(debugMsg, "[SR::Flush] DEFERRED: Final batch submitted: %d vertices\n", batchVertexCount);
             OutputDebugStringA(debugMsg);
         }
     }
+    
+    // Update total counts after processing all pending commands
+    // Count how many sprites were in pending commands
+    size_t totalSpritesInCommands = 0;
+    for (size_t i = 0; i < m_pendingCommands.size(); ++i) {
+        // Each command is 1 sprite (4 vertices, 6 indices)
+        totalSpritesInCommands++;
+    }
+    m_totalVertexCount += (int)(totalSpritesInCommands * 4);
+    m_totalIndexCount += (int)(totalSpritesInCommands * 6);
+    
+    char countMsg[256];
+    sprintf(countMsg, "[SR::Flush] DEFERRED: Updated totals: vertexCount=%d, indexCount=%d\n", 
+            m_totalVertexCount, m_totalIndexCount);
+    OutputDebugStringA(countMsg);
 
     // === DEFERRED RENDERING: Cleanup ===
     m_pendingCommands.clear();
@@ -1158,12 +1184,14 @@ void SpriteRenderer::SubmitBatch(ShaderManager* pShader) {
     if (m_spriteCount == 0) return;
     
     char dbg[256];
-    sprintf(dbg, "[SR::SubmitBatch] spriteCount=%d, totalVertexCount=%d\n", m_spriteCount, m_totalVertexCount);
+    sprintf(dbg, "[SR::SubmitBatch] spriteCount=%d, totalVertexCount=%d, totalIndexCount=%d\n", 
+            m_spriteCount, m_totalVertexCount, m_totalIndexCount);
     OutputDebugStringA(dbg);
     
-    // Calculate offset for this batch
+    // Calculate offsets for this batch
     DWORD vertexOffset = m_totalVertexCount * sizeof(SpriteVertex);
     int vertexCount = m_spriteCount * 4;
+    int indexCount = m_spriteCount * 6; // 6 indices per sprite
     
     // Copy staging buffer to GPU at correct offset
     LPDIRECT3DVERTEXBUFFER9 currentVB = m_pVB[m_activeBuffer];
@@ -1176,12 +1204,12 @@ void SpriteRenderer::SubmitBatch(ShaderManager* pShader) {
     memcpy(pData, m_pStagingBuffer, vertexCount * sizeof(SpriteVertex));
     currentVB->Unlock();
 
-    // Create render command with correct offset
+    // Create render command with correct INDEX offset (NOT vertex offset!)
     if (pShader) {
         ShaderManager::RenderCommand cmd;
         cmd.pTexture = m_currentTexture;
         cmd.shaderID = m_currentShaderID;
-        cmd.vertexStart = m_totalVertexCount; // Use cumulative offset!
+        cmd.vertexStart = m_totalIndexCount; // Use INDEX count, not vertex count!
         cmd.vertexCount = vertexCount;
         cmd.primitiveCount = (DWORD)(m_spriteCount * 2);
         cmd.batchType = m_currentRenderType;
@@ -1195,15 +1223,16 @@ void SpriteRenderer::SubmitBatch(ShaderManager* pShader) {
         cmd.states.destBlend = D3DBLEND_INVSRCALPHA;
         cmd.states.cullMode = D3DCULL_NONE;
         
-        sprintf(dbg, "[SR::SubmitBatch] Submitting: vertexStart=%d, vertexCount=%d, depth=%.2f\n", 
+        sprintf(dbg, "[SR::SubmitBatch] Submitting: vertexStart=%d (INDEX offset!), vertexCount=%d, depth=%.2f\n", 
                 cmd.vertexStart, cmd.vertexCount, cmd.depth);
         OutputDebugStringA(dbg);
         
         pShader->Submit(cmd);
     }
     
-    // Update total vertex count for next batch
+    // Update total counts for next batch
     m_totalVertexCount += m_spriteCount * 4;
+    m_totalIndexCount += m_spriteCount * 6;
     m_spriteCount = 0;
 }
 
