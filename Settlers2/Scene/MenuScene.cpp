@@ -214,8 +214,6 @@ void MenuScene::Update(float deltaTime) {
 }
 
 void MenuScene::Render() {
-    OutputDebugStringA("[MenuScene::Render] ENTRY\n");
-
     if (!m_spriteRenderer || !m_backgroundTexture.GetTexture() || !m_textManager) return;
 
     // 1. Render Background (depth=1.0 - renders first/behind)
@@ -242,8 +240,6 @@ void MenuScene::Render() {
 
     // 4. Close text batch
     m_textManager->EndTextBatch();
-
-    OutputDebugStringA("[MenuScene::Render] End() completed\n");
 }
 
 void MenuScene::SetBackground(const std::string& path) {

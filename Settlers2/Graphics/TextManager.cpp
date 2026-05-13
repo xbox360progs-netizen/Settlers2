@@ -6,6 +6,11 @@
 #include "SpriteRenderer.h"
 #include <d3dx9.h>
 
+// Disable all debug logs
+#ifdef DISABLE_RENDER_LOGS
+#define OutputDebugStringA(...) do { } while(0)
+#endif
+
 #define DEBUG_TEXT_SKIP_RENDER 0
 
 // Half-pixel UV padding for Xbox 360 to prevent texture bleeding

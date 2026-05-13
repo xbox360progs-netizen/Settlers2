@@ -4,6 +4,11 @@
 #include "../Graphics/SpriteRenderer.h"
 #include <iostream>
 
+// Disable all debug logs
+#ifdef DISABLE_RENDER_LOGS
+#define OutputDebugStringA(...) do { } while(0)
+#endif
+
 namespace Scene {
 
 SceneManager::SceneManager()

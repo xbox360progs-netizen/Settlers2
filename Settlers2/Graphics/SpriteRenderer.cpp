@@ -14,8 +14,8 @@
 #pragma comment(lib, "d3d9.lib")
 #pragma comment(lib, "d3dx9.lib")
 
-// Silence debug logs in release build
-#ifndef DISABLE_RENDER_LOGS
+// Disable all debug logs
+#ifdef DISABLE_RENDER_LOGS
 #define OutputDebugStringA(...) do { } while(0)
 #endif
 
@@ -905,6 +905,8 @@ void SpriteRenderer::Draw(float x, float y, float width, float height,
         OutputDebugStringA(buf);
         Flush();
     }
+
+    m_spriteCount++;
 }
 
 void SpriteRenderer::DrawWithTexture(float x, float y, float width, float height,
@@ -1120,6 +1122,7 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
 
     // Clear local queue for next frame
     m_pendingCommands.clear();
+    m_spriteCount = 0;
 
     // Switch buffer for next frame (double buffering)
     m_activeBuffer = (m_activeBuffer + 1) % 2;
