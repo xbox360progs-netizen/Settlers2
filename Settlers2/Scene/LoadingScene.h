@@ -29,6 +29,7 @@ public:
     void SetTextureLoader(TextureLoader* loader) { m_textureLoader = loader; }
     void SetRenderer(Renderer* renderer) { m_renderer = renderer; }
     void SetSpriteRenderer(SpriteRenderer* spriteRenderer) { m_spriteRenderer = spriteRenderer; }
+    void SetShaderManager(class ShaderManager* shaderManager) { m_shaderManager = shaderManager; }
     void SetBinFileManager(BinFileManager* binFileManager) { m_binFileManager = binFileManager; }
 
     void AddLoadTask(std::function<void()> task, const std::string& name, float weight);
@@ -60,6 +61,7 @@ private:
     TextureLoader* m_textureLoader;
     Renderer* m_renderer;
     SpriteRenderer* m_spriteRenderer;
+    ShaderManager* m_shaderManager;
     BinFileManager* m_binFileManager;
     Texture m_backgroundTexture;  // Loading screen background
     std::vector<LoadTask> m_loadTasks;

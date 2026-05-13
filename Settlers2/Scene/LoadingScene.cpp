@@ -1,8 +1,8 @@
 #include "stdafx.h"
 #include "LoadingScene.h"
 #include "../Graphics/TextureRegistry.h"
-// Note: LoadingScene centralizes texture loading via TextureRegistry
 #include "../Graphics/Texture.h"
+#include "../Graphics/ShaderManager.h"
 #include <functional>
 #include <cstdio>
 #include <iostream>
@@ -20,6 +20,7 @@ LoadingScene::LoadingScene()
     , m_textureLoader(nullptr)
     , m_renderer(nullptr)
     , m_spriteRenderer(nullptr)
+    , m_shaderManager(nullptr)
     , m_binFileManager(nullptr)
     , m_screenW(1280.0f)
     , m_screenH(720.0f)
@@ -428,56 +429,66 @@ void LoadingScene::Update(float deltaTime)
 
 void LoadingScene::Render()
 {
-    // Update screen size
-    if (m_renderer && m_renderer->GetDevice()) {
-        D3DVIEWPORT9 vp;
-        if (SUCCEEDED(m_renderer->GetDevice()->GetViewport(&vp))) {
-            m_screenW = static_cast<float>(vp.Width);
-            m_screenH = static_cast<float>(vp.Height);
-        }
-    }
+	// Update screen size
+	if (m_renderer && m_renderer->GetDevice()) {
+		D3DVIEWPORT9 vp;
+		if (SUCCEEDED(m_renderer->GetDevice()->GetViewport(&vp))) {
+			m_screenW = static_cast<float>(vp.Width);
+			m_screenH = static_cast<float>(vp.Height);
+		}
+	}
 
-    // Draw loading background if available
-    if (m_renderer && m_backgroundTexture.GetTexture()) {
-        m_renderer->DrawSingleSprite(&m_backgroundTexture, 0.0f, 0.0f, m_screenW, m_screenH);
-    }
+	// Draw loading background if available
+	if (m_renderer && m_backgroundTexture.GetTexture()) {
+		m_renderer->DrawSingleSprite(&m_backgroundTexture, 1.0f, 0.0f, m_screenW, m_screenH);
+	}
 
-    // Draw progress bar with UV coordinates
-    float barWidth = 400.0f;
-    float barHeight = 20.0f;
-    float barX = (m_screenW - barWidth) * 0.5f;
-    float barY = m_screenH - 80.0f;
+// 3. Параметры геометрии прогресс-бара
+	float barWidth = 400.0f;
+	float barHeight = 20.0f;
+	float barX = (m_screenW - barWidth) * 0.5f;
+	float barY = m_screenH - 80.0f;
 
-    // Calculate current fill width based on smoothed progress
-    float fillWidth = barWidth * m_currentRenderProgress;
+	// Рассчитываем текущую физическую ширину на экране на основе сглаженного прогресса
+	float fillWidth = barWidth * m_currentRenderProgress;
 
-    // Draw progress bar fill using SpriteRenderer with UV coordinates
-    if (m_spriteRenderer && m_renderer) {
-        // Get progress bar texture (or use a simple colored quad)
-        LPDIRECT3DTEXTURE9 pProgressBarTex = TextureRegistry::instance().getTextureOrLoad("progressBarBackground");
-        if (!pProgressBarTex) {
-            // Fallback: draw simple colored quad using renderer
-            // For now, skip rendering if no texture available
-            return;
-        }
+	// Защита от нулевого/отрицательного квада для видеокарты Xbox 360
+	if (m_currentRenderProgress < 0.01f) {
+		return;
+	}
 
-        // Begin sprite batch
-        m_spriteRenderer->Begin(SHADER_SPRITE, pProgressBarTex, 0.0f, 0, true);
+	// 4. Отрисовка полосы через отложенный рендерер UI (Deferred SpriteRenderer)
+	if (m_spriteRenderer && m_renderer) {
 
-        // Draw progress bar fill with UV coordinates
-        // Left vertices: U = 0.0
-        // Right vertices: U = m_currentRenderProgress (0.0 to 1.0)
-        // This creates the fill effect without texture deformation
-        m_spriteRenderer->Draw(
-            barX, barY,                    // Position
-            fillWidth, barHeight,          // Width and height
-            0.0f, 0.0f,                    // UV start (top-left)
-            m_currentRenderProgress, 1.0f, // UV end (bottom-right, U varies with progress)
-            0xFFFFFFFF                     // Color
-        );
+		// Получаем указатель на текстуру из кэша (лог подтвердил, что она успешно находится в кэше)
+		LPDIRECT3DTEXTURE9 pProgressBarTex = TextureRegistry::instance().getTextureOrLoad("progressBarBackground");
+		if (!pProgressBarTex) {
+			return;
+		}
 
-        m_spriteRenderer->End();
-    }
+		// Открываем пакет отложенных команд рендерера
+		m_spriteRenderer->Begin(SHADER_SPRITE, pProgressBarTex, 0.0f, 0, true);
+
+		// Передаем точные UV-координаты. Поскольку текстура одиночная:
+		// Левый край: U0 = 0.0f
+		// Правый край плавно сдвигается: U1 = m_currentRenderProgress
+		m_spriteRenderer->Draw(
+			barX, barY,                    // Позиция на экране
+			fillWidth, barHeight,          // Динамическая ширина и фиксированная высота
+			0.0f, 0.0f,                    // UV старт (Top-Left)
+			m_currentRenderProgress, 1.0f, // UV конец (Bottom-Right, U растет вместе с % загрузки!)
+			0xFFFFFFFF                     // Цвет (Белый)
+		);
+
+		// Закрываем пакет. Теперь m_pendingCommands гарантированно равен 1
+		m_spriteRenderer->End();
+
+		// 5. КРИТИЧЕСКИЙ ВЫЗОВ СБРОСА ОЧЕРЕДИ
+		ShaderManager* pShaderManager = m_renderer ? m_renderer->GetShaderManager() : nullptr;
+
+		if (pShaderManager) {
+			m_spriteRenderer->Flush(pShaderManager);
+		}
+	}
 }
-
 }
