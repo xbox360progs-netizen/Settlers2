@@ -980,15 +980,6 @@ char dbg[128];
             Flush();
             OutputDebugStringA("[SR::End] DEFERRED: Flush() completed\n");
         }
-
-        // IMMEDIATE MODE: Always submit staging buffer data if spriteCount > 0
-        // This handles DrawWithTexture path which writes directly to staging buffer
-        // CRITICAL: Must submit even if pendingCommands existed (they were already flushed above)
-        if (m_spriteCount > 0) {
-            OutputDebugStringA("[SR::End] IMMEDIATE: Submitting batch with spriteCount\n");
-            SubmitBatch(m_pShaderManager);
-            OutputDebugStringA("[SR::End] IMMEDIATE: SubmitBatch completed\n");
-        }
     } else {
         OutputDebugStringA("[SR::End] WARNING: m_isBatching is false!\n");
     }
@@ -1052,62 +1043,16 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
         return;
     }
 
-    // Clear staging buffer and copy sorted vertices
-    memset(m_pStagingBuffer, 0, totalBytes);
-    SpriteVertex* pDest = m_pStagingBuffer;
-    
-    for (size_t i = 0; i < m_pendingCommands.size(); ++i) {
+    // === DEFERRED RENDERING: Vertices are in cmd.vertices[], will be copied by ExecuteQueue ===
+    // No need to copy to staging buffer - ExecuteQueue handles vertex copying from commands
+
+    // Debug: Log first few commands
+    for (size_t i = 0; i < m_pendingCommands.size() && i < 3; ++i) {
         const RenderCommand& cmd = m_pendingCommands[i];
-        
-        // Copy 4 vertices from command to staging buffer
-        memcpy(pDest, cmd.vertices, 4 * sizeof(SpriteVertex));
-        pDest += 4;
-        
-        // Debug: Log first few commands
-        if (i < 3) {
-            sprintf(debugMsg, "[SR::Flush] DEFERRED: Cmd[%d] depth=%.3f, shader=%d, tex=%p\n", 
-                    (int)i, cmd.depth, cmd.shaderID, cmd.pTexture);
-            OutputDebugStringA(debugMsg);
-        }
+        sprintf(debugMsg, "[SR::Flush] DEFERRED: Cmd[%d] depth=%.3f, shader=%d, tex=%p\n",
+                (int)i, cmd.depth, cmd.shaderID, cmd.pTexture);
+        OutputDebugStringA(debugMsg);
     }
-
-    // === DEFERRED RENDERING: Copy to GPU ===
-    // Prefer shared VB from ShaderManager when available
-    LPDIRECT3DVERTEXBUFFER9 destVB = nullptr;
-    if (pShader) destVB = pShader->GetSharedVertexBuffer();
-    if (!destVB) destVB = m_pVB[m_activeBuffer];
-
-    void* pData = NULL;
-
-    // If using ShaderManager shared VB, lock ShaderManager for thread-safety
-    if (pShader) pShader->Lock();
-
-    // Determine vertex offset in bytes
-    UINT vbOffsetBytes = 0;
-    if (pShader) {
-        vbOffsetBytes = (UINT)(m_totalVertexCount * sizeof(SpriteVertex));
-    } else {
-        vbOffsetBytes = 0; // local VB uses start of buffer for this flush
-    }
-
-    HRESULT hr = destVB->Lock(vbOffsetBytes, (DWORD)totalBytes, &pData, 0);
-    if (FAILED(hr)) {
-        char errorMsg[256];
-        sprintf(errorMsg, "[SR::Flush] DEFERRED: Failed to lock VB (hr=0x%08X)\n", hr);
-        OutputDebugStringA(errorMsg);
-        if (pShader) pShader->Unlock();
-        m_pendingCommands.clear();
-        return;
-    }
-
-    memcpy(pData, m_pStagingBuffer, totalBytes);
-    destVB->Unlock();
-
-    if (pShader) pShader->Unlock();
-    
-    sprintf(debugMsg, "[SR::Flush] DEFERRED: Copied %d vertices (%d bytes) to GPU\n", 
-            (int)totalVertices, (int)totalBytes);
-    OutputDebugStringA(debugMsg);
 
     // === DEFERRED RENDERING: Create optimized draw batches ===
     if (pShader) {
@@ -1928,88 +1873,61 @@ void SpriteRenderer::CreateQuadWithTexture(float x, float y, float width, float 
         char errorMsg[256];
         sprintf(errorMsg, "[SR::CreateQuad] CRITICAL: Sprite limit exceeded! count=%d, max=%d\n", m_spriteCount, m_maxSprites);
         OutputDebugStringA(errorMsg);
-        return; // Prevent buffer overrun that causes Xbox 360 crash
-    }
-
-    // ТЕСТ 2: Проверка указателя на staging buffer
-    if (!m_pStagingBuffer) {
-        OutputDebugStringA("[SR::CreateQuad] CRITICAL: m_pStagingBuffer is NULL!\n");
         return;
     }
 
-    // Calculate vertex index with overflow protection
-    int vertexIndex = m_spriteCount * 4;
-    int maxVertices = m_maxSprites * 4;
-    if (vertexIndex >= maxVertices) {
-        char errorMsg[256];
-        sprintf(errorMsg, "[SR::CreateQuad] CRITICAL: Vertex buffer overflow! vertexIndex=%d, max=%d\n", vertexIndex, maxVertices);
-        OutputDebugStringA(errorMsg);
-        return; // Prevent writing beyond buffer bounds
-    }
-
-    // XBOX 360 SAFETY: Check index buffer bounds
-    int indexCount = m_spriteCount * 6; // 6 indices per sprite
-    int maxIndices = m_maxSprites * 6;
-    if (indexCount >= maxIndices) {
-        char errorMsg[256];
-        sprintf(errorMsg, "[SR::CreateQuad] CRITICAL: Index buffer overflow! indexCount=%d, max=%d\n", indexCount, maxIndices);
-        OutputDebugStringA(errorMsg);
-        return; // Prevent index buffer overrun
-    }
-
-    OutputDebugStringA("[SR::CreateQuad] Calculating coordinates...\n");
-
-    // ALWAYS use staging buffer for all sprites (simple, reliable for PowerPC)
-    float x0 = x - 0.5f;
-    float x1 = (x + width) - 0.5f;
-    float y0 = y - 0.5f;
-    float y1 = (y + height) - 0.5f;
-    float z = 0.0f;
-
-    OutputDebugStringA("[SR::CreateQuad] Getting pointer to staging buffer...\n");
-
-    // Write DIRECTLY to staging buffer
-    SpriteVertex* v = &m_pStagingBuffer[vertexIndex];
-
-    OutputDebugStringA("[SR::CreateQuad] About to write vertex data...\n");
-
-    v[0].x = x0; v[0].y = y0; v[0].z = z; v[0].color = color; v[0].u = u0; v[0].v = v0;
-    v[1].x = x1; v[1].y = y0; v[1].z = z; v[1].color = color; v[1].u = u1; v[1].v = v0;
-    v[2].x = x1; v[2].y = y1; v[2].z = z; v[2].color = color; v[2].u = u1; v[2].v = v1;
-    v[3].x = x0; v[3].y = y1; v[3].z = z; v[3].color = color; v[3].u = u0; v[3].v = v1;
-
-    OutputDebugStringA("[SR::CreateQuad] Vertex data written\n");
-
-    // Create command with texture for ShaderManager
+    // Create render command with vertices (same as Draw() path)
     RenderCommand cmd;
-    
-    // Position and UV
+    cmd.pTexture = m_currentTexture;
+    cmd.shaderID = m_currentShaderID;
+    cmd.depth = m_currentDepth;
+    cmd.batchType = m_currentRenderType;
+    cmd.isUI = m_currentIsUI;
+    cmd.color = color;
+
+    // Store position and UV data
     cmd.screenX = x;
     cmd.screenY = y;
     cmd.screenW = width;
     cmd.screenH = height;
-    cmd.u0 = u0;
-    cmd.v0 = v0;
-    cmd.u1 = u1;
-    cmd.v1 = v1;
-    
-    // Color
-    cmd.color = color;
-    
-    // Vertex buffer info - each sprite = 4 vertices, 2 primitives
-    // Disabled: Using Flush() path only now (SceneManager calls Flush before ExecuteQueue)
-    // cmd.vertexStart = (m_spriteCount - 1) * 4; 
-    // cmd.vertexCount = 4; 
-    // cmd.primitiveCount = 2;
-    
-    // Texture and rendering
-    cmd.pTexture = pTexture;
-    cmd.shaderID = SHADER_SPRITE;
-    cmd.depth = m_currentDepth; // Use current depth set by SetCurrentDepth()
-    cmd.isUI = true;
+    cmd.u0 = u0; cmd.v0 = v0;
+    cmd.u1 = u1; cmd.v1 = v1;
 
-    // DISABLED: Let Flush() create the batch command instead of per-sprite commands
-    // m_pShaderManager->PushCommand(cmd);
+    // Create vertices directly in command
+    cmd.vertices[0].x = x; cmd.vertices[0].y = y; cmd.vertices[0].z = 0.0f;
+    cmd.vertices[0].u = u0; cmd.vertices[0].v = v0;
+    cmd.vertices[0].color = color;
+    cmd.vertices[0].padding[0] = 0.0f; cmd.vertices[0].padding[1] = 0.0f;
+
+    cmd.vertices[1].x = x + width; cmd.vertices[1].y = y; cmd.vertices[1].z = 0.0f;
+    cmd.vertices[1].u = u1; cmd.vertices[1].v = v0;
+    cmd.vertices[1].color = color;
+    cmd.vertices[1].padding[0] = 0.0f; cmd.vertices[1].padding[1] = 0.0f;
+
+    cmd.vertices[2].x = x; cmd.vertices[2].y = y + height; cmd.vertices[2].z = 0.0f;
+    cmd.vertices[2].u = u0; cmd.vertices[2].v = v1;
+    cmd.vertices[2].color = color;
+    cmd.vertices[2].padding[0] = 0.0f; cmd.vertices[2].padding[1] = 0.0f;
+
+    cmd.vertices[3].x = x + width; cmd.vertices[3].y = y + height; cmd.vertices[3].z = 0.0f;
+    cmd.vertices[3].u = u1; cmd.vertices[3].v = v1;
+    cmd.vertices[3].color = color;
+    cmd.vertices[3].padding[0] = 0.0f; cmd.vertices[3].padding[1] = 0.0f;
+
+    // Set render states
+    cmd.states.zEnable = D3DZB_FALSE;
+    cmd.states.alphaBlendEnable = TRUE;
+    cmd.states.srcBlend = D3DBLEND_SRCALPHA;
+    cmd.states.destBlend = D3DBLEND_INVSRCALPHA;
+    cmd.states.cullMode = D3DCULL_NONE;
+
+    // Set counts
+    cmd.vertexCount = 4;
+    cmd.primitiveCount = 2;
+    cmd.vertexStart = 0;
+
+    // Add to pending commands queue (same as Draw() path)
+    m_pendingCommands.push_back(cmd);
 
     m_spriteCount++;
 
