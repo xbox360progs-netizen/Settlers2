@@ -9,6 +9,9 @@
 #include <vector>
 #include <functional>
 
+// Xbox 360 SDK header for threading
+#include <xtl.h>
+
 namespace Scene {
 
 class LoadingScene : public Scene
@@ -42,6 +45,11 @@ private:
     void CreateNextScene();
 	void SetupLoadTasks();
     void LoadAtlasOrTexture(const char* name, const char* pngPath);
+
+    // Xbox 360 Async Loading
+    static DWORD WINAPI XboxThreadFunc(LPVOID lpParam);
+    void AsyncLoadResources();
+
     struct LoadTask {
         std::function<void()> taskFunc;
         std::string name;
@@ -64,6 +72,12 @@ private:
     float m_loadProgress;
     std::string m_statusText;
     bool m_loadingComplete;
+
+    // Xbox 360 threading variables
+    HANDLE m_hLoadingThread;
+    volatile LONG m_targetProgressPercentage;  // 0-100
+    volatile LONG m_isLoadComplete;            // 0 or 1
+    float m_currentRenderProgress;            // 0.0f - 1.0f (smoothed)
 };
 
 }
