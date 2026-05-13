@@ -1291,9 +1291,14 @@ void SpriteRenderer::SubmitBatch(ShaderManager* pShader) {
     }
     
     // Update total counts for next batch
-    m_totalVertexCount += m_spriteCount * 4;
-    m_totalIndexCount += m_spriteCount * 6;
+    m_totalVertexCount += m_spriteCount * 4;  // 4 vertices per sprite
+    m_totalIndexCount += m_spriteCount * 6;  // 6 indices per sprite
     m_spriteCount = 0;
+
+    char debugMsg[256];
+    sprintf(debugMsg, "[SR::SubmitBatch] After submit: m_totalVertexCount=%d, m_totalIndexCount=%d\n",
+            m_totalVertexCount, m_totalIndexCount);
+    OutputDebugStringA(debugMsg);
 }
 
 void SpriteRenderer::Flush() {
@@ -1301,8 +1306,8 @@ void SpriteRenderer::Flush() {
     if (m_spriteCount == 0) return;
 
     // RING BUFFER: Check for overflow before flushing
-    m_totalVertexCount += m_spriteCount * 4; // 4 vertices per sprite
-    if (m_totalVertexCount > MAX_BUFFER_VERTICES) {
+    // NOTE: m_totalVertexCount is incremented in SubmitBatch, not here
+    if (m_totalVertexCount + m_spriteCount * 4 > MAX_BUFFER_VERTICES) {
         OutputDebugStringA("[SpriteRenderer::Flush] WARNING: Vertex buffer overflow, forcing Execute\n");
         // Force execute would go here if we had access to the Execute method
         m_totalVertexCount = 0;
