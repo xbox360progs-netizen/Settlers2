@@ -214,8 +214,6 @@ void MenuScene::Update(float deltaTime) {
 }
 
 void MenuScene::Render() {
-    OutputDebugStringA("[MenuScene::Render] ENTRY\n");
-
     if (!m_spriteRenderer || !m_backgroundTexture.GetTexture() || !m_textManager) return;
 
     // 1. Render Background (depth=1.0 - renders first/behind)
@@ -228,14 +226,22 @@ void MenuScene::Render() {
     float textDepth = 0.0f;
     m_textManager->BeginTextBatch(FONT_MENU, textDepth);
     
-    // 3. Render Text
-    m_textManager->DrawTextToScreen("SETTLERS 2 XBOX", 100.0f, 100.0f, 0xFFFFFFFF, 1.0f); 
+	float startY = 280.0f;     // Начальная позиция по вертикали для пунктов
+    float spacingY = 80.0f;    // Шаг между строками
+
+    for (int i = 0; i < m_menuCount; ++i) {
+        DWORD itemColor = (i == m_selectedIndex) ? 0xFFFFD700 : 0xFFFFFFFF; // Желтый для активного, белый для остальных
+        
+        // Смещение для визуального выделения активного пункта
+        float itemX = (i == m_selectedIndex) ? 140.0f : 100.0f;
+
+        m_textManager->DrawTextToScreen(m_menuItems[i], itemX, startY + (i * spacingY), itemColor, 0.3f);
+    }
 
     // 4. Close text batch
     m_textManager->EndTextBatch();
-
-    OutputDebugStringA("[MenuScene::Render] End() completed\n");
 }
+
 
 void MenuScene::SetBackground(const std::string& path) {
   m_backgroundPath = path;

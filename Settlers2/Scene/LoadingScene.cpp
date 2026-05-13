@@ -1,8 +1,8 @@
 #include "stdafx.h"
 #include "LoadingScene.h"
 #include "../Graphics/TextureRegistry.h"
-// Note: LoadingScene centralizes texture loading via TextureRegistry
 #include "../Graphics/Texture.h"
+#include "../Graphics/ShaderManager.h"
 #include <functional>
 #include <cstdio>
 #include <iostream>
@@ -20,9 +20,14 @@ LoadingScene::LoadingScene()
     , m_textureLoader(nullptr)
     , m_renderer(nullptr)
     , m_spriteRenderer(nullptr)
+    , m_shaderManager(nullptr)
     , m_binFileManager(nullptr)
     , m_screenW(1280.0f)
     , m_screenH(720.0f)
+    , m_hLoadingThread(NULL)
+    , m_targetProgressPercentage(0)
+    , m_isLoadComplete(0)
+    , m_currentRenderProgress(0.0f)
 {
 }
 
@@ -42,7 +47,12 @@ void LoadingScene::Load()
     std::cout << "[LoadingScene] m_renderer = " << (m_renderer ? "VALID" : "NULL") << std::endl;
     std::cout << "[LoadingScene] m_spriteRenderer = " << (m_spriteRenderer ? "VALID" : "NULL") << std::endl;
     std::cout << "[LoadingScene] m_binFileManager = " << (m_binFileManager ? "VALID" : "NULL") << std::endl;
-    
+
+    // Initialize Xbox 360 async loading variables
+    m_targetProgressPercentage = 0;
+    m_isLoadComplete = 0;
+    m_currentRenderProgress = 0.0f;
+
     m_currentTaskIndex = 0;
     m_completedWeight = 0.0f;
     m_totalWeight = 0.0f;
@@ -50,7 +60,7 @@ void LoadingScene::Load()
     m_loadProgress = 0.0f;
     m_loadingComplete = false;
     m_statusText = "Loading...";
-    
+
     // Initialize texture registry device bindings and manifest-based paths
     if (m_renderer) {
         TextureRegistry::instance().initialize(m_renderer->GetDevice());
@@ -62,10 +72,10 @@ void LoadingScene::Load()
         // Load manifest-based texture paths (Menu section for dpad_cross and cursor)
         TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Menu");
     }
-    
+
     // Clear previous tasks
     m_loadTasks.clear();
-    
+
     // Load background texture first using TextureRegistry
     std::cout << "[LoadingScene] Loading background texture via TextureRegistry..." << std::endl;
     LPDIRECT3DTEXTURE9 pBgTex = TextureRegistry::instance().getTextureOrLoad("loading_background");
@@ -86,14 +96,43 @@ void LoadingScene::Load()
             }
         }
     }
-    
+
     // Setup all load tasks using TextureRegistry approach
     std::cout << "[LoadingScene] Setting up load tasks..." << std::endl;
     SetupLoadTasks();
     std::cout << "[LoadingScene] Load tasks setup complete, total tasks: " << m_loadTasks.size() << std::endl;
-    
+
     // Diagnostics
     TextureRegistry::instance().logManifestPathsStatus();
+
+    // Start async loading thread on Core 1
+    std::cout << "[LoadingScene] Starting async loading thread on Core 1..." << std::endl;
+
+    // 1. Create thread in suspended state
+    m_hLoadingThread = CreateThread(
+        NULL,                   // Default security
+        0,                      // Default stack size
+        XboxThreadFunc,         // Thread function
+        this,                   // Context parameter
+        CREATE_SUSPENDED,       // Create suspended
+        NULL                    // No thread ID
+    );
+
+    if (m_hLoadingThread != NULL) {
+        // 2. Move thread to Core 1, Hardware Thread 0 (Index 2)
+        DWORD dwPreviousProcessor = XSetThreadProcessor(m_hLoadingThread, 2);
+
+        if (dwPreviousProcessor != (DWORD)-1) {
+            std::cout << "[LoadingScene] Thread successfully moved to Core 1" << std::endl;
+            // 3. Resume thread execution
+            ResumeThread(m_hLoadingThread);
+        } else {
+            std::cout << "[LoadingScene] WARNING: XSetThreadProcessor failed, running on current core" << std::endl;
+            ResumeThread(m_hLoadingThread);
+        }
+    } else {
+        std::cout << "[LoadingScene] ERROR: Failed to create loading thread" << std::endl;
+    }
 
     m_loaded = true;
     std::cout << "[LoadingScene] Load() complete" << std::endl;
@@ -101,8 +140,60 @@ void LoadingScene::Load()
 
 void LoadingScene::Unload()
 {
+    // Wait for loading thread to complete if still running
+    if (m_hLoadingThread != NULL) {
+        WaitForSingleObject(m_hLoadingThread, INFINITE);
+        XCloseHandle(m_hLoadingThread);
+        m_hLoadingThread = NULL;
+    }
+
     m_loadTasks.clear();
     m_loaded = false;
+}
+
+// Xbox 360 static thread function - bridge to instance method
+DWORD WINAPI LoadingScene::XboxThreadFunc(LPVOID lpParam)
+{
+    LoadingScene* pScene = static_cast<LoadingScene*>(lpParam);
+    if (pScene) {
+        pScene->AsyncLoadResources();
+    }
+    return 0;
+}
+
+// Async loading running on Core 1
+void LoadingScene::AsyncLoadResources()
+{
+    std::cout << "[LoadingScene::AsyncLoadResources] Started on Core 1" << std::endl;
+
+    // Execute all load tasks
+    for (size_t i = 0; i < m_loadTasks.size(); ++i) {
+        LoadTask& task = m_loadTasks[i];
+
+        // Update status text
+        m_statusText = task.name;
+
+        // Execute task
+        if (task.taskFunc) {
+            task.taskFunc();
+        }
+
+        // Calculate progress percentage (0-100)
+        float completedSoFar = m_completedWeight + task.weight;
+        float progressPercent = (completedSoFar / m_totalWeight) * 100.0f;
+
+        // Update target progress atomically
+        InterlockedExchange(&m_targetProgressPercentage, (LONG)progressPercent);
+
+        // Update completed weight
+        m_completedWeight = completedSoFar;
+
+        std::cout << "[LoadingScene::AsyncLoadResources] Task '" << task.name << "' completed (" << (int)progressPercent << "%)" << std::endl;
+    }
+
+    // Signal completion
+    InterlockedExchange(&m_isLoadComplete, 1);
+    std::cout << "[LoadingScene::AsyncLoadResources] All tasks completed" << std::endl;
 }
 
 void LoadingScene::LoadAtlasOrTexture(const char* name, const char* pngPath)
@@ -115,7 +206,6 @@ void LoadingScene::LoadAtlasOrTexture(const char* name, const char* pngPath)
     _snprintf(logInit, sizeof(logInit), "[LoadingScene] LoadAtlasOrTexture: %s <- %s\n", name, pngPath);
     OutputDebugStringA(logInit);
 
-    // ���������, �������� �� ��� ����� �����
     if (m_binFileManager->HasAtlas(name)) {
         _snprintf(logInit, sizeof(logInit), "[LoadingScene] Atlas %s already loaded\n", name);
         OutputDebugStringA(logInit);
@@ -169,15 +259,11 @@ void LoadingScene::SetupLoadTasks()
 {
     // ===== BACKGROUND TEXTURES =====
     AddLoadTask([this]() {
-        // ��� ��������� ����� TextureRegistry � Load()
     }, "Load Background Textures", 0.5f);
 
     // ===== UI TEXTURES =====
     AddLoadTask([this]() {
-        // ��������� UI �������� ����� TextureRegistry
         TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "UI");
-        // ������������� ��������� ��� ������������������ �������� UI
-        // ����� ����� �������� ���������� ��������, ���� �����
     }, "Load Texture: UI", 0.5f);
 
     // ===== MOUNTAINS =====
@@ -313,53 +399,96 @@ void LoadingScene::CreateNextScene()
 
 void LoadingScene::Update(float deltaTime)
 {
-    if (m_loadingComplete) return;
+    // Atomically read target progress (0-100)
+    LONG targetProgress = InterlockedExchangeAdd(&m_targetProgressPercentage, 0);
+    float targetProgressFloat = (float)targetProgress / 100.0f; // Convert to 0.0-1.0
 
-    if (m_currentTaskIndex < m_loadTasks.size())
-    {
-        ExecuteCurrentTask();
-    }
-    else
-    {
+    // LERP for smooth progress bar movement
+    float lerpSpeed = 5.0f; // Speed of interpolation
+    m_currentRenderProgress += (targetProgressFloat - m_currentRenderProgress) * lerpSpeed * deltaTime;
+
+    // Clamp to valid range
+    if (m_currentRenderProgress < 0.0f) m_currentRenderProgress = 0.0f;
+    if (m_currentRenderProgress > 1.0f) m_currentRenderProgress = 1.0f;
+
+    // Check if loading is complete
+    LONG isComplete = InterlockedExchangeAdd(&m_isLoadComplete, 0);
+    if (isComplete && m_currentRenderProgress >= 0.99f) {
+        // Wait for thread to finish
+        if (m_hLoadingThread != NULL) {
+            WaitForSingleObject(m_hLoadingThread, INFINITE);
+            XCloseHandle(m_hLoadingThread);
+            m_hLoadingThread = NULL;
+        }
+
+        // Switch to target scene
         m_loadingComplete = true;
         CreateNextScene();
     }
-
-    m_loadProgress = GetTotalProgress();
 }
 
 void LoadingScene::Render()
 {
-    // Update screen size
-    if (m_renderer && m_renderer->GetDevice()) {
-        D3DVIEWPORT9 vp;
-        if (SUCCEEDED(m_renderer->GetDevice()->GetViewport(&vp))) {
-            m_screenW = static_cast<float>(vp.Width);
-            m_screenH = static_cast<float>(vp.Height);
-        }
-    }
+	// Update screen size
+	if (m_renderer && m_renderer->GetDevice()) {
+		D3DVIEWPORT9 vp;
+		if (SUCCEEDED(m_renderer->GetDevice()->GetViewport(&vp))) {
+			m_screenW = static_cast<float>(vp.Width);
+			m_screenH = static_cast<float>(vp.Height);
+		}
+	}
 
-    // Draw loading background if available
-    if (m_renderer && m_backgroundTexture.GetTexture()) {
-        m_renderer->DrawSingleSprite(&m_backgroundTexture, 0.0f, 0.0f, m_screenW, m_screenH);
-    }
+	// Draw loading background if available
+	if (m_renderer && m_backgroundTexture.GetTexture()) {
+		m_renderer->DrawSingleSprite(&m_backgroundTexture, 1.0f, 0.0f, m_screenW, m_screenH);
+	}
 
-    // Draw progress bar background
-    float barWidth = 400.0f;
-    float barHeight = 20.0f;
-    float barX = (m_screenW - barWidth) * 0.5f;
-    float barY = m_screenH - 80.0f;
+// 3. Параметры геометрии прогресс-бара
+	float barWidth = 400.0f;
+	float barHeight = 20.0f;
+	float barX = (m_screenW - barWidth) * 0.5f;
+	float barY = m_screenH - 80.0f;
 
-    // Draw progress bar fill based on completion
-    float totalProgress = GetTotalProgress() / 100.0f;
-    float fillWidth = barWidth * totalProgress;
+	// Рассчитываем текущую физическую ширину на экране на основе сглаженного прогресса
+	float fillWidth = barWidth * m_currentRenderProgress;
 
-    // Simple progress bar using colored quads (white fill on dark background)
-    // Draw bar background (dark gray)
-    if (m_renderer) {
-        // Progress bar background - could use a simple texture or DrawSingleSprite with different colors
-        // For now, we'll just indicate progress through text
-    }
+	// Защита от нулевого/отрицательного квада для видеокарты Xbox 360
+	if (m_currentRenderProgress < 0.01f) {
+		return;
+	}
+
+	// 4. Отрисовка полосы через отложенный рендерер UI (Deferred SpriteRenderer)
+	if (m_spriteRenderer && m_renderer) {
+
+		// Получаем указатель на текстуру из кэша (лог подтвердил, что она успешно находится в кэше)
+		LPDIRECT3DTEXTURE9 pProgressBarTex = TextureRegistry::instance().getTextureOrLoad("progressBarBackground");
+		if (!pProgressBarTex) {
+			return;
+		}
+
+		// Открываем пакет отложенных команд рендерера
+		m_spriteRenderer->Begin(SHADER_SPRITE, pProgressBarTex, 0.0f, 0, true);
+
+		// Передаем точные UV-координаты. Поскольку текстура одиночная:
+		// Левый край: U0 = 0.0f
+		// Правый край плавно сдвигается: U1 = m_currentRenderProgress
+		m_spriteRenderer->Draw(
+			barX, barY,                    // Позиция на экране
+			fillWidth, barHeight,          // Динамическая ширина и фиксированная высота
+			0.0f, 0.0f,                    // UV старт (Top-Left)
+			m_currentRenderProgress, 1.0f, // UV конец (Bottom-Right, U растет вместе с % загрузки!)
+			0xFFFFFFFF                     // Цвет (Белый)
+		);
+
+		// Закрываем пакет. Теперь m_pendingCommands гарантированно равен 1
+		m_spriteRenderer->End();
+
+		// 5. КРИТИЧЕСКИЙ ВЫЗОВ СБРОСА ОЧЕРЕДИ
+		ShaderManager* pShaderManager = m_renderer ? m_renderer->GetShaderManager() : nullptr;
+
+		if (pShaderManager) {
+			m_spriteRenderer->Flush(pShaderManager);
+		}
+	}
 }
-
 }

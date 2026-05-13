@@ -591,36 +591,46 @@ void EditorScene::Render() {
     // === STEP 2.7: Render placed resources on map ===
     if (m_mapEditor && m_mapEditor->GetMap()) {
         World::Map* map = m_mapEditor->GetMap();
-        int layerWidth = map->GetWidth() * 2;  // Objects layer is 40x40
+        int layerWidth = map->GetWidth() * 2;
         int layerHeight = map->GetHeight() * 2;
-        
+
         CoordinateSystem& coords = CoordinateSystem::GetInstance();
-        
-        for (int y = 0; y < layerHeight; y++) {
-            for (int x = 0; x < layerWidth; x++) {
-                const World::ResourceNode& node = map->GetResourceNode(x, y);
-                if (node.type != World::ResourceType_None && node.isVisible) {
-                    float worldX, worldY;
-                    coords.NodeTileToWorld(x, y, worldX, worldY);
-                    
-                    // TODO: Render resource icon at (worldX, worldY)
-                    // Placeholder for resource rendering
-                    if (m_spriteRenderer) {
+
+        // First pass: Render resource icons ONLY (sprites)
+        if (m_spriteRenderer) {
+            m_spriteRenderer->Begin(SHADER_SPRITE, nullptr, 0.02f, 0, false);
+            for (int y = 0; y < layerHeight; y++) {
+                for (int x = 0; x < layerWidth; x++) {
+                    const World::ResourceNode& node = map->GetResourceNode(x, y);
+                    if (node.type != World::ResourceType_None && node.isVisible) {
+                        float worldX, worldY;
+                        coords.NodeTileToWorld(x, y, worldX, worldY);
                         D3DXVECTOR3 resourcePos(worldX, worldY, 0.02f);
-                        // Submit render command for resource icon
                     }
-                    
-                    // Render amount text next to resource
-                    if (m_textManager && node.amount > 0) {
+                }
+            }
+            m_spriteRenderer->End();
+            m_spriteRenderer->Flush(m_shaderManager);
+        }
+
+        // Second pass: Render resource amounts ONLY (text)
+        if (m_textManager) {
+            m_textManager->BeginTextBatch(FONT_MENU, 0.0f);
+            for (int y = 0; y < layerHeight; y++) {
+                for (int x = 0; x < layerWidth; x++) {
+                    const World::ResourceNode& node = map->GetResourceNode(x, y);
+                    if (node.type != World::ResourceType_None && node.isVisible && node.amount > 0) {
+                        float worldX, worldY;
+                        coords.NodeTileToWorld(x, y, worldX, worldY);
                         char amountStr[32];
                         sprintf_s(amountStr, "%d", node.amount);
-                        // Convert world coordinates to screen coordinates for text
                         float screenX, screenY;
                         m_camera->WorldToScreen(worldX, worldY, screenX, screenY);
                         m_textManager->DrawTextToScreen(amountStr, screenX + 20.0f, screenY, 0xFFFFFFFF, 0.8f);
                     }
                 }
             }
+            m_textManager->EndTextBatch();
         }
     }
 
@@ -681,6 +691,10 @@ void EditorScene::Render() {
         m_gridMenu->Render(m_spriteRenderer);
     }
 
+    if (m_spriteRenderer && m_shaderManager) {
+        m_spriteRenderer->Flush(m_shaderManager);
+    }
+
     // Render WeightMenu when visible
     // TEMPORARILY COMMENTED OUT TO ISOLATE GPU HANG
     // if (m_weightMenuVisible && m_weightMenu) {
@@ -689,6 +703,9 @@ void EditorScene::Render() {
 
     // Draw FPS counter (top-left)
     if (m_textManager) {
+        float textDepth = 0.0f;
+        m_textManager->BeginTextBatch(FONT_MENU, textDepth);
+
         char fpsText[64];
         sprintf(fpsText, "FPS: %d", m_fps);
         m_textManager->DrawTextToScreen(fpsText, 10.0f, 10.0f, 0xFF00FF00, 0.25f);
@@ -700,12 +717,15 @@ void EditorScene::Render() {
             m_textManager->DrawTextToScreen("Layer:", 10.0f, m_renderer->GetScreenHeight() - 40.0f, 0xFFAAAAAA, 0.25f);
             m_textManager->DrawTextToScreen(layerNames[layerIdx], 100.0f, m_renderer->GetScreenHeight() - 40.0f, 0xFFFFFFFF, 0.25f);
         }
-        // Text is now submitted to queue via DrawTextToScreen, no need to call RenderScreen()
+
+        m_textManager->EndTextBatch();
     }
     
     // === STEP 4: MASTER LOOP - Execute all queued render commands ===
     // Camera ViewProj already set via UpdateGlobalMatrices
     if (m_shaderManager && m_spriteRenderer) {
+        m_spriteRenderer->Flush(m_shaderManager);
+
         LPDIRECT3DVERTEXBUFFER9 pVB = m_spriteRenderer->GetVertexBuffer();
         LPDIRECT3DINDEXBUFFER9 pIB = m_spriteRenderer->GetIndexBuffer();
         LPDIRECT3DVERTEXDECLARATION9 pDecl = m_spriteRenderer->GetVertexDeclaration();
