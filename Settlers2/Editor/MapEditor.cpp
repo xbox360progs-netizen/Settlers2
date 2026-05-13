@@ -120,7 +120,6 @@ void MapEditor::Update(float deltaTime) {
 
 void MapEditor::Render() {
 
-    m_spriteRenderer->Flush();
     if (m_pDevice) {
         m_pDevice->SetVertexShader(NULL);
         m_pDevice->SetPixelShader(NULL);
@@ -128,9 +127,10 @@ void MapEditor::Render() {
     }
 
     RenderGridLayer();
-
+	m_spriteRenderer->End(); 
     if (m_showNodes) {
         RenderWeightMap();
+		m_spriteRenderer->End(); 
     }
 
     if (m_showObjects && m_currentLayer == World::Objects) {
@@ -139,7 +139,6 @@ void MapEditor::Render() {
     if (m_showOverlay && m_currentLayer == World::Overlay) {
     }
 
-    m_spriteRenderer->Flush();
     if (m_pDevice) {
         m_pDevice->SetVertexShader(NULL);
         m_pDevice->SetPixelShader(NULL);
@@ -149,6 +148,7 @@ void MapEditor::Render() {
     RenderCursor();
     RenderTilePreview();
     RenderActiveTile();
+	m_spriteRenderer->End(); 
 }
 void MapEditor::HandleInput() {
     if (!m_inputManager) return;
@@ -389,7 +389,7 @@ void MapEditor::RenderGridLayer() {
         int mapHeight = groundLayer->GetHeight();
 
         // Use SHADER_SPRITE_CONSTANT_INSTANCED with Y-depth sorting (ID 1 is valid, ID 0 is missing)
-        m_spriteRenderer->BeginWorldObject(SHADER_SPRITE_CONSTANT_INSTANCED, m_groundAtlas->GetTexture(), 0.0f, 0.95f, 0.0001f, 1);
+        m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_SPRITE_CONSTANT_INSTANCED), reinterpret_cast<LPDIRECT3DTEXTURE9>(m_groundAtlas->GetTexture()), 0.0f, 0.95f, 0.0001f, 1);
         
         for (int y = minGroundY; y < maxGroundY; ++y) {
             for (int x = minGroundX; x < maxGroundX; ++x) {
@@ -421,7 +421,7 @@ void MapEditor::RenderGridLayer() {
             int mapHeight = overlayLayer->GetHeight();
 
             // Use SHADER_SPRITE_CONSTANT_INSTANCED with Y-depth sorting
-            m_spriteRenderer->BeginWorldObject(SHADER_SPRITE_CONSTANT_INSTANCED, m_groundAtlas->GetTexture(), 0.0f, 0.65f, 0.0001f, 1);
+            m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_SPRITE_CONSTANT_INSTANCED), reinterpret_cast<LPDIRECT3DTEXTURE9>(m_groundAtlas->GetTexture()), 0.0f, 0.65f, 0.0001f, 1);
             
             for (int y = 0; y < overlayLayer->GetHeight(); ++y) {
                 for (int x = 0; x < overlayLayer->GetWidth(); ++x) {
@@ -453,7 +453,7 @@ void MapEditor::RenderGridLayer() {
             int mapHeight = NODES_H;
 
             // Use SHADER_SPRITE_CONSTANT_INSTANCED with Y-depth sorting
-            m_spriteRenderer->BeginWorldObject(SHADER_SPRITE_CONSTANT_INSTANCED, m_dotTexture, 0.0f, 0.65f, 0.0001f, 1);
+            m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_SPRITE_CONSTANT_INSTANCED), m_dotTexture, 0.0f, 0.65f, 0.0001f, 1);
             
             for (int y = 0; y < NODES_H; ++y) {
                 for (int x = 0; x < NODES_W; ++x) {
@@ -490,7 +490,7 @@ void MapEditor::RenderGridLayer() {
             int mapHeight = GRID_HEIGHT;
 
             // Use SHADER_SPRITE_CONSTANT_INSTANCED with Y-depth sorting
-            m_spriteRenderer->BeginWorldObject(SHADER_SPRITE_CONSTANT_INSTANCED, m_objectAtlas->GetTexture(), 0.0f, 0.65f, 0.0001f, 1);
+            m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_SPRITE_CONSTANT_INSTANCED), reinterpret_cast<LPDIRECT3DTEXTURE9>(m_groundAtlas->GetTexture()), 0.0f, 0.65f, 0.0001f, 1);
             
             for (int y = 0; y < GRID_HEIGHT; ++y) {
                 for (int x = 0; x < GRID_WIDTH; ++x) {
@@ -524,7 +524,7 @@ void MapEditor::RenderGridLayer() {
             int mapHeight = GRID_HEIGHT;
 
             // Use SHADER_SPRITE_CONSTANT_INSTANCED with Y-depth sorting
-            m_spriteRenderer->BeginWorldObject(SHADER_SPRITE_CONSTANT_INSTANCED, m_objectAtlas->GetTexture(), 0.0f, 0.65f, 0.0001f, 1);
+            m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_SPRITE_CONSTANT_INSTANCED), reinterpret_cast<LPDIRECT3DTEXTURE9>(m_groundAtlas->GetTexture()), 0.0f, 0.65f, 0.0001f, 1);
             
             for (int y = 0; y < GRID_HEIGHT; ++y) {
                 for (int x = 0; x < GRID_WIDTH; ++x) {

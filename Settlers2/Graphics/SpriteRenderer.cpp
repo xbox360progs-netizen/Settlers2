@@ -661,91 +661,40 @@ void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float
     OutputDebugStringA("[SR::Begin] 5-PARAM VERSION ENTERED NOW!!!\n");
     fflush(stdout);
 
-    // Если предыдущая сцена или менеджер забыли вызвать End(), 
-    // или если мы внутри кадра переключаемся с фона (isUI=1) на мир/текст
+    // === ШАГ 1: БЕЗОПАСНАЯ ИЗОЛЯЦИЯ ПРЕДЫДУЩЕГО БАТЧА ===
+    // Если кто-то (например, карта) забыл закрыться перед текстом,
+    // или если мы переключаемся с мира на интерфейс
     if (m_isBatching) {
-        // Безопасно закрываем и выталкиваем предыдущий батч (бэкграунд) на экран
-        OutputDebugStringA("[SR::Begin] AUTO-CLOSING previous batch via End()\n");
-        End(); 
+        // Проверяем, изменились ли параметры. Если да — закрываем прошлый батч
+        if (m_currentTexture != pTexture || m_currentShaderID != shaderID || 
+            m_currentRenderType != renderType || m_currentIsUI != isUI) 
+        {
+            OutputDebugStringA("[SR::Begin] AUTO-CLOSING previous batch via End() due to state change\n");
+            End(); // Отправляет старую геометрию на GPU и сбрасывает m_isBatching в false
+        }
     }
 
-    // Reset texture to ensure clean state for new batch
-    m_currentTexture = pTexture;
-    
-    // NOTE: Do NOT reset m_totalVertexCount here - it accumulates across batches
-    // to ensure correct vertex offsets in the buffer
-    
-    char buf[256];
-    sprintf(buf, "[SR::Begin] ENTRY this=%p, m_pDevice=%p, m_pShaderManager=%p\n", this, m_pDevice, m_pShaderManager);
-    OutputDebugStringA(buf);
-    fflush(stdout);
-
+    // === ШАГ 2: КРИТИЧЕСКИЕ ПРОВЕРКИ УСТРОЙСТВА ===
     if (!m_pDevice) {
+        char buf[256];
         sprintf(buf, "[SR::Begin] CRITICAL ERROR: m_pDevice is NULL! this=%p\n", this);
         OutputDebugStringA(buf);
         return;
     }
 
-    if (!m_pDevice) {
-        sprintf(buf, "[SR::Begin] CRITICAL ERROR: m_pDevice is NULL! this=%p\n", this);
-        OutputDebugStringA(buf);
-        return;
-    }
-
-    // Проверка Vertex Declaration
-    if (!m_pVertexDecl) {
-        sprintf(buf, "[SR::Begin] WARNING: Vertex Declaration is MISSING! this=%p\n", this);
-        OutputDebugStringA(buf);
-    }
-    if (!m_pConstantInstancedDecl) {
-        sprintf(buf, "[SR::Begin] WARNING: Constant Instanced Declaration is MISSING! this=%p\n", this);
-        OutputDebugStringA(buf);
-    }
-
+    // === ШАГ 3: НАСТРОЙКА СОСТОЯНИЙ DIRECT3D (RENDER STATES) ===
     OutputDebugStringA("[SR::Begin] Setting render states...\n");
+    
+    m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+    m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+    m_pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+    m_pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+    m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+    
+    OutputDebugStringA("[SR::Begin] Render states set successfully\n");
 
-    // If state changed, flush previous batch
-    if (m_isBatching && m_spriteCount > 0) {
-        // Only auto-flush if there are pending sprites to flush
-        // AUTO-FLUSH: If texture changed and buffer has vertices, flush first
-        if (m_currentTexture != pTexture) {
-            OutputDebugStringA("[SR::Begin] AUTO-FLUSH: texture changed\n");
-            Flush();
-        }
-        if (m_currentShaderID != shaderID) {
-            OutputDebugStringA("[SR::Begin] AUTO-FLUSH: shader changed\n");
-            Flush();
-        }
-        // AUTO-FLUSH: If render type changed (Single <-> Instanced), flush immediately
-        if (m_currentRenderType != renderType) {
-            OutputDebugStringA("[SR::Begin] AUTO-FLUSH: renderType changed\n");
-            Flush();
-        }
-        // AUTO-FLUSH: If isUI changed (world-space <-> screen-space), flush immediately
-        if (m_currentIsUI != isUI) {
-            OutputDebugStringA("[SR::Begin] AUTO-FLUSH: isUI changed\n");
-            Flush();
-        }
-    }
-
-    OutputDebugStringA("[SR::Begin] Setting render states...\n");
-
-    // Set render states for sprite rendering
-    if (m_pDevice) {
-        m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
-        m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-        m_pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
-        m_pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
-        m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
-        OutputDebugStringA("[SR::Begin] Render states set successfully\n");
-    } else {
-        OutputDebugStringA("[SR::Begin] ERROR: Cannot set render states - m_pDevice is NULL\n");
-        return;
-    }
-
+    // === ШАГ 4: АКТИВАЦИЯ ШЕЙДЕРА ===
     OutputDebugStringA("[SR::Begin] Setting active shader...\n");
-
-    // Set active shader
     if (m_pShaderManager) {
         m_pShaderManager->SetActiveShader(shaderID);
         OutputDebugStringA("[SR::Begin] Active shader set\n");
@@ -753,20 +702,22 @@ void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float
         OutputDebugStringA("[SR::Begin] WARNING: m_pShaderManager is NULL\n");
     }
 
-    char debugMsg[128];
-    sprintf(debugMsg, "[SpriteRenderer::Begin] shaderID=%d, texture=%p, depth=%.2f, renderType=%d, isUI=%d\n",
+    // Логируем успешный старт нового чистого батча
+    char debugMsg[256];
+    sprintf(debugMsg, "[SpriteRenderer::Begin] SUCCESS: shaderID=%d, texture=%p, depth=%.2f, renderType=%d, isUI=%d\n",
             shaderID, pTexture, depth, renderType, isUI);
     OutputDebugStringA(debugMsg);
-
     OutputDebugStringA("[SR::Begin] FINISHED\n");
 
+    // === ШАГ 5: ИНИЦИАЛИЗАЦИЯ ПАРАМЕТРОВ ТЕКУЩЕГО БАТЧА ===
     m_currentShaderID = shaderID;
     m_currentTexture = pTexture;
     m_currentDepth = depth;
     m_currentRenderType = renderType;
     m_currentIsUI = isUI;
-    m_isBatching = true;
-    m_spriteCount = 0;
+    
+    m_isBatching = true;  // Включаем батчинг заново для нового компонента
+    m_spriteCount = 0;    // Начинаем считать спрайты нового компонента с нуля
 }
 
 void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, int layer, float yPosition) {
@@ -976,27 +927,27 @@ void SpriteRenderer::End() {
             m_isBatching, (int)m_pendingCommands.size(), m_spriteCount);
     OutputDebugStringA(dbg);
     
-    // Если батчинг не запущен — это ошибка вызова, выходим
     if (!m_isBatching) {
         OutputDebugStringA("[SR::End] WARNING: m_isBatching is false!\n");
         return;
     }
     
-    // КРИТИЧЕСКИЙ ШАГ: Сначала выключаем флаг батчинга. 
-    // Это изолирует текущий набор спрайтов (например, фон) от последующих вызовов.
     m_isBatching = false;
     
-    // Вызываем Flush, если есть ХОТЯ БЫ ОДНА команда ИЛИ хотя бы один спрайт в буфере
+    // ВАЖНО: В вашей кодовой базе SpriteRenderer::Flush() САМ копирует вершины на GPU
+    // и САМ наполняет m_commandQueue внутри ShaderManager!
     if (!m_pendingCommands.empty() || m_spriteCount > 0) {
-        OutputDebugStringA("[SR::End] DEFERRED: Calling Flush()...\n");
+        OutputDebugStringA("[SR::End] DEFERRED: Calling Flush() to build GPU buffers and push commands...\n");
         
-        Flush(); // Отправляем изолированный батч на видеокарту
+        // В вашей архитектуре Flush() выполняет две роли:
+        // 1. Копирует вершины в pVB/pIB
+        // 2. Добавляет готовую отсортированную команду в ShaderManager::m_commandQueue!
+        Flush(); 
         
         OutputDebugStringA("[SR::End] DEFERRED: Flush() completed\n");
     }
     
-    // Обязательно сбрасываем счетчик спрайтов после Flush, 
-    // чтобы следующий компонент (текст) начинал заполнять буфер вершин с нуля!
+    // Сбрасываем счетчик спрайтов батча
     m_spriteCount = 0;
 }
 

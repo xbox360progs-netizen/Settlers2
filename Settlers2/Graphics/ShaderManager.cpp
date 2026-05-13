@@ -979,7 +979,12 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                 EndCurrent();
             }
 
-            Prepare(static_cast<ShaderID>(cmd.shaderID), &m_frameViewProj);
+            // ИСПРАВЛЕНИЕ: Передаем шейдеру правильную матрицу в зависимости от типа объекта!
+            // Если это шейдер карты (Инстансинг), передаем ViewProj камеры. 
+            // Если это текст/UI (ID=0), передаем ортографическую матрицу экрана.
+            const D3DXMATRIX* activeMatrix = (cmd.shaderID == SHADER_SPRITE_CONSTANT_INSTANCED) ? &m_frameViewProj : &ortho;
+
+            Prepare(static_cast<ShaderID>(cmd.shaderID), activeMatrix);
             currentShaderID = static_cast<ShaderID>(cmd.shaderID);
             
             if (m_pActiveEffect) {
