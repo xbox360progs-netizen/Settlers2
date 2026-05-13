@@ -956,66 +956,8 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     m_pDevice->SetStreamSource(0, pVB, 0, sizeof(SpriteVertex));
     m_pDevice->SetIndices(pIB);
 
-    // === COPY VERTICES FROM COMMANDS TO GPU BUFFER ===
-    // CRITICAL: RenderCommand stores vertices in cmd.vertices[], but ExecuteQueue draws from GPU buffer
-    // We must copy all vertices from commands to the GPU buffer before drawing
-    if (pVB && pIB && !m_commandQueue.empty()) {
-        void* pVertexData = NULL;
-        void* pIndexData = NULL;
-        size_t totalVertices = 0;
-        size_t totalIndices = 0;
-        for (size_t i = 0; i < m_commandQueue.size(); ++i) {
-            totalVertices += m_commandQueue[i].vertexCount;
-            totalIndices += m_commandQueue[i].primitiveCount * 3;
-        }
-
-        // Lock vertex buffer
-        HRESULT hrVB = pVB->Lock(0, totalVertices * sizeof(SpriteVertex), &pVertexData, 0);
-        // Lock index buffer
-        HRESULT hrIB = pIB->Lock(0, totalIndices * sizeof(WORD), &pIndexData, 0);
-
-        if (SUCCEEDED(hrVB) && SUCCEEDED(hrIB) && pVertexData && pIndexData) {
-            SpriteVertex* vertexDest = (SpriteVertex*)pVertexData;
-            WORD* indexDest = (WORD*)pIndexData;
-            int currentVertexOffset = 0;
-            int currentIndexOffset = 0;
-
-            for (size_t i = 0; i < m_commandQueue.size(); ++i) {
-                RenderCommand& cmd = m_commandQueue[i];
-                if (cmd.vertexCount > 0 && cmd.vertexCount <= 4) {
-                    // Copy vertices
-                    memcpy(vertexDest, cmd.vertices, cmd.vertexCount * sizeof(SpriteVertex));
-                    vertexDest += cmd.vertexCount;
-
-                    // Generate LOCAL quad indices (0,1,2, 0,2,3 pattern) - always relative to 0
-                    // baseVertex will shift them to correct position in buffer
-                    indexDest[0] = 0;
-                    indexDest[1] = 1;
-                    indexDest[2] = 2;
-                    indexDest[3] = 0;
-                    indexDest[4] = 2;
-                    indexDest[5] = 3;
-                    indexDest += 6;
-
-                    // Update command offsets for drawing
-                    cmd.baseVertex = currentVertexOffset;
-                    cmd.vertexStart = currentIndexOffset;
-
-                    currentVertexOffset += cmd.vertexCount;
-                    currentIndexOffset += cmd.primitiveCount * 3; // 3 indices per triangle
-                }
-            }
-            pVB->Unlock();
-            pIB->Unlock();
-            char debugMsg[256];
-            sprintf(debugMsg, "[ExecuteQueue] Copied %d vertices and %d indices from commands to GPU buffers\n", (int)totalVertices, (int)totalIndices);
-            OutputDebugStringA(debugMsg);
-        } else {
-            if (SUCCEEDED(hrVB)) pVB->Unlock();
-            if (SUCCEEDED(hrIB)) pIB->Unlock();
-            OutputDebugStringA("[ExecuteQueue] ERROR: Failed to lock buffers for copying!\n");
-        }
-    }
+    // === NOTE: Vertices are already copied to GPU buffers by SpriteRenderer::Flush ===
+    // ExecuteQueue only needs to draw from the buffers using the offsets in commands
 
     // === LAZY BATCHING: Process commands with minimal state switches ===
     // CRITICAL: Disable Z-buffer for entire 2D UI rendering (stable state for Xbox 360)

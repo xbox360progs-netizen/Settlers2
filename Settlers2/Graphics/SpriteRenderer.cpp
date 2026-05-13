@@ -1032,136 +1032,99 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
     // Calculate total vertices needed
     size_t totalVertices = m_pendingCommands.size() * 4;
     size_t totalBytes = totalVertices * sizeof(SpriteVertex);
-    
+
     // Validate buffer size
     if (totalBytes > (size_t)m_vertexBufferSize) {
         char errorMsg[256];
-        sprintf(errorMsg, "[SR::Flush] DEFERRED: Buffer overflow! Need %d bytes, have %d\n", 
+        sprintf(errorMsg, "[SR::Flush] DEFERRED: Buffer overflow! Need %d bytes, have %d\n",
                 (int)totalBytes, m_vertexBufferSize);
         OutputDebugStringA(errorMsg);
         m_pendingCommands.clear();
         return;
     }
 
-    // === DEFERRED RENDERING: Vertices are in cmd.vertices[], will be copied by ExecuteQueue ===
-    // No need to copy to staging buffer - ExecuteQueue handles vertex copying from commands
+    // === DEFERRED RENDERING: Linear copy of all commands without batching ===
+    // This ensures all vertices are copied correctly - no grouping that loses data
 
-    // Debug: Log first few commands
-    for (size_t i = 0; i < m_pendingCommands.size() && i < 3; ++i) {
-        const RenderCommand& cmd = m_pendingCommands[i];
-        sprintf(debugMsg, "[SR::Flush] DEFERRED: Cmd[%d] depth=%.3f, shader=%d, tex=%p\n",
-                (int)i, cmd.depth, cmd.shaderID, cmd.pTexture);
-        OutputDebugStringA(debugMsg);
+    // Sort commands by depth (operator< in RenderCommand)
+    std::sort(m_pendingCommands.begin(), m_pendingCommands.end());
+
+    // Lock GPU buffers for exact size of all commands
+    void* vData = nullptr;
+    void* iData = nullptr;
+
+    size_t totalIndices = m_pendingCommands.size() * 6;
+
+    HRESULT hrVB = m_pVB[m_activeBuffer]->Lock(0, (DWORD)(totalVertices * sizeof(SpriteVertex)), &vData, 0);
+    HRESULT hrIB = m_pIndexBuffer->Lock(0, (DWORD)(totalIndices * sizeof(WORD)), &iData, 0);
+
+    if (FAILED(hrVB) || FAILED(hrIB)) {
+        OutputDebugStringA("[SR::Flush] Failed to lock GPU buffers!\n");
+        if (SUCCEEDED(hrVB)) m_pVB[m_activeBuffer]->Unlock();
+        if (SUCCEEDED(hrIB)) m_pIndexBuffer->Unlock();
+        m_pendingCommands.clear();
+        return;
     }
 
-    // === DEFERRED RENDERING: Create optimized draw batches ===
-    if (pShader) {
-        DWORD currentVertexOffset = 0;
-        LPDIRECT3DTEXTURE9 currentTexture = NULL;
-        int currentShaderID = -1;
-        DWORD batchStartIndex = m_totalIndexCount; // Start index in index buffer
-        DWORD batchStartVertex = m_totalVertexCount; // Start vertex in vertex buffer
-        DWORD batchVertexCount = 0;
-        int spritesInCurrentBatch = 0;
-        
-        for (size_t i = 0; i < m_pendingCommands.size(); ++i) {
-            const RenderCommand& cmd = m_pendingCommands[i];
-            
-            // Check if we need to start a new batch (texture or shader change)
-            bool newBatch = false;
-            if (currentTexture != cmd.pTexture || currentShaderID != cmd.shaderID) {
-                newBatch = true;
-            }
-            
-            // If we have a pending batch and need to start a new one, submit it
-            if (newBatch && batchVertexCount > 0) {
-                RenderCommand batchCmd;
-                batchCmd.pTexture = currentTexture;
-                batchCmd.shaderID = currentShaderID;
-                batchCmd.vertexStart = batchStartIndex; // Index buffer offset
-                batchCmd.baseVertex = batchStartVertex; // Vertex buffer offset
-                batchCmd.vertexCount = batchVertexCount;
-                batchCmd.primitiveCount = batchVertexCount / 2; // 2 triangles per quad
-                batchCmd.batchType = 0; // Standard rendering
-                batchCmd.depth = m_pendingCommands[i-1].depth;
-                batchCmd.isUI = m_pendingCommands[i-1].isUI;
-                batchCmd.states = m_pendingCommands[i-1].states;
-                
-                sprintf(debugMsg, "[SR::Flush] DEFERRED: Batch submitted: baseVert=%d, startIdx=%d, verts=%d, sprites=%d\n", 
-                        batchStartVertex, batchStartIndex, batchVertexCount, spritesInCurrentBatch);
-                OutputDebugStringA(debugMsg);
-                
-                pShader->Submit(batchCmd);
-                
-                // Move offsets for next batch
-                batchStartIndex += spritesInCurrentBatch * 6;
-                batchStartVertex += spritesInCurrentBatch * 4;
-                spritesInCurrentBatch = 0;
-            }
-            
-            // Start new batch
-            if (newBatch) {
-                currentTexture = cmd.pTexture;
-                currentShaderID = cmd.shaderID;
-                batchVertexCount = 0;
-            }
-            
-            // Add current command's vertices to batch
-            batchVertexCount += 4;
-            spritesInCurrentBatch++;
-        }
-        
-        // Submit final batch
-        if (batchVertexCount > 0) {
-            RenderCommand batchCmd;
-            batchCmd.pTexture = currentTexture;
-            batchCmd.shaderID = currentShaderID;
-            batchCmd.vertexStart = batchStartIndex;
-            batchCmd.baseVertex = batchStartVertex;
-            batchCmd.vertexCount = batchVertexCount;
-            batchCmd.primitiveCount = batchVertexCount / 2;
-            batchCmd.batchType = 0;
-            batchCmd.depth = m_pendingCommands.back().depth;
-            batchCmd.isUI = m_pendingCommands.back().isUI;
-            batchCmd.states = m_pendingCommands.back().states;
-            
-            sprintf(debugMsg, "[SR::Flush] DEFERRED: FINAL batch: baseVert=%d, startIdx=%d, verts=%d, sprites=%d\n", 
-                    batchStartVertex, batchStartIndex, batchVertexCount, spritesInCurrentBatch);
-            OutputDebugStringA(debugMsg);
-            
-            pShader->Submit(batchCmd);
-            
-            // Update total counts for NEXT batch
-            batchStartIndex += spritesInCurrentBatch * 6;
-            batchStartVertex += spritesInCurrentBatch * 4;
-            
-            sprintf(debugMsg, "[SR::Flush] DEFERRED: Final batch submitted: %d vertices\n", batchVertexCount);
-            OutputDebugStringA(debugMsg);
-        }
-    }
-    
-    // Update total counts after processing all pending commands
-    // Count how many sprites were in pending commands
-    size_t totalSpritesInCommands = 0;
+    SpriteVertex* vPtr = (SpriteVertex*)vData;
+    WORD* iPtr = (WORD*)iData;
+
+    int globalVertexCounter = 0;
+    int globalIndexCounter = 0;
+
+    // Linear copy of all commands
     for (size_t i = 0; i < m_pendingCommands.size(); ++i) {
-        // Each command is 1 sprite (4 vertices, 6 indices)
-        totalSpritesInCommands++;
-    }
-    m_totalVertexCount += (int)(totalSpritesInCommands * 4);
-    m_totalIndexCount += (int)(totalSpritesInCommands * 6);
-    
-    char countMsg[256];
-    sprintf(countMsg, "[SR::Flush] DEFERRED: Updated totals: vertexCount=%d, indexCount=%d\n", 
-            m_totalVertexCount, m_totalIndexCount);
-    OutputDebugStringA(countMsg);
+        RenderCommand& cmd = m_pendingCommands[i];
 
-    // === DEFERRED RENDERING: Cleanup ===
+        // Set exact offsets for this command
+        cmd.baseVertex = globalVertexCounter;
+        cmd.vertexStart = globalIndexCounter;
+        cmd.vertexCount = 4;
+        cmd.primitiveCount = 2;
+
+        // Copy 4 vertices of this sprite/letter
+        vPtr[globalVertexCounter + 0] = cmd.vertices[0];
+        vPtr[globalVertexCounter + 1] = cmd.vertices[1];
+        vPtr[globalVertexCounter + 2] = cmd.vertices[2];
+        vPtr[globalVertexCounter + 3] = cmd.vertices[3];
+
+        // Generate LOCAL indices (always 0-1-3-0-3-2 pattern)
+        iPtr[globalIndexCounter + 0] = 0;
+        iPtr[globalIndexCounter + 1] = 1;
+        iPtr[globalIndexCounter + 2] = 3;
+        iPtr[globalIndexCounter + 3] = 0;
+        iPtr[globalIndexCounter + 4] = 3;
+        iPtr[globalIndexCounter + 5] = 2;
+
+        // Advance counters by 1 sprite (4 vertices, 6 indices)
+        globalVertexCounter += 4;
+        globalIndexCounter += 6;
+
+        // Submit individual command to ShaderManager
+        // Now ExecuteQueue will receive 16 commands instead of 2 grouped
+        if (pShader) {
+            pShader->Submit(cmd);
+        }
+    }
+
+    m_pVB[m_activeBuffer]->Unlock();
+    m_pIndexBuffer->Unlock();
+
+    sprintf(debugMsg, "[SR::Flush] Copied %d vertices and %d indices to GPU buffers (%d commands)\n",
+            globalVertexCounter, globalIndexCounter, (int)m_pendingCommands.size());
+    OutputDebugStringA(debugMsg);
+
+    // Update total counts
+    m_totalVertexCount += globalVertexCounter;
+    m_totalIndexCount += globalIndexCounter;
+
+    // Clear local queue for next frame
     m_pendingCommands.clear();
-    
+
     // Switch buffer for next frame (double buffering)
     m_activeBuffer = (m_activeBuffer + 1) % 2;
-    
-    sprintf(debugMsg, "[SR::Flush] DEFERRED: Complete. Switched to buffer %d\n", m_activeBuffer);
+
+    sprintf(debugMsg, "[SR::Flush] Complete. Switched to buffer %d\n", m_activeBuffer);
     OutputDebugStringA(debugMsg);
 }
 
