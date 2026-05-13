@@ -163,19 +163,18 @@ HRESULT SpriteRenderer::Initialize(LPDIRECT3DDEVICE9 device, ShaderManager* shad
     OutputDebugStringA(buf);
     if (SUCCEEDED(hr)) {
         for (int i = 0; i < m_maxSprites; i++) {
-            int baseV = i * 4;
             int baseI = i * 6;
-            // Triangle 1: 0-1-3 (CW - top-left to top-right to bottom-right)
-            pIndices[baseI + 0] = baseV + 0;
-            pIndices[baseI + 1] = baseV + 1;
-            pIndices[baseI + 2] = baseV + 3;
-            // Triangle 2: 1-3-2 (CW - top-right to bottom-right to bottom-left)
-            pIndices[baseI + 3] = baseV + 1;
-            pIndices[baseI + 4] = baseV + 3;
-            pIndices[baseI + 5] = baseV + 2;
+            // LOCAL indices for each sprite (0-3 pattern)
+            // baseVertex in DrawIndexedPrimitive will shift them to correct position
+            pIndices[baseI + 0] = 0;
+            pIndices[baseI + 1] = 1;
+            pIndices[baseI + 2] = 3;
+            pIndices[baseI + 3] = 1;
+            pIndices[baseI + 4] = 3;
+            pIndices[baseI + 5] = 2;
         }
         m_pIndexBuffer->Unlock();
-        OutputDebugStringA("[SR::Initialize] Index buffer filled and unlocked\n");
+        OutputDebugStringA("[SR::Initialize] Index buffer filled with LOCAL indices and unlocked\n");
     }
 
     // Create vertex declaration (must match SpriteVertex structure - 32 byte aligned)
@@ -535,19 +534,20 @@ void SpriteRenderer::OnResetDevice() {
 
     if (FAILED(hr)) { return; }
 
-    // Pre-fill index buffer with quad indices
+    // Pre-fill index buffer with LOCAL quad indices (0,1,2,3,0,2,3 pattern)
+    // baseVertex in DrawIndexedPrimitive will shift them to correct position
     WORD* pIndices = NULL;
     hr = m_pIndexBuffer->Lock(0, 0, (void**)&pIndices, 0);
     if (SUCCEEDED(hr)) {
         for (int i = 0; i < m_maxSprites; i++) {
-            int baseV = i * 4;
             int baseI = i * 6;
-            pIndices[baseI + 0] = baseV + 0;
-            pIndices[baseI + 1] = baseV + 1;
-            pIndices[baseI + 2] = baseV + 2;
-            pIndices[baseI + 3] = baseV + 0;
-            pIndices[baseI + 4] = baseV + 2;
-            pIndices[baseI + 5] = baseV + 3;
+            // LOCAL indices for each sprite (0-3 pattern)
+            pIndices[baseI + 0] = 0;
+            pIndices[baseI + 1] = 1;
+            pIndices[baseI + 2] = 2;
+            pIndices[baseI + 3] = 0;
+            pIndices[baseI + 4] = 2;
+            pIndices[baseI + 5] = 3;
         }
         m_pIndexBuffer->Unlock();
     }
