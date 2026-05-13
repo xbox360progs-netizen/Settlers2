@@ -1,14 +1,11 @@
 #pragma once
 
+#include "../../Graphics/RenderTypes.h"
 #include "../Entity.h"
 #include <vector>
 
 namespace World {
     class EntityManager;
-}
-
-namespace Renderer {
-    class IRenderer;
 }
 
 namespace World {
@@ -19,10 +16,10 @@ public:
     RenderSystem();
     ~RenderSystem();
 
-    void Update(EntityManager* entityManager, Renderer::IRenderer* renderer, float deltaTime);
+    void Update(EntityManager* entityManager, Renderer* renderer, float deltaTime);
 
 private:
-    void RenderSprite(EntityManager* entityManager, Renderer::IRenderer* renderer, EntityID entityID);
+    void RenderSprite(EntityManager* entityManager, Renderer* renderer, EntityID entityID);
 };
 
 } // namespace World

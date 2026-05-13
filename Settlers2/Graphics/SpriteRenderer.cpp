@@ -810,87 +810,100 @@ void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, 
 void SpriteRenderer::Draw(float x, float y, float width, float height,
                           float u0, float v0, float u1, float v1,
                           DWORD color) {
-    // CRITICAL: Check device and vertex buffer to prevent Access Violation
-    if (!m_pDevice || !m_pVB[m_activeBuffer]) {
-        char buf[256];
-        sprintf(buf, "[SR::Draw] CRITICAL: m_pDevice=%p, m_pVB[%d]=%p, this=%p\n", m_pDevice, m_activeBuffer, m_pVB[m_activeBuffer], this);
-        OutputDebugStringA(buf);
-        return;
-    }
-
-    // ПРОВЕРКА 2: Индекс спрайта
-    if (m_spriteCount >= m_maxSprites) {
-        char buf[256];
-        sprintf(buf, "[SR::Draw] ERROR: Too many sprites! m_spriteCount=%d, m_maxSprites=%d\n", m_spriteCount, m_maxSprites);
-        OutputDebugStringA(buf);
-        return;
-    }
-
-    // Проверка staging buffer
-    if (!m_pStagingBuffer) {
-        char buf[256];
-        sprintf(buf, "[SR::Draw] CRITICAL: Staging buffer is NULL! this=%p\n", this);
-        OutputDebugStringA(buf);
-        return;
-    }
-	char buf[256];
-    sprintf(buf, "[SR::Draw] About to copy data to staging buffer... spriteCount=%d\n", m_spriteCount);
-    OutputDebugStringA(buf);
-
+    // DEFERRED RENDERING: Check batching state
     if (!m_isBatching) {
         OutputDebugStringA("Draw called without Begin!\n");
         return;
     }
 
-    sprintf(buf, "[SR::Draw] Parameters: x=%.1f, y=%.1f, w=%.1f, h=%.1f, color=0x%08X\n", x, y, width, height, color);
+    char buf[256];
+    sprintf(buf, "[SR::Draw] DEFERRED: Adding command to queue. x=%.1f, y=%.1f, w=%.1f, h=%.1f, color=0x%08X\n", 
+            x, y, width, height, color);
     OutputDebugStringA(buf);
 
-    // AUTO-FLUSH: If texture changed and buffer has vertices, flush first
-    // This prevents "icon mash" when switching textures
-    if (m_currentTexture != NULL && m_spriteCount > 0) {
-        // Note: Texture is managed by Begin(), so we check if it would change
-        // This is handled by Begin() already, but we add safety check here
-    }
-
-    // Check if buffer is full (do this FIRST to prevent overflow)
-    if (m_spriteCount >= m_maxSprites) {
-        char warnMsg[128];
-        sprintf(warnMsg, "WARNING: Sprite limit reached (%d sprites)! Flushing...\n", m_maxSprites);
-        OutputDebugStringA(warnMsg);
+    // DEFERRED RENDERING: Create render command and store vertices directly
+    RenderCommand cmd;
+    cmd.pTexture = m_currentTexture;
+    cmd.shaderID = m_currentShaderID;
+    cmd.depth = m_currentDepth;
+    cmd.batchType = m_currentRenderType;
+    cmd.isUI = m_currentIsUI;
+    cmd.color = color;
+    
+    // Store position and UV data
+    cmd.screenX = x;
+    cmd.screenY = y;
+    cmd.screenW = width;
+    cmd.screenH = height;
+    cmd.u0 = u0;
+    cmd.v0 = v0;
+    cmd.u1 = u1;
+    cmd.v1 = v1;
+    
+    // Create vertices directly in command (deferred approach)
+    // Vertex 0: Top-left
+    cmd.vertices[0].x = x;
+    cmd.vertices[0].y = y;
+    cmd.vertices[0].z = 0.0f;
+    cmd.vertices[0].u = u0;
+    cmd.vertices[0].v = v0;
+    cmd.vertices[0].color = color;
+    cmd.vertices[0].padding[0] = 0.0f;
+    cmd.vertices[0].padding[1] = 0.0f;
+    
+    // Vertex 1: Top-right
+    cmd.vertices[1].x = x + width;
+    cmd.vertices[1].y = y;
+    cmd.vertices[1].z = 0.0f;
+    cmd.vertices[1].u = u1;
+    cmd.vertices[1].v = v0;
+    cmd.vertices[1].color = color;
+    cmd.vertices[1].padding[0] = 0.0f;
+    cmd.vertices[1].padding[1] = 0.0f;
+    
+    // Vertex 2: Bottom-left
+    cmd.vertices[2].x = x;
+    cmd.vertices[2].y = y + height;
+    cmd.vertices[2].z = 0.0f;
+    cmd.vertices[2].u = u0;
+    cmd.vertices[2].v = v1;
+    cmd.vertices[2].color = color;
+    cmd.vertices[2].padding[0] = 0.0f;
+    cmd.vertices[2].padding[1] = 0.0f;
+    
+    // Vertex 3: Bottom-right
+    cmd.vertices[3].x = x + width;
+    cmd.vertices[3].y = y + height;
+    cmd.vertices[3].z = 0.0f;
+    cmd.vertices[3].u = u1;
+    cmd.vertices[3].v = v1;
+    cmd.vertices[3].color = color;
+    cmd.vertices[3].padding[0] = 0.0f;
+    cmd.vertices[3].padding[1] = 0.0f;
+    
+    // Set render states
+    cmd.states.zEnable = D3DZB_FALSE;
+    cmd.states.alphaBlendEnable = TRUE;
+    cmd.states.srcBlend = D3DBLEND_SRCALPHA;
+    cmd.states.destBlend = D3DBLEND_INVSRCALPHA;
+    cmd.states.cullMode = D3DCULL_NONE;
+    
+    // Set counts
+    cmd.vertexCount = 4;
+    cmd.primitiveCount = 2; // 2 triangles per quad
+    cmd.vertexStart = 0; // Will be calculated during flush
+    
+    // Add to pending commands queue
+    m_pendingCommands.push_back(cmd);
+    
+    sprintf(buf, "[SR::Draw] DEFERRED: Command added. Pending commands: %d\n", (int)m_pendingCommands.size());
+    OutputDebugStringA(buf);
+    
+    // Check if we need to flush (too many pending commands)
+    if (m_pendingCommands.size() >= (size_t)m_maxSprites) {
+        sprintf(buf, "[SR::Draw] DEFERRED: Queue full (%d), forcing flush\n", (int)m_pendingCommands.size());
+        OutputDebugStringA(buf);
         Flush();
-    }
-
-    // Check for buffer overflow
-    if ((size_t)m_spriteCount * 4 * sizeof(SpriteVertex) >= (size_t)m_vertexBufferSize) {
-        char errBuf[128];
-        sprintf(errBuf, "BSOD PREVENTED: Staging buffer overflow! spriteCount=%d, max=%d\n", m_spriteCount, m_maxSprites);
-        OutputDebugStringA(errBuf);
-        return;
-    }
-
-    // Debug first sprite only
-    if (m_spriteCount == 0) {
-        char debugMsg[256];
-        sprintf(debugMsg, "[SpriteRenderer::Draw] First sprite: pos=(%.1f, %.1f), size=%.1fx%.1f, UV=(%.3f,%.3f,%.3f,%.3f), color=%08X\n",
-                x, y, width, height, u0, v0, u1, v1, color);
-        OutputDebugStringA(debugMsg);
-    }
-
-    // MODE SWITCH: Route to appropriate Create method based on current mode
-    switch (m_currentMode) {
-        case MODE_INSTANCED_CONST:
-            // Constant instancing mode: add to instance queue
-            CreateQuad(x, y, width, height, u0, v0, u1, v1, color);
-            break;
-        case MODE_INSTANCED_STREAM:
-            // Stream instancing mode: use different Create method
-            CreateQuad(x, y, width, height, u0, v0, u1, v1, color);
-            break;
-        case MODE_STANDARD:
-        default:
-            // Standard mode: use staging buffer
-            CreateQuad(x, y, width, height, u0, v0, u1, v1, color);
-            break;
     }
 }
 
@@ -950,20 +963,21 @@ void SpriteRenderer::DrawRotated(float x, float y, float width, float height, fl
 }
 
 void SpriteRenderer::End() {
-    OutputDebugStringA("[SR::End] ENTERED - m_isBatching=");
-    char dbg[32];
-    sprintf(dbg, "%d, m_spriteCount=%d\n", m_isBatching, m_spriteCount);
+    OutputDebugStringA("[SR::End] DEFERRED: ENTERED - m_isBatching=");
+    char dbg[64];
+    sprintf(dbg, "%d, pendingCommands=%d\n", m_isBatching, (int)m_pendingCommands.size());
     OutputDebugStringA(dbg);
 
     if (m_isBatching) {
-        // Flush remaining sprites to vertex buffer
-        // This will submit batch to ShaderManager queue for SceneManager::ExecuteQueue
-        if (m_spriteCount > 0) {
-            OutputDebugStringA("[SR::End] Calling Flush()...\n");
+        // DEFERRED RENDERING: Flush remaining pending commands
+        if (!m_pendingCommands.empty()) {
+            OutputDebugStringA("[SR::End] DEFERRED: Calling Flush()...\n");
             Flush();
-            OutputDebugStringA("[SR::End] Flush() completed\n");
+            OutputDebugStringA("[SR::End] DEFERRED: Flush() completed\n");
         }
     }
+    
+    m_isBatching = false;
 }
 
 void SpriteRenderer::ResetVertexCount() {
@@ -975,130 +989,160 @@ void SpriteRenderer::ResetVertexCount() {
 }
 
 void SpriteRenderer::Flush(ShaderManager* pShader) {
-    // Only return if empty
-    if (m_spriteCount == 0) return;
-
-    // DEBUG LOG: Monitor vertex count to detect buffer overflow
-    int vertexCount = m_spriteCount * 4;
-    char debugMsg[256];
-    sprintf(debugMsg, "[SR::Flush] spriteCount=%d, vertexCount=%d, maxSprites=%d\n",
-            m_spriteCount, vertexCount, m_maxSprites);
-    OutputDebugStringA(debugMsg);
-
-    sprintf(debugMsg, "[SR::Flush] m_pVB[%d]=%p, m_pIndexBuffer=%p, m_pStagingBuffer=%p\n",
-            m_activeBuffer, m_pVB[m_activeBuffer], m_pIndexBuffer, m_pStagingBuffer);
-    OutputDebugStringA(debugMsg);
-
-    if (!m_pVB[m_activeBuffer] || !m_pStagingBuffer) {
-        OutputDebugStringA("[SR::Flush] CRITICAL: VB or StagingBuffer is NULL!\n");
-        m_spriteCount = 0;
+    // DEFERRED RENDERING: Only return if no pending commands
+    if (m_pendingCommands.empty()) {
         return;
     }
 
-    // === NEW QUEUE-BASED APPROACH ===
-    // Instead of drawing directly, submit batch to ShaderManager queue
+    char debugMsg[256];
+    sprintf(debugMsg, "[SR::Flush] DEFERRED: Processing %d pending commands\n", (int)m_pendingCommands.size());
+    OutputDebugStringA(debugMsg);
+
+    // === DEFERRED RENDERING: Sort commands by depth ===
+    // Sort back-to-front for proper alpha blending and layer ordering
+    std::sort(m_pendingCommands.begin(), m_pendingCommands.end());
     
-    // XBOX 360 SAFETY: Validate buffer sizes before copying
-    size_t dataSize = m_spriteCount * 4 * sizeof(SpriteVertex);
-    size_t bufferSize = m_maxSprites * 4 * sizeof(SpriteVertex);
-    
-    if (dataSize > bufferSize) {
-        char errorMsg[256];
-        sprintf(errorMsg, "[SR::Flush] CRITICAL: Data size %d exceeds buffer size %d!\n", (int)dataSize, (int)bufferSize);
-        OutputDebugStringA(errorMsg);
-        m_spriteCount = 0;
-        return; // Prevent buffer overrun
+    sprintf(debugMsg, "[SR::Flush] DEFERRED: Commands sorted by depth\n");
+    OutputDebugStringA(debugMsg);
+
+    // === DEFERRED RENDERING: Fill vertex buffer with sorted vertices ===
+    if (!m_pVB[m_activeBuffer] || !m_pStagingBuffer) {
+        OutputDebugStringA("[SR::Flush] DEFERRED: CRITICAL: VB or StagingBuffer is NULL!\n");
+        m_pendingCommands.clear();
+        return;
     }
 
-// Copy staging buffer to GPU
+    // Calculate total vertices needed
+    size_t totalVertices = m_pendingCommands.size() * 4;
+    size_t totalBytes = totalVertices * sizeof(SpriteVertex);
+    
+    // Validate buffer size
+    if (totalBytes > (size_t)m_vertexBufferSize) {
+        char errorMsg[256];
+        sprintf(errorMsg, "[SR::Flush] DEFERRED: Buffer overflow! Need %d bytes, have %d\n", 
+                (int)totalBytes, m_vertexBufferSize);
+        OutputDebugStringA(errorMsg);
+        m_pendingCommands.clear();
+        return;
+    }
+
+    // Clear staging buffer and copy sorted vertices
+    memset(m_pStagingBuffer, 0, totalBytes);
+    SpriteVertex* pDest = m_pStagingBuffer;
+    
+    for (size_t i = 0; i < m_pendingCommands.size(); ++i) {
+        const RenderCommand& cmd = m_pendingCommands[i];
+        
+        // Copy 4 vertices from command to staging buffer
+        memcpy(pDest, cmd.vertices, 4 * sizeof(SpriteVertex));
+        pDest += 4;
+        
+        // Debug: Log first few commands
+        if (i < 3) {
+            sprintf(debugMsg, "[SR::Flush] DEFERRED: Cmd[%d] depth=%.3f, shader=%d, tex=%p\n", 
+                    (int)i, cmd.depth, cmd.shaderID, cmd.pTexture);
+            OutputDebugStringA(debugMsg);
+        }
+    }
+
+    // === DEFERRED RENDERING: Copy to GPU ===
     LPDIRECT3DVERTEXBUFFER9 currentVB = m_pVB[m_activeBuffer];
     void* pData = NULL;
-    OutputDebugStringA("[SR::Flush] Locking VB...");
     
-    // XBOX 360: Use 0 for lock flags
-    DWORD lockFlags = 0;
-    
-    // Calculate offset in bytes - use m_totalVertexCount for correct position
-    DWORD offsetInBytes = m_totalVertexCount * sizeof(SpriteVertex);
-    
-    char offsetMsg[256];
-    sprintf(offsetMsg, "[SR::Flush] Lock VB at offset=%d bytes (vert=%d), size=%d bytes\n", 
-            offsetInBytes, m_totalVertexCount, (int)dataSize);
-    OutputDebugStringA(offsetMsg);
-    
-    // Lock and copy
-    HRESULT hr = currentVB->Lock(offsetInBytes, dataSize, &pData, lockFlags);
+    HRESULT hr = currentVB->Lock(0, (DWORD)totalBytes, &pData, 0);
     if (FAILED(hr)) {
         char errorMsg[256];
-        sprintf(errorMsg, "[SR::Flush] FAILED to lock vertex buffer (hr=0x%08X)\n", hr);
+        sprintf(errorMsg, "[SR::Flush] DEFERRED: Failed to lock VB (hr=0x%08X)\n", hr);
         OutputDebugStringA(errorMsg);
-        m_spriteCount = 0;
+        m_pendingCommands.clear();
         return;
     }
     
-    OutputDebugStringA("[SR::Flush] Copying data to VB...");
-    memcpy(pData, m_pStagingBuffer, dataSize);
+    memcpy(pData, m_pStagingBuffer, totalBytes);
     currentVB->Unlock();
-    OutputDebugStringA("[SR::Flush] Data copied successfully!");
-
-    // Update statistics
-    sprintf(debugMsg, "[SR::Flush] Copied %d bytes to VB, %d sprites ready for render\n", 
-            (int)dataSize, m_spriteCount);
+    
+    sprintf(debugMsg, "[SR::Flush] DEFERRED: Copied %d vertices (%d bytes) to GPU\n", 
+            (int)totalVertices, (int)totalBytes);
     OutputDebugStringA(debugMsg);
-    
-    // DEBUG: Log first vertex position to verify data
-    if (m_pStagingBuffer && m_spriteCount > 0) {
-        sprintf(debugMsg, "[SR::Flush] First vertex: x=%.1f, y=%.1f, u=%.4f, v=%.4f\n",
-                m_pStagingBuffer[0].x, m_pStagingBuffer[0].y,
-                m_pStagingBuffer[0].u, m_pStagingBuffer[0].v);
-        OutputDebugStringA(debugMsg);
-    }
-    
-    // Create render command (Master Loop approach)
+
+    // === DEFERRED RENDERING: Create optimized draw batches ===
     if (pShader) {
-        ShaderManager::RenderCommand cmd;
-        cmd.pTexture = m_currentTexture;
-        cmd.shaderID = m_currentShaderID;
+        DWORD currentVertexOffset = 0;
+        LPDIRECT3DTEXTURE9 currentTexture = NULL;
+        int currentShaderID = -1;
+        DWORD batchStartVertex = 0;
+        DWORD batchVertexCount = 0;
         
-        // cmd.vertexStart is used as StartIndex for DrawIndexedPrimitive (index buffer offset)
-        // Each sprite = 6 indices (2 triangles)
-        // Use m_totalIndexCount which accumulates during the frame
-        cmd.vertexStart = m_totalIndexCount;
+        for (size_t i = 0; i < m_pendingCommands.size(); ++i) {
+            const RenderCommand& cmd = m_pendingCommands[i];
+            
+            // Check if we need to start a new batch (texture or shader change)
+            bool newBatch = false;
+            if (currentTexture != cmd.pTexture || currentShaderID != cmd.shaderID) {
+                newBatch = true;
+            }
+            
+            // If we have a pending batch and need to start a new one, submit it
+            if (newBatch && batchVertexCount > 0) {
+                RenderCommand batchCmd;
+                batchCmd.pTexture = currentTexture;
+                batchCmd.shaderID = currentShaderID;
+                batchCmd.vertexStart = batchStartVertex;
+                batchCmd.vertexCount = batchVertexCount;
+                batchCmd.primitiveCount = batchVertexCount / 2; // 2 triangles per quad
+                batchCmd.batchType = 0; // Standard rendering
+                batchCmd.depth = m_pendingCommands[i-1].depth; // Use depth of last command in batch
+                batchCmd.isUI = m_pendingCommands[i-1].isUI;
+                batchCmd.states = m_pendingCommands[i-1].states;
+                
+                pShader->Submit(batchCmd);
+                
+                sprintf(debugMsg, "[SR::Flush] DEFERRED: Batch submitted: %d vertices, tex=%p, shader=%d\n", 
+                        batchVertexCount, currentTexture, currentShaderID);
+                OutputDebugStringA(debugMsg);
+            }
+            
+            // Start new batch
+            if (newBatch) {
+                currentTexture = cmd.pTexture;
+                currentShaderID = cmd.shaderID;
+                batchStartVertex = currentVertexOffset;
+                batchVertexCount = 0;
+            }
+            
+            // Add current command's vertices to batch
+            batchVertexCount += 4;
+            currentVertexOffset += 4;
+        }
         
-        // Update counts for next batch
-        m_totalIndexCount += m_spriteCount * 6;
-        m_totalVertexCount += m_spriteCount * 4; // Track vertex offset too
-        
-        cmd.vertexCount = m_spriteCount * 4;
-        cmd.primitiveCount = (DWORD)(m_spriteCount * 2);
-        cmd.batchType = m_currentRenderType;
-        cmd.depth = m_currentDepth;
-        
-        printf("[SR::Flush] Batch: startIndex=%d, sprites=%d, idxCount=%d\n", 
-               cmd.vertexStart, m_spriteCount, m_totalIndexCount);
-        cmd.layer = 0; // Default layer (will be overridden by caller if needed)
-        cmd.isUI = m_currentIsUI; // Screen-space or world-space
-        
-        // Set default render states for 2D sprites
-        cmd.states.zEnable = D3DZB_FALSE;
-        cmd.states.alphaBlendEnable = TRUE;
-        cmd.states.srcBlend = D3DBLEND_SRCALPHA;
-        cmd.states.destBlend = D3DBLEND_INVSRCALPHA;
-        cmd.states.cullMode = D3DCULL_NONE;
-        
-        // Submit command to queue (Master Loop)
-        pShader->Submit(cmd);
-        
-        sprintf(debugMsg, "[SpriteRenderer::Flush] Submitted batch: %d sprites, shaderID=%d, depth=%.2f, renderType=%d\n",
-                m_spriteCount, m_currentShaderID, m_currentDepth, m_currentRenderType);
-        OutputDebugStringA(debugMsg);
+        // Submit final batch
+        if (batchVertexCount > 0) {
+            RenderCommand batchCmd;
+            batchCmd.pTexture = currentTexture;
+            batchCmd.shaderID = currentShaderID;
+            batchCmd.vertexStart = batchStartVertex;
+            batchCmd.vertexCount = batchVertexCount;
+            batchCmd.primitiveCount = batchVertexCount / 2;
+            batchCmd.batchType = 0;
+            batchCmd.depth = m_pendingCommands.back().depth;
+            batchCmd.isUI = m_pendingCommands.back().isUI;
+            batchCmd.states = m_pendingCommands.back().states;
+            
+            pShader->Submit(batchCmd);
+            
+            sprintf(debugMsg, "[SR::Flush] DEFERRED: Final batch submitted: %d vertices\n", batchVertexCount);
+            OutputDebugStringA(debugMsg);
+        }
     }
 
+    // === DEFERRED RENDERING: Cleanup ===
+    m_pendingCommands.clear();
+    
     // Switch buffer for next frame (double buffering)
     m_activeBuffer = (m_activeBuffer + 1) % 2;
-    m_spriteCount = 0;
-    // NOTE: m_totalVertexCount is NOT reset here - it accumulates across batches
-    // It will only be reset when ExecuteQueue is called (global frame end)
+    
+    sprintf(debugMsg, "[SR::Flush] DEFERRED: Complete. Switched to buffer %d\n", m_activeBuffer);
+    OutputDebugStringA(debugMsg);
 }
 
 void SpriteRenderer::SubmitBatch(ShaderManager* pShader) {

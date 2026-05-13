@@ -869,12 +869,8 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     const D3DXMATRIX* matrixToUse = pViewProj ? pViewProj : &ortho;
     SetFrameViewProj(matrixToUse);
 
-    // === SORT COMMANDS: depth-first for correct rendering order ===
-    // Sort by depth ASCENDING (lower depth = background = draw first)
-    std::sort(m_commandQueue.begin(), m_commandQueue.end(), 
-              [](const RenderCommand& a, const RenderCommand& b) {
-                  return a.depth < b.depth;
-              });
+    // === DEFERRED RENDERING: Commands already sorted in SpriteRenderer ===
+    // No need to sort here - sorting is done in SpriteRenderer::Flush()
 
     // === STATE LOCKING: Prevent external state corruption ===
     Lock();
@@ -934,9 +930,10 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         }
 
         // --- STATES (Alpha, Z-Buffer) ---
-        // For UI (text) disable Z-test so it doesn't conflict with background
-        m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, cmd.isUI ? TRUE : FALSE);
-        m_pDevice->SetRenderState(D3DRS_ZENABLE, cmd.isUI ? FALSE : TRUE);
+        // DEFERRED RENDERING: Disable Z-testing for 2D rendering (no depth sorting needed)
+        m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+        m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+        m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
 
         // --- RENDER ---
         if (passActive) {

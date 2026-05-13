@@ -8,7 +8,7 @@
 Renderer::Renderer()  
     : m_pD3D(NULL), m_pDevice(NULL), m_pBackBuffer(NULL),
       m_pVertexDecl(NULL), m_pVertexShader(NULL), m_pPixelShader(NULL),
-      m_pExternalShaderManager(NULL), m_pSpriteRenderer(NULL) {
+      m_pSpriteRenderer(NULL) {
     ZeroMemory(&m_d3dpp, sizeof(m_d3dpp));
     ZeroMemory(m_projMatrix, sizeof(m_projMatrix));
 }

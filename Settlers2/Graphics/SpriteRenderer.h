@@ -245,6 +245,9 @@ private:
     // Render queue for batch sorting (Xbox 360 optimization)
     std::vector<RenderCommand> m_renderQueue;
 
+    // DEFERRED RENDERING: Pending commands queue for sorting before GPU submission
+    std::vector<RenderCommand> m_pendingCommands;
+
     // Instance queue for hardware instancing (Xbox 360 maximum performance)
     std::vector<SpriteInstance> m_instanceQueue;
 

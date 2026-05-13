@@ -6,6 +6,7 @@
 #include "../Graphics/TextureLoader.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/TextureRegistry.h"
+#include "../Graphics/RenderLayers.h"
 
 using namespace Scene;
 #include <d3dx9.h>
@@ -223,15 +224,16 @@ void MenuScene::Render() {
 
     if (!m_spriteRenderer || !m_backgroundTexture.GetTexture() || !m_textManager) return;
 
-    // 1. Render Background with depth=0.0f (back)
+    // 1. Render Background using new layer system (LAYER_BACKGROUND)
     LPDIRECT3DTEXTURE9 bgTex = m_backgroundTexture.GetTexture();
-    m_spriteRenderer->Begin("sprite", bgTex);
-    m_spriteRenderer->SetCurrentDepth(0.0f); // Background is behind
-//    m_spriteRenderer->Draw(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
+    float bgDepth = LayerUtils::GetUIDepth(LAYER_BACKGROUND);
+    m_spriteRenderer->Begin(SHADER_SPRITE, bgTex, bgDepth, 0, true); // UI rendering
+    m_spriteRenderer->Draw(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
     m_spriteRenderer->End(); // Close background batch
 
-    // 2. Begin text batch with depth=0.1f (front)
-    m_textManager->BeginTextBatch(FONT_MENU, 0.1f);
+    // 2. Render UI text using new layer system (LAYER_FOREGROUND for text)
+    float textDepth = LayerUtils::GetUIDepth(LAYER_FOREGROUND);
+    m_textManager->BeginTextBatch(FONT_MENU, textDepth);
     
     // 3. Render Text
     m_textManager->DrawTextToScreen("SETTLERS 2 XBOX", 100.0f, 100.0f, 0xFFFFFFFF, 1.0f); 

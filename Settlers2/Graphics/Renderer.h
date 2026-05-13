@@ -2,13 +2,8 @@
 #include "ShaderManager.h"
 #include <d3d9.h>
 #include <d3dx9.h>
+#include "RenderTypes.h"
 
-struct SpriteVertex {
-    float x, y, z;        // POSITION - 12 bytes (offset 0)
-    float u, v;           // TEXCOORD0 - 8 bytes (offset 12)
-    DWORD color;          // COLOR0 - 4 bytes (offset 20)
-    float padding[2];     // TEXCOORD1/Padding - 8 bytes (offset 24)
-};
 static_assert(sizeof(SpriteVertex) == 32, "SpriteVertex must be 32 bytes");
 
 class Texture;
@@ -37,12 +32,12 @@ public:
     LPDIRECT3DVERTEXDECLARATION9 GetVertexDecl() const { return m_pVertexDecl; }
 
     // Shader management
-    ShaderManager* GetShaderManager() { return m_pExternalShaderManager ? m_pExternalShaderManager : &m_shaderManager; }
+    ShaderManager* GetShaderManager() { return &m_shaderManager; }
     
     // SpriteRenderer access
     SpriteRenderer* GetSpriteRenderer() { return m_pSpriteRenderer; }
     void SetSpriteRenderer(SpriteRenderer* pSpriteRenderer);
-    void SetShaderManager(ShaderManager* pShaderManager) { m_pExternalShaderManager = pShaderManager; }
+    void SetShaderManager(ShaderManager* pShaderManager) {} // Deprecated - keep for compatibility
     HRESULT LoadShader(ShaderID id, const char* filepath, const char* techniqueName = "SpriteBatchTech");
     bool SetShader(ShaderID id);
     void ResetToDefaultShader();
@@ -70,7 +65,6 @@ private:
 
     ShaderManager m_shaderManager;
     SpriteRenderer* m_pSpriteRenderer;
-    ShaderManager* m_pExternalShaderManager;
 
     LPDIRECT3DVERTEXSHADER9 m_pVertexShader;
     LPDIRECT3DPIXELSHADER9  m_pPixelShader;

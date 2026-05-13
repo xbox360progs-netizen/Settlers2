@@ -17,7 +17,7 @@ RenderSystem::~RenderSystem()
 {
 }
 
-void RenderSystem::Update(EntityManager* entityManager, Renderer::IRenderer* renderer, float deltaTime)
+void RenderSystem::Update(EntityManager* entityManager, Renderer* renderer, float deltaTime)
 {
     // TODO: Re-enable when IRenderer is implemented
     /*
@@ -38,7 +38,7 @@ void RenderSystem::Update(EntityManager* entityManager, Renderer::IRenderer* ren
     */
 }
 
-void RenderSystem::RenderSprite(EntityManager* entityManager, Renderer::IRenderer* renderer, EntityID entityID)
+void RenderSystem::RenderSprite(EntityManager* entityManager, Renderer* renderer, EntityID entityID)
 {
     // TODO: Re-enable when IRenderer is implemented
     /*
