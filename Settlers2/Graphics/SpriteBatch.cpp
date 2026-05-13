@@ -98,17 +98,17 @@ void SpriteBatch::Begin() {
     m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
 }
 
-void SpriteBatch::Draw(Texture* texture, float x, float y, float w, float h, float u0, float v0, float u1, float v1, DWORD color) {
+void SpriteBatch::Draw(Texture* texture, float x, float y, float w, float h, float u0, float v0, float u1, float v1) {
     if (!m_bDrawing || m_spriteCount >= MAX_SPRITES) return;
 
-    // Пакетная отрисовка (Batching)
+    // ����� �������� (Batching)
     if (texture != m_pCurrentTexture) {
         if (m_spriteCount > 0) Flush();
         m_pCurrentTexture = texture;
         if (texture) m_pDevice->SetTexture(0, texture->GetTexture());
     }
 
-    // Блокировка вершинного буфера
+    // Ensure vertex buffer is locked before writing (in case it was unlocked on Flush)
     int cur = m_writeIndex;
     if (!m_vbLocked[cur]) {
         HRESULT hr = m_pVB[cur]->Lock(0, MAX_SPRITES * 4 * sizeof(SpriteVertex), (void**)&m_pVertices, 0);
@@ -116,33 +116,24 @@ void SpriteBatch::Draw(Texture* texture, float x, float y, float w, float h, flo
         m_vbLocked[cur] = true;
     }
 
+    // ��������� �� ������� 4 ������� ������� (������ �� 32 �����)
     SpriteVertex* v = &m_pVertices[m_spriteCount * 4];
 
-    float bias = -0.5f; // Сдвиг на полпикселя для Direct3D 9
-
+    // ��������� 4 ������� (Quad)
+    // �������: X, Y, Z, Color, U, V, Padding
+    
     // 0: Top-Left
-    v[0].x = x + bias;     v[0].y = y + bias;     v[0].z = 0.0f;
-    v[0].u = u0;           v[0].v = v0;
-    v[0].color = color;
-    v[0].padding[0] = 0.0f; v[0].padding[1] = 0.0f;
+    float bias = -0.5f; // Half-pixel bias for pixel-perfect 2D rendering
+    v[0].x = x + bias;     v[0].y = y + bias;     v[0].z = 0.0f; v[0].color = 0xFFFFFFFF; v[0].u = u0; v[0].v = v0; 
     
     // 1: Top-Right
-    v[1].x = x + w + bias; v[1].y = y + bias;     v[1].z = 0.0f;
-    v[1].u = u1;           v[1].v = v0; // Используем v0 для верхнего правого угла
-    v[1].color = color;
-    v[1].padding[0] = 0.0f; v[1].padding[1] = 0.0f;
+    v[1].x = x + w + bias; v[1].y = y + bias;     v[1].z = 0.0f; v[1].color = 0xFFFFFFFF; v[1].u = u1;
     
     // 2: Bottom-Right
-    v[2].x = x + w + bias; v[2].y = y + h + bias; v[2].z = 0.0f;
-    v[2].u = u1;           v[2].v = v1;
-    v[2].color = color;
-    v[2].padding[0] = 0.0f; v[2].padding[1] = 0.0f;
+    v[2].x = x + w + bias; v[2].y = y + h + bias; v[2].z = 0.0f; v[2].color = 0xFFFFFFFF; v[2].u = u1; v[2].v = v1;
     
     // 3: Bottom-Left
-    v[3].x = x + bias;     v[3].y = y + h + bias; v[3].z = 0.0f;
-    v[3].u = u0;           v[3].v = v1;
-    v[3].color = color;
-    v[3].padding[0] = 0.0f; v[3].padding[1] = 0.0f;
+    v[3].x = x + bias; v[3].y = y + h + bias; v[3].z = 0.0f; v[3].color = 0xFFFFFFFF; v[3].u = u0; v[3].v = v1;
 
     m_spriteCount++;
 }

@@ -14,8 +14,8 @@
 #pragma comment(lib, "d3d9.lib")
 #pragma comment(lib, "d3dx9.lib")
 
-// Disable all debug logs
-#ifdef DISABLE_RENDER_LOGS
+// Silence debug logs in release build
+#ifndef DISABLE_RENDER_LOGS
 #define OutputDebugStringA(...) do { } while(0)
 #endif
 
@@ -661,6 +661,14 @@ void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float
     OutputDebugStringA("[SR::Begin] 5-PARAM VERSION ENTERED NOW!!!\n");
     fflush(stdout);
 
+    // Если предыдущая сцена или менеджер забыли вызвать End(), 
+    // или если мы внутри кадра переключаемся с фона (isUI=1) на мир/текст
+    if (m_isBatching) {
+        // Безопасно закрываем и выталкиваем предыдущий батч (бэкграунд) на экран
+        OutputDebugStringA("[SR::Begin] AUTO-CLOSING previous batch via End()\n");
+        End(); 
+    }
+
     // Reset texture to ensure clean state for new batch
     m_currentTexture = pTexture;
     
@@ -905,8 +913,6 @@ void SpriteRenderer::Draw(float x, float y, float width, float height,
         OutputDebugStringA(buf);
         Flush();
     }
-
-    m_spriteCount++;
 }
 
 void SpriteRenderer::DrawWithTexture(float x, float y, float width, float height,
@@ -965,28 +971,33 @@ void SpriteRenderer::DrawRotated(float x, float y, float width, float height, fl
 }
 
 void SpriteRenderer::End() {
-    OutputDebugStringA("[SR::End] DEFERRED: ENTERED - m_isBatching=");
-char dbg[128];
+    char dbg[128];
     sprintf(dbg, "[SR::End] ENTRY: m_isBatching=%d, m_pendingCommands=%d, m_spriteCount=%d\n", 
             m_isBatching, (int)m_pendingCommands.size(), m_spriteCount);
     OutputDebugStringA(dbg);
-    fflush(stdout);
-    printf("[SR::End] ENTRY: m_isBatching=%d, m_pendingCommands=%d, m_spriteCount=%d\n", 
-            m_isBatching, (int)m_pendingCommands.size(), m_spriteCount);
-    fflush(stdout);
     
-    if (m_isBatching) {
-        // DEFERRED RENDERING: Flush remaining pending commands
-        if (!m_pendingCommands.empty()) {
-            OutputDebugStringA("[SR::End] DEFERRED: Calling Flush()...\n");
-            Flush();
-            OutputDebugStringA("[SR::End] DEFERRED: Flush() completed\n");
-        }
-    } else {
+    // Если батчинг не запущен — это ошибка вызова, выходим
+    if (!m_isBatching) {
         OutputDebugStringA("[SR::End] WARNING: m_isBatching is false!\n");
+        return;
     }
     
+    // КРИТИЧЕСКИЙ ШАГ: Сначала выключаем флаг батчинга. 
+    // Это изолирует текущий набор спрайтов (например, фон) от последующих вызовов.
     m_isBatching = false;
+    
+    // Вызываем Flush, если есть ХОТЯ БЫ ОДНА команда ИЛИ хотя бы один спрайт в буфере
+    if (!m_pendingCommands.empty() || m_spriteCount > 0) {
+        OutputDebugStringA("[SR::End] DEFERRED: Calling Flush()...\n");
+        
+        Flush(); // Отправляем изолированный батч на видеокарту
+        
+        OutputDebugStringA("[SR::End] DEFERRED: Flush() completed\n");
+    }
+    
+    // Обязательно сбрасываем счетчик спрайтов после Flush, 
+    // чтобы следующий компонент (текст) начинал заполнять буфер вершин с нуля!
+    m_spriteCount = 0;
 }
 
 void SpriteRenderer::ResetVertexCount() {
@@ -1122,7 +1133,6 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
 
     // Clear local queue for next frame
     m_pendingCommands.clear();
-    m_spriteCount = 0;
 
     // Switch buffer for next frame (double buffering)
     m_activeBuffer = (m_activeBuffer + 1) % 2;

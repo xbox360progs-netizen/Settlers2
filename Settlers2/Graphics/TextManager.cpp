@@ -6,11 +6,6 @@
 #include "SpriteRenderer.h"
 #include <d3dx9.h>
 
-// Disable all debug logs
-#ifdef DISABLE_RENDER_LOGS
-#define OutputDebugStringA(...) do { } while(0)
-#endif
-
 #define DEBUG_TEXT_SKIP_RENDER 0
 
 // Half-pixel UV padding for Xbox 360 to prevent texture bleeding
@@ -122,10 +117,10 @@ void TextManager::PushLetterCommand(const Glyph& glyph, LPDIRECT3DTEXTURE9 textu
 {
     if (!m_spriteRenderer) return;
     
-    char debugBuf[256];
-    sprintf(debugBuf, "[TextManager::PushLetterCommand] Letter %d: pos=(%.1f,%.1f) size=(%.1f,%.1f) using SpriteRenderer\n",
-            letterCount, x, y, w, h);
-    OutputDebugStringA(debugBuf);
+//    char debugBuf[256];
+//    sprintf(debugBuf, "[TextManager::PushLetterCommand] Letter %d: pos=(%.1f,%.1f) size=(%.1f,%.1f) using SpriteRenderer\n",
+//            letterCount, x, y, w, h);
+//    OutputDebugStringA(debugBuf);
     
     // Apply UV padding to prevent bleeding on Xbox 360
     float u0 = glyph.u0 + UV_PADDING;
@@ -146,19 +141,19 @@ void TextManager::PushLetterCommand(const Glyph& glyph, LPDIRECT3DTEXTURE9 textu
     v1 = max(0.0f, min(1.0f, v1));
     
     // Use SpriteRenderer->DrawWithTexture instead of RenderCommand
-    char debugBuf2[512];
-    sprintf(debugBuf2, "[TextManager::PushLetterCommand] Drawing: pos=(%.1f,%.1f) size=(%.1f,%.1f) uv=(%.3f,%.3f,%.3f,%.3f) color=0x%08X texture=%p\n",
-            x, y, w, h, u0, v0, u1, v1, color, texture);
-    OutputDebugStringA(debugBuf2);
-    m_spriteRenderer->DrawWithTexture(x, y, w, h, u0, v0, u1, v1, texture, color);
+//    char debugBuf2[512];
+//    sprintf(debugBuf2, "[TextManager::PushLetterCommand] Drawing: pos=(%.1f,%.1f) size=(%.1f,%.1f) uv=(%.3f,%.3f,%.3f,%.3f) color=0x%08X texture=%p\n",
+//            x, y, w, h, u0, v0, u1, v1, color, texture);
+//    OutputDebugStringA(debugBuf2);
+//    m_spriteRenderer->DrawWithTexture(x, y, w, h, u0, v0, u1, v1, texture, color);
 }
 
 void TextManager::DrawString(const std::string& text, float x, float y, D3DCOLOR color, float scale, FontID fontID, bool isUI, FontStyle style, float depth)
 {
-    char dbg[256];
-    sprintf(dbg, "[TextManager::DrawString] ENTRY text='%s' x=%.1f y=%.1f m_font=%p m_spriteRenderer=%p\n",
-            text.c_str(), x, y, m_font, m_spriteRenderer);
-    OutputDebugStringA(dbg);
+//    char dbg[256];
+//    sprintf(dbg, "[TextManager::DrawString] ENTRY text='%s' x=%.1f y=%.1f m_font=%p m_spriteRenderer=%p\n",
+//            text.c_str(), x, y, m_font, m_spriteRenderer);
+//    OutputDebugStringA(dbg);
 
     if (!m_font) return;
     
@@ -269,10 +264,10 @@ void TextManager::DrawString(const std::string& text, float x, float y, D3DCOLOR
         float u1 = glyph.u1 - uvPadding;
         float v1 = glyph.v1 - uvPadding;
         
-        char dbg[256];
-        sprintf(dbg, "[TextManager] char='%c' pos=(%.1f,%.1f) uv=(%.4f,%.4f,%.4f,%.4f) size=(%.1f,%.1f)\n", 
-                c, charX, charY, u0, v0, u1, v1, charW, charH);
-        OutputDebugStringA(dbg);
+//        char dbg[256];
+//        sprintf(dbg, "[TextManager] char='%c' pos=(%.1f,%.1f) uv=(%.4f,%.4f,%.4f,%.4f) size=(%.1f,%.1f)\n", 
+//                c, charX, charY, u0, v0, u1, v1, charW, charH);
+//        OutputDebugStringA(dbg);
         
         // Clamp UVs to valid range
         u0 = max(0.0f, min(1.0f, u0));
@@ -284,20 +279,20 @@ void TextManager::DrawString(const std::string& text, float x, float y, D3DCOLOR
 		if (style == FONT_STYLE_SHADOW && m_spriteRenderer) {
 			float shadowX = charX + 1.0f;
 			float shadowY = charY + 1.0f;
-			char dbg[256];
-			sprintf(dbg, "[TextManager] About to call DrawWithTexture for SHADOW at (%.1f,%.1f)\n", shadowX, shadowY);
-			OutputDebugStringA(dbg);
+//			char dbg[256];
+//			sprintf(dbg, "[TextManager] About to call DrawWithTexture for SHADOW at (%.1f,%.1f)\n", shadowX, shadowY);
+//			OutputDebugStringA(dbg);
 			m_spriteRenderer->DrawWithTexture(shadowX, shadowY, charW, charH, u0, v0, u1, v1, fontTexture, 0xFF000000);
 		}
         
 		// Draw main character
 		if (m_spriteRenderer) {
-			char dbg[256];
-			sprintf(dbg, "[TextManager] About to call DrawWithTexture for MAIN char at (%.1f,%.1f)\n", charX, charY);
-			OutputDebugStringA(dbg);
+//			char dbg[256];
+//			sprintf(dbg, "[TextManager] About to call DrawWithTexture for MAIN char at (%.1f,%.1f)\n", charX, charY);
+//			OutputDebugStringA(dbg);
 			m_spriteRenderer->DrawWithTexture(charX, charY, charW, charH, u0, v0, u1, v1, fontTexture, color);
-			sprintf(dbg, "[TextManager] DrawWithTexture for MAIN char returned\n");
-			OutputDebugStringA(dbg);
+//			sprintf(dbg, "[TextManager] DrawWithTexture for MAIN char returned\n");
+//			OutputDebugStringA(dbg);
 		} else {
 			OutputDebugStringA("[TextManager] ERROR: m_spriteRenderer is NULL in DrawString!\n");
 		}
@@ -322,22 +317,22 @@ void TextManager::DrawString(const std::string& text, float x, float y, D3DCOLOR
 
 void TextManager::DrawTextToScreen(const std::string& text, float x, float y, D3DCOLOR color, float scale, FontID fontID, FontStyle style)
 {
-    char debugBuf[256];
-    sprintf(debugBuf, "[TextManager::DrawTextToScreen] Drawing '%s' at (%.1f,%.1f) with color=0x%08X\n", 
-            text.c_str(), x, y, color);
-    OutputDebugStringA(debugBuf);
+//    char debugBuf[256];
+//    sprintf(debugBuf, "[TextManager::DrawTextToScreen] Drawing '%s' at (%.1f,%.1f) with color=0x%08X\n", 
+//            text.c_str(), x, y, color);
+//    OutputDebugStringA(debugBuf);
     
     // Получаем текстуру атласа напрямую из BitmapFont
     LPDIRECT3DTEXTURE9 fontTex = m_font->GetTexture();
     
     // Логируем адрес текстуры
-    sprintf(debugBuf, "[TextManager] Using texture: %p\n", fontTex);
-    OutputDebugStringA(debugBuf);
+//    sprintf(debugBuf, "[TextManager] Using texture: %p\n", fontTex);
+//    OutputDebugStringA(debugBuf);
     
     DrawString(text, x, y, color, scale, fontID, true, style, 0.05f);
     
-    sprintf(debugBuf, "[TextManager::DrawTextToScreen] Completed drawing '%s'\n", text.c_str());
-    OutputDebugStringA(debugBuf);
+//    sprintf(debugBuf, "[TextManager::DrawTextToScreen] Completed drawing '%s'\n", text.c_str());
+//    OutputDebugStringA(debugBuf);
 }
 
 void TextManager::DrawTextToWorld(const std::string& text, float worldX, float worldY, D3DCOLOR color, float scale, FontID fontID, FontStyle style)
@@ -347,9 +342,9 @@ void TextManager::DrawTextToWorld(const std::string& text, float worldX, float w
 
 void TextManager::BeginTextBatch(FontID fontID, float depth)
 {
-    char dbg[256];
-    sprintf(dbg, "[TextManager::BeginTextBatch] ENTRY m_spriteRenderer=%p\n", m_spriteRenderer);
-    OutputDebugStringA(dbg);
+//    char dbg[256];
+//    sprintf(dbg, "[TextManager::BeginTextBatch] ENTRY m_spriteRenderer=%p\n", m_spriteRenderer);
+//    OutputDebugStringA(dbg);
     
     if (!m_spriteRenderer) {
         OutputDebugStringA("[TextManager::BeginTextBatch] ERROR: m_spriteRenderer is NULL!\n");
@@ -357,23 +352,23 @@ void TextManager::BeginTextBatch(FontID fontID, float depth)
     }
     
     LPDIRECT3DTEXTURE9 fontTexture = GetFontTexture(fontID);
-    sprintf(dbg, "[TextManager::BeginTextBatch] fontTexture=%p\n", fontTexture);
-    OutputDebugStringA(dbg);
+//    sprintf(dbg, "[TextManager::BeginTextBatch] fontTexture=%p\n", fontTexture);
+//    OutputDebugStringA(dbg);
     
     if (!fontTexture) {
         // Fallback to default font texture
         if (m_font) {
             fontTexture = m_font->GetTexture();
-            sprintf(dbg, "[TextManager::BeginTextBatch] Using fallback fontTexture=%p\n", fontTexture);
-            OutputDebugStringA(dbg);
+//            sprintf(dbg, "[TextManager::BeginTextBatch] Using fallback fontTexture=%p\n", fontTexture);
+//            OutputDebugStringA(dbg);
         }
     }
     
     if (fontTexture) {
-        OutputDebugStringA("[TextManager] BeginTextBatch - calling SpriteRenderer::Begin...\n");
+//        OutputDebugStringA("[TextManager] BeginTextBatch - calling SpriteRenderer::Begin...\n");
         m_spriteRenderer->Begin("sprite", fontTexture);
         m_spriteRenderer->SetCurrentDepth(depth);
-        OutputDebugStringA("[TextManager] BeginTextBatch completed\n");
+//        OutputDebugStringA("[TextManager] BeginTextBatch completed\n");
     } else {
         OutputDebugStringA("[TextManager::BeginTextBatch] ERROR: No font texture available!\n");
     }
@@ -382,7 +377,7 @@ void TextManager::BeginTextBatch(FontID fontID, float depth)
 void TextManager::EndTextBatch()
 {
     if (m_spriteRenderer) {
-        OutputDebugStringA("[TextManager] EndTextBatch - calling SpriteRenderer::End...\n");
+//        OutputDebugStringA("[TextManager] EndTextBatch - calling SpriteRenderer::End...\n");
         m_spriteRenderer->End();
         OutputDebugStringA("[TextManager] EndTextBatch completed\n");
     }
@@ -467,9 +462,9 @@ void TextManager::RenderScreen()
 {
     // XBOX 360 CRITICAL: Copy text vertices to shared buffer like SpriteRenderer
     if (!m_screenVertices.empty() && m_renderer && m_renderer->GetShaderManager()) {
-        char debugBuf[256];
-        sprintf(debugBuf, "[TextManager::RenderScreen] Copying %zu text vertices to buffer\n", m_screenVertices.size());
-        OutputDebugStringA(debugBuf);
+//        char debugBuf[256];
+//        sprintf(debugBuf, "[TextManager::RenderScreen] Copying %zu text vertices to buffer\n", m_screenVertices.size());
+//        OutputDebugStringA(debugBuf);
         
         // Get the shared vertex buffer from SpriteRenderer
         ShaderManager* shaderManager = m_renderer->GetShaderManager();
@@ -481,7 +476,7 @@ void TextManager::RenderScreen()
             if (SUCCEEDED(hr)) {
                 memcpy(pData, m_screenVertices.data(), m_screenVertices.size() * sizeof(SpriteVertex));
                 pVB->Unlock();
-                OutputDebugStringA("[TextManager::RenderScreen] Text vertices copied to shared buffer\n");
+//                OutputDebugStringA("[TextManager::RenderScreen] Text vertices copied to shared buffer\n");
             } else {
                 OutputDebugStringA("[TextManager::RenderScreen] ERROR: Failed to lock shared vertex buffer\n");
             }

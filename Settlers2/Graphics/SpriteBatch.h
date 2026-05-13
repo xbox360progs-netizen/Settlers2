@@ -14,7 +14,7 @@ public:
     void Shutdown();
 
     void Begin();
-    void Draw(Texture* texture, float x, float y, float w, float h, float u0 = 0, float v0 = 0, float u1 = 1, float v1 = 1, DWORD color = 0xFFFFFFFF);
+    void Draw(Texture* texture, float x, float y, float w, float h, float u0 = 0, float v0 = 0, float u1 = 1, float v1 = 1);
     void End();
     // Handle device loss/recovery for Xbox 360 (XDK)
     void OnLostDevice();

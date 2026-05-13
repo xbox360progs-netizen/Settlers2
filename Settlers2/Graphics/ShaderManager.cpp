@@ -8,11 +8,6 @@
 #include <string>
 #include <algorithm>
 
-// Disable all debug logs
-#ifdef DISABLE_RENDER_LOGS
-#define OutputDebugStringA(...) do { } while(0)
-#endif
-
 // StateCache Implementation
 ShaderManager::StateCache::StateCache() 
     : m_dirty(false) {
@@ -178,10 +173,10 @@ bool ShaderManager::LoadBaseShaders() {
 
     // Load RadialMenu.fx (for radial menu)
     // Commented out - RadialMenu.fx doesn't exist yet
-    // if (FAILED(LoadShader(SHADER_RADIALMENU, "game:\\Media\\Shaders\\RadialMenu.fx", "RadialMenu"))) {
-    //     OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_RADIALMENU (RadialMenu.fx)\n");
-    //     allSuccess = false;
-    // }
+     if (FAILED(LoadShader(SHADER_RADIALMENU, "game:\\Media\\Shaders\\RadialMenu.fx", "RadialMenu"))) {
+         OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_RADIALMENU (RadialMenu.fx)\n");
+         allSuccess = false;
+     }
 
     // Load SpriteConstantInstanced.fx (for instanced sprites)
     if (FAILED(LoadShader(SHADER_SPRITE_CONSTANT_INSTANCED, "game:\\Media\\Shaders\\SpriteConstantInstanced.fx", "SpriteConstantInstancedTech"))) {
@@ -1003,15 +998,14 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         }
 
         // --- RENDER ---
-        if (cmd.batchType == 2 && cmd.customDraw) {
-            // Custom callback (e.g., RadialMenu)
-            if (cmd.customDraw && m_pDevice) {
-                cmd.customDraw(m_pDevice, this, cmd.customUserData);
-            }
-        } else if (passActive) {
-            m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, cmd.baseVertex, 0,
-                                          cmd.vertexCount,
-                                          cmd.vertexStart,
+        if (passActive) {
+            char renderMsg[256];
+            sprintf(renderMsg, "[ExecuteQueue] Drawing: depth=%.2f, baseVert=%d, startIdx=%d, verts=%d, prims=%d, tex=%p\n",
+                    cmd.depth, cmd.baseVertex, cmd.vertexStart, cmd.vertexCount, cmd.primitiveCount, cmd.pTexture);
+            OutputDebugStringA(renderMsg);
+            m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, cmd.baseVertex, 0, 
+                                          cmd.vertexCount, 
+                                          cmd.vertexStart, 
                                           cmd.primitiveCount);
         }
     }
