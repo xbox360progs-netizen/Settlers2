@@ -974,6 +974,7 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     ShaderID currentShaderID = SHADER_INVALID;
     LPDIRECT3DTEXTURE9 lastTexture = nullptr;
     bool passActive = false;
+    bool hasAnyWorkBeenDone = false;
 
     // Сканируем кольцевой буфер команд
     for (int i = 0; i < MAX_GLOBAL_COMMANDS; ++i) {
@@ -984,6 +985,7 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
 
             // Переводим в состояние отрисовки
             InterlockedExchange(&cmd.status, 2);
+            hasAnyWorkBeenDone = true;
 
             // --- СМЕНА ШЕЙДЕРА И МАТРИЦ ---
             if (cmd.shaderID != currentShaderID) {
@@ -1061,7 +1063,8 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     // Xbox 360: Reset ring buffer offsets at end of frame (in render thread)
     // This ensures GPU has finished processing all commands before reset
     // Prevents the bug where Core 0 clears buffer while GPU is still reading
-    if (pSpriteRenderer) {
+    // Only reset if any work was actually done this frame (prevents multiple resets)
+    if (hasAnyWorkBeenDone && pSpriteRenderer) {
         pSpriteRenderer->ResetVertexCount();
     }
 }
