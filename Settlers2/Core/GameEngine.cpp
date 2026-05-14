@@ -37,7 +37,8 @@ DWORD WINAPI RenderThreadProcessor(LPVOID lpParam) {
                         sr->GetIndexBuffer(),
                         sr->GetVertexDeclaration(),
                         sizeof(SpriteVertex),
-                        NULL);
+                        NULL,
+                        sr);
 
         // Маленькая аппаратная уступка кванта времени Xenon OS, если очередь пустеет
         if (sm->IsQueueEmptyForThisTick()) {

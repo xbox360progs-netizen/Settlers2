@@ -145,13 +145,7 @@ void SceneManager::Render()
     // Step 2: RECORD - Collect all render commands from scene
     // The scene will call SpriteRenderer which submits commands to the queue
     // Nobody draws anything at this stage!
-    
-    // Reset vertex count at start of frame
-    if (m_spriteRenderer) {
-        m_spriteRenderer->ResetVertexCount();
-        printf("[SceneManager] Called ResetVertexCount\n");
-    }
-    
+
     printf("[SceneManager] About to call m_currentScene->Render()\n");
     OutputDebugStringA("[SceneManager::Render] Calling m_currentScene->Render()...\n");
     m_currentScene->Render();

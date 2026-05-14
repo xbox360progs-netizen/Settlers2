@@ -933,7 +933,7 @@ void ShaderManager::ApplyShader(int shaderID) {
 
 void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB,
                                 LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride,
-                                const D3DXMATRIX* pViewProj) {
+                                const D3DXMATRIX* pViewProj, SpriteRenderer* pSpriteRenderer) {
 
     // Reset vertex offset at start of each frame
     s_currentVertexOffset = 0;
@@ -1057,6 +1057,13 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
 
     // Clear frame ViewProj for next frame
     m_hasFrameViewProj = false;
+
+    // Xbox 360: Reset ring buffer offsets at end of frame (in render thread)
+    // This ensures GPU has finished processing all commands before reset
+    // Prevents the bug where Core 0 clears buffer while GPU is still reading
+    if (pSpriteRenderer) {
+        pSpriteRenderer->ResetVertexCount();
+    }
 }
 
 void ShaderManager::ExecuteBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 

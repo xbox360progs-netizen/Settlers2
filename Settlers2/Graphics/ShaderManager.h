@@ -7,6 +7,9 @@
 #include <string>
 #include "RenderTypes.h"
 
+// Forward declaration
+class SpriteRenderer;
+
 // Global shader ID enum (must be outside class for use across files)
 enum ShaderID {
     SHADER_INVALID = -1,
@@ -225,9 +228,10 @@ public:
     
     // Legacy ApplyShader (for backward compatibility)
     void ApplyShader(int shaderID);
-    void ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
+    void ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB,
                      LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride,
-                     const D3DXMATRIX* pViewProj = NULL); // Optional camera matrix
+                     const D3DXMATRIX* pViewProj = NULL, // Optional camera matrix
+                     SpriteRenderer* pSpriteRenderer = NULL); // For Xbox 360 ring buffer reset
     
     // Execute draw batches with material-based sorting
     void ExecuteDrawBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
