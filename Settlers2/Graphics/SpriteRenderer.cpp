@@ -1038,6 +1038,16 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
     cmd.primitiveCount = m_spriteCount * 2;
     cmd.status = 1; // Готово к отправке на GPU
 
+    // === КРИТИЧЕСКИЙ АППАРАТНЫЙ БАРЬЕР ДЛЯ XBOX 360 ===
+    // Жестко заставляем ядро Xenon завершить ВСЕ операции записи в память (L2 Cache Flush)
+    // ДО того, как мы выставим статус готовности команды.
+    // Это предотвратит отправку пустых вершин по шине и спасет GPU от краша!
+#ifdef _XBOX
+    __sync(); // Встроенный барьер памяти компилятора Xbox 360 compiler (PowerPC sync)
+#else
+    MemoryBarrier();
+#endif
+
     // Атомарно пушим команду в Lock-Free очередь ShaderManager
     if (pShader) {
         pShader->PushXbox360Command(cmd);

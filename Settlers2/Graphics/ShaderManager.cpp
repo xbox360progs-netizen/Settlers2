@@ -990,6 +990,13 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
 
             // Переводим в состояние отрисовки
             InterlockedExchange(&cmd.status, 2);
+
+            // ЗАЩИТА GPU: Если текстура не валидна, пропускаем команду во избежание сбоя Xenos
+            if (!cmd.pTexture) {
+                InterlockedExchange(&cmd.status, 0);
+                continue;
+            }
+
             hasAnyWorkBeenDone = true;
 
             // --- СМЕНА ШЕЙДЕРА И МАТРИЦ ---
