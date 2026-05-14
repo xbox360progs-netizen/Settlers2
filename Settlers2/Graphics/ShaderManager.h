@@ -255,8 +255,15 @@ public:
     }
 
     // Check if there are pending GPU commands (for ring buffer wrap-around waiting)
+    // Returns true if any command has status 1 (ready) or 2 (being rendered by GPU)
     bool HasPendingGpuCommands() const {
-        return GetCommandCount() > 0;
+        for (int i = 0; i < MAX_GLOBAL_COMMANDS; ++i) {
+            long currentStatus = m_commandQueue[i].status;
+            if (currentStatus == 1 || currentStatus == 2) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // Push command for Xbox 360 ring buffer architecture

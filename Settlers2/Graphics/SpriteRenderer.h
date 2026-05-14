@@ -224,7 +224,10 @@ private:
     void InternalDraw(const RenderCommand& cmd);
 
     // Xbox 360 Ring Buffer constants
-    static const int HARDWARE_MAX_VERTICES = 4096 * 4 * 3; // 3x max sprites for ring buffer
+    // 3 batches of 2048 sprites (guarantees that while one batch is being rendered,
+    // the second is being prepared, and the third is in reserve for bus lag)
+    static const int HARDWARE_MAX_VERTICES = 2048 * 4 * 3; // 24,576 vertices
+    static const int HARDWARE_MAX_INDICES = 2048 * 6 * 3;  // 36,864 indices
 
     LPDIRECT3DDEVICE9 m_pDevice;
     ShaderManager* m_pShaderManager;
