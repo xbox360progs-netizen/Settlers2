@@ -253,6 +253,14 @@ public:
         }
         return count;
     }
+
+    // Check if there are pending GPU commands (for ring buffer wrap-around waiting)
+    bool HasPendingGpuCommands() const {
+        return GetCommandCount() > 0;
+    }
+
+    // Push command for Xbox 360 ring buffer architecture
+    void PushXbox360Command(const RenderCommand& cmd);
     
     // Get draw batch count
     size_t GetDrawBatchCount() const { return m_drawBatches.size(); }

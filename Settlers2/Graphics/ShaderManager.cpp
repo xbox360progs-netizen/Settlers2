@@ -570,6 +570,25 @@ void ShaderManager::PushCommand(const RenderCommand& cmd) {
     Submit(cmd);
 }
 
+// Push command for Xbox 360 ring buffer architecture
+void ShaderManager::PushXbox360Command(const RenderCommand& cmd) {
+    // Find free slot and atomically capture it
+    int targetSlot = -1;
+    for (int i = 0; i < MAX_GLOBAL_COMMANDS; ++i) {
+        if (InterlockedCompareExchange(&m_commandQueue[i].status, 2, 0) == 0) {
+            targetSlot = i;
+            break;
+        }
+    }
+
+    if (targetSlot != -1) {
+        m_commandQueue[targetSlot] = cmd;
+        InterlockedExchange(&m_commandQueue[targetSlot].status, 1);
+    } else {
+        OutputDebugStringA("[ShaderManager::PushXbox360Command] CRITICAL: Command Ring Buffer Overflow!\n");
+    }
+}
+
 void ShaderManager::SubmitDrawBatch(const DrawBatch& batch) {
     Lock();
     m_drawBatches.push_back(batch);
@@ -927,8 +946,9 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     // === STATE LOCKING: Prevent external state corruption ===
     Lock();
 
-    // Set vertex declaration once for entire frame
+    // Set vertex declaration and stream source once for entire frame (single ring buffer)
     m_pDevice->SetVertexDeclaration(pDecl);
+    m_pDevice->SetStreamSource(0, pVB, 0, sizeof(SpriteVertex));
     m_pDevice->SetIndices(pIB);
 
     // === LAZY BATCHING: Process commands with minimal state switches ===
@@ -939,7 +959,6 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
 
     ShaderID currentShaderID = SHADER_INVALID;
     LPDIRECT3DTEXTURE9 lastTexture = nullptr;
-    LPDIRECT3DVERTEXBUFFER9 lastVertexBuffer = nullptr;
     bool passActive = false;
 
     // Сканируем кольцевой буфер команд
@@ -948,6 +967,9 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
 
         // Проверяем атомарный статус: 1 = команда готова к отрисовке на GPU
         if (cmd.status == 1) {
+
+            // Переводим в состояние отрисовки
+            InterlockedExchange(&cmd.status, 2);
 
             // --- СМЕНА ШЕЙДЕРА И МАТРИЦ ---
             if (cmd.shaderID != currentShaderID) {
@@ -978,27 +1000,24 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                 if (m_pActiveEffect) m_pActiveEffect->CommitChanges();
             }
 
-            // === КРИТИЧЕСКИЙ ШАГ: ПОДМЕНА СТРИМА ДЛЯ ЯДРА 1 ===
-            // Переключаем видеокарту на тот Vertex Buffer, который Ядро 0 наполнило для этой команды
-            if (cmd.pVertexBuffer != lastVertexBuffer) {
-                m_pDevice->SetStreamSource(0, cmd.pVertexBuffer, 0, sizeof(SpriteVertex));
-                lastVertexBuffer = cmd.pVertexBuffer;
-            }
-
-            // Аппаратный Draw Call на чип Xenos (Xbox 360)
+            // ФИЗИЧЕСКИЙ DRAW CALL С УЧЕТОМ СДВИГА NOOVERWRITE
+            // Передаем cmd.baseVertex и cmd.vertexStart, чтобы видеокарта прочитала правильный сектор буфера
             if (passActive) {
                 char renderMsg[256];
-                sprintf(renderMsg, "[ExecuteQueue] Drawing: depth=%.2f, baseVert=%d, startIdx=%d, verts=%d, prims=%d, tex=%p, vb=%p\n",
-                        cmd.depth, cmd.baseVertex, cmd.vertexStart, cmd.vertexCount, cmd.primitiveCount, cmd.pTexture, cmd.pVertexBuffer);
+                sprintf(renderMsg, "[ExecuteQueue] Drawing: depth=%.2f, baseVert=%d, startIdx=%d, verts=%d, prims=%d, tex=%p\n",
+                        cmd.depth, cmd.baseVertex, cmd.vertexStart, cmd.vertexCount, cmd.primitiveCount, cmd.pTexture);
                 OutputDebugStringA(renderMsg);
-                m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, cmd.baseVertex, 0,
-                                              cmd.vertexCount,
-                                              cmd.vertexStart,
-                                              cmd.primitiveCount);
+                m_pDevice->DrawIndexedPrimitive(
+                    D3DPT_TRIANGLELIST,
+                    cmd.baseVertex,
+                    0,
+                    cmd.vertexCount,
+                    cmd.vertexStart,
+                    cmd.primitiveCount
+                );
             }
 
-            // Освобождаем ячейку: возвращаем статус в 0
-            // Теперь Ядро 0 может безопасно использовать этот слот для следующих тайлов кадра
+            // Освобождаем команду — статус возвращается в 0
             InterlockedExchange(&cmd.status, 0);
         }
     }

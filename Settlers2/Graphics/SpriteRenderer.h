@@ -223,15 +223,17 @@ private:
 
     void InternalDraw(const RenderCommand& cmd);
 
+    // Xbox 360 Ring Buffer constants
+    static const int HARDWARE_MAX_VERTICES = 4096 * 4 * 3; // 3x max sprites for ring buffer
+
     LPDIRECT3DDEVICE9 m_pDevice;
     ShaderManager* m_pShaderManager;
     LPDIRECT3DVERTEXBUFFER9 m_pVB[2]; // Double buffering for Xbox 360
     LPDIRECT3DVERTEXBUFFER9 m_pGpuBufferA; // Explicit GPU buffer A (for ping-pong)
     LPDIRECT3DVERTEXBUFFER9 m_pGpuBufferB; // Explicit GPU buffer B (for ping-pong)
-    LPDIRECT3DVERTEXBUFFER9 m_pGpuBuffers[3]; // Triple buffering for lock-free multi-threading (Ring Buffer on GPU)
+    LPDIRECT3DVERTEXBUFFER9 m_pVertexBuffer; // Single large GPU buffer for ring buffer with D3DLOCK_NOOVERWRITE
     int m_activeBuffer;               // Current buffer index (0 or 1)
     int m_currentBackBufferIndex;      // Current back buffer index for ping-pong (0 or 1)
-    int m_gpuBufferIndex;             // Current GPU buffer index for triple buffering (0, 1, 2)
     LPDIRECT3DINDEXBUFFER9 m_pIndexBuffer;
     LPDIRECT3DVERTEXDECLARATION9 m_pVertexDecl;
 

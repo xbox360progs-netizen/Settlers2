@@ -73,7 +73,7 @@ SpriteRenderer::SpriteRenderer()
     : m_pDevice(NULL), m_pShaderManager(NULL), m_pIndexBuffer(NULL), m_pVertexDecl(NULL),
       m_pStagingBuffer(NULL), m_currentTexture(NULL), m_isBatching(false), m_maxSprites(4096), m_vertexBufferSize(0), m_indexBufferSize(0), m_spriteCount(0),
       m_hStartWorkEvent(NULL), m_threadsInitialized(false), m_activeBuffer(0),
-      m_pGpuBufferA(NULL), m_pGpuBufferB(NULL), m_currentBackBufferIndex(0), m_gpuBufferIndex(0),
+      m_pGpuBufferA(NULL), m_pGpuBufferB(NULL), m_currentBackBufferIndex(0), m_pVertexBuffer(NULL),
       m_pStaticQuadVB(NULL), m_pStaticQuadIB(NULL), m_pInstancedDecl(NULL), m_pConstantInstancedDecl(NULL)
 {
     // Force 4096 max sprites for performance
@@ -149,27 +149,23 @@ HRESULT SpriteRenderer::Initialize(LPDIRECT3DDEVICE9 device, ShaderManager* shad
             m_pGpuBufferA, m_pGpuBufferB, m_currentBackBufferIndex);
     OutputDebugStringA(buf);
 
-    // Create TRIPLE GPU buffers for lock-free multi-threaded rendering (Ring Buffer on GPU)
-    // This enables Core 0 (logic) and Core 1 (render) to work asynchronously without mutex blocking
-    for (int i = 0; i < 3; i++) {
-        hr = m_pDevice->CreateVertexBuffer(
-            m_vertexBufferSize,
-            0,
-            0,
-            D3DPOOL_DEFAULT,
-            &m_pGpuBuffers[i],
-            NULL
-        );
-        sprintf(buf, "[SR::Initialize] CreateTripleBuffer[%d] hr=0x%08X, pGpuBuffer=%p\n", i, hr, m_pGpuBuffers[i]);
-        OutputDebugStringA(buf);
-        if (FAILED(hr)) {
-            OutputDebugStringA("[SR::Initialize] FAILED to create triple GPU buffer\n");
-            return hr;
-        }
-    }
-    m_gpuBufferIndex = 0;
-    sprintf(buf, "[SR::Initialize] Triple buffering initialized: gpuBufferIndex=%d\n", m_gpuBufferIndex);
+    // Create SINGLE LARGE GPU buffer for ring buffer with D3DLOCK_NOOVERWRITE
+    // Buffer size: 3x max sprites to accommodate ring buffer cycling
+    int ringBufferSize = m_maxSprites * 4 * 3 * sizeof(SpriteVertex);
+    hr = m_pDevice->CreateVertexBuffer(
+        ringBufferSize,
+        0,
+        0,
+        D3DPOOL_DEFAULT,
+        &m_pVertexBuffer,
+        NULL
+    );
+    sprintf(buf, "[SR::Initialize] CreateRingBuffer hr=0x%08X, pVertexBuffer=%p, size=%d\n", hr, m_pVertexBuffer, ringBufferSize);
     OutputDebugStringA(buf);
+    if (FAILED(hr)) {
+        OutputDebugStringA("[SR::Initialize] FAILED to create ring buffer GPU buffer\n");
+        return hr;
+    }
 
     // Create index buffer - Xbox 360 compatible
     hr = m_pDevice->CreateIndexBuffer(
@@ -995,59 +991,64 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
     if (m_spriteCount == 0) return;
 
     int numVertices = m_spriteCount * 4;
+    int numIndices = m_spriteCount * 6;
 
-    // === ТРОЙНАЯ БУФФЕРИЗАЦИЯ ГЕОМЕТРИИ (Ring Buffer на GPU) ===
-    // m_gpuBufferIndex меняется циклически: 0 -> 1 -> 2 -> 0...
-    LPDIRECT3DVERTEXBUFFER9 pActiveGpuBuffer = m_pGpuBuffers[m_gpuBufferIndex];
+    // === КОЛЬЦЕВОЙ СДВИГ ВНУТРИ ОСНОВНОГО БУФЕРА ===
+    // Если следующая пачка (2048 тайлов) физически не влезает в остаток буфера GPU,
+    // только тогда мы возвращаемся в начало буфера (офсет = 0).
+    if (m_totalVertexCount + numVertices > HARDWARE_MAX_VERTICES) {
+        // Ждем, пока Ядро 1 дорендерит старые кадры, так как мы собираемся затереть начало буфера
+        while (pShader && pShader->HasPendingGpuCommands()) {
+            // Быстрая аппаратная уступка кванта времени на Xbox 360
+            YieldProcessor();
+        }
+        m_totalVertexCount = 0;
+        m_totalIndexCount = 0;
+    }
 
     void* pGpuVertices = nullptr;
-    // Флаг D3DLOCK_DISCARD на Xbox 360 выделяет новый виртуальный адрес памяти,
-    // процессор Xenon не ждет, пока видеокарта закончит читать этот буфер!
-    HRESULT hr = pActiveGpuBuffer->Lock(0, numVertices * sizeof(SpriteVertex), &pGpuVertices, 0);
+
+    // ИСПРАВЛЕНИЕ ПО ДОКУМЕНТАЦИИ XBOX 360:
+    // Запираем буфер строго со смещением (m_totalVertexCount * sizeof) и флагом NOOVERWRITE.
+    // Процессор Xenon копирует данные и мгновенно возвращается к логике игры!
+    HRESULT hr = m_pVertexBuffer->Lock(
+        m_totalVertexCount * sizeof(SpriteVertex),
+        numVertices * sizeof(SpriteVertex),
+        &pGpuVertices,
+        D3DLOCK_NOOVERWRITE
+    );
 
     if (SUCCEEDED(hr) && pGpuVertices) {
-        // Копируем из вторичного буфера (ОЗУ) в основной (видеопамять GPU)
+        // Переносим пачку из вторичного буфера ОЗУ в выделенный сектор основного буфера GPU
         memcpy(pGpuVertices, m_pStagingBuffer, numVertices * sizeof(SpriteVertex));
-        pActiveGpuBuffer->Unlock();
+        m_pVertexBuffer->Unlock();
     }
 
-    // === LOCK-FREE ПЕРЕДАЧА В ОЧЕРЕДЬ ===
-    ShaderManager* sm = m_pShaderManager;
-    int targetSlot = -1;
+    // Пакуем команду отложенного рендеринга для Ядра 1
+    RenderCommand cmd;
+    cmd.shaderID = m_currentShaderID;
+    cmd.pTexture = m_currentTexture;
+    cmd.depth = m_currentDepth;
+    cmd.isUI = m_currentIsUI;
 
-    // Ищем свободную ячейку в фиксированном кольцевом массиве команд кадра
-    for (int i = 0; i < 256; ++i) { // MAX_GLOBAL_COMMANDS = 256
-        // Если статус равен 0, пытаемся атомарно захватить его (выставив статус 2 - запись)
-        if (InterlockedCompareExchange(&sm->m_commandQueue[i].status, 2, 0) == 0) {
-            targetSlot = i;
-            break;
-        }
+    // Передаем точные смещения внутри кольцевого буфера
+    cmd.baseVertex = m_totalVertexCount; // Указывает Ядру 1, с какой вершины читать эту пачку
+    cmd.vertexStart = m_totalIndexCount;
+    cmd.vertexCount = numVertices;
+    cmd.primitiveCount = m_spriteCount * 2;
+    cmd.status = 1; // Готово к отправке на GPU
+
+    // Атомарно пушим команду в Lock-Free очередь ShaderManager
+    if (pShader) {
+        pShader->PushXbox360Command(cmd);
     }
 
-    if (targetSlot != -1) {
-        RenderCommand& cmd = sm->m_commandQueue[targetSlot];
+    // Сдвигаем маркер основного буфера вперед — место заблокировано под Draw Call Ядра 1
+    m_totalVertexCount += numVertices;
+    m_totalIndexCount += numIndices;
 
-        // Заполняем поля структуры на основе данных из RenderTypes.h
-        cmd.shaderID = m_currentShaderID;
-        cmd.pTexture = m_currentTexture;
-        cmd.depth = m_currentDepth;
-        cmd.vertexCount = numVertices;
-        cmd.primitiveCount = m_spriteCount * 2;
-        cmd.baseVertex = 0;
-        cmd.vertexStart = 0;
-        cmd.isUI = m_currentIsUI;
-        cmd.pVertexBuffer = pActiveGpuBuffer; // Передаем конкретный буфер
-
-        // Атомарно переводим статус в 1: "Команда полностью готова к рендеру"
-        InterlockedExchange(&cmd.status, 1);
-    } else {
-        OutputDebugStringA("[SpriteRenderer::Flush] CRITICAL: Command Ring Buffer Overflow on Xbox 360!\n");
-    }
-
-    // Переключаем индекс аппаратного буфера для следующей порции тайлов карты/текста
-    m_gpuBufferIndex = (m_gpuBufferIndex + 1) % 3; // Triple buffering loop
-
-    // Обнуляем локальный вторичный буфер в ОЗУ. Поток Логики сразу готов принимать новые тайлы ландшафта
+    // СБРОС ВТОРИЧНОГО БУФЕРА (Ваша логика):
+    // Локальный буфер в ОЗУ пуст, Ядро 0 сразу идет собирать тайлы 2049+ дальше
     m_spriteCount = 0;
 }
 
