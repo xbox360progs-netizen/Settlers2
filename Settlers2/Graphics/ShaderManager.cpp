@@ -1032,6 +1032,11 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
             // Передаем cmd.baseVertex и cmd.vertexStart, чтобы видеокарта прочитала правильный сектор буфера
             // TEMP TEST: Hardcode BaseVertexIndex to 0 to check for double offset addition
             if (passActive) {
+                // === КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Фиксация регистров Xenos ===
+                if (m_pActiveEffect) {
+                    m_pActiveEffect->CommitChanges();
+                }
+
                 char renderMsg[256];
                 sprintf(renderMsg, "[ExecuteQueue] Drawing: depth=%.2f, baseVert=%d, startIdx=%d, verts=%d, prims=%d, tex=%p\n",
                         cmd.depth, cmd.baseVertex, cmd.vertexStart, cmd.vertexCount, cmd.primitiveCount, cmd.pTexture);

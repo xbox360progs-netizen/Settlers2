@@ -992,14 +992,13 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
 
     int numVertices = m_spriteCount * 4;
     int numIndices = m_spriteCount * 6;
+    
+    // Вычисляем точный размер записываемых данных в байтах
+    size_t bytesToWrite = static_cast<size_t>(numVertices * sizeof(SpriteVertex));
 
     // === КОЛЬЦЕВОЙ СДВИГ ВНУТРИ ОСНОВНОГО БУФЕРА ===
-    // Если следующая пачка (2048 тайлов) физически не влезает в остаток буфера GPU,
-    // только тогда мы возвращаемся в начало буфера (офсет = 0).
     if (m_totalVertexCount + numVertices > HARDWARE_MAX_VERTICES) {
-        // Ждем, пока Ядро 1 дорендерит старые кадры, так как мы собираемся затереть начало буфера
         while (pShader && pShader->HasPendingGpuCommands()) {
-            // Быстрая аппаратная уступка кванта времени на Xbox 360
             YieldProcessor();
         }
         m_totalVertexCount = 0;
@@ -1008,9 +1007,6 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
 
     void* pGpuVertices = nullptr;
 
-    // ИСПРАВЛЕНИЕ ПО ДОКУМЕНТАЦИИ XBOX 360:
-    // Запираем буфер строго со смещением (m_totalVertexCount * sizeof) и флагом NOOVERWRITE.
-    // Процессор Xenon копирует данные и мгновенно возвращается к логике игры!
     HRESULT hr = m_pVertexBuffer->Lock(
         m_totalVertexCount * sizeof(SpriteVertex),
         numVertices * sizeof(SpriteVertex),
@@ -1020,8 +1016,25 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
 
     if (SUCCEEDED(hr) && pGpuVertices) {
         // Переносим пачку из вторичного буфера ОЗУ в выделенный сектор основного буфера GPU
-        memcpy(pGpuVertices, m_pStagingBuffer, numVertices * sizeof(SpriteVertex));
+        memcpy(pGpuVertices, m_pStagingBuffer, bytesToWrite);
         m_pVertexBuffer->Unlock();
+
+        // === КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ ДЛЯ XBOX 360 (HARDWARE CACHE FLUSH) ===
+#ifdef _XBOX
+        const void* pCacheLine = reinterpret_cast<const void*>(pGpuVertices);
+        
+        for (size_t offset = 0; offset < bytesToWrite; offset += 128) {
+            
+            // СТРОГО ПО СИГНАТУРЕ SDK XBOX 360: сначала 0 (офсет), затем указатель на базу строки
+            __dcbf(0, pCacheLine); 
+            
+            // Сдвигаем указатель на размер строки кэша Xenon (128 байт)
+            pCacheLine = reinterpret_cast<const void*>(reinterpret_cast<const char*>(pCacheLine) + 128);
+        }
+        
+        // Аппаратный барьер PowerPC для полной фиксации транзакции на шине памяти
+        __sync(); 
+#endif
     }
 
     // Пакуем команду отложенного рендеринга для Ядра 1
@@ -1032,18 +1045,15 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
     cmd.isUI = m_currentIsUI;
 
     // Передаем точные смещения внутри кольцевого буфера
-    cmd.baseVertex = m_totalVertexCount; // Указывает Ядру 1, с какой вершины читать эту пачку
+    cmd.baseVertex = m_totalVertexCount; 
     cmd.vertexStart = m_totalIndexCount;
     cmd.vertexCount = numVertices;
     cmd.primitiveCount = m_spriteCount * 2;
     cmd.status = 1; // Готово к отправке на GPU
 
     // === КРИТИЧЕСКИЙ АППАРАТНЫЙ БАРЬЕР ДЛЯ XBOX 360 ===
-    // Жестко заставляем ядро Xenon завершить ВСЕ операции записи в память (L2 Cache Flush)
-    // ДО того, как мы выставим статус готовности команды.
-    // Это предотвратит отправку пустых вершин по шине и спасет GPU от краша!
 #ifdef _XBOX
-    __sync(); // Встроенный барьер памяти компилятора Xbox 360 compiler (PowerPC sync)
+    __sync(); 
 #else
     MemoryBarrier();
 #endif
@@ -1057,8 +1067,7 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
     m_totalVertexCount += numVertices;
     m_totalIndexCount += numIndices;
 
-    // СБРОС ВТОРИЧНОГО БУФЕРА (Ваша логика):
-    // Локальный буфер в ОЗУ пуст, Ядро 0 сразу идет собирать тайлы 2049+ дальше
+    // СБРОС ВТОРИЧНОГО БУФЕРА
     m_spriteCount = 0;
 }
 
