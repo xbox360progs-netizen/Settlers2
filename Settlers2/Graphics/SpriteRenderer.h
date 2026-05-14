@@ -226,7 +226,10 @@ private:
     LPDIRECT3DDEVICE9 m_pDevice;
     ShaderManager* m_pShaderManager;
     LPDIRECT3DVERTEXBUFFER9 m_pVB[2]; // Double buffering for Xbox 360
+    LPDIRECT3DVERTEXBUFFER9 m_pGpuBufferA; // Explicit GPU buffer A (for ping-pong)
+    LPDIRECT3DVERTEXBUFFER9 m_pGpuBufferB; // Explicit GPU buffer B (for ping-pong)
     int m_activeBuffer;               // Current buffer index (0 or 1)
+    int m_currentBackBufferIndex;      // Current back buffer index for ping-pong (0 or 1)
     LPDIRECT3DINDEXBUFFER9 m_pIndexBuffer;
     LPDIRECT3DVERTEXDECLARATION9 m_pVertexDecl;
 

@@ -951,9 +951,8 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         }
     }
 
-    // Set vertex declaration and streams once for entire frame
+    // Set vertex declaration once for entire frame
     m_pDevice->SetVertexDeclaration(pDecl);
-    m_pDevice->SetStreamSource(0, pVB, 0, sizeof(SpriteVertex));
     m_pDevice->SetIndices(pIB);
 
     // === NOTE: Vertices are already copied to GPU buffers by SpriteRenderer::Flush ===
@@ -967,6 +966,7 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
 
     ShaderID currentShaderID = SHADER_INVALID;
     LPDIRECT3DTEXTURE9 lastTexture = nullptr;
+    LPDIRECT3DVERTEXBUFFER9 lastVertexBuffer = nullptr;
     bool passActive = false;
 
     for (size_t i = 0; i < m_commandQueue.size(); ++i) {
@@ -994,6 +994,14 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
             }
         }
 
+        // --- ПОТОКОВАЯ ПОДМЕНА ИСТОЧНИКА ГЕОМЕТРИИ ---
+        // Указываем видеокарте читать именно тот буфер (A или B), 
+        // который Ядро 0 подготовило для этой конкретной команды
+        if (cmd.pVertexBuffer != lastVertexBuffer) {
+            m_pDevice->SetStreamSource(0, cmd.pVertexBuffer, 0, sizeof(SpriteVertex));
+            lastVertexBuffer = cmd.pVertexBuffer;
+        }
+
         // --- TEXTURE MANAGEMENT ---
         if (cmd.pTexture != lastTexture) {
             m_pDevice->SetTexture(0, cmd.pTexture);
@@ -1005,8 +1013,8 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         // --- RENDER ---
         if (passActive) {
             char renderMsg[256];
-            sprintf(renderMsg, "[ExecuteQueue] Drawing: depth=%.2f, baseVert=%d, startIdx=%d, verts=%d, prims=%d, tex=%p\n",
-                    cmd.depth, cmd.baseVertex, cmd.vertexStart, cmd.vertexCount, cmd.primitiveCount, cmd.pTexture);
+            sprintf(renderMsg, "[ExecuteQueue] Drawing: depth=%.2f, baseVert=%d, startIdx=%d, verts=%d, prims=%d, tex=%p, vb=%p\n",
+                    cmd.depth, cmd.baseVertex, cmd.vertexStart, cmd.vertexCount, cmd.primitiveCount, cmd.pTexture, cmd.pVertexBuffer);
             OutputDebugStringA(renderMsg);
             m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, cmd.baseVertex, 0, 
                                           cmd.vertexCount, 

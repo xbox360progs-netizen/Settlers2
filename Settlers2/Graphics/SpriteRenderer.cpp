@@ -73,11 +73,12 @@ SpriteRenderer::SpriteRenderer()
     : m_pDevice(NULL), m_pShaderManager(NULL), m_pIndexBuffer(NULL), m_pVertexDecl(NULL),
       m_pStagingBuffer(NULL), m_currentTexture(NULL), m_isBatching(false), m_maxSprites(4096), m_vertexBufferSize(0), m_indexBufferSize(0), m_spriteCount(0),
       m_hStartWorkEvent(NULL), m_threadsInitialized(false), m_activeBuffer(0),
-      m_pStaticQuadVB(NULL), m_pStaticQuadIB(NULL), m_pInstancedDecl(NULL), m_pConstantInstancedDecl(NULL) 
+      m_pGpuBufferA(NULL), m_pGpuBufferB(NULL), m_currentBackBufferIndex(0),
+      m_pStaticQuadVB(NULL), m_pStaticQuadIB(NULL), m_pInstancedDecl(NULL), m_pConstantInstancedDecl(NULL)
 {
     // Force 4096 max sprites for performance
     m_maxSprites = 4096;
-    
+
     // Default rendering mode: use World shader for world-space rendering
     m_currentMode = MODE_INSTANCED_CONST;
     m_currentShaderID = SHADER_WORLD; // Use World shader for world-space objects
@@ -86,7 +87,7 @@ SpriteRenderer::SpriteRenderer()
     m_currentIsUI = false; // Default: world-space (apply camera matrix)
     m_totalVertexCount = 0;
     m_totalIndexCount = 0; // Reset index count at start
-    
+
     // Initialize arrays inside constructor body
     m_hThreadDoneEvents[0] = NULL;
     m_hThreadDoneEvents[1] = NULL;
@@ -138,6 +139,15 @@ HRESULT SpriteRenderer::Initialize(LPDIRECT3DDEVICE9 device, ShaderManager* shad
         }
     }
     m_activeBuffer = 0;
+
+    // Create explicit GPU buffers A and B for ping-pong multi-threaded rendering
+    // These are the same as m_pVB[0] and m_pVB[1], but named explicitly for clarity
+    m_pGpuBufferA = m_pVB[0];
+    m_pGpuBufferB = m_pVB[1];
+    m_currentBackBufferIndex = 0;
+    sprintf(buf, "[SR::Initialize] Ping-pong buffers: m_pGpuBufferA=%p, m_pGpuBufferB=%p, backIndex=%d\n",
+            m_pGpuBufferA, m_pGpuBufferB, m_currentBackBufferIndex);
+    OutputDebugStringA(buf);
 
     // Create index buffer - Xbox 360 compatible
     hr = m_pDevice->CreateIndexBuffer(
@@ -986,9 +996,12 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
     sprintf(debugMsg, "[SR::Flush] DEFERRED: Commands sorted by depth\n");
     OutputDebugStringA(debugMsg);
 
-    // === DEFERRED RENDERING: Fill vertex buffer with sorted vertices ===
-    if (!m_pVB[m_activeBuffer] || !m_pStagingBuffer) {
-        OutputDebugStringA("[SR::Flush] DEFERRED: CRITICAL: VB or StagingBuffer is NULL!\n");
+    // === ПИНГ-ПОНГ БУФЕРИЗАЦИЯ ===
+    // Выбираем, какой из двух аппаратных буферов сейчас Свободен для записи
+    LPDIRECT3DVERTEXBUFFER9 pActiveGpuBuffer = (m_currentBackBufferIndex == 0) ? m_pGpuBufferA : m_pGpuBufferB;
+
+    if (!pActiveGpuBuffer || !m_pStagingBuffer) {
+        OutputDebugStringA("[SR::Flush] DEFERRED: CRITICAL: GPU buffer or StagingBuffer is NULL!\n");
         m_pendingCommands.clear();
         return;
     }
@@ -1007,34 +1020,21 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
         return;
     }
 
-    // === DEFERRED RENDERING: Linear copy of all commands without batching ===
-    // This ensures all vertices are copied correctly - no grouping that loses data
-
-    // Sort commands by depth (operator< in RenderCommand)
-    std::sort(m_pendingCommands.begin(), m_pendingCommands.end());
-
-    // Lock GPU buffers for exact size of all commands
+    // Lock GPU buffer with D3DLOCK_DISCARD for Xbox 360 optimization
+    // This tells the driver to allocate new clean addresses (Bounce Buffer)
     void* vData = nullptr;
-    void* iData = nullptr;
+    HRESULT hrVB = pActiveGpuBuffer->Lock(0, (DWORD)(totalVertices * sizeof(SpriteVertex)), &vData, 0);
 
-    size_t totalIndices = m_pendingCommands.size() * 6;
-
-    HRESULT hrVB = m_pVB[m_activeBuffer]->Lock(0, (DWORD)(totalVertices * sizeof(SpriteVertex)), &vData, 0);
-    HRESULT hrIB = m_pIndexBuffer->Lock(0, (DWORD)(totalIndices * sizeof(WORD)), &iData, 0);
-
-    if (FAILED(hrVB) || FAILED(hrIB)) {
-        OutputDebugStringA("[SR::Flush] Failed to lock GPU buffers!\n");
-        if (SUCCEEDED(hrVB)) m_pVB[m_activeBuffer]->Unlock();
-        if (SUCCEEDED(hrIB)) m_pIndexBuffer->Unlock();
+    if (FAILED(hrVB) || !vData) {
+        OutputDebugStringA("[SR::Flush] Failed to lock GPU buffer!\n");
+        if (SUCCEEDED(hrVB)) pActiveGpuBuffer->Unlock();
         m_pendingCommands.clear();
         return;
     }
 
     SpriteVertex* vPtr = (SpriteVertex*)vData;
-    WORD* iPtr = (WORD*)iData;
 
     int globalVertexCounter = 0;
-    int globalIndexCounter = 0;
 
     // Linear copy of all commands
     for (size_t i = 0; i < m_pendingCommands.size(); ++i) {
@@ -1042,7 +1042,7 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
 
         // Set exact offsets for this command
         cmd.baseVertex = globalVertexCounter;
-        cmd.vertexStart = globalIndexCounter;
+        cmd.vertexStart = 0; // Will be calculated in ExecuteQueue
         cmd.vertexCount = 4;
         cmd.primitiveCount = 2;
 
@@ -1052,43 +1052,36 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
         vPtr[globalVertexCounter + 2] = cmd.vertices[2];
         vPtr[globalVertexCounter + 3] = cmd.vertices[3];
 
-        // Generate LOCAL indices (always 0-1-3-0-3-2 pattern)
-        iPtr[globalIndexCounter + 0] = 0;
-        iPtr[globalIndexCounter + 1] = 1;
-        iPtr[globalIndexCounter + 2] = 3;
-        iPtr[globalIndexCounter + 3] = 0;
-        iPtr[globalIndexCounter + 4] = 3;
-        iPtr[globalIndexCounter + 5] = 2;
+        // Store the GPU buffer pointer in the command for ExecuteQueue
+        cmd.pVertexBuffer = pActiveGpuBuffer;
 
-        // Advance counters by 1 sprite (4 vertices, 6 indices)
+        // Advance counters by 1 sprite (4 vertices)
         globalVertexCounter += 4;
-        globalIndexCounter += 6;
 
         // Submit individual command to ShaderManager
-        // Now ExecuteQueue will receive 16 commands instead of 2 grouped
         if (pShader) {
             pShader->Submit(cmd);
         }
     }
 
-    m_pVB[m_activeBuffer]->Unlock();
-    m_pIndexBuffer->Unlock();
+    pActiveGpuBuffer->Unlock();
 
-    sprintf(debugMsg, "[SR::Flush] Copied %d vertices and %d indices to GPU buffers (%d commands)\n",
-            globalVertexCounter, globalIndexCounter, (int)m_pendingCommands.size());
+    sprintf(debugMsg, "[SR::Flush] Copied %d vertices to GPU buffer %p (%d commands)\n",
+            globalVertexCounter, pActiveGpuBuffer, (int)m_pendingCommands.size());
     OutputDebugStringA(debugMsg);
 
-    // Update total counts
+    // Update total vertex count
     m_totalVertexCount += globalVertexCounter;
-    m_totalIndexCount += globalIndexCounter;
 
     // Clear local queue for next frame
     m_pendingCommands.clear();
 
-    // Switch buffer for next frame (double buffering)
-    m_activeBuffer = (m_activeBuffer + 1) % 2;
+    // ПЕРЕКЛЮЧАЕМ ПОЛУШАРИЕ БУФЕРА:
+    // Следующая пачка тайлов ландшафта (2049+) пойдет в другое полушарие, 
+    // пока видеокарта будет читать текущее!
+    m_currentBackBufferIndex = (m_currentBackBufferIndex == 0) ? 1 : 0;
 
-    sprintf(debugMsg, "[SR::Flush] Complete. Switched to buffer %d\n", m_activeBuffer);
+    sprintf(debugMsg, "[SR::Flush] Complete. Switched to back buffer index %d\n", m_currentBackBufferIndex);
     OutputDebugStringA(debugMsg);
 }
 
