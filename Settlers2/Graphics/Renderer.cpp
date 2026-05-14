@@ -156,10 +156,17 @@ void Renderer::Shutdown() {
 void Renderer::BeginFrame() {
     if (!m_pDevice) return;
 
-    m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0,0,0), 1.0f, 0);
+    // TEMP TEST: Change clear color to bright blue to test if render thread is working
+    m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0, 0, 255), 1.0f, 0);
     m_pDevice->BeginScene();
 }
 
+void Renderer::EndSceneOnly() {
+    if (!m_pDevice) return;
+
+    m_pDevice->EndScene();
+    // Xbox 360: Present() is called in render thread, not here
+}
 
 void Renderer::EndFrame() {
     if (!m_pDevice) return;

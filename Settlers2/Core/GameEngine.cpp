@@ -40,6 +40,15 @@ DWORD WINAPI RenderThreadProcessor(LPVOID lpParam) {
                         NULL,
                         sr);
 
+        // Xbox 360: Present frame in render thread after ExecuteQueue completes
+        // This ensures GPU has finished processing commands before presenting
+        LPDIRECT3DDEVICE9 pDevice = sm->GetDevice();
+        if (pDevice) {
+            pDevice->EndScene();
+            pDevice->Present(NULL, NULL, NULL, NULL);
+            pDevice->BeginScene();
+        }
+
         // Маленькая аппаратная уступка кванта времени Xenon OS, если очередь пустеет
         if (sm->IsQueueEmptyForThisTick()) {
             Sleep(1);
@@ -335,7 +344,9 @@ void GameEngine::Render()
 
     m_renderer->BeginFrame();
     m_sceneManager->Render();
-    m_renderer->EndFrame();
+    // Xbox 360: Present() is now called in render thread (Core 1), not here
+    // m_renderer->EndFrame(); // Removed - Present is called in render thread
+    m_renderer->EndSceneOnly(); // Only end scene, don't present
 }
 
 void GameEngine::Run()

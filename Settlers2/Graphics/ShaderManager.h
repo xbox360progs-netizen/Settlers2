@@ -287,6 +287,9 @@ public:
     // State management
     StateCache* GetStateCache() { return &m_stateCache; }
 
+    // Get device pointer (for Xbox 360 render thread Present() call)
+    LPDIRECT3DDEVICE9 GetDevice() const { return m_pDevice; }
+
 private:
     LPDIRECT3DDEVICE9 m_pDevice;
     

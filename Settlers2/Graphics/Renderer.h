@@ -18,6 +18,7 @@ public:
     void Shutdown();
     void BeginFrame();
     void EndFrame();
+    void EndSceneOnly(); // Xbox 360: End scene without presenting (Present is in render thread)
     void Clear(D3DCOLOR color);
 
     // Xbox 360 device loss handling
