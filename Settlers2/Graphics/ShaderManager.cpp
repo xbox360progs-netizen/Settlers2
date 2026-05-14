@@ -952,6 +952,11 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     D3DXMATRIX ortho;
     D3DXMatrixOrthoOffCenterLH(&ortho, 0, 1280, 720, 0, 0, 1);
 
+    // === XBOX 360 FIX: Local orthographic matrix with extended Z range ===
+    // UI elements have Z=0.00f, so we need Z range from -10.0f to 10.0f to prevent clipping
+    D3DXMATRIX localOrtho;
+    D3DXMatrixOrthoOffCenterLH(&localOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, -10.0f, 10.0f);
+
     // === GLOBAL CONSTANT BUFFER: Set ViewProj once per frame ===
     // Use provided pViewProj if available, otherwise use ortho for 2D
     const D3DXMATRIX* matrixToUse = pViewProj ? pViewProj : &ortho;
@@ -995,9 +1000,9 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                 }
 
                 // ИСПРАВЛЕНИЕ: Передаем шейдеру правильную матрицу в зависимости от типа объекта!
-                // Если это шейдер карты (Инстансинг), передаем ViewProj камеры.
-                // Если это текст/UI (ID=0), передаем ортографическую матрицу экрана.
-                const D3DXMATRIX* activeMatrix = (cmd.shaderID == SHADER_SPRITE_CONSTANT_INSTANCED) ? &m_frameViewProj : &ortho;
+                // Если это UI (cmd.isUI), используем localOrtho с Z диапазоном -10.0f до 10.0f
+                // Если это карта/игровой мир, используем ViewProj камеры
+                const D3DXMATRIX* activeMatrix = cmd.isUI ? &localOrtho : &m_frameViewProj;
 
                 Prepare(static_cast<ShaderID>(cmd.shaderID), activeMatrix);
                 currentShaderID = static_cast<ShaderID>(cmd.shaderID);
@@ -1018,6 +1023,7 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
 
             // ФИЗИЧЕСКИЙ DRAW CALL С УЧЕТОМ СДВИГА NOOVERWRITE
             // Передаем cmd.baseVertex и cmd.vertexStart, чтобы видеокарта прочитала правильный сектор буфера
+            // TEMP TEST: Hardcode BaseVertexIndex to 0 to check for double offset addition
             if (passActive) {
                 char renderMsg[256];
                 sprintf(renderMsg, "[ExecuteQueue] Drawing: depth=%.2f, baseVert=%d, startIdx=%d, verts=%d, prims=%d, tex=%p\n",
@@ -1025,7 +1031,7 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                 OutputDebugStringA(renderMsg);
                 m_pDevice->DrawIndexedPrimitive(
                     D3DPT_TRIANGLELIST,
-                    cmd.baseVertex,
+                    0, // TEMP TEST: Hardcoded 0 instead of cmd.baseVertex to check for double offset
                     0,
                     cmd.vertexCount,
                     cmd.vertexStart,
