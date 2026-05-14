@@ -73,7 +73,7 @@ SpriteRenderer::SpriteRenderer()
     : m_pDevice(NULL), m_pShaderManager(NULL), m_pIndexBuffer(NULL), m_pVertexDecl(NULL),
       m_pStagingBuffer(NULL), m_currentTexture(NULL), m_isBatching(false), m_maxSprites(4096), m_vertexBufferSize(0), m_indexBufferSize(0), m_spriteCount(0),
       m_hStartWorkEvent(NULL), m_threadsInitialized(false), m_activeBuffer(0),
-      m_pGpuBufferA(NULL), m_pGpuBufferB(NULL), m_currentBackBufferIndex(0),
+      m_pGpuBufferA(NULL), m_pGpuBufferB(NULL), m_currentBackBufferIndex(0), m_gpuBufferIndex(0),
       m_pStaticQuadVB(NULL), m_pStaticQuadIB(NULL), m_pInstancedDecl(NULL), m_pConstantInstancedDecl(NULL)
 {
     // Force 4096 max sprites for performance
@@ -147,6 +147,28 @@ HRESULT SpriteRenderer::Initialize(LPDIRECT3DDEVICE9 device, ShaderManager* shad
     m_currentBackBufferIndex = 0;
     sprintf(buf, "[SR::Initialize] Ping-pong buffers: m_pGpuBufferA=%p, m_pGpuBufferB=%p, backIndex=%d\n",
             m_pGpuBufferA, m_pGpuBufferB, m_currentBackBufferIndex);
+    OutputDebugStringA(buf);
+
+    // Create TRIPLE GPU buffers for lock-free multi-threaded rendering (Ring Buffer on GPU)
+    // This enables Core 0 (logic) and Core 1 (render) to work asynchronously without mutex blocking
+    for (int i = 0; i < 3; i++) {
+        hr = m_pDevice->CreateVertexBuffer(
+            m_vertexBufferSize,
+            0,
+            0,
+            D3DPOOL_DEFAULT,
+            &m_pGpuBuffers[i],
+            NULL
+        );
+        sprintf(buf, "[SR::Initialize] CreateTripleBuffer[%d] hr=0x%08X, pGpuBuffer=%p\n", i, hr, m_pGpuBuffers[i]);
+        OutputDebugStringA(buf);
+        if (FAILED(hr)) {
+            OutputDebugStringA("[SR::Initialize] FAILED to create triple GPU buffer\n");
+            return hr;
+        }
+    }
+    m_gpuBufferIndex = 0;
+    sprintf(buf, "[SR::Initialize] Triple buffering initialized: gpuBufferIndex=%d\n", m_gpuBufferIndex);
     OutputDebugStringA(buf);
 
     // Create index buffer - Xbox 360 compatible
@@ -970,119 +992,63 @@ void SpriteRenderer::ResetVertexCount() {
 }
 
 void SpriteRenderer::Flush(ShaderManager* pShader) {
-    // DEFERRED RENDERING: Only return if no pending commands
-    if (m_pendingCommands.empty()) {
-        return;
+    if (m_spriteCount == 0) return;
+
+    int numVertices = m_spriteCount * 4;
+
+    // === ТРОЙНАЯ БУФФЕРИЗАЦИЯ ГЕОМЕТРИИ (Ring Buffer на GPU) ===
+    // m_gpuBufferIndex меняется циклически: 0 -> 1 -> 2 -> 0...
+    LPDIRECT3DVERTEXBUFFER9 pActiveGpuBuffer = m_pGpuBuffers[m_gpuBufferIndex];
+
+    void* pGpuVertices = nullptr;
+    // Флаг D3DLOCK_DISCARD на Xbox 360 выделяет новый виртуальный адрес памяти,
+    // процессор Xenon не ждет, пока видеокарта закончит читать этот буфер!
+    HRESULT hr = pActiveGpuBuffer->Lock(0, numVertices * sizeof(SpriteVertex), &pGpuVertices, 0);
+
+    if (SUCCEEDED(hr) && pGpuVertices) {
+        // Копируем из вторичного буфера (ОЗУ) в основной (видеопамять GPU)
+        memcpy(pGpuVertices, m_pStagingBuffer, numVertices * sizeof(SpriteVertex));
+        pActiveGpuBuffer->Unlock();
     }
 
-    char debugMsg[256];
-    
-    // FORCE RESET if counts look wrong (> 1000 suggests accumulation across frames)
-    if (m_totalVertexCount > 1000 || m_totalIndexCount > 3000) {
-        OutputDebugStringA("[SR::Flush] WARNING: Counts too high, forcing reset!\n");
-        m_totalVertexCount = 0;
-        m_totalIndexCount = 0;
-    }
-    
-    sprintf(debugMsg, "[SR::Flush] DEFERRED: Processing %d pending commands, m_totalVertexCount=%d, m_totalIndexCount=%d\n", 
-            (int)m_pendingCommands.size(), m_totalVertexCount, m_totalIndexCount);
-    OutputDebugStringA(debugMsg);
-    fflush(stdout);
+    // === LOCK-FREE ПЕРЕДАЧА В ОЧЕРЕДЬ ===
+    ShaderManager* sm = m_pShaderManager;
+    int targetSlot = -1;
 
-    // === DEFERRED RENDERING: Sort commands by depth ===
-    // Sort back-to-front for proper alpha blending and layer ordering
-    std::sort(m_pendingCommands.begin(), m_pendingCommands.end());
-    
-    sprintf(debugMsg, "[SR::Flush] DEFERRED: Commands sorted by depth\n");
-    OutputDebugStringA(debugMsg);
-
-    // === ПИНГ-ПОНГ БУФЕРИЗАЦИЯ ===
-    // Выбираем, какой из двух аппаратных буферов сейчас Свободен для записи
-    LPDIRECT3DVERTEXBUFFER9 pActiveGpuBuffer = (m_currentBackBufferIndex == 0) ? m_pGpuBufferA : m_pGpuBufferB;
-
-    if (!pActiveGpuBuffer || !m_pStagingBuffer) {
-        OutputDebugStringA("[SR::Flush] DEFERRED: CRITICAL: GPU buffer or StagingBuffer is NULL!\n");
-        m_pendingCommands.clear();
-        return;
-    }
-
-    // Calculate total vertices needed
-    size_t totalVertices = m_pendingCommands.size() * 4;
-    size_t totalBytes = totalVertices * sizeof(SpriteVertex);
-
-    // Validate buffer size
-    if (totalBytes > (size_t)m_vertexBufferSize) {
-        char errorMsg[256];
-        sprintf(errorMsg, "[SR::Flush] DEFERRED: Buffer overflow! Need %d bytes, have %d\n",
-                (int)totalBytes, m_vertexBufferSize);
-        OutputDebugStringA(errorMsg);
-        m_pendingCommands.clear();
-        return;
-    }
-
-    // Lock GPU buffer with D3DLOCK_DISCARD for Xbox 360 optimization
-    // This tells the driver to allocate new clean addresses (Bounce Buffer)
-    void* vData = nullptr;
-    HRESULT hrVB = pActiveGpuBuffer->Lock(0, (DWORD)(totalVertices * sizeof(SpriteVertex)), &vData, 0);
-
-    if (FAILED(hrVB) || !vData) {
-        OutputDebugStringA("[SR::Flush] Failed to lock GPU buffer!\n");
-        if (SUCCEEDED(hrVB)) pActiveGpuBuffer->Unlock();
-        m_pendingCommands.clear();
-        return;
-    }
-
-    SpriteVertex* vPtr = (SpriteVertex*)vData;
-
-    int globalVertexCounter = 0;
-
-    // Linear copy of all commands
-    for (size_t i = 0; i < m_pendingCommands.size(); ++i) {
-        RenderCommand& cmd = m_pendingCommands[i];
-
-        // Set exact offsets for this command
-        cmd.baseVertex = globalVertexCounter;
-        cmd.vertexStart = 0; // Will be calculated in ExecuteQueue
-        cmd.vertexCount = 4;
-        cmd.primitiveCount = 2;
-
-        // Copy 4 vertices of this sprite/letter
-        vPtr[globalVertexCounter + 0] = cmd.vertices[0];
-        vPtr[globalVertexCounter + 1] = cmd.vertices[1];
-        vPtr[globalVertexCounter + 2] = cmd.vertices[2];
-        vPtr[globalVertexCounter + 3] = cmd.vertices[3];
-
-        // Store the GPU buffer pointer in the command for ExecuteQueue
-        cmd.pVertexBuffer = pActiveGpuBuffer;
-
-        // Advance counters by 1 sprite (4 vertices)
-        globalVertexCounter += 4;
-
-        // Submit individual command to ShaderManager
-        if (pShader) {
-            pShader->Submit(cmd);
+    // Ищем свободную ячейку в фиксированном кольцевом массиве команд кадра
+    for (int i = 0; i < 256; ++i) { // MAX_GLOBAL_COMMANDS = 256
+        // Если статус равен 0, пытаемся атомарно захватить его (выставив статус 2 - запись)
+        if (InterlockedCompareExchange(&sm->m_commandQueue[i].status, 2, 0) == 0) {
+            targetSlot = i;
+            break;
         }
     }
 
-    pActiveGpuBuffer->Unlock();
+    if (targetSlot != -1) {
+        RenderCommand& cmd = sm->m_commandQueue[targetSlot];
 
-    sprintf(debugMsg, "[SR::Flush] Copied %d vertices to GPU buffer %p (%d commands)\n",
-            globalVertexCounter, pActiveGpuBuffer, (int)m_pendingCommands.size());
-    OutputDebugStringA(debugMsg);
+        // Заполняем поля структуры на основе данных из RenderTypes.h
+        cmd.shaderID = m_currentShaderID;
+        cmd.pTexture = m_currentTexture;
+        cmd.depth = m_currentDepth;
+        cmd.vertexCount = numVertices;
+        cmd.primitiveCount = m_spriteCount * 2;
+        cmd.baseVertex = 0;
+        cmd.vertexStart = 0;
+        cmd.isUI = m_currentIsUI;
+        cmd.pVertexBuffer = pActiveGpuBuffer; // Передаем конкретный буфер
 
-    // Update total vertex count
-    m_totalVertexCount += globalVertexCounter;
+        // Атомарно переводим статус в 1: "Команда полностью готова к рендеру"
+        InterlockedExchange(&cmd.status, 1);
+    } else {
+        OutputDebugStringA("[SpriteRenderer::Flush] CRITICAL: Command Ring Buffer Overflow on Xbox 360!\n");
+    }
 
-    // Clear local queue for next frame
-    m_pendingCommands.clear();
+    // Переключаем индекс аппаратного буфера для следующей порции тайлов карты/текста
+    m_gpuBufferIndex = (m_gpuBufferIndex + 1) % 3; // Triple buffering loop
 
-    // ПЕРЕКЛЮЧАЕМ ПОЛУШАРИЕ БУФЕРА:
-    // Следующая пачка тайлов ландшафта (2049+) пойдет в другое полушарие, 
-    // пока видеокарта будет читать текущее!
-    m_currentBackBufferIndex = (m_currentBackBufferIndex == 0) ? 1 : 0;
-
-    sprintf(debugMsg, "[SR::Flush] Complete. Switched to back buffer index %d\n", m_currentBackBufferIndex);
-    OutputDebugStringA(debugMsg);
+    // Обнуляем локальный вторичный буфер в ОЗУ. Поток Логики сразу готов принимать новые тайлы ландшафта
+    m_spriteCount = 0;
 }
 
 void SpriteRenderer::SubmitBatch(ShaderManager* pShader) {

@@ -44,6 +44,10 @@ struct RenderCommand {
     bool isUI;     // Screen-space rendering (skip camera matrix)
     RenderStateBlock states;
     int batchIndex; // For tracking batch sequence (for vertex offset calculation)
+
+    // ДОБАВЛЕНО: Атомарный флаг состояния для Lock-Free обмена
+    // 0 = Свободно, 1 = Записано (Готово к GPU), 2 = Читается видеокартой
+    volatile long status;
     
     // DEFERRED RENDERING: Store vertices directly in command
     SpriteVertex vertices[4]; // 4 vertices for a quad sprite
@@ -65,7 +69,7 @@ struct RenderCommand {
     void* customUserData;
     
     RenderCommand() : pTexture(NULL), pVertexBuffer(NULL), shaderID(-1), vertexStart(0), baseVertex(0), vertexCount(0),
-        primitiveCount(0), batchType(0), depth(1.0f), layer(0), isUI(false), batchIndex(0),
+        primitiveCount(0), batchType(0), depth(1.0f), layer(0), isUI(false), batchIndex(0), status(0),
         worldX(0), worldY(0), u0(0), v0(0), u1(1), v1(1),
         screenX(0), screenY(0), screenW(0), screenH(0), color(0xFFFFFFFF),
         customDraw(NULL), customUserData(NULL) {

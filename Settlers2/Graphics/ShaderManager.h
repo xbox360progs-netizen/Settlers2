@@ -147,7 +147,7 @@ public:
     // Submit a render batch to the queue (legacy)
     void SubmitBatch(const RenderBatch& batch);
     
-    // Clear all commands from the queue
+    // Clear all commands from the queue (for lock-free ring buffer)
     void ClearQueue();
     
     // Clear draw batches
@@ -243,8 +243,16 @@ public:
     void ExecuteBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
                        LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride);
     
-    // Get command count
-    size_t GetCommandCount() const { return m_commandQueue.size(); }
+    // Get command count (for lock-free ring buffer)
+    size_t GetCommandCount() const {
+        int count = 0;
+        for (int i = 0; i < MAX_GLOBAL_COMMANDS; ++i) {
+            if (m_commandQueue[i].status == 1) {
+                count++;
+            }
+        }
+        return count;
+    }
     
     // Get draw batch count
     size_t GetDrawBatchCount() const { return m_drawBatches.size(); }
@@ -282,8 +290,12 @@ private:
     // Private shader loading helper
     HRESULT LoadInternal(ShaderID id, const char* path, const char* technique);
 
-    // Render command queue for Master Loop rendering
-    std::vector<RenderCommand> m_commandQueue;
+    // Render command queue for Master Loop rendering (Lock-Free Ring Buffer for Xbox 360)
+    // Made public for SpriteRenderer lock-free access
+    static const int MAX_GLOBAL_COMMANDS = 256;
+public:
+    RenderCommand m_commandQueue[MAX_GLOBAL_COMMANDS];
+private:
     
     // Draw batch queue for material-based sorting (State Sorting)
     std::vector<DrawBatch> m_drawBatches;

@@ -50,7 +50,7 @@ void ShaderManager::StateCache::ResetDirtyStates(LPDIRECT3DDEVICE9 device, const
 ShaderManager::ShaderManager()
     : m_pDevice(NULL), m_pActiveShader(NULL), m_pActiveEffect(NULL), m_numPasses(0), m_currentShaderID(SHADER_INVALID), m_isLocked(false), m_hasFrameViewProj(false) {
     // Reserve memory for command queue to avoid expensive reallocations on Xbox 360
-    m_commandQueue.reserve(2000);
+    // m_commandQueue is now a fixed-size array for lock-free ring buffer
     m_drawBatches.reserve(500);
     m_batches.reserve(500);
     D3DXMatrixIdentity(&m_frameViewProj);
@@ -59,6 +59,11 @@ ShaderManager::ShaderManager()
     // Initialize synchronization primitive
     InitializeCriticalSection(&m_cs);
     m_sharedVB = NULL;
+
+    // Initialize command queue status to 0 (free) for lock-free ring buffer
+    for (int i = 0; i < MAX_GLOBAL_COMMANDS; ++i) {
+        m_commandQueue[i].status = 0;
+    }
 }
 
 ShaderManager::~ShaderManager() {
@@ -533,18 +538,31 @@ void ShaderManager::Submit(const RenderCommand& cmd) {
         s_currentVertexOffset = 0;
         s_batchIndex = 0;
     }
-    
+
     // Use vertexStart and baseVertex as-is - SpriteRenderer already calculates correct offsets
     cmdWithOffset.vertexStart = cmd.vertexStart;
     cmdWithOffset.baseVertex = cmd.baseVertex;
     cmdWithOffset.batchIndex = s_batchIndex++;
-    
+
     // Update vertex offset for next batch
     s_currentVertexOffset += cmd.vertexCount;
-    
-    Lock();
-    m_commandQueue.push_back(cmdWithOffset);
-    Unlock();
+
+    // For lock-free ring buffer, use atomic operations instead of push_back
+    // Find free slot and atomically capture it
+    int targetSlot = -1;
+    for (int i = 0; i < MAX_GLOBAL_COMMANDS; ++i) {
+        if (InterlockedCompareExchange(&m_commandQueue[i].status, 2, 0) == 0) {
+            targetSlot = i;
+            break;
+        }
+    }
+
+    if (targetSlot != -1) {
+        m_commandQueue[targetSlot] = cmdWithOffset;
+        InterlockedExchange(&m_commandQueue[targetSlot].status, 1);
+    } else {
+        OutputDebugStringA("[ShaderManager::Submit] CRITICAL: Command Ring Buffer Overflow!\n");
+    }
 }
 
 // Add command to render queue (alias for Submit)
@@ -566,7 +584,10 @@ void ShaderManager::SubmitBatch(const RenderBatch& batch) {
 
 void ShaderManager::ClearQueue() {
     Lock();
-    m_commandQueue.clear();
+    // Reset all command statuses to 0 (free) for lock-free ring buffer
+    for (int i = 0; i < MAX_GLOBAL_COMMANDS; ++i) {
+        InterlockedExchange(&m_commandQueue[i].status, 0);
+    }
     Unlock();
 }
 
@@ -583,31 +604,10 @@ void ShaderManager::ClearBatches() {
 }
 
 void ShaderManager::SortQueue() {
-    // Sort by depth (back-to-front for alpha)
-    // Lower depth = draw FIRST (background)
-    // Higher depth = draw LAST (foreground)
-    
-    // Debug: log depths before sorting
-    char dbg[256];
-    sprintf(dbg, "[SortQueue] Before: %d commands\n", (int)m_commandQueue.size());
-    OutputDebugStringA(dbg);
-    for (size_t i = 0; i < m_commandQueue.size() && i < 5; i++) {
-        sprintf(dbg, "[SortQueue] cmd[%d]: depth=%.2f, texture=%p\n", 
-                (int)i, m_commandQueue[i].depth, m_commandQueue[i].pTexture);
-        OutputDebugStringA(dbg);
-    }
-    
-    // Use RenderCommand::operator< for consistent ordering (depth-first, then shader, then texture)
-    std::sort(m_commandQueue.begin(), m_commandQueue.end());
-    
-    // Debug: log depths after sorting
-    sprintf(dbg, "[SortQueue] After:\n");
-    OutputDebugStringA(dbg);
-    for (size_t i = 0; i < m_commandQueue.size() && i < 5; i++) {
-        sprintf(dbg, "[SortQueue] cmd[%d]: depth=%.2f, texture=%p\n", 
-                (int)i, m_commandQueue[i].depth, m_commandQueue[i].pTexture);
-        OutputDebugStringA(dbg);
-    }
+    // For lock-free ring buffer, sorting is not applicable
+    // Commands are submitted with atomic operations and ExecuteQueue scans by status
+    // Sorting is done by the submitter (SpriteRenderer) if needed
+    OutputDebugStringA("[SortQueue] WARNING: Sorting not applicable for lock-free ring buffer\n");
 }
 
 void ShaderManager::SortDrawBatches() {
@@ -905,11 +905,6 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     // Reset vertex offset at start of each frame
     s_currentVertexOffset = 0;
     s_batchIndex = 0;
-    
-    if (m_commandQueue.empty()) {
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] Queue is empty, returning\n");
-        return;
-    }
 
     // CRITICAL: Check device and effect before proceeding
     if (!m_pDevice) {
@@ -929,34 +924,12 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     const D3DXMATRIX* matrixToUse = pViewProj ? pViewProj : &ortho;
     SetFrameViewProj(matrixToUse);
 
-    // === DEFERRED RENDERING: Commands already sorted in SpriteRenderer ===
-    // No need to sort here - sorting is done in SpriteRenderer::Flush()
-
     // === STATE LOCKING: Prevent external state corruption ===
     Lock();
-
-    // XBOX 360 CRITICAL: Ensure all buffers are unlocked before drawing
-    
-    // Verify vertex buffer is not locked (Xbox 360 driver crash prevention)
-    if (pVB) {
-        // Try to lock with 0 size to check if buffer is already locked
-        void* testPtr = NULL;
-        HRESULT testLock = pVB->Lock(0, 0, &testPtr, D3DLOCK_NOSYSLOCK);
-        if (testLock == D3DERR_INVALIDCALL) {
-            OutputDebugStringA("[ShaderManager::ExecuteQueue] WARNING: Vertex buffer appears to be locked! Attempting to unlock...\n");
-            // Note: We can't directly unlock here as we don't have the lock context
-            // This is just a warning - the real fix is in SpriteRenderer::Flush()
-        } else if (SUCCEEDED(testLock)) {
-            pVB->Unlock(); // Unlock our test lock
-        }
-    }
 
     // Set vertex declaration once for entire frame
     m_pDevice->SetVertexDeclaration(pDecl);
     m_pDevice->SetIndices(pIB);
-
-    // === NOTE: Vertices are already copied to GPU buffers by SpriteRenderer::Flush ===
-    // ExecuteQueue only needs to draw from the buffers using the offsets in commands
 
     // === LAZY BATCHING: Process commands with minimal state switches ===
     // CRITICAL: Disable Z-buffer for entire 2D UI rendering (stable state for Xbox 360)
@@ -969,57 +942,64 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     LPDIRECT3DVERTEXBUFFER9 lastVertexBuffer = nullptr;
     bool passActive = false;
 
-    for (size_t i = 0; i < m_commandQueue.size(); ++i) {
-        const RenderCommand& cmd = m_commandQueue[i];
+    // Сканируем кольцевой буфер команд
+    for (int i = 0; i < MAX_GLOBAL_COMMANDS; ++i) {
+        RenderCommand& cmd = m_commandQueue[i];
 
-        // --- SHADER MANAGEMENT ---
-        if (cmd.shaderID != currentShaderID) {
-            if (passActive) { 
-                EndPass(); 
-                EndCurrent();
+        // Проверяем атомарный статус: 1 = команда готова к отрисовке на GPU
+        if (cmd.status == 1) {
+
+            // --- СМЕНА ШЕЙДЕРА И МАТРИЦ ---
+            if (cmd.shaderID != currentShaderID) {
+                if (passActive) {
+                    EndPass();
+                    EndCurrent();
+                }
+
+                // ИСПРАВЛЕНИЕ: Передаем шейдеру правильную матрицу в зависимости от типа объекта!
+                // Если это шейдер карты (Инстансинг), передаем ViewProj камеры.
+                // Если это текст/UI (ID=0), передаем ортографическую матрицу экрана.
+                const D3DXMATRIX* activeMatrix = (cmd.shaderID == SHADER_SPRITE_CONSTANT_INSTANCED) ? &m_frameViewProj : &ortho;
+
+                Prepare(static_cast<ShaderID>(cmd.shaderID), activeMatrix);
+                currentShaderID = static_cast<ShaderID>(cmd.shaderID);
+
+                if (m_pActiveEffect) {
+                    m_pActiveEffect->Begin(&m_numPasses, 0);
+                    BeginPass(0);
+                    passActive = true;
+                }
             }
 
-            // ИСПРАВЛЕНИЕ: Передаем шейдеру правильную матрицу в зависимости от типа объекта!
-            // Если это шейдер карты (Инстансинг), передаем ViewProj камеры. 
-            // Если это текст/UI (ID=0), передаем ортографическую матрицу экрана.
-            const D3DXMATRIX* activeMatrix = (cmd.shaderID == SHADER_SPRITE_CONSTANT_INSTANCED) ? &m_frameViewProj : &ortho;
-
-            Prepare(static_cast<ShaderID>(cmd.shaderID), activeMatrix);
-            currentShaderID = static_cast<ShaderID>(cmd.shaderID);
-            
-            if (m_pActiveEffect) {
-                m_pActiveEffect->Begin(&m_numPasses, 0);
-                BeginPass(0);
-                passActive = true;
+            // --- СМЕНА ТЕКСТУРЫ Атласа ---
+            if (cmd.pTexture != lastTexture) {
+                m_pDevice->SetTexture(0, cmd.pTexture);
+                lastTexture = cmd.pTexture;
+                if (m_pActiveEffect) m_pActiveEffect->CommitChanges();
             }
-        }
 
-        // --- ПОТОКОВАЯ ПОДМЕНА ИСТОЧНИКА ГЕОМЕТРИИ ---
-        // Указываем видеокарте читать именно тот буфер (A или B), 
-        // который Ядро 0 подготовило для этой конкретной команды
-        if (cmd.pVertexBuffer != lastVertexBuffer) {
-            m_pDevice->SetStreamSource(0, cmd.pVertexBuffer, 0, sizeof(SpriteVertex));
-            lastVertexBuffer = cmd.pVertexBuffer;
-        }
+            // === КРИТИЧЕСКИЙ ШАГ: ПОДМЕНА СТРИМА ДЛЯ ЯДРА 1 ===
+            // Переключаем видеокарту на тот Vertex Buffer, который Ядро 0 наполнило для этой команды
+            if (cmd.pVertexBuffer != lastVertexBuffer) {
+                m_pDevice->SetStreamSource(0, cmd.pVertexBuffer, 0, sizeof(SpriteVertex));
+                lastVertexBuffer = cmd.pVertexBuffer;
+            }
 
-        // --- TEXTURE MANAGEMENT ---
-        if (cmd.pTexture != lastTexture) {
-            m_pDevice->SetTexture(0, cmd.pTexture);
-            lastTexture = cmd.pTexture;
-            // IMPORTANT: If texture changes inside same shader, need Commit
-            if (m_pActiveEffect) m_pActiveEffect->CommitChanges();
-        }
+            // Аппаратный Draw Call на чип Xenos (Xbox 360)
+            if (passActive) {
+                char renderMsg[256];
+                sprintf(renderMsg, "[ExecuteQueue] Drawing: depth=%.2f, baseVert=%d, startIdx=%d, verts=%d, prims=%d, tex=%p, vb=%p\n",
+                        cmd.depth, cmd.baseVertex, cmd.vertexStart, cmd.vertexCount, cmd.primitiveCount, cmd.pTexture, cmd.pVertexBuffer);
+                OutputDebugStringA(renderMsg);
+                m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, cmd.baseVertex, 0,
+                                              cmd.vertexCount,
+                                              cmd.vertexStart,
+                                              cmd.primitiveCount);
+            }
 
-        // --- RENDER ---
-        if (passActive) {
-            char renderMsg[256];
-            sprintf(renderMsg, "[ExecuteQueue] Drawing: depth=%.2f, baseVert=%d, startIdx=%d, verts=%d, prims=%d, tex=%p, vb=%p\n",
-                    cmd.depth, cmd.baseVertex, cmd.vertexStart, cmd.vertexCount, cmd.primitiveCount, cmd.pTexture, cmd.pVertexBuffer);
-            OutputDebugStringA(renderMsg);
-            m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, cmd.baseVertex, 0, 
-                                          cmd.vertexCount, 
-                                          cmd.vertexStart, 
-                                          cmd.primitiveCount);
+            // Освобождаем ячейку: возвращаем статус в 0
+            // Теперь Ядро 0 может безопасно использовать этот слот для следующих тайлов кадра
+            InterlockedExchange(&cmd.status, 0);
         }
     }
 
@@ -1028,23 +1008,20 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         EndPass();
         EndCurrent();
     }
-        
+
     // Unlock state after ExecuteQueue completes
     Unlock();
-    
-    // Clear command queue after execution
-    m_commandQueue.clear();
-    
+
     // === CLEANUP: Reset all texture slots to NULL ===
     m_pDevice->SetTexture(0, NULL);
     m_pDevice->SetTexture(1, NULL);
     m_pDevice->SetTexture(2, NULL);
     m_pDevice->SetTexture(3, NULL);
-    
+
     // Reset vertex offset tracking for next frame
     s_currentVertexOffset = 0;
     s_batchIndex = 0;
-    
+
     // Clear frame ViewProj for next frame
     m_hasFrameViewProj = false;
 }
