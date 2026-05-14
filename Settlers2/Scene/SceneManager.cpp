@@ -2,7 +2,9 @@
 #include "SceneManager.h"
 #include "../Graphics/ShaderManager.h"
 #include "../Graphics/SpriteRenderer.h"
+#include "../Graphics/RenderTypes.h"
 #include <iostream>
+#include <assert.h>
 
 // Disable all debug logs
 #ifdef DISABLE_RENDER_LOGS
@@ -15,11 +17,26 @@ SceneManager::SceneManager()
     : m_currentScene(NULL)
     , m_shaderManager(NULL)
     , m_spriteRenderer(NULL)
+#ifdef _XBOX
+    , m_pAsyncCall(NULL)
+    , m_pCommandBuffer(NULL)
+#endif
 {
 }
 
 SceneManager::~SceneManager()
 {
+#ifdef _XBOX
+    // Clean up async command buffer objects
+    if (m_pAsyncCall) {
+        m_pAsyncCall->Release();
+        m_pAsyncCall = NULL;
+    }
+    if (m_pCommandBuffer) {
+        m_pCommandBuffer->Release();
+        m_pCommandBuffer = NULL;
+    }
+#endif
     Clear();
 }
 
@@ -180,6 +197,26 @@ void SceneManager::Render()
         // Execute queue with 32-byte stride (Xbox 360 alignment)
         if (pVB && pIB && pDecl)
         {
+            // === ПРОВЕРКА STRIDE: Убеждаемся, что размер вершины соответствует 32 байтам ===
+            // Если структура SpriteVertex изменилась — произойдет GPU crash
+            #ifdef _XBOX
+            assert(sizeof(SpriteVertex) == 32 && "Критическая ошибка: Stride спрайта должен быть равен 32 байтам!");
+            #endif
+
+            // === ИСПРАВЛЕНИЕ: Flush перед отправкой нового батча ===
+            // Разгружаем командный процессор (CP) после работы TextManager/предыдущих батчей
+            #ifdef _XBOX
+            LPDIRECT3DDEVICE9 pDev = m_spriteRenderer->GetDevice();
+            if (pDev) {
+                IDirect3DQuery9* pSceneQuery = NULL;
+                if (SUCCEEDED(pDev->CreateQuery(D3DQUERYTYPE_EVENT, &pSceneQuery))) {
+                    pSceneQuery->Issue(D3DISSUE_END);
+                    pSceneQuery->GetData(NULL, 0, D3DGETDATA_FLUSH);
+                    pSceneQuery->Release();
+                }
+            }
+            #endif
+
             sprintf(debugBuf, "[SceneManager::Render] Calling ExecuteQueue with stride=32\n");
             OutputDebugStringA(debugBuf);
             m_shaderManager->ExecuteQueue(pVB, pIB, pDecl, 32);
@@ -210,5 +247,48 @@ void SceneManager::Clear()
     m_scenes.clear();
     m_currentScene = NULL;
 }
+
+#ifdef _XBOX
+void SceneManager::InitializeAsyncCommandBuffer(LPDIRECT3DDEVICE9 pDevice)
+{
+    if (!pDevice) {
+        OutputDebugStringA("[SceneManager] ERROR: NULL device passed to InitializeAsyncCommandBuffer\n");
+        return;
+    }
+
+    // 1. Create command buffer for sprite rendering (64KB should be sufficient)
+    HRESULT hr = pDevice->CreateCommandBuffer(64 * 1024, 0, &m_pCommandBuffer);
+    if (FAILED(hr)) {
+        char errBuf[256];
+        sprintf(errBuf, "[SceneManager] ERROR: CreateCommandBuffer failed with HRESULT=0x%08X\n", hr);
+        OutputDebugStringA(errBuf);
+        return;
+    }
+    OutputDebugStringA("[SceneManager] Command buffer created successfully\n");
+
+    // 2. Create async command buffer call
+    // NULL for inherit/persist tags to use standard render state
+    hr = pDevice->CreateAsyncCommandBufferCall(
+        NULL, // pInheritTags
+        NULL, // pPersistTags
+        1,    // NumSegments (1 segment = fastest, no GPU delays)
+        0,    // Flags
+        &m_pAsyncCall
+    );
+
+    if (FAILED(hr)) {
+        char errBuf[256];
+        sprintf(errBuf, "[SceneManager] ERROR: CreateAsyncCommandBufferCall failed with HRESULT=0x%08X\n", hr);
+        OutputDebugStringA(errBuf);
+        // Clean up command buffer if async call creation failed
+        if (m_pCommandBuffer) {
+            m_pCommandBuffer->Release();
+            m_pCommandBuffer = NULL;
+        }
+        return;
+    }
+    OutputDebugStringA("[SceneManager] Async command buffer call created successfully\n");
+}
+#endif
 
 } // namespace Scene

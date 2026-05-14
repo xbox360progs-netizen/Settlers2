@@ -12,6 +12,12 @@
 // Forward declaration for ThreadData struct
 class SpriteRenderer;
 
+// Xbox 360 async command buffer forward declarations
+#ifdef _XBOX
+struct IDirect3DAsyncCommandBufferCall9;
+struct IDirect3DCommandBuffer9;
+#endif
+
 
 struct TextsVertex {
     D3DXVECTOR3 pos;
@@ -122,6 +128,12 @@ public:
 
     // Manual flush (uses internal shader manager)
     void Flush();
+
+#ifdef _XBOX
+    // Xbox 360 async command buffer rendering
+    void SetAsyncCommandBuffer(IDirect3DCommandBuffer9* pBuffer, IDirect3DAsyncCommandBufferCall9* pAsyncCall);
+    void FlushBatchesAsync();
+#endif
     
     // Configure streams for hardware instancing (Stream 0: geometry, Stream 1: per-instance data)
     void SetupInstancingStates(int spriteCount);
@@ -289,4 +301,10 @@ private:
     HANDLE m_hWorkerThreads[2];      // Worker thread handles
     ThreadData m_workerData[2];      // Data for worker threads
     bool m_threadsInitialized;
+
+#ifdef _XBOX
+    // Xbox 360 async command buffer for multithreaded rendering
+    IDirect3DCommandBuffer9* m_pAsyncCommandBuffer;
+    IDirect3DAsyncCommandBufferCall9* m_pAsyncCall;
+#endif
 };

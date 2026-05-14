@@ -213,10 +213,21 @@ bool GameEngine::Initialize()
     TextureRegistry::instance().initialize(m_renderer->GetDevice());
 
     m_sceneManager = new Scene::SceneManager();
-    
+
     // Set up queue-based rendering pipeline
     m_sceneManager->SetShaderManager(m_renderer->GetShaderManager());
     m_sceneManager->SetSpriteRenderer(m_spriteRenderer);
+
+#ifdef _XBOX
+    // Initialize Xbox 360 async command buffer for multithreaded rendering
+    m_sceneManager->InitializeAsyncCommandBuffer(m_renderer->GetDevice());
+    // Set async command buffer on SpriteRenderer
+    m_spriteRenderer->SetAsyncCommandBuffer(
+        m_sceneManager->GetSpriteCommandBuffer(),
+        m_sceneManager->GetAsyncCall()
+    );
+    OutputDebugStringA("[GameEngine::Initialize] Xbox 360 async command buffer initialized\n");
+#endif
 
     CreateScenes();
 

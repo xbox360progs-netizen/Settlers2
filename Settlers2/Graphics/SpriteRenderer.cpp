@@ -75,6 +75,10 @@ SpriteRenderer::SpriteRenderer()
       m_hStartWorkEvent(NULL), m_threadsInitialized(false), m_activeBuffer(0),
       m_pGpuBufferA(NULL), m_pGpuBufferB(NULL), m_currentBackBufferIndex(0), m_pVertexBuffer(NULL),
       m_pStaticQuadVB(NULL), m_pStaticQuadIB(NULL), m_pInstancedDecl(NULL), m_pConstantInstancedDecl(NULL)
+#ifdef _XBOX
+      , m_pAsyncCommandBuffer(NULL)
+      , m_pAsyncCall(NULL)
+#endif
 {
     // Force 4096 max sprites for performance
     m_maxSprites = 4096;
@@ -460,6 +464,16 @@ void SpriteRenderer::Shutdown() {
         m_pConstantInstancedDecl = NULL;
     }
 
+#ifdef _XBOX
+    // Clean up async command buffer objects
+    if (m_pAsyncCommandBuffer) {
+        m_pAsyncCommandBuffer->Release();
+        m_pAsyncCommandBuffer = NULL;
+    }
+    // Note: m_pAsyncCall is owned by SceneManager, so we don't release it here
+    m_pAsyncCall = NULL;
+#endif
+
     m_vertices.clear();
     m_currentTexture = NULL;
     m_currentShaderID = SHADER_INVALID;
@@ -467,6 +481,85 @@ void SpriteRenderer::Shutdown() {
     m_pShaderManager = NULL;
     m_pDevice = NULL;
 }
+
+#ifdef _XBOX
+void SpriteRenderer::SetAsyncCommandBuffer(IDirect3DCommandBuffer9* pBuffer, IDirect3DAsyncCommandBufferCall9* pAsyncCall) {
+    m_pAsyncCommandBuffer = pBuffer;
+    m_pAsyncCall = pAsyncCall;
+    OutputDebugStringA("[SpriteRenderer] Async command buffer set\n");
+}
+
+void SpriteRenderer::FlushBatchesAsync() {
+    if (m_spriteCount == 0) {
+        return;
+    }
+
+    if (!m_pAsyncCommandBuffer || !m_pAsyncCall) {
+        OutputDebugStringA("[SpriteRenderer::FlushBatchesAsync] ERROR: Async command buffer not initialized!\n");
+        return;
+    }
+
+    char dbg[256];
+    sprintf(dbg, "[SR::FlushBatchesAsync] spriteCount=%d, vertexCount=%d\n", m_spriteCount, m_spriteCount * 4);
+    OutputDebugStringA(dbg);
+
+    // Begin recording into command buffer - all D3D calls go to buffer, not GPU
+    m_pAsyncCommandBuffer->BeginRecording();
+
+    // Apply shader and texture (recorded into buffer)
+    if (m_pShaderManager) {
+        m_pShaderManager->BeginShader();
+        m_pShaderManager->BeginPass(0);
+        m_pShaderManager->SetTexture("g_texture", m_currentTexture);
+        m_pShaderManager->Commit();
+    }
+
+    // Set vertex and index buffers (recorded into buffer)
+    uint32_t stride = sizeof(SpriteVertex);
+    m_pDevice->SetStreamSource(0, m_pVertexBuffer, 0, stride);
+    m_pDevice->SetIndices(m_pIndexBuffer);
+    m_pDevice->SetVertexDeclaration(m_pVertexDecl);
+
+    // Draw indexed primitives (recorded into buffer)
+    // Use accumulated offsets from ring buffer
+    DWORD vertexOffset = m_totalVertexCount;
+    DWORD indexOffset = m_totalIndexCount;
+    DWORD vertexCount = m_spriteCount * 4;
+    DWORD primitiveCount = m_spriteCount * 2;
+
+    sprintf(dbg, "[SR::FlushBatchesAsync] Drawing: vertexOffset=%d, indexOffset=%d, vertexCount=%d, primitiveCount=%d\n",
+            vertexOffset, indexOffset, vertexCount, primitiveCount);
+    OutputDebugStringA(dbg);
+
+    m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, vertexOffset, 0, vertexCount, indexOffset, primitiveCount);
+
+    // End shader pass (recorded into buffer)
+    if (m_pShaderManager) {
+        m_pShaderManager->EndPass();
+        m_pShaderManager->EndShader();
+    }
+
+    // End recording
+    m_pAsyncCommandBuffer->EndRecording();
+
+    // CRITICAL FLUSH: Asynchronously submit recorded buffer to GPU
+    // FixupAndSignal pushes data to GPU pipeline and shifts WPTR
+    HRESULT hr = m_pAsyncCall->FixupAndSignal(m_pAsyncCommandBuffer, 0, NULL);
+    if (FAILED(hr)) {
+        sprintf(dbg, "[SR::FlushBatchesAsync] ERROR: FixupAndSignal failed with HRESULT=0x%08X\n", hr);
+        OutputDebugStringA(dbg);
+    } else {
+        OutputDebugStringA("[SR::FlushBatchesAsync] Successfully submitted to GPU\n");
+    }
+
+    // Update ring buffer offsets
+    m_totalVertexCount += vertexCount;
+    m_totalIndexCount += indexCount * 6; // 6 indices per sprite
+
+    // Reset batch counters
+    m_spriteCount = 0;
+}
+#endif
 
 void SpriteRenderer::OnLostDevice() {
     // Release vertex buffer
@@ -1051,12 +1144,25 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
     cmd.primitiveCount = m_spriteCount * 2;
     cmd.status = 1; // Готово к отправке на GPU
 
-    // === КРИТИЧЕСКИЙ АППАРАТНЫЙ БАРЬЕР ДЛЯ XBOX 360 ===
-#ifdef _XBOX
+// === КРИТИЧЕСКИЙ АППАРАТНЫЙ БАРЬЕР ДЛЯ XBOX 360 ===
+    #ifdef _XBOX
     __sync(); 
-#else
+    #else
     MemoryBarrier();
-#endif
+    #endif
+
+    // === ИСПРАВЛЕНИЕ: Flush перед отправкой нового спрайтового батча ===
+    // Разгружаем командный процессор (CP) после работы TextManager/предыдущих батчей
+    #ifdef _XBOX
+    if (m_pDevice) {
+        IDirect3DQuery9* pFlushQuery = NULL;
+        if (SUCCEEDED(m_pDevice->CreateQuery(D3DQUERYTYPE_EVENT, &pFlushQuery))) {
+            pFlushQuery->Issue(D3DISSUE_END);
+            pFlushQuery->GetData(NULL, 0, D3DGETDATA_FLUSH);
+            pFlushQuery->Release();
+        }
+    }
+    #endif
 
     // Атомарно пушим команду в Lock-Free очередь ShaderManager
     if (pShader) {

@@ -641,6 +641,10 @@ void ShaderManager::SortQueue() {
     // Commands are submitted with atomic operations and ExecuteQueue scans by status
     // Sorting is done by the submitter (SpriteRenderer) if needed
     OutputDebugStringA("[SortQueue] WARNING: Sorting not applicable for lock-free ring buffer\n");
+
+#ifdef _XBOX
+    __sync();
+#endif
 }
 
 void ShaderManager::SortDrawBatches() {
@@ -981,17 +985,13 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     bool passActive = false;
     bool hasAnyWorkBeenDone = false;
 
-    // Сканируем кольцевой буфер команд
     for (int i = 0; i < MAX_GLOBAL_COMMANDS; ++i) {
         RenderCommand& cmd = m_commandQueue[i];
 
-        // Проверяем атомарный статус: 1 = команда готова к отрисовке на GPU
         if (cmd.status == 1) {
 
-            // Переводим в состояние отрисовки
             InterlockedExchange(&cmd.status, 2);
 
-            // ЗАЩИТА GPU: Если текстура не валидна, пропускаем команду во избежание сбоя Xenos
             if (!cmd.pTexture) {
                 InterlockedExchange(&cmd.status, 0);
                 continue;
@@ -999,16 +999,12 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
 
             hasAnyWorkBeenDone = true;
 
-            // --- СМЕНА ШЕЙДЕРА И МАТРИЦ ---
             if (cmd.shaderID != currentShaderID) {
                 if (passActive) {
                     EndPass();
                     EndCurrent();
                 }
 
-                // ИСПРАВЛЕНИЕ: Передаем шейдеру правильную матрицу в зависимости от типа объекта!
-                // Если это UI (cmd.isUI), используем localOrtho с Z диапазоном -10.0f до 10.0f
-                // Если это карта/игровой мир, используем ViewProj камеры
                 const D3DXMATRIX* activeMatrix = cmd.isUI ? &localOrtho : &m_frameViewProj;
 
                 Prepare(static_cast<ShaderID>(cmd.shaderID), activeMatrix);
@@ -1021,18 +1017,13 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                 }
             }
 
-            // --- СМЕНА ТЕКСТУРЫ Атласа ---
             if (cmd.pTexture != lastTexture) {
                 m_pDevice->SetTexture(0, cmd.pTexture);
                 lastTexture = cmd.pTexture;
                 if (m_pActiveEffect) m_pActiveEffect->CommitChanges();
             }
 
-            // ФИЗИЧЕСКИЙ DRAW CALL С УЧЕТОМ СДВИГА NOOVERWRITE
-            // Передаем cmd.baseVertex и cmd.vertexStart, чтобы видеокарта прочитала правильный сектор буфера
-            // TEMP TEST: Hardcode BaseVertexIndex to 0 to check for double offset addition
             if (passActive) {
-                // === КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Фиксация регистров Xenos ===
                 if (m_pActiveEffect) {
                     m_pActiveEffect->CommitChanges();
                 }
@@ -1049,9 +1040,17 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                     cmd.vertexStart,
                     cmd.primitiveCount
                 );
+
+#ifdef _XBOX
+                IDirect3DQuery9* pEventQuery = NULL;
+                if (SUCCEEDED(m_pDevice->CreateQuery(D3DQUERYTYPE_EVENT, &pEventQuery))) {
+                    pEventQuery->Issue(D3DISSUE_END);
+                    pEventQuery->GetData(NULL, 0, D3DGETDATA_FLUSH);
+                    pEventQuery->Release();
+                }
+#endif
             }
 
-            // Освобождаем команду — статус возвращается в 0
             InterlockedExchange(&cmd.status, 0);
         }
     }
