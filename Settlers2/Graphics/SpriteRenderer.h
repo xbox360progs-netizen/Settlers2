@@ -139,8 +139,8 @@ public:
     LPDIRECT3DDEVICE9 GetDevice() const { return m_pDevice; }
 
     // Get rendering resources for queue-based execution
-    // Return the buffer containing the most recently filled vertices (back buffer).
-    LPDIRECT3DVERTEXBUFFER9 GetVertexBuffer() const { return m_pVB[(m_activeBuffer + 1) % 2]; }
+    // Xbox 360: Return the single large ring buffer vertex buffer
+    LPDIRECT3DVERTEXBUFFER9 GetVertexBuffer() const { return m_pVertexBuffer; }
     LPDIRECT3DINDEXBUFFER9 GetIndexBuffer() const { return m_pIndexBuffer; }
     LPDIRECT3DVERTEXDECLARATION9 GetVertexDeclaration() const { return m_pVertexDecl; }
     

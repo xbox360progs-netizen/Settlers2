@@ -1,103 +1,25 @@
-﻿Построение начато 14.05.2026 4:57:54.
+﻿Построение начато 14.05.2026 5:53:11.
      1>Проект "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" в узле 2 (целевые объекты build).
      1>InitializeBuildStatus:
-         Создание "Release\Settlers2.unsuccessfulbuild", так как было задано "AlwaysCreate".
+         Обращение к "Release\Settlers2.unsuccessfulbuild".
        ClCompile:
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yc"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP stdafx.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
-         stdafx.cpp
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Core\GameEngine.cpp Editor\MapEditor.cpp Graphics\BinFileManager.cpp Graphics\BitmapFont.cpp Graphics\BitmapText.cpp Graphics\Camera.cpp Graphics\GridMenu.cpp Graphics\OverlayFPS.cpp Graphics\Quad.cpp Graphics\RadialMenu.cpp Graphics\Renderer.cpp Graphics\ShaderManager.cpp Graphics\SpriteAtlas.cpp Graphics\SpriteBatch.cpp Graphics\SpriteRenderer.cpp Graphics\TextManager.cpp Graphics\TextureLoader.cpp Graphics\TextureRegistry.cpp Graphics\TileRenderer.cpp Input\Gamepad.cpp Input\InputContext.cpp Input\InputController.cpp Input\InputManager.cpp Input\ScreenKeyboard.cpp Logic\IsoGrid.cpp Logic\WeightMap.cpp Scene\EditorScene.cpp Scene\GameScene.cpp Scene\LoadingScene.cpp Scene\MenuScene.cpp Scene\Scene.cpp Scene\SceneManager.cpp Settlers2.cpp UI\BuildMenu.cpp UI\Button.cpp UI\EditorUI.cpp UI\Minimap.cpp UI\Panel.cpp UI\ResourceBar.cpp UI\TilePalette.cpp UI\UIManager.cpp UI\WeightMenu.cpp UI\Widget.cpp World\Components\Building.cpp World\Components\Collider.cpp World\Components\Model.cpp World\Components\Resource.cpp World\Components\Sprite.cpp World\Components\Transform.cpp World\Components\Unit.cpp World\Entity.cpp World\EntityManager.cpp World\Map.cpp World\MapSerializer.cpp World\Systems\AISystem.cpp World\Systems\EconomySystem.cpp World\Systems\PathfindingSystem.cpp World\Systems\PhysicsSystem.cpp World\Systems\RenderSystem.cpp World\TileLayer.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
+         Для всех выходных данных обновления не требуется.
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Core\GameEngine.cpp Graphics\GridMenu.cpp Graphics\RadialMenu.cpp Graphics\Renderer.cpp Graphics\ShaderManager.cpp Graphics\SpriteRenderer.cpp Graphics\TextManager.cpp Scene\EditorScene.cpp Scene\LoadingScene.cpp Scene\MenuScene.cpp Scene\SceneManager.cpp UI\WeightMenu.cpp Editor\MapEditor.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
          GameEngine.cpp
-         MapEditor.cpp
-     1>Editor\MapEditor.cpp(366): warning C4244: 'initializing' : conversion from 'int' to 'float', possible loss of data
-     1>Editor\MapEditor.cpp(367): warning C4244: 'initializing' : conversion from 'int' to 'float', possible loss of data
-         BinFileManager.cpp
-     1>Graphics\BinFileManager.cpp(598): warning C4244: '=' : conversion from 'float' to 'uint32_t', possible loss of data
-     1>Graphics\BinFileManager.cpp(599): warning C4244: '=' : conversion from 'float' to 'uint32_t', possible loss of data
-         BitmapFont.cpp
-         BitmapText.cpp
-         Camera.cpp
          GridMenu.cpp
-         OverlayFPS.cpp
-         Quad.cpp
          RadialMenu.cpp
          Renderer.cpp
          ShaderManager.cpp
-         SpriteAtlas.cpp
-         SpriteBatch.cpp
          SpriteRenderer.cpp
          TextManager.cpp
-         TextureLoader.cpp
-         TextureRegistry.cpp
-         TileRenderer.cpp
-         Gamepad.cpp
-         Generating Code...
-         Compiling...
-         InputContext.cpp
-         InputController.cpp
-         InputManager.cpp
-         ScreenKeyboard.cpp
-         IsoGrid.cpp
-     1>Logic\IsoGrid.cpp(25): warning C4244: 'initializing' : conversion from 'int' to 'float', possible loss of data
-     1>Logic\IsoGrid.cpp(26): warning C4244: 'initializing' : conversion from 'int' to 'float', possible loss of data
-         WeightMap.cpp
          EditorScene.cpp
-         GameScene.cpp
          LoadingScene.cpp
          MenuScene.cpp
-         Scene.cpp
          SceneManager.cpp
-         Settlers2.cpp
-         BuildMenu.cpp
-         Button.cpp
-     1>UI\Button.cpp(60): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
-     1>UI\Button.cpp(60): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
-     1>UI\Button.cpp(73): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
-     1>UI\Button.cpp(73): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
-         EditorUI.cpp
-         Minimap.cpp
-     1>UI\Minimap.cpp(87): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
-     1>UI\Minimap.cpp(87): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
-     1>UI\Minimap.cpp(114): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
-     1>UI\Minimap.cpp(114): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
-         Panel.cpp
-         ResourceBar.cpp
-         TilePalette.cpp
-         Generating Code...
-         Compiling...
-         UIManager.cpp
-     1>UI\UIManager.cpp(125): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
-     1>UI\UIManager.cpp(125): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
-     1>UI\UIManager.cpp(134): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
-     1>UI\UIManager.cpp(134): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
-     1>UI\UIManager.cpp(200): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
-     1>UI\UIManager.cpp(200): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
-     1>UI\UIManager.cpp(208): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
-     1>UI\UIManager.cpp(208): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
          WeightMenu.cpp
-         Widget.cpp
-     1>UI\Widget.cpp(94): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
-     1>UI\Widget.cpp(94): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
-     1>UI\Widget.cpp(112): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
-     1>UI\Widget.cpp(112): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
-     1>UI\Widget.cpp(128): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
-     1>UI\Widget.cpp(128): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
-         Building.cpp
-         Collider.cpp
-         Model.cpp
-         Resource.cpp
-         Sprite.cpp
-         Transform.cpp
-         Unit.cpp
-         Entity.cpp
-         EntityManager.cpp
-         Map.cpp
-         MapSerializer.cpp
-         AISystem.cpp
-         EconomySystem.cpp
-         PathfindingSystem.cpp
-         PhysicsSystem.cpp
-         RenderSystem.cpp
-         TileLayer.cpp
+         MapEditor.cpp
+     1>Editor\MapEditor.cpp(366): warning C4244: 'initializing' : conversion from 'int' to 'float', possible loss of data
+     1>Editor\MapEditor.cpp(367): warning C4244: 'initializing' : conversion from 'int' to 'float', possible loss of data
          Generating Code...
        Link:
          C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\link.exe /ERRORREPORT:PROMPT /OUT:"D:\development\Settlers2\Settlers2\Release\Settlers2.exe" /INCREMENTAL:NO /NOLOGO xapilib.lib d3d9.lib d3dx9.lib xgraphics.lib xboxkrnl.lib xnet.lib xaudio2.lib xact3.lib x3daudio.lib xmcore.lib vcomp.lib /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"D:\development\Settlers2\Settlers2\Release\Settlers2.pdb" /STACK:"262144","262144" /OPT:REF /OPT:ICF /TLBID:1 /RELEASE /IMPLIB:"D:\development\Settlers2\Settlers2\Release\Settlers2.lib" Release\GameEngine.obj
@@ -173,4 +95,4 @@
 
 Построение успешно завершено.
 
-Затраченное время: 00:00:41.04
+Затраченное время: 00:00:22.67

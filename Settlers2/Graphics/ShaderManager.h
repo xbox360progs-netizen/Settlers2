@@ -266,6 +266,11 @@ public:
         return false;
     }
 
+    // Check if queue is empty for this tick (for render thread yielding)
+    bool IsQueueEmptyForThisTick() const {
+        return GetCommandCount() == 0;
+    }
+
     // Push command for Xbox 360 ring buffer architecture
     void PushXbox360Command(const RenderCommand& cmd);
     

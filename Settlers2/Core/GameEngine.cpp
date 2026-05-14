@@ -16,6 +16,49 @@
 #include "../Input/InputManager.h"
 
 #include <iostream>
+#include <xtl.h>
+
+// Xbox 360 Render Thread Globals
+volatile bool g_IsEngineRunning = true;
+HANDLE g_hRenderThread = NULL;
+ShaderManager* g_pGlobalShaderManager = NULL;
+SpriteRenderer* g_pGlobalSpriteRenderer = NULL;
+
+// Render Thread Processor - runs on Core 1 (Thread 2)
+DWORD WINAPI RenderThreadProcessor(LPVOID lpParam) {
+    OutputDebugStringA("[CORE] Render Pipeline Thread successfully spawned on Core 1 (Thread 2).\n");
+
+    ShaderManager* sm = g_pGlobalShaderManager;
+    SpriteRenderer* sr = g_pGlobalSpriteRenderer;
+
+    while (g_IsEngineRunning) {
+        // Вызываем асинхронную прокрутку очереди
+        sm->ExecuteQueue(sr->GetVertexBuffer(),
+                        sr->GetIndexBuffer(),
+                        sr->GetVertexDeclaration(),
+                        sizeof(SpriteVertex),
+                        NULL);
+
+        // Маленькая аппаратная уступка кванта времени Xenon OS, если очередь пустеет
+        if (sm->IsQueueEmptyForThisTick()) {
+            Sleep(1);
+        }
+    }
+    return 0;
+}
+
+// Start Graphics Pipeline with Core 1 binding
+void StartGraphicsPipeline(ShaderManager* pShaderManager, SpriteRenderer* pSpriteRenderer) {
+    g_pGlobalShaderManager = pShaderManager;
+    g_pGlobalSpriteRenderer = pSpriteRenderer;
+
+    // Создаём поток рендеринга
+    g_hRenderThread = CreateThread(NULL, 0, RenderThreadProcessor, NULL, 0, NULL);
+
+    // ЖЕСТКАЯ ПРИВЯЗКА К ЯДРУ 1 (Hardware Thread 2)
+    // На Xbox 360 это исключает перекидывание потоков планировщиком ОС и сброс L2-кэша
+    XSetThreadProcessor(g_hRenderThread, 2);
+}
 
 //-------------------------------------------------------------------------------------
 // Constructor / Destructor
@@ -166,6 +209,10 @@ bool GameEngine::Initialize()
     m_sceneManager->SetSpriteRenderer(m_spriteRenderer);
 
     CreateScenes();
+
+    // Xbox 360: Start render thread on Core 1
+    StartGraphicsPipeline(m_pShaderManager, m_spriteRenderer);
+    OutputDebugStringA("[GameEngine::Initialize] Render thread started on Core 1\n");
 
     m_initialized = true;
     std::cout << "[GameEngine] Initialized successfully" << std::endl;

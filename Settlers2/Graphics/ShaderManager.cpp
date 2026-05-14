@@ -571,10 +571,13 @@ void ShaderManager::PushCommand(const RenderCommand& cmd) {
 }
 
 // Push command for Xbox 360 ring buffer architecture
-void ShaderManager::PushXbox360Command(const RenderCommand& cmd) {
-    // Find free slot and atomically capture it
+void ShaderManager::PushXbox360Command(const RenderCommand& newCmd) {
     int targetSlot = -1;
+
+    // Ищем свободную ячейку в циклическом кольцевом буфере команд кадра
     for (int i = 0; i < MAX_GLOBAL_COMMANDS; ++i) {
+        // Статус 0 означает, что ячейка свободна.
+        // Атомарно переводим её в статус 2 (блокировка под запись Потоком Логики)
         if (InterlockedCompareExchange(&m_commandQueue[i].status, 2, 0) == 0) {
             targetSlot = i;
             break;
@@ -582,10 +585,21 @@ void ShaderManager::PushXbox360Command(const RenderCommand& cmd) {
     }
 
     if (targetSlot != -1) {
-        m_commandQueue[targetSlot] = cmd;
-        InterlockedExchange(&m_commandQueue[targetSlot].status, 1);
+        // Копируем параметры команды из структуры RenderTypes.h
+        RenderCommand& queuedCmd = m_commandQueue[targetSlot];
+        queuedCmd.shaderID = newCmd.shaderID;
+        queuedCmd.pTexture = newCmd.pTexture;
+        queuedCmd.depth = newCmd.depth;
+        queuedCmd.vertexCount = newCmd.vertexCount;
+        queuedCmd.primitiveCount = newCmd.primitiveCount;
+        queuedCmd.baseVertex = newCmd.baseVertex;
+        queuedCmd.vertexStart = newCmd.vertexStart;
+        queuedCmd.isUI = newCmd.isUI;
+
+        // Атомарно выставляем статус 1: "Пачка полностью готова к рендеру"
+        InterlockedExchange(&queuedCmd.status, 1);
     } else {
-        OutputDebugStringA("[ShaderManager::PushXbox360Command] CRITICAL: Command Ring Buffer Overflow!\n");
+        OutputDebugStringA("[ShaderManager] CRITICAL: Multi-threaded Command Queue Overflow on Xbox 360!\n");
     }
 }
 
