@@ -214,32 +214,54 @@ void MenuScene::Update(float deltaTime) {
 }
 
 void MenuScene::Render() {
-    if (!m_spriteRenderer || !m_backgroundTexture.GetTexture() || !m_textManager) return;
-
-    // 1. Render Background (depth=1.0 - renders first/behind)
-    LPDIRECT3DTEXTURE9 bgTex = m_backgroundTexture.GetTexture();
-    m_spriteRenderer->Begin(SHADER_SPRITE, bgTex, 1.0f, 0, true); // UI rendering
-    m_spriteRenderer->Draw(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
-    m_spriteRenderer->End(); // Close background batch
-
-    // 2. Render UI text (depth=0.0 - renders last/on top)
-    float textDepth = 0.0f;
-    m_textManager->BeginTextBatch(FONT_MENU, textDepth);
+    OutputDebugStringA("[MenuScene::Render] ENTRY\n");
     
-	float startY = 280.0f;     // Начальная позиция по вертикали для пунктов
-    float spacingY = 80.0f;    // Шаг между строками
+    if (!m_spriteRenderer) {
+        OutputDebugStringA("[MenuScene::Render] m_spriteRenderer is NULL!\n");
+        return;
+    }
+    OutputDebugStringA("[MenuScene::Render] m_spriteRenderer OK\n");
+    
+    if (!m_backgroundTexture.GetTexture()) {
+        OutputDebugStringA("[MenuScene::Render] background texture is NULL!\n");
+        return;
+    }
+    OutputDebugStringA("[MenuScene::Render] background texture OK\n");
+    
+    if (!m_textManager) {
+        OutputDebugStringA("[MenuScene::Render] m_textManager is NULL!\n");
+        return;
+    }
+    OutputDebugStringA("[MenuScene::Render] m_textManager OK\n");
 
+    OutputDebugStringA("[MenuScene::Render] About to call Begin()...\n");
+    LPDIRECT3DTEXTURE9 bgTex = m_backgroundTexture.GetTexture();
+    m_spriteRenderer->Begin(SHADER_SPRITE, bgTex, 1.0f, 0, true);
+    OutputDebugStringA("[MenuScene::Render] Begin() succeeded\n");
+
+    OutputDebugStringA("[MenuScene::Render] About to call Draw()...\n");
+    m_spriteRenderer->Draw(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
+    OutputDebugStringA("[MenuScene::Render] Draw() succeeded\n");
+
+    OutputDebugStringA("[MenuScene::Render] About to call End()...\n");
+    m_spriteRenderer->End();
+    OutputDebugStringA("[MenuScene::Render] End() succeeded\n");
+
+    OutputDebugStringA("[MenuScene::Render] About to call BeginTextBatch()...\n");
+    m_textManager->BeginTextBatch(FONT_MENU, 0.0f);
+    OutputDebugStringA("[MenuScene::Render] BeginTextBatch() succeeded\n");
+    
+    float startY = 280.0f;
+    float spacingY = 80.0f;
     for (int i = 0; i < m_menuCount; ++i) {
-        DWORD itemColor = (i == m_selectedIndex) ? 0xFFFFD700 : 0xFFFFFFFF; // Желтый для активного, белый для остальных
-        
-        // Смещение для визуального выделения активного пункта
+        DWORD itemColor = (i == m_selectedIndex) ? 0xFFFFD700 : 0xFFFFFFFF;
         float itemX = (i == m_selectedIndex) ? 140.0f : 100.0f;
-
         m_textManager->DrawTextToScreen(m_menuItems[i], itemX, startY + (i * spacingY), itemColor, 0.3f);
     }
 
-    // 4. Close text batch
+    OutputDebugStringA("[MenuScene::Render] About to call EndTextBatch()...\n");
     m_textManager->EndTextBatch();
+    OutputDebugStringA("[MenuScene::Render] EXIT\n");
 }
 
 void MenuScene::SetBackground(const std::string& path) {

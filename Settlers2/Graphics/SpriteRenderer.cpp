@@ -1107,10 +1107,7 @@ void SpriteRenderer::DrawRotated(float x, float y, float width, float height, fl
 }
 
 void SpriteRenderer::End() {
-    char dbg[128];
-    sprintf(dbg, "[SR::End] ENTRY: m_isBatching=%d, m_pendingCommands=%d, m_spriteCount=%d\n", 
-            m_isBatching, (int)m_pendingCommands.size(), m_spriteCount);
-    OutputDebugStringA(dbg);
+    OutputDebugStringA("[SR::End] ENTRY\n");
     
     if (!m_isBatching) {
         OutputDebugStringA("[SR::End] WARNING: m_isBatching is false!\n");
@@ -1119,21 +1116,15 @@ void SpriteRenderer::End() {
     
     m_isBatching = false;
     
-    // ВАЖНО: В вашей кодовой базе SpriteRenderer::Flush() САМ копирует вершины на GPU
-    // и САМ наполняет m_commandQueue внутри ShaderManager!
+    OutputDebugStringA("[SR::End] pendingCommands empty check\n");
     if (!m_pendingCommands.empty() || m_spriteCount > 0) {
-        OutputDebugStringA("[SR::End] DEFERRED: Calling Flush() to build GPU buffers and push commands...\n");
-        
-        // В вашей архитектуре Flush() выполняет две роли:
-        // 1. Копирует вершины в pVB/pIB
-        // 2. Добавляет готовую отсортированную команду в ShaderManager::m_commandQueue!
-        Flush(); 
-        
-        OutputDebugStringA("[SR::End] DEFERRED: Flush() completed\n");
+        OutputDebugStringA("[SR::End] Calling Flush()...\n");
+        Flush();
+        OutputDebugStringA("[SR::End] Flush() completed\n");
     }
     
-    // Сбрасываем счетчик спрайтов батча
     m_spriteCount = 0;
+    OutputDebugStringA("[SR::End] EXIT\n");
 }
 
 void SpriteRenderer::ResetVertexCount() {
@@ -1145,100 +1136,75 @@ void SpriteRenderer::ResetVertexCount() {
 }
 
 void SpriteRenderer::Flush(ShaderManager* pShader) {
-    if (m_spriteCount == 0) return;
+    OutputDebugStringA("[SR::Flush] ENTRY\n");
+    
+    if (m_spriteCount == 0) {
+        OutputDebugStringA("[SR::Flush] EXIT: m_spriteCount == 0\n");
+        return;
+    }
 
     int numVertices = m_spriteCount * 4;
     int numIndices = m_spriteCount * 6;
     
-    // Вычисляем точный размер записываемых данных в байтах
-    size_t bytesToWrite = static_cast<size_t>(numVertices * sizeof(SpriteVertex));
-
-    // === КОЛЬЦЕВОЙ СДВИГ ВНУТРИ ОСНОВНОГО БУФЕРА ===
-    if (m_totalVertexCount + numVertices > HARDWARE_MAX_VERTICES) {
-        while (pShader && pShader->HasPendingGpuCommands()) {
-            YieldProcessor();
-        }
-        m_totalVertexCount = 0;
-        m_totalIndexCount = 0;
+    OutputDebugStringA("[SR::Flush] Checking vertex buffer...\n");
+    if (!m_pVertexBuffer) {
+        OutputDebugStringA("[SR::Flush] ERROR: m_pVertexBuffer is NULL!\n");
+        return;
     }
-
+    
+    OutputDebugStringA("[SR::Flush] Locking vertex buffer...\n");
     void* pGpuVertices = nullptr;
-
     HRESULT hr = m_pVertexBuffer->Lock(
         m_totalVertexCount * sizeof(SpriteVertex),
         numVertices * sizeof(SpriteVertex),
         &pGpuVertices,
         D3DLOCK_NOOVERWRITE
     );
-
-    if (SUCCEEDED(hr) && pGpuVertices) {
-        // Переносим пачку из вторичного буфера ОЗУ в выделенный сектор основного буфера GPU
-        memcpy(pGpuVertices, m_pStagingBuffer, bytesToWrite);
-        m_pVertexBuffer->Unlock();
-
-        // === КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ ДЛЯ XBOX 360 (HARDWARE CACHE FLUSH) ===
-#ifdef _XBOX
-        const void* pCacheLine = reinterpret_cast<const void*>(pGpuVertices);
-        
-        for (size_t offset = 0; offset < bytesToWrite; offset += 128) {
-            
-            // СТРОГО ПО СИГНАТУРЕ SDK XBOX 360: сначала 0 (офсет), затем указатель на базу строки
-            __dcbf(0, pCacheLine); 
-            
-            // Сдвигаем указатель на размер строки кэша Xenon (128 байт)
-            pCacheLine = reinterpret_cast<const void*>(reinterpret_cast<const char*>(pCacheLine) + 128);
-        }
-        
-        // Аппаратный барьер PowerPC для полной фиксации транзакции на шине памяти
-        __sync(); 
-#endif
+    
+    if (FAILED(hr)) {
+        OutputDebugStringA("[SR::Flush] ERROR: Lock failed!\n");
+        return;
     }
+    
+    OutputDebugStringA("[SR::Flush] Copying to GPU...\n");
+    
+    if (!m_pStagingBuffer) {
+        OutputDebugStringA("[SR::Flush] ERROR: m_pStagingBuffer is NULL!\n");
+        m_pVertexBuffer->Unlock();
+        return;
+    }
+    
+    size_t bytesToWrite = static_cast<size_t>(numVertices * sizeof(SpriteVertex));
+    memcpy(pGpuVertices, m_pStagingBuffer, bytesToWrite);
+    m_pVertexBuffer->Unlock();
+    OutputDebugStringA("[SR::Flush] Unlock done\n");
 
-    // Пакуем команду отложенного рендеринга для Ядра 1
+    // Пакуем команду отложенного рендеринга
+    OutputDebugStringA("[SR::Flush] Packing RenderCommand...\n");
     RenderCommand cmd;
     cmd.shaderID = m_currentShaderID;
     cmd.pTexture = m_currentTexture;
     cmd.depth = m_currentDepth;
     cmd.isUI = m_currentIsUI;
-
-    // Передаем точные смещения внутри кольцевого буфера
     cmd.baseVertex = m_totalVertexCount; 
     cmd.vertexStart = m_totalIndexCount;
     cmd.vertexCount = numVertices;
     cmd.primitiveCount = m_spriteCount * 2;
-    cmd.status = 1; // Готово к отправке на GPU
-
-// === КРИТИЧЕСКИЙ АППАРАТНЫЙ БАРЬЕР ДЛЯ XBOX 360 ===
-    #ifdef _XBOX
-    __sync(); 
-    #else
-    MemoryBarrier();
-    #endif
-
-    // === ИСПРАВЛЕНИЕ: Flush перед отправкой нового спрайтового батча ===
-    // Разгружаем командный процессор (CP) после работы TextManager/предыдущих батчей
-    #ifdef _XBOX
-    if (m_pDevice) {
-        IDirect3DQuery9* pFlushQuery = NULL;
-        if (SUCCEEDED(m_pDevice->CreateQuery(D3DQUERYTYPE_EVENT, &pFlushQuery))) {
-            pFlushQuery->Issue(D3DISSUE_END);
-            pFlushQuery->GetData(NULL, 0, D3DGETDATA_FLUSH);
-            pFlushQuery->Release();
-        }
-    }
-    #endif
-
-    // Атомарно пушим команду в Lock-Free очередь ShaderManager
+    cmd.status = 1;
+    
+    OutputDebugStringA("[SR::Flush] Pushing command to ShaderManager...\n");
     if (pShader) {
+        OutputDebugStringA("[SR::Flush] pShader is valid\n");
         pShader->PushXbox360Command(cmd);
+        OutputDebugStringA("[SR::Flush] PushXbox360Command done\n");
+    } else {
+        OutputDebugStringA("[SR::Flush] WARNING: pShader is NULL!\n");
     }
 
-    // Сдвигаем маркер основного буфера вперед — место заблокировано под Draw Call Ядра 1
     m_totalVertexCount += numVertices;
     m_totalIndexCount += numIndices;
-
-    // СБРОС ВТОРИЧНОГО БУФЕРА
     m_spriteCount = 0;
+    OutputDebugStringA("[SR::Flush] EXIT\n");
 }
 
 void SpriteRenderer::SubmitBatch(ShaderManager* pShader) {

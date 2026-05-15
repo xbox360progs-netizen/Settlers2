@@ -3,6 +3,7 @@
 #include "../Graphics/ShaderManager.h"
 #include "../Graphics/SpriteRenderer.h"
 #include "../Graphics/RenderTypes.h"
+#include "../Scene/MenuScene.h"
 #include <iostream>
 #include <assert.h>
 
@@ -90,6 +91,9 @@ bool SceneManager::SwitchTo(const std::string& name)
 {
     std::cout << "[SceneManager] Switching to scene: " << name << std::endl;
 
+    // THREAD SAFETY: Lock BEFORE modifying m_currentScene
+    EnterCriticalSection(&m_cs);
+
     // BLOCK render thread on Core 1 - scene is being loaded
     m_isSceneReady = false;
     m_bSceneGraphicsReady = false;
@@ -99,6 +103,7 @@ bool SceneManager::SwitchTo(const std::string& name)
     if (it == m_scenes.end())
     {
         std::cout << "[SceneManager] ERROR: Scene not found: " << name << std::endl;
+        LeaveCriticalSection(&m_cs);
         return false;
     }
 
@@ -135,6 +140,7 @@ bool SceneManager::SwitchTo(const std::string& name)
         OutputDebugStringA("[SceneManager] WARNING: Resources not ready\n");
     }
 
+    LeaveCriticalSection(&m_cs);
     return true;
 }
 
@@ -198,20 +204,40 @@ void SceneManager::Render()
     // The scene will call SpriteRenderer which submits commands to the queue
     // Nobody draws anything at this stage!
 
-    printf("[SceneManager] About to call m_currentScene->Render()\n");
-    OutputDebugStringA("[SceneManager::Render] Calling m_currentScene->Render()...\n");
+    char dbg[256];
+    sprintf(dbg, "[SM::Render] ENTRY - m_currentScene=0x%08X\n", m_currentScene);
+    OutputDebugStringA(dbg);
     
-    // GUARD: If pointer is null or scene not ready, skip to prevent 0xC0000005
+    // THREAD SAFETY: Lock BEFORE accessing m_currentScene
+    EnterCriticalSection(&m_cs);
+    
+    sprintf(dbg, "[SM::Render] AFTER LOCK - m_currentScene=0x%08X\n", m_currentScene);
+    OutputDebugStringA(dbg);
+    
+    // GUARD: If pointer is null
     if (m_currentScene == nullptr) {
-        OutputDebugStringA("[SceneManager::Render] ERROR: m_currentScene is NULL!\n");
+        OutputDebugStringA("[SM::Render] ERROR: m_currentScene is NULL!\n");
+        LeaveCriticalSection(&m_cs);
         return;
     }
     
-    // THREAD SAFETY: Lock while rendering to prevent race conditions with scene switching
-    Lock();
+    // Dump vtable
+    void** vtable = *(void***)m_currentScene;
+    sprintf(dbg, "[SM::Render] Vtable=0x%08X\n", vtable);
+    OutputDebugStringA(dbg);
+    
+    if (vtable == nullptr) {
+        OutputDebugStringA("[FATAL] Scene Vtable is NULL!\n");
+        LeaveCriticalSection(&m_cs);
+        return;
+    }
+    
+    OutputDebugStringA("[SM::Render] About to call m_currentScene->Render()...\n");
     m_currentScene->Render();
-    Unlock();
-    OutputDebugStringA("[SceneManager::Render] m_currentScene->Render() returned\n");
+    OutputDebugStringA("[SM::Render] m_currentScene->Render() RETURNED!\n");
+    
+    LeaveCriticalSection(&m_cs);
+    OutputDebugStringA("[SM::Render] EXIT\n");
 
     // Step 3: SORT - Sort commands by zOrder, shader, and texture (critical for Xbox 360 performance)
     OutputDebugStringA("[SceneManager::Render] Calling SortQueue()...\n");

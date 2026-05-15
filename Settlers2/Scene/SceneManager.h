@@ -73,7 +73,7 @@ public:
 
 private:
     std::map<std::string, Scene*> m_scenes;
-    Scene* m_currentScene;
+    Scene* volatile m_currentScene;  // volatile for Xenon cache coherency
     ShaderManager* m_shaderManager;
     SpriteRenderer* m_spriteRenderer;
 
@@ -83,17 +83,14 @@ private:
     IDirect3DCommandBuffer9* m_pRecordCommandBuffer;
 #endif
 
-    // Thread barrier for scene readiness (prevents Core 1 render thread from accessing unloaded resources)
+    // Thread barrier for scene readiness
     volatile bool m_isSceneReady;
     volatile bool m_bSceneGraphicsReady;
 
     static SceneManager* s_pInstance;
 
-private:
     // Critical section for thread-safe scene switching
     CRITICAL_SECTION m_cs;
-
-    friend class Scene;
 };
 
 } // namespace Scene
