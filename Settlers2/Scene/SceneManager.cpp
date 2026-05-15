@@ -204,7 +204,7 @@ void SceneManager::Render()
     // The scene will call SpriteRenderer which submits commands to the queue
     // Nobody draws anything at this stage!
 
-    char dbg[256];
+    char dbg[512];
     sprintf(dbg, "[SM::Render] ENTRY - m_currentScene=0x%08X\n", m_currentScene);
     OutputDebugStringA(dbg);
     
@@ -261,47 +261,25 @@ void SceneManager::Render()
         LPDIRECT3DVERTEXDECLARATION9 pDecl = m_spriteRenderer->GetVertexDeclaration();
         
         // DEBUG: Check if we have valid resources before ExecuteQueue
-        char debugBuf[256];
-        sprintf(debugBuf, "[SceneManager::Render] Resources: pVB=%p, pIB=%p, pDecl=%p\n", pVB, pIB, pDecl);
+        char debugBuf[512];
+        sprintf(debugBuf, "[SM::Render] Resources: pVB=%p, pIB=%p, pDecl=%p\n", pVB, pIB, pDecl);
         OutputDebugStringA(debugBuf);
         
         // Execute queue with 32-byte stride (Xbox 360 alignment)
         if (pVB && pIB && pDecl)
         {
-            // === ПРОВЕРКА STRIDE: Убеждаемся, что размер вершины соответствует 32 байтам ===
-            // Если структура SpriteVertex изменилась — произойдет GPU crash
-            #ifdef _XBOX
-            assert(sizeof(SpriteVertex) == 32 && "Критическая ошибка: Stride спрайта должен быть равен 32 байтам!");
-            #endif
-
-            // === ИСПРАВЛЕНИЕ: Flush перед отправкой нового батча ===
-            // Разгружаем командный процессор (CP) после работы TextManager/предыдущих батчей
-            #ifdef _XBOX
-            LPDIRECT3DDEVICE9 pDev = m_spriteRenderer->GetDevice();
-            if (pDev) {
-                IDirect3DQuery9* pSceneQuery = NULL;
-                if (SUCCEEDED(pDev->CreateQuery(D3DQUERYTYPE_EVENT, &pSceneQuery))) {
-                    pSceneQuery->Issue(D3DISSUE_END);
-                    pSceneQuery->GetData(NULL, 0, D3DGETDATA_FLUSH);
-                    pSceneQuery->Release();
-                }
-            }
-            #endif
-
-            sprintf(debugBuf, "[SceneManager::Render] Calling ExecuteQueue with stride=32\n");
-            OutputDebugStringA(debugBuf);
+            OutputDebugStringA("[SM::Render] Calling ExecuteQueue...\n");
             m_shaderManager->ExecuteQueue(pVB, pIB, pDecl, 32);
+            OutputDebugStringA("[SM::Render] ExecuteQueue RETURNED!\n");
         }
         else
         {
-            // Fallback: clear queue if resources not available
+            OutputDebugStringA("[SM::Render] NULL resources - clearing queue\n");
             m_shaderManager->ClearQueue();
         }
     }
     
-    // Step 5: END FRAME - Present to screen (CRITICAL!)
-    // Note: EndFrame will be called by GameEngine, not here
-    // SceneManager only handles scene rendering and command execution
+    OutputDebugStringA("[SM::Render] ALL DONE - exiting Render()\n");
 }
 
 void SceneManager::Clear()

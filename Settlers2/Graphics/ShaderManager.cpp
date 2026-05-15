@@ -939,57 +939,80 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                                 LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride,
                                 const D3DXMATRIX* pViewProj, SpriteRenderer* pSpriteRenderer) {
 
+    OutputDebugStringA("[SMgr::ExecuteQueue] ENTRY\n");
+
     // Reset vertex offset at start of each frame
     s_currentVertexOffset = 0;
     s_batchIndex = 0;
 
-    // CRITICAL: Check device and effect before proceeding
+    // CRITICAL: Check device before proceeding
     if (!m_pDevice) {
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] CRITICAL: m_pDevice is NULL!\n");
+        OutputDebugStringA("[SMgr::ExecuteQueue] ERROR: m_pDevice is NULL!\n");
         return;
     }
+    OutputDebugStringA("[SMgr::ExecuteQueue] m_pDevice OK\n");
 
-    // Guard against null buffers (belt-and-suspenders for thread safety)
+    // Guard against null buffers
     if (!pVB || !pIB || !pDecl) {
-        OutputDebugStringA("[ShaderManager::ExecuteQueue] CRITICAL: NULL buffers passed!\n");
+        OutputDebugStringA("[SMgr::ExecuteQueue] ERROR: NULL buffers!\n");
         return;
     }
+    OutputDebugStringA("[SMgr::ExecuteQueue] Buffers valid\n");
 
-    // NOTE: Removed D3DCLEAR_TARGET - it was wiping out previous renderings (including UI text)
-    // If you need to clear for debugging, do it BEFORE rendering, not after
-
-    // Set projection matrix for ALL shaders (not just sprite shader)
+    // Set projection matrix
     D3DXMATRIX ortho;
     D3DXMatrixOrthoOffCenterLH(&ortho, 0, 1280, 720, 0, 0, 1);
-
-    // === XBOX 360 FIX: Local orthographic matrix with extended Z range ===
-    // UI elements have Z=0.00f, so we need Z range from -10.0f to 10.0f to prevent clipping
+    
     D3DXMATRIX localOrtho;
     D3DXMatrixOrthoOffCenterLH(&localOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, -10.0f, 10.0f);
 
-    // === GLOBAL CONSTANT BUFFER: Set ViewProj once per frame ===
-    // Use provided pViewProj if available, otherwise use ortho for 2D
-    const D3DXMATRIX* matrixToUse = pViewProj ? pViewProj : &ortho;
-    SetFrameViewProj(matrixToUse);
-
-    // === STATE LOCKING: Prevent external state corruption ===
+    OutputDebugStringA("[SMgr::ExecuteQueue] Setting state...\n");
     Lock();
 
-    // Set vertex declaration and stream source once for entire frame (single ring buffer)
+    OutputDebugStringA("[SMgr::ExecuteQueue] Setting stream source...\n");
     m_pDevice->SetVertexDeclaration(pDecl);
     m_pDevice->SetStreamSource(0, pVB, 0, sizeof(SpriteVertex));
     m_pDevice->SetIndices(pIB);
 
-    // === LAZY BATCHING: Process commands with minimal state switches ===
-    // CRITICAL: Disable Z-buffer for entire 2D UI rendering (stable state for Xbox 360)
+    OutputDebugStringA("[SMgr::ExecuteQueue] Disabling Z buffer...\n");
     m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
     m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
     m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+
+    const D3DXMATRIX* matrixToUse = pViewProj ? pViewProj : &ortho;
+    SetFrameViewProj(matrixToUse);
+
+    // Set vertex declaration and stream source once for entire frame
+    OutputDebugStringA("[SMgr::ExecuteQueue] Setting vertex data...\n");
+    m_pDevice->SetVertexDeclaration(pDecl);
+    m_pDevice->SetStreamSource(0, pVB, 0, sizeof(SpriteVertex));
+    m_pDevice->SetIndices(pIB);
+
+    // Disable Z-buffer for 2D UI rendering
+    OutputDebugStringA("[SMgr::ExecuteQueue] Disabling Z...\n");
+    m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+    m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+    m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+
+    OutputDebugStringA("[SMgr::ExecuteQueue] Unlocking...\n");
+    Unlock();
 
     ShaderID currentShaderID = SHADER_INVALID;
     LPDIRECT3DTEXTURE9 lastTexture = nullptr;
     bool passActive = false;
     bool hasAnyWorkBeenDone = false;
+
+    int commandCount = 0;
+    for (int i = 0; i < MAX_GLOBAL_COMMANDS; ++i) {
+        RenderCommand& cmd = m_commandQueue[i];
+        if (cmd.status == 1) {
+            commandCount++;
+        }
+    }
+    
+    char cmdBuf[256];
+    sprintf(cmdBuf, "[SMgr::ExecuteQueue] Found %d commands to execute\n", commandCount);
+    OutputDebugStringA(cmdBuf);
 
     for (int i = 0; i < MAX_GLOBAL_COMMANDS; ++i) {
         RenderCommand& cmd = m_commandQueue[i];
@@ -1034,62 +1057,52 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                     m_pActiveEffect->CommitChanges();
                 }
 
-                char renderMsg[256];
-                sprintf(renderMsg, "[ExecuteQueue] Drawing: depth=%.2f, baseVert=%d, startIdx=%d, verts=%d, prims=%d, tex=%p\n",
-                        cmd.depth, cmd.baseVertex, cmd.vertexStart, cmd.vertexCount, cmd.primitiveCount, cmd.pTexture);
+                char renderMsg[512];
+                sprintf(renderMsg, "[SMgr::ExecuteQueue] Draw: depth=%.2f, baseVert=%d, verts=%d, prims=%d\n",
+                        cmd.depth, cmd.baseVertex, cmd.vertexCount, cmd.primitiveCount);
                 OutputDebugStringA(renderMsg);
+
+                OutputDebugStringA("[SMgr::ExecuteQueue] Calling DrawIndexedPrimitive...\n");
                 m_pDevice->DrawIndexedPrimitive(
                     D3DPT_TRIANGLELIST,
-                    0, // TEMP TEST: Hardcoded 0 instead of cmd.baseVertex to check for double offset
+                    0,
                     0,
                     cmd.vertexCount,
                     cmd.vertexStart,
                     cmd.primitiveCount
                 );
+                OutputDebugStringA("[SMgr::ExecuteQueue] DrawIndexedPrimitive DONE\n");
 
-#ifdef _XBOX
-                IDirect3DQuery9* pEventQuery = NULL;
-                if (SUCCEEDED(m_pDevice->CreateQuery(D3DQUERYTYPE_EVENT, &pEventQuery))) {
-                    pEventQuery->Issue(D3DISSUE_END);
-                    pEventQuery->GetData(NULL, 0, D3DGETDATA_FLUSH);
-                    pEventQuery->Release();
-                }
-#endif
+                InterlockedExchange(&cmd.status, 0);
+                OutputDebugStringA("[SMgr::ExecuteQueue] status reset\n");
             }
-
-            InterlockedExchange(&cmd.status, 0);
         }
     }
 
-    // Close everything after loop
+    OutputDebugStringA("[SMgr::ExecuteQueue] Loop done - about to close shader pass...\n");
     if (passActive) {
+        OutputDebugStringA("[SMgr::ExecuteQueue] Calling EndPass()...\n");
         EndPass();
+        OutputDebugStringA("[SMgr::ExecuteQueue] EndPass done, calling EndCurrent()...\n");
         EndCurrent();
+        OutputDebugStringA("[SMgr::ExecuteQueue] EndCurrent done\n");
     }
 
-    // Unlock state after ExecuteQueue completes
+    OutputDebugStringA("[SMgr::ExecuteQueue] About to Unlock...\n");
     Unlock();
+    OutputDebugStringA("[SMgr::ExecuteQueue] Unlocked\n");
 
-    // === CLEANUP: Reset all texture slots to NULL ===
+    OutputDebugStringA("[SMgr::ExecuteQueue] Clearing textures...\n");
     m_pDevice->SetTexture(0, NULL);
     m_pDevice->SetTexture(1, NULL);
     m_pDevice->SetTexture(2, NULL);
     m_pDevice->SetTexture(3, NULL);
+    OutputDebugStringA("[SMgr::ExecuteQueue] Textures cleared\n");
 
-    // Reset vertex offset tracking for next frame
     s_currentVertexOffset = 0;
     s_batchIndex = 0;
 
-    // Clear frame ViewProj for next frame
-    m_hasFrameViewProj = false;
-
-    // Xbox 360: Reset ring buffer offsets at end of frame (in render thread)
-    // This ensures GPU has finished processing all commands before reset
-    // Prevents the bug where Core 0 clears buffer while GPU is still reading
-    // Only reset if any work was actually done this frame (prevents multiple resets)
-    if (hasAnyWorkBeenDone && pSpriteRenderer) {
-        pSpriteRenderer->ResetVertexCount();
-    }
+    OutputDebugStringA("[SMgr::ExecuteQueue] About to return...\n");
 }
 
 void ShaderManager::ExecuteBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
