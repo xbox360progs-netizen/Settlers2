@@ -14,86 +14,56 @@
 #include "../Scene/GameScene.h"
 #include "../Scene/EditorScene.h"
 #include "../Input/InputManager.h"
+#include "ThreadSync.h"
 
 #include <iostream>
 #include <xtl.h>
 
-// Xbox 360 Render Thread Globals
 volatile bool g_IsEngineRunning = true;
-HANDLE g_hRenderThread = NULL;
-ShaderManager* g_pGlobalShaderManager = NULL;
-SpriteRenderer* g_pGlobalSpriteRenderer = NULL;
+HANDLE g_hLogicThread = NULL;
 Scene::SceneManager* g_pSceneManager = NULL;
-Renderer* g_pGlobalRenderer = NULL;
 
-// Render Thread Processor - runs on Core 1 (Thread 2)
-// NOTE: Main thread handles command queue filling.
-// This thread handles ALL D3D calls: BeginScene/EndScene/Present (MUST be together on Xbox 360)
-volatile bool g_frameRendered = false;
+#ifdef _XBOX
+DWORD WINAPI LogicThreadProcessor(LPVOID lpParam) {
+    OutputDebugStringA("[CORE] Logic Thread spawned on Core 1 (Thread 2).\n");
 
-DWORD WINAPI RenderThreadProcessor(LPVOID lpParam) {
-    OutputDebugStringA("[CORE] Render Pipeline Thread successfully spawned on Core 1 (Thread 2).\n");
+    XSetThreadProcessor(GetCurrentThread(), 1);
 
     Scene::SceneManager* sceneMgr = g_pSceneManager;
-    Renderer* renderer = g_pGlobalRenderer;
     (void)lpParam;
 
-    // Wait for async command buffer to be initialized
     while (g_IsEngineRunning) {
-        if (sceneMgr && sceneMgr->IsSceneReady()) {
-            break;
-        }
-        Sleep(1);
-    }
-
-    while (g_IsEngineRunning) {
-        // THREAD BARRIER: Wait for scene to be ready
         if (!sceneMgr || !sceneMgr->IsSceneReady()) {
             Sleep(1);
             continue;
         }
 
-        // Wait for main thread to finish filling command queue this frame
-        while (!g_frameRendered && g_IsEngineRunning) {
-            Sleep(1);
-        }
-        g_frameRendered = false;
+        LogicFrameBuffer& writeBuffer = g_ThreadSync.GetWriteBuffer();
 
-        // FULL RENDER PIPELINE MUST BE IN THIS THREAD (Core 1)
-        // Xbox 360 D3D9 is NOT thread-safe - all BeginScene/EndScene/Present must be together
-        if (renderer) {
-            OutputDebugStringA("[CORE] BeginFrame...\n");
-            renderer->BeginFrame();
+        if (!writeBuffer.isReady) {
+            writeBuffer.commandCount = 0;
+
+            sceneMgr->Update(0.016f);
+
+            writeBuffer.isReady = true;
         }
 
-        if (sceneMgr) {
-            OutputDebugStringA("[CORE] Calling SceneManager->Render()...\n");
-            sceneMgr->Render();
-            OutputDebugStringA("[CORE] SceneManager->Render() DONE\n");
-        }
+        g_ThreadSync.SwapBuffers();
 
-        if (renderer) {
-            OutputDebugStringA("[CORE] EndFrame (EndScene + Present)...\n");
-            renderer->EndFrame();
-            OutputDebugStringA("[CORE] EndFrame DONE\n");
-        }
+        Sleep(16);
     }
     return 0;
 }
 
-// Start Graphics Pipeline with Core 1 binding
-void StartGraphicsPipeline(ShaderManager* pShaderManager, SpriteRenderer* pSpriteRenderer, Renderer* pRenderer) {
-    g_pGlobalShaderManager = pShaderManager;
-    g_pGlobalSpriteRenderer = pSpriteRenderer;
-    g_pGlobalRenderer = pRenderer;
+void StartLogicThread(Scene::SceneManager* pSceneManager) {
+    g_pSceneManager = pSceneManager;
 
-    // Создаём поток рендеринга
-    g_hRenderThread = CreateThread(NULL, 0, RenderThreadProcessor, NULL, 0, NULL);
+    g_hLogicThread = CreateThread(NULL, 0, LogicThreadProcessor, NULL, 0, NULL);
+    XSetThreadProcessor(g_hLogicThread, 1);
 
-    // ЖЕСТКАЯ ПРИВЯЗКА К ЯДРУ 1 (Hardware Thread 2)
-    // На Xbox 360 это исключает перекидывание потоков планировщиком ОС и сброс L2-кэша
-    XSetThreadProcessor(g_hRenderThread, 2);
+    OutputDebugStringA("[GameEngine] Logic thread started on Core 1\n");
 }
+#endif
 
 //-------------------------------------------------------------------------------------
 // Constructor / Destructor
@@ -238,28 +208,19 @@ bool GameEngine::Initialize()
     TextureRegistry::instance().initialize(m_renderer->GetDevice());
 
     m_sceneManager = new Scene::SceneManager();
-    g_pSceneManager = m_sceneManager; // Set global for render thread access
+    g_pSceneManager = m_sceneManager;
 
-    // Set up queue-based rendering pipeline
     m_sceneManager->SetShaderManager(m_renderer->GetShaderManager());
     m_sceneManager->SetSpriteRenderer(m_spriteRenderer);
 
-#ifdef _XBOX
-    // Initialize Xbox 360 async command buffer for multithreaded rendering
-    m_sceneManager->InitializeAsyncCommandBuffer(m_renderer->GetDevice());
-    // Set async command buffer on SpriteRenderer
-    m_spriteRenderer->SetAsyncCommandBuffer(
-        m_sceneManager->GetSpriteCommandBuffer(),
-        m_sceneManager->GetAsyncCall()
-    );
-    OutputDebugStringA("[GameEngine::Initialize] Xbox 360 async command buffer initialized\n");
-#endif
-
     CreateScenes();
 
-    // Xbox 360: Start render thread on Core 1
-    StartGraphicsPipeline(m_pShaderManager, m_spriteRenderer, m_renderer);
-    OutputDebugStringA("[GameEngine::Initialize] Render thread started on Core 1\n");
+#ifdef _XBOX
+    g_ThreadSync.Initialize();
+    StartLogicThread(m_sceneManager);
+#else
+    (void)m_sceneManager;
+#endif
 
     m_initialized = true;
     std::cout << "[GameEngine] Initialized successfully" << std::endl;
@@ -379,26 +340,18 @@ void GameEngine::Update(float deltaTime)
 
 void GameEngine::Render()
 {
+#ifndef _XBOX
     if (!m_renderer || !m_sceneManager)
     {
         return;
     }
 
-    // GUARD: Skip render if scene not ready
     if (!m_sceneManager->IsSceneReady()) {
         return;
     }
 
-    // MAIN THREAD: Only fill command queue
-    // Do NOT call BeginFrame/EndFrame here - those MUST be in Core 1 render thread
-    // This allows CPU work (game logic, sprite filling) to happen on main thread
-    // while GPU work (BeginScene/DrawIndexedPrimitive/EndScene/Present) happens on Core 1
-
-    // Just signal that frame data is ready for Core 1 to render
     m_sceneManager->Render();
-
-    // Signal render thread that frame is complete - it can now call BeginFrame/EndFrame
-    g_frameRendered = true;
+#endif
 }
 
 void GameEngine::Run()
@@ -409,13 +362,45 @@ void GameEngine::Run()
         return;
     }
 
+#ifdef _XBOX
+    XSetThreadProcessor(GetCurrentThread(), 0);
+#endif
+
     m_running = true;
     DWORD lastTime = GetTickCount();
 
-    std::cout << "[GameEngine] Entering main loop" << std::endl;
+    std::cout << "[GameEngine] Entering main loop (Core 0 - Rendering)" << std::endl;
 
     while (m_running)
     {
+#ifdef _XBOX
+        if (m_inputManager) {
+            m_inputManager->Update();
+        }
+
+        ProcessSceneRequests();
+
+        LogicFrameBuffer& renderBuffer = g_ThreadSync.GetReadBuffer();
+
+        if (renderBuffer.isReady) {
+            if (m_renderer) {
+                m_renderer->BeginFrame();
+            }
+
+            if (m_sceneManager) {
+                m_sceneManager->Render();
+            }
+
+            if (m_renderer) {
+                m_renderer->EndFrame();
+            }
+
+            g_ThreadSync.MarkReadBufferConsumed();
+            g_ThreadSync.SwapBuffers();
+        } else {
+            Sleep(0);
+        }
+#else
         DWORD currentTime = GetTickCount();
         float deltaTime = (currentTime - lastTime) / 1000.0f;
         lastTime = currentTime;
@@ -425,6 +410,7 @@ void GameEngine::Run()
 
         Update(deltaTime);
         Render();
+#endif
 
         Sleep(16);
     }
