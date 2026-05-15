@@ -543,7 +543,15 @@ void SpriteRenderer::FlushBatchesAsync() {
     sprintf(dbg, "[SR::FlushBatchesAsync] spriteCount=%d, vertexCount=%d\n", m_spriteCount, m_spriteCount * 4);
     OutputDebugStringA(dbg);
 
-    // Begin recording into command buffer
+    // Check all D3D resources before any draw call
+    if (!m_pDevice || !m_pVertexBuffer || !m_pIndexBuffer || !m_pVertexDecl) {
+        sprintf(dbg, "[SR::FlushBatchesAsync] ERROR: NULL res - pDev=%p, pVB=%p, pIB=%p, pDecl=%p\n",
+                m_pDevice, m_pVertexBuffer, m_pIndexBuffer, m_pVertexDecl);
+        OutputDebugStringA(dbg);
+        return;
+    }
+
+    OutputDebugStringA("[Flush] Step 1: BeginCommandBuffer...\n");
     m_pDevice->BeginCommandBuffer(m_pAsyncCommandBuffer, 0, NULL, NULL, NULL, 0);
 
     // [VERTEX RING BUFFER] Reset offset if buffer would overflow
@@ -560,28 +568,40 @@ void SpriteRenderer::FlushBatchesAsync() {
 
     // Apply shader and texture (recorded into buffer)
     if (m_pShaderManager) {
+        OutputDebugStringA("[Flush] Step 2: BeginShader...\n");
         m_pShaderManager->BeginShader();
+        OutputDebugStringA("[Flush] Step 3: BeginPass...\n");
         m_pShaderManager->BeginPass(0);
+        OutputDebugStringA("[Flush] Step 4: SetTexture...\n");
         m_pShaderManager->SetTexture("g_texture", m_currentTexture);
+        OutputDebugStringA("[Flush] Step 5: Commit...\n");
         m_pShaderManager->Commit();
     }
 
     // Set vertex and index buffers
     uint32_t stride = sizeof(SpriteVertex);
+    OutputDebugStringA("[Flush] Step 6: SetStreamSource...\n");
     m_pDevice->SetStreamSource(0, m_pVertexBuffer, 0, stride);
+    OutputDebugStringA("[Flush] Step 7: SetIndices...\n");
     m_pDevice->SetIndices(m_pIndexBuffer);
+    OutputDebugStringA("[Flush] Step 8: SetVertexDeclaration...\n");
     m_pDevice->SetVertexDeclaration(m_pVertexDecl);
 
     // Draw indexed primitives
+    OutputDebugStringA("[Flush] Step 9: DrawIndexedPrimitive...\n");
     m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, vertexOffset, 0, vertexCount, indexOffset, primitiveCount);
+    OutputDebugStringA("[Flush] Step 10: Draw done!\n");
 
     // End shader pass
     if (m_pShaderManager) {
+        OutputDebugStringA("[Flush] Step 11: EndPass...\n");
         m_pShaderManager->EndPass();
+        OutputDebugStringA("[Flush] Step 12: EndShader...\n");
         m_pShaderManager->EndShader();
     }
 
     // End recording and submit to GPU
+    OutputDebugStringA("[Flush] Step 13: EndCommandBuffer...\n");
     m_pDevice->EndCommandBuffer();
 
     // Issue GPU fence marker for next frame's synchronization
