@@ -494,7 +494,15 @@ void SpriteRenderer::FlushBatchesAsync() {
         return;
     }
 
-    // GUARD: Check scene graphics ready flag before accessing D3D resources
+    // [XBOX 360 SYNC] Wait for GPU to finish previous frame
+    // Prevents memory corruption when CPU overwrites buffer while GPU is still reading
+    if (m_pAsyncCall) {
+        while (!m_pAsyncCall->IsCompleted()) {
+            Sleep(0); // Yield to other threads
+        }
+    }
+
+    // GUARD: Check scene graphics ready flag
     if (!::Scene::SceneManager::Instance() || !::Scene::SceneManager::Instance()->IsGraphicsReady()) {
         OutputDebugStringA("[SpriteRenderer::FlushBatchesAsync] Graphics not ready, skipping flush\n");
         return;
@@ -509,31 +517,20 @@ void SpriteRenderer::FlushBatchesAsync() {
     sprintf(dbg, "[SR::FlushBatchesAsync] spriteCount=%d, vertexCount=%d\n", m_spriteCount, m_spriteCount * 4);
     OutputDebugStringA(dbg);
 
-    // Calculate counts for this batch
-    DWORD vertexCount = m_spriteCount * 4;
-    DWORD primitiveCount = m_spriteCount * 2;
+    // Begin recording into command buffer
+    m_pDevice->BeginCommandBuffer(m_pAsyncCommandBuffer, 0, NULL, NULL, NULL, 0);
 
-    // RING BUFFER WRAP-AROUND: Reset offsets if buffer would overflow
+    // [VERTEX RING BUFFER] Reset offset if buffer would overflow
+    DWORD vertexCount = m_spriteCount * 4;
     if (m_totalVertexCount + vertexCount >= MAX_BUFFER_VERTICES) {
-        OutputDebugStringA("[SR::FlushBatchesAsync] Ring buffer wrap-around, resetting offsets\n");
+        OutputDebugStringA("[SpriteRenderer] Vertex Ring Buffer wrapped around to 0\n");
         m_totalVertexCount = 0;
         m_totalIndexCount = 0;
     }
 
-    // Wait for GPU to finish previous frame before re-recording buffer
-    // This prevents memory corruption when CPU overwrites buffer while GPU is still reading it
-    if (m_pAsyncCall) {
-        // Poll for completion - prevents 2nd frame crash from CPU overrunning GPU
-        for (int spinWait = 0; spinWait < 1000; spinWait++) {
-            // If FixupAndSignal completed, buffer is free for re-use
-            // Simple spin-wait - Xbox 360 command buffers are fast to process
-            Sleep(0); // Yield to other threads
-        }
-    }
-
-    // Begin recording into command buffer - all D3D calls go to buffer, not GPU
-    // Xbox 360: Use device methods for command buffer recording
-    m_pDevice->BeginCommandBuffer(m_pAsyncCommandBuffer, 0, NULL, NULL, NULL, 0);
+    DWORD vertexOffset = m_totalVertexCount;
+    DWORD indexOffset = m_totalIndexCount;
+    DWORD primitiveCount = m_spriteCount * 2;
 
     // Apply shader and texture (recorded into buffer)
     if (m_pShaderManager) {
@@ -543,64 +540,36 @@ void SpriteRenderer::FlushBatchesAsync() {
         m_pShaderManager->Commit();
     }
 
-    // Set vertex and index buffers (recorded into buffer)
+    // Set vertex and index buffers
     uint32_t stride = sizeof(SpriteVertex);
-    
-    OutputDebugStringA("[Flush] Setting stream source...\n");
-    
-    char buf[256];
-    sprintf(buf, "[Flush] StreamSource: pVB=%p, stride=%d, sizeof(SpriteVertex)=%d\n",
-            m_pVertexBuffer, stride, (int)sizeof(SpriteVertex));
-    OutputDebugStringA(buf);
-    
     m_pDevice->SetStreamSource(0, m_pVertexBuffer, 0, stride);
-    
-    OutputDebugStringA("[Flush] Setting indices...\n");
-    sprintf(buf, "[Flush] Indices: pIB=%p\n", m_pIndexBuffer);
-    OutputDebugStringA(buf);
     m_pDevice->SetIndices(m_pIndexBuffer);
-    
-    OutputDebugStringA("[Flush] Setting vertex decl...\n");
-    sprintf(buf, "[Flush] VertexDecl: pDecl=%p\n", m_pVertexDecl);
-    OutputDebugStringA(buf);
     m_pDevice->SetVertexDeclaration(m_pVertexDecl);
 
-    // Use ring buffer offsets
-    DWORD vertexOffset = m_totalVertexCount;
-    DWORD indexOffset = m_totalIndexCount;
-
-    sprintf(buf, "[Flush] DrawIndexed: vOffset=%d, vCount=%d, iOffset=%d, primCount=%d\n",
-            vertexOffset, vertexCount, indexOffset, primitiveCount);
-    OutputDebugStringA(buf);
-    OutputDebugStringA("[Flush] Calling DrawIndexedPrimitive...\n");
+    // Draw indexed primitives
     m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, vertexOffset, 0, vertexCount, indexOffset, primitiveCount);
 
-    OutputDebugStringA("[Flush] Draw call finished...\n");
-
-    // End shader pass (recorded into buffer)
+    // End shader pass
     if (m_pShaderManager) {
         m_pShaderManager->EndPass();
         m_pShaderManager->EndShader();
     }
 
-    // End recording via device
+    // End recording and submit to GPU
     m_pDevice->EndCommandBuffer();
 
-    // CRITICAL FLUSH: Asynchronously submit recorded buffer to GPU
-    // FixupAndSignal pushes data to GPU pipeline and shifts WPTR
+    // Send buffer to Xenon GPU - sets IsCompleted() = false until GPU finishes
     HRESULT hr = m_pAsyncCall->FixupAndSignal(m_pAsyncCommandBuffer, 0, 0);
     if (FAILED(hr)) {
         sprintf(dbg, "[SR::FlushBatchesAsync] ERROR: FixupAndSignal failed with HRESULT=0x%08X\n", hr);
         OutputDebugStringA(dbg);
-    } else {
-        OutputDebugStringA("[SR::FlushBatchesAsync] Successfully submitted to GPU\n");
     }
 
-    // Update ring buffer offsets
+    // Update ring buffer offsets for NEXT batch
     m_totalVertexCount += vertexCount;
-    m_totalIndexCount += primitiveCount * 3; // Fixed: 3 indices per triangle, not 6
+    m_totalIndexCount += primitiveCount * 3;
 
-    // Reset batch counters
+    // Reset batch counter - CPU ready to collect new sprites
     m_spriteCount = 0;
 }
 #endif
