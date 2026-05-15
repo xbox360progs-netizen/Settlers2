@@ -397,8 +397,9 @@ void GameEngine::Run()
 
             g_ThreadSync.MarkReadBufferConsumed();
             g_ThreadSync.SwapBuffers();
+            Sleep(33);
         } else {
-            Sleep(0);
+            Sleep(16);
         }
 #else
         DWORD currentTime = GetTickCount();
