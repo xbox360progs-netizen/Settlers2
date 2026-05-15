@@ -14,56 +14,11 @@
 #include "../Scene/GameScene.h"
 #include "../Scene/EditorScene.h"
 #include "../Input/InputManager.h"
-#include "ThreadSync.h"
 
 #include <iostream>
 #include <xtl.h>
 
 volatile bool g_IsEngineRunning = true;
-HANDLE g_hLogicThread = NULL;
-Scene::SceneManager* g_pSceneManager = NULL;
-
-#ifdef _XBOX
-DWORD WINAPI LogicThreadProcessor(LPVOID lpParam) {
-    OutputDebugStringA("[CORE] Logic Thread spawned on Core 1 (Thread 2).\n");
-
-    XSetThreadProcessor(GetCurrentThread(), 1);
-
-    Scene::SceneManager* sceneMgr = g_pSceneManager;
-    (void)lpParam;
-
-    while (g_IsEngineRunning) {
-        if (!sceneMgr || !sceneMgr->IsSceneReady()) {
-            Sleep(1);
-            continue;
-        }
-
-        LogicFrameBuffer& writeBuffer = g_ThreadSync.GetWriteBuffer();
-
-        if (!writeBuffer.isReady) {
-            writeBuffer.commandCount = 0;
-
-            sceneMgr->Update(0.016f);
-
-            writeBuffer.isReady = true;
-        }
-
-        g_ThreadSync.SwapBuffers();
-
-        Sleep(16);
-    }
-    return 0;
-}
-
-void StartLogicThread(Scene::SceneManager* pSceneManager) {
-    g_pSceneManager = pSceneManager;
-
-    g_hLogicThread = CreateThread(NULL, 0, LogicThreadProcessor, NULL, 0, NULL);
-    XSetThreadProcessor(g_hLogicThread, 1);
-
-    OutputDebugStringA("[GameEngine] Logic thread started on Core 1\n");
-}
-#endif
 
 //-------------------------------------------------------------------------------------
 // Constructor / Destructor
@@ -208,19 +163,11 @@ bool GameEngine::Initialize()
     TextureRegistry::instance().initialize(m_renderer->GetDevice());
 
     m_sceneManager = new Scene::SceneManager();
-    g_pSceneManager = m_sceneManager;
 
     m_sceneManager->SetShaderManager(m_renderer->GetShaderManager());
     m_sceneManager->SetSpriteRenderer(m_spriteRenderer);
 
     CreateScenes();
-
-#ifdef _XBOX
-    g_ThreadSync.Initialize();
-    StartLogicThread(m_sceneManager);
-#else
-    (void)m_sceneManager;
-#endif
 
     m_initialized = true;
     std::cout << "[GameEngine] Initialized successfully" << std::endl;
@@ -369,20 +316,28 @@ void GameEngine::Run()
     m_running = true;
     DWORD lastTime = GetTickCount();
 
-    std::cout << "[GameEngine] Entering main loop (Core 0 - Rendering)" << std::endl;
+    std::cout << "[GameEngine] Entering main loop" << std::endl;
 
     while (m_running)
     {
 #ifdef _XBOX
+        DWORD currentTime = GetTickCount();
+        float deltaTime = (currentTime - lastTime) / 1000.0f;
+        lastTime = currentTime;
+        if (deltaTime < 0.001f) deltaTime = 0.016f;
+        if (deltaTime > 0.1f) deltaTime = 0.1f;
+
         if (m_inputManager) {
             m_inputManager->Update();
         }
 
+        if (m_sceneManager) {
+            m_sceneManager->Update(deltaTime);
+        }
+
         ProcessSceneRequests();
 
-        LogicFrameBuffer& renderBuffer = g_ThreadSync.GetReadBuffer();
-
-        if (renderBuffer.isReady) {
+        if (m_sceneManager && m_sceneManager->IsSceneReady()) {
             if (m_renderer) {
                 m_renderer->BeginFrame();
             }
@@ -394,13 +349,9 @@ void GameEngine::Run()
             if (m_renderer) {
                 m_renderer->EndFrame();
             }
-
-            g_ThreadSync.MarkReadBufferConsumed();
-            g_ThreadSync.SwapBuffers();
-            Sleep(33);
-        } else {
-            Sleep(16);
         }
+
+        Sleep(16);
 #else
         DWORD currentTime = GetTickCount();
         float deltaTime = (currentTime - lastTime) / 1000.0f;

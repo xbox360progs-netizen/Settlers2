@@ -4,6 +4,7 @@
 #else
 #include <windows.h>
 #endif
+#include <algorithm>
 
 struct LogicRenderCmd {
     int textureId;
@@ -62,6 +63,18 @@ public:
         EnterCriticalSection(&criticalSection);
         frameBuffers[readBufferIndex].isReady = false;
         swapRequested = false;
+        LeaveCriticalSection(&criticalSection);
+    }
+
+    void SortReadBufferByDepth() {
+        EnterCriticalSection(&criticalSection);
+        LogicFrameBuffer& buffer = frameBuffers[readBufferIndex];
+        if (buffer.commandCount > 1) {
+            std::sort(buffer.commands, buffer.commands + buffer.commandCount,
+                [](const LogicRenderCmd& a, const LogicRenderCmd& b) {
+                    return a.depth > b.depth;
+                });
+        }
         LeaveCriticalSection(&criticalSection);
     }
 };
