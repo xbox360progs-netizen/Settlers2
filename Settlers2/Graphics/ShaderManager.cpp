@@ -1065,10 +1065,10 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                 OutputDebugStringA("[SMgr::ExecuteQueue] Calling DrawIndexedPrimitive...\n");
                 m_pDevice->DrawIndexedPrimitive(
                     D3DPT_TRIANGLELIST,
-                    0,
+                    cmd.baseVertex,   // FIX: Use baseVertex from command (for LOCAL indices)
                     0,
                     cmd.vertexCount,
-                    cmd.vertexStart,
+                    0,                // FIX: vertexStart=0 (indices are local to each sprite)
                     cmd.primitiveCount
                 );
                 OutputDebugStringA("[SMgr::ExecuteQueue] DrawIndexedPrimitive DONE\n");
