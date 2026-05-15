@@ -247,6 +247,27 @@ void SceneManager::Render()
     }
     OutputDebugStringA("[SceneManager::Render] SortQueue() returned\n");
 
+    // Step 4: EXECUTE - Execute all commands in sorted order (final render pass)
+    // This MUST be in the same thread as BeginScene/EndScene/Present on Xbox 360 D3D9
+    OutputDebugStringA("[SceneManager::Render] About to Execute Queue...\n");
+    if (m_shaderManager && m_spriteRenderer)
+    {
+        LPDIRECT3DVERTEXBUFFER9 pVB = m_spriteRenderer->GetVertexBuffer();
+        LPDIRECT3DINDEXBUFFER9 pIB = m_spriteRenderer->GetIndexBuffer();
+        LPDIRECT3DVERTEXDECLARATION9 pDecl = m_spriteRenderer->GetVertexDeclaration();
+        if (pVB && pIB && pDecl)
+        {
+            OutputDebugStringA("[SM::Render] Calling ExecuteQueue...\n");
+            m_shaderManager->ExecuteQueue(pVB, pIB, pDecl, 32);
+            OutputDebugStringA("[SM::Render] ExecuteQueue RETURNED!\n");
+        }
+        else
+        {
+            OutputDebugStringA("[SM::Render] NULL resources - clearing queue\n");
+            m_shaderManager->ClearQueue();
+        }
+    }
+
     OutputDebugStringA("[SM::Render] ALL DONE - exiting Render()\n");
 }
 

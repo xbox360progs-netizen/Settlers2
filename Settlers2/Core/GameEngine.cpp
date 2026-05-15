@@ -70,21 +70,6 @@ DWORD WINAPI RenderThreadProcessor(LPVOID lpParam) {
             OutputDebugStringA("[CORE] Calling SceneManager->Render()...\n");
             sceneMgr->Render();
             OutputDebugStringA("[CORE] SceneManager->Render() DONE\n");
-
-            // Step 4: EXECUTE - Execute all commands in sorted order (final render pass)
-            // This MUST be in Core 1 thread alongside BeginScene/EndScene/Present
-            ShaderManager* sm = g_pGlobalShaderManager;
-            SpriteRenderer* sr = g_pGlobalSpriteRenderer;
-            if (sm && sr) {
-                LPDIRECT3DVERTEXBUFFER9 pVB = sr->GetVertexBuffer();
-                LPDIRECT3DINDEXBUFFER9 pIB = sr->GetIndexBuffer();
-                LPDIRECT3DVERTEXDECLARATION9 pDecl = sr->GetVertexDeclaration();
-                if (pVB && pIB && pDecl) {
-                    OutputDebugStringA("[CORE] Calling ExecuteQueue...\n");
-                    sm->ExecuteQueue(pVB, pIB, pDecl, 32);
-                    OutputDebugStringA("[CORE] ExecuteQueue DONE\n");
-                }
-            }
         }
 
         if (renderer) {
