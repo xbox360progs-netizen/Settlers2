@@ -27,18 +27,18 @@ Scene::SceneManager* g_pSceneManager = NULL;
 
 // Render Thread Processor - runs on Core 1 (Thread 2)
 // NOTE: Main thread handles all rendering (scene->Render + ExecuteQueue).
-// This thread only handles Present() after a short wait.
+// This thread waits for main thread to complete, then calls Present().
+volatile bool g_frameRendered = false;
+
 DWORD WINAPI RenderThreadProcessor(LPVOID lpParam) {
     OutputDebugStringA("[CORE] Render Pipeline Thread successfully spawned on Core 1 (Thread 2).\n");
 
     ShaderManager* sm = g_pGlobalShaderManager;
-    SpriteRenderer* sr = g_pGlobalSpriteRenderer;
-    (void)sr;
+    (void)lpParam;
 
-    // Wait for async command buffer to be initialized (prevent race on startup)
+    // Wait for async command buffer to be initialized
     while (g_IsEngineRunning) {
         if (g_pSceneManager && g_pSceneManager->IsSceneReady()) {
-            // Async command buffer should be ready now
             break;
         }
         Sleep(1);
@@ -47,16 +47,17 @@ DWORD WINAPI RenderThreadProcessor(LPVOID lpParam) {
     while (g_IsEngineRunning) {
         // THREAD BARRIER: Wait for scene to be ready
         if (!g_pSceneManager || !g_pSceneManager->IsSceneReady()) {
-            #ifdef _XBOX
             Sleep(1);
-            #endif
             continue;
         }
 
-        // Small yield to let main thread complete its rendering work
-        Sleep(1);
+        // Wait for main thread to finish rendering this frame
+        while (!g_frameRendered && g_IsEngineRunning) {
+            Sleep(1);
+        }
+        g_frameRendered = false;
 
-        // Xbox 360: Present frame in render thread after main thread finishes
+        // Now Present - main thread has completed its work
         LPDIRECT3DDEVICE9 pDevice = sm ? sm->GetDevice() : NULL;
         if (pDevice) {
             pDevice->Present(NULL, NULL, NULL, NULL);
@@ -342,6 +343,11 @@ void GameEngine::ProcessSceneRequests()
 
 void GameEngine::Update(float deltaTime)
 {
+    // GUARD: Wait for scene to be ready before updating
+    if (m_sceneManager && !m_sceneManager->IsSceneReady()) {
+        return;
+    }
+
     if (m_inputManager)
     {
         m_inputManager->Update();
@@ -362,11 +368,17 @@ void GameEngine::Render()
         return;
     }
 
+    // GUARD: Skip render if scene not ready
+    if (!m_sceneManager->IsSceneReady()) {
+        return;
+    }
+
     m_renderer->BeginFrame();
     m_sceneManager->Render();
-    // Xbox 360: Present() is now called in render thread (Core 1), not here
-    // m_renderer->EndFrame(); // Removed - Present is called in render thread
-    m_renderer->EndSceneOnly(); // Only end scene, don't present
+    m_renderer->EndSceneOnly();
+
+    // Signal render thread that frame is complete - it can now call Present()
+    g_frameRendered = true;
 }
 
 void GameEngine::Run()

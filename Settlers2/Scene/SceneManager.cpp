@@ -89,7 +89,12 @@ void SceneManager::RemoveScene(const std::string& name)
 bool SceneManager::SwitchTo(const std::string& name)
 {
     std::cout << "[SceneManager] Switching to scene: " << name << std::endl;
-    
+
+    // BLOCK render thread on Core 1 - scene is being loaded
+    m_isSceneReady = false;
+    m_bSceneGraphicsReady = false;
+    OutputDebugStringA("[SceneManager] Blocking render thread - scene loading\n");
+
     std::map<std::string, Scene*>::iterator it = m_scenes.find(name);
     if (it == m_scenes.end())
     {
@@ -97,18 +102,18 @@ bool SceneManager::SwitchTo(const std::string& name)
         return false;
     }
 
-    // Выходим из текущей сцены
+    // Exit current scene
     if (m_currentScene)
     {
         std::cout << "[SceneManager] Exiting current scene: " << m_currentScene->GetName() << std::endl;
         m_currentScene->OnExit();
     }
 
-    // Входим в новую
+    // Enter new scene
     m_currentScene = it->second;
     std::cout << "[SceneManager] Entering new scene: " << m_currentScene->GetName() << std::endl;
 
-    // Загружаем если ещё не загружена
+    // Load if not loaded
     if (!m_currentScene->IsLoaded())
     {
         std::cout << "[SceneManager] Loading scene: " << m_currentScene->GetName() << std::endl;
@@ -117,6 +122,19 @@ bool SceneManager::SwitchTo(const std::string& name)
 
     m_currentScene->OnEnter();
     std::cout << "[SceneManager] Switch complete to: " << name << std::endl;
+
+    // UNBLOCK render thread - scene is ready
+    if (m_spriteRenderer != NULL && m_shaderManager != NULL)
+    {
+        m_isSceneReady = true;
+        m_bSceneGraphicsReady = true;
+        OutputDebugStringA("[SceneManager] Unblocking render thread - scene ready\n");
+    }
+    else
+    {
+        OutputDebugStringA("[SceneManager] WARNING: Resources not ready\n");
+    }
+
     return true;
 }
 
@@ -142,10 +160,12 @@ const std::string& SceneManager::GetCurrentSceneName() const
 
 void SceneManager::Update(float deltaTime)
 {
-    if (m_currentScene)
-    {
-        m_currentScene->Update(deltaTime);
+    // GUARD: If scene not ready or null, skip update to prevent 0xC0000005
+    if (m_currentScene == nullptr || !m_isSceneReady) {
+        return;
     }
+    
+    m_currentScene->Update(deltaTime);
 }
 
 void SceneManager::Render()
