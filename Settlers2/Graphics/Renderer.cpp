@@ -156,9 +156,12 @@ void Renderer::Shutdown() {
 void Renderer::BeginFrame() {
     if (!m_pDevice) return;
 
-    // TEMP TEST: Change clear color to bright blue to test if render thread is working
+    OutputDebugStringA("[Renderer::BeginFrame] CALLING BeginScene!\n");
+    fflush(stdout);
     m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0, 0, 255), 1.0f, 0);
     m_pDevice->BeginScene();
+    OutputDebugStringA("[Renderer::BeginFrame] BeginScene DONE\n");
+    fflush(stdout);
 }
 
 void Renderer::EndSceneOnly() {
@@ -171,25 +174,15 @@ void Renderer::EndSceneOnly() {
 void Renderer::EndFrame() {
     if (!m_pDevice) return;
 
+    OutputDebugStringA("[Renderer::EndFrame] Calling EndScene + Present...\n");
+    fflush(stdout);
     m_pDevice->EndScene();
 
     HRESULT hr = m_pDevice->Present(NULL, NULL, NULL, NULL);
-    if (FAILED(hr)) {
-        if (hr == D3DERR_DEVICELOST) {
-            OutputDebugStringA("[R] Device lost during Present!\n");
-            OnLostDevice();
-            Sleep(100);
-            hr = m_pDevice->Reset(&m_d3dpp);
-            if (SUCCEEDED(hr)) {
-                OutputDebugStringA("[R] Device reset successful\n");
-                OnResetDevice();
-            } else {
-                OutputDebugStringA("[R] Device reset failed!\n");
-            }
-        }
-    }
-
+    OutputDebugStringA("[Renderer::EndFrame] Present DONE\n");
+    fflush(stdout);
 }
+        
 
 void Renderer::Clear(D3DCOLOR color) {
     if (m_pDevice) m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, color, 1.0f, 0);

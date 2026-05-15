@@ -337,13 +337,22 @@ void GameEngine::Run()
 
         ProcessSceneRequests();
 
-        if (m_sceneManager && m_sceneManager->IsSceneReady()) {
+        bool sceneReady = m_sceneManager && m_sceneManager->IsSceneReady();
+        OutputDebugStringA(sceneReady ? "[GameEngine] Scene ready, rendering...\n" : "[GameEngine] Scene NOT ready\n");
+        printf("[GameEngine] Loop iteration\n");
+        fflush(stdout);
+
+        if (sceneReady) {
             if (m_renderer) {
                 m_renderer->BeginFrame();
             }
+            printf("[GameEngine] After BeginFrame\n");
+            fflush(stdout);
 
             if (m_sceneManager) {
+                OutputDebugStringA("[GameEngine] Calling SceneManager::Render...\n");
                 m_sceneManager->Render();
+                OutputDebugStringA("[GameEngine] SceneManager::Render done\n");
             }
 
             if (m_renderer) {
@@ -351,7 +360,9 @@ void GameEngine::Run()
             }
         }
 
+        OutputDebugStringA("[GameEngine] End of frame, sleeping...\n");
         Sleep(16);
+        OutputDebugStringA("[GameEngine] Wake up, next frame...\n");
 #else
         DWORD currentTime = GetTickCount();
         float deltaTime = (currentTime - lastTime) / 1000.0f;

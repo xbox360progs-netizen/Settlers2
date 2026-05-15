@@ -207,6 +207,7 @@ void SceneManager::Render()
     char dbg[512];
     sprintf(dbg, "[SM::Render] ENTRY - m_currentScene=0x%08X\n", m_currentScene);
     OutputDebugStringA(dbg);
+    fflush(stdout);
     
     // THREAD SAFETY: Lock BEFORE accessing m_currentScene
     EnterCriticalSection(&m_cs);
