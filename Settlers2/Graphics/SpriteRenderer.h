@@ -306,5 +306,6 @@ private:
     // Xbox 360 async command buffer for multithreaded rendering
     IDirect3DCommandBuffer9* m_pAsyncCommandBuffer;
     IDirect3DAsyncCommandBufferCall9* m_pAsyncCall;
+    IDirect3DQuery9* m_pGpuFence;        // GPU sync fence (D3DQUERYTYPE_EVENT)
 #endif
 };

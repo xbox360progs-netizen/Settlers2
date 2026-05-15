@@ -78,6 +78,7 @@ SpriteRenderer::SpriteRenderer()
 #ifdef _XBOX
       , m_pAsyncCommandBuffer(NULL)
       , m_pAsyncCall(NULL)
+      , m_pGpuFence(NULL)
 #endif
 {
     // Force 4096 max sprites for performance
@@ -472,6 +473,12 @@ void SpriteRenderer::Shutdown() {
     }
     // Note: m_pAsyncCall is owned by SceneManager, so we don't release it here
     m_pAsyncCall = NULL;
+    
+    // Release GPU fence
+    if (m_pGpuFence) {
+        m_pGpuFence->Release();
+        m_pGpuFence = NULL;
+    }
 #endif
 
     m_vertices.clear();
@@ -486,6 +493,17 @@ void SpriteRenderer::Shutdown() {
 void SpriteRenderer::SetAsyncCommandBuffer(IDirect3DCommandBuffer9* pBuffer, IDirect3DAsyncCommandBufferCall9* pAsyncCall) {
     m_pAsyncCommandBuffer = pBuffer;
     m_pAsyncCall = pAsyncCall;
+    
+    // Create GPU fence query for CPU/GPU synchronization
+    if (m_pDevice && !m_pGpuFence) {
+        HRESULT hr = m_pDevice->CreateQuery(D3DQUERYTYPE_EVENT, &m_pGpuFence);
+        if (SUCCEEDED(hr)) {
+            OutputDebugStringA("[SpriteRenderer] GPU fence created successfully\n");
+        } else {
+            OutputDebugStringA("[SpriteRenderer] ERROR: Failed to create GPU fence\n");
+        }
+    }
+    
     OutputDebugStringA("[SpriteRenderer] Async command buffer set\n");
 }
 
@@ -494,11 +512,16 @@ void SpriteRenderer::FlushBatchesAsync() {
         return;
     }
 
-    // [XBOX 360 SYNC] Wait for GPU to finish previous frame
+    // [XBOX 360 SYNC] Wait for GPU to finish previous frame using fence
     // Prevents memory corruption when CPU overwrites buffer while GPU is still reading
-    if (m_pAsyncCall) {
-        while (!m_pAsyncCall->IsCompleted()) {
-            Sleep(0); // Yield to other threads
+    if (m_pGpuFence) {
+        while (m_pGpuFence->GetData(NULL, 0, D3DGETDATA_FLUSH) == S_FALSE) {
+            #ifdef _XBOX
+            YieldProcessor(); // Official Xbox 360 SDK macro
+            #else
+            __nop(); // Non-Xbox fallback
+            #endif
+            Sleep(0);
         }
     }
 
@@ -558,7 +581,12 @@ void SpriteRenderer::FlushBatchesAsync() {
     // End recording and submit to GPU
     m_pDevice->EndCommandBuffer();
 
-    // Send buffer to Xenon GPU - sets IsCompleted() = false until GPU finishes
+    // Issue GPU fence marker for next frame's synchronization
+    if (m_pGpuFence) {
+        m_pGpuFence->Issue(D3DISSUE_END);
+    }
+
+    // Send buffer to Xenon GPU
     HRESULT hr = m_pAsyncCall->FixupAndSignal(m_pAsyncCommandBuffer, 0, 0);
     if (FAILED(hr)) {
         sprintf(dbg, "[SR::FlushBatchesAsync] ERROR: FixupAndSignal failed with HRESULT=0x%08X\n", hr);
