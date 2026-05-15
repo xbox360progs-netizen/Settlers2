@@ -33,11 +33,19 @@ DWORD WINAPI RenderThreadProcessor(LPVOID lpParam) {
 
     ShaderManager* sm = g_pGlobalShaderManager;
     SpriteRenderer* sr = g_pGlobalSpriteRenderer;
-    (void)sr; // Unused in this implementation
+    (void)sr;
+
+    // Wait for async command buffer to be initialized (prevent race on startup)
+    while (g_IsEngineRunning) {
+        if (g_pSceneManager && g_pSceneManager->IsSceneReady()) {
+            // Async command buffer should be ready now
+            break;
+        }
+        Sleep(1);
+    }
 
     while (g_IsEngineRunning) {
         // THREAD BARRIER: Wait for scene to be ready
-        // This prevents Core 1 from accessing unloaded resources on Core 0
         if (!g_pSceneManager || !g_pSceneManager->IsSceneReady()) {
             #ifdef _XBOX
             Sleep(1);
@@ -49,9 +57,7 @@ DWORD WINAPI RenderThreadProcessor(LPVOID lpParam) {
         Sleep(1);
 
         // Xbox 360: Present frame in render thread after main thread finishes
-        // Main thread does SceneManager::Render() -> scene->Render() -> ExecuteQueue
-        // Then this thread just presents the result
-        LPDIRECT3DDEVICE9 pDevice = sm->GetDevice();
+        LPDIRECT3DDEVICE9 pDevice = sm ? sm->GetDevice() : NULL;
         if (pDevice) {
             pDevice->Present(NULL, NULL, NULL, NULL);
         }
