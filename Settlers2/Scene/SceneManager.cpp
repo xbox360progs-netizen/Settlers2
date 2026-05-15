@@ -13,6 +13,8 @@
 
 namespace Scene {
 
+SceneManager* SceneManager::s_pInstance = NULL;
+
 SceneManager::SceneManager()
     : m_currentScene(NULL)
     , m_shaderManager(NULL)

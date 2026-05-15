@@ -19,6 +19,10 @@ namespace Scene {
 class SceneManager
 {
 public:
+    static SceneManager* Instance() {
+        return s_pInstance;
+    }
+
     SceneManager();
     ~SceneManager();
 
@@ -50,7 +54,17 @@ public:
     void InitializeAsyncCommandBuffer(LPDIRECT3DDEVICE9 pDevice);
     IDirect3DCommandBuffer9* GetSpriteCommandBuffer() const { return m_pCommandBuffer; }
     IDirect3DAsyncCommandBufferCall9* GetAsyncCall() const { return m_pAsyncCall; }
+    IDirect3DCommandBuffer9* GetRecordCommandBuffer() const { return m_pRecordCommandBuffer; }
+    void SetRecordCommandBuffer(IDirect3DCommandBuffer9* buf) { m_pRecordCommandBuffer = buf; }
 #endif
+
+    // Thread barrier for scene readiness (prevents Core 1 render thread from accessing unloaded resources)
+    bool IsSceneReady() const { return m_isSceneReady; }
+    void SetSceneReady(bool ready) { m_isSceneReady = ready; }
+
+    // Additional barrier: graphics resources specifically (textures, buffers)
+    bool IsGraphicsReady() const { return m_bSceneGraphicsReady; }
+    void SetGraphicsReady(bool ready) { m_bSceneGraphicsReady = ready; }
 
 private:
     std::map<std::string, Scene*> m_scenes;
@@ -61,7 +75,14 @@ private:
 #ifdef _XBOX
     IDirect3DAsyncCommandBufferCall9* m_pAsyncCall;
     IDirect3DCommandBuffer9* m_pCommandBuffer;
+    IDirect3DCommandBuffer9* m_pRecordCommandBuffer;
 #endif
+
+    // Thread barrier for scene readiness (prevents Core 1 render thread from accessing unloaded resources)
+    volatile bool m_isSceneReady;
+    volatile bool m_bSceneGraphicsReady;
+
+    static SceneManager* s_pInstance;
 };
 
 } // namespace Scene

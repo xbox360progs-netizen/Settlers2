@@ -1,9 +1,8 @@
 #include "stdafx.h"
 #include "SpriteRenderer.h"
 #include "ShaderManager.h"
-#include "../Graphics/Texture.h"
 #include "Renderer.h"
-#include "Texture.h"
+#include "../Scene/SceneManager.h"
 #include <stdio.h>
 #include <string>
 #include <vector>
@@ -14,10 +13,11 @@
 #pragma comment(lib, "d3d9.lib")
 #pragma comment(lib, "d3dx9.lib")
 
-// Silence debug logs in release build
 #ifndef DISABLE_RENDER_LOGS
 #define OutputDebugStringA(...) do { } while(0)
 #endif
+
+using namespace Scene;
 
 // Global worker thread data (accessible from worker threads)
 ThreadData g_WorkerData[2];
@@ -494,6 +494,12 @@ void SpriteRenderer::FlushBatchesAsync() {
         return;
     }
 
+    // Guard: Check scene graphics ready flag before accessing D3D resources
+    if (!::Scene::SceneManager::Instance() || !::Scene::SceneManager::Instance()->IsGraphicsReady()) {
+        OutputDebugStringA("[SpriteRenderer::FlushBatchesAsync] Graphics not ready, skipping flush\n");
+        return;
+    }
+
     if (!m_pAsyncCommandBuffer || !m_pAsyncCall) {
         OutputDebugStringA("[SpriteRenderer::FlushBatchesAsync] ERROR: Async command buffer not initialized!\n");
         return;
@@ -504,7 +510,8 @@ void SpriteRenderer::FlushBatchesAsync() {
     OutputDebugStringA(dbg);
 
     // Begin recording into command buffer - all D3D calls go to buffer, not GPU
-    m_pAsyncCommandBuffer->BeginRecording();
+    // Xbox 360: Use device methods for command buffer recording
+    m_pDevice->BeginCommandBuffer(m_pAsyncCommandBuffer, 0, NULL, NULL, NULL, 0);
 
     // Apply shader and texture (recorded into buffer)
     if (m_pShaderManager) {
@@ -539,12 +546,12 @@ void SpriteRenderer::FlushBatchesAsync() {
         m_pShaderManager->EndShader();
     }
 
-    // End recording
-    m_pAsyncCommandBuffer->EndRecording();
+    // End recording via device
+    m_pDevice->EndCommandBuffer();
 
     // CRITICAL FLUSH: Asynchronously submit recorded buffer to GPU
     // FixupAndSignal pushes data to GPU pipeline and shifts WPTR
-    HRESULT hr = m_pAsyncCall->FixupAndSignal(m_pAsyncCommandBuffer, 0, NULL);
+    HRESULT hr = m_pAsyncCall->FixupAndSignal(m_pAsyncCommandBuffer, 0, 0);
     if (FAILED(hr)) {
         sprintf(dbg, "[SR::FlushBatchesAsync] ERROR: FixupAndSignal failed with HRESULT=0x%08X\n", hr);
         OutputDebugStringA(dbg);
@@ -554,7 +561,7 @@ void SpriteRenderer::FlushBatchesAsync() {
 
     // Update ring buffer offsets
     m_totalVertexCount += vertexCount;
-    m_totalIndexCount += indexCount * 6; // 6 indices per sprite
+    m_totalIndexCount += primitiveCount * 3; // Fixed: 3 indices per triangle, not 6
 
     // Reset batch counters
     m_spriteCount = 0;

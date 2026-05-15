@@ -949,6 +949,12 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         return;
     }
 
+    // Guard against null buffers (belt-and-suspenders for thread safety)
+    if (!pVB || !pIB || !pDecl) {
+        OutputDebugStringA("[ShaderManager::ExecuteQueue] CRITICAL: NULL buffers passed!\n");
+        return;
+    }
+
     // NOTE: Removed D3DCLEAR_TARGET - it was wiping out previous renderings (including UI text)
     // If you need to clear for debugging, do it BEFORE rendering, not after
 

@@ -23,35 +23,37 @@ volatile bool g_IsEngineRunning = true;
 HANDLE g_hRenderThread = NULL;
 ShaderManager* g_pGlobalShaderManager = NULL;
 SpriteRenderer* g_pGlobalSpriteRenderer = NULL;
+Scene::SceneManager* g_pSceneManager = NULL;
 
 // Render Thread Processor - runs on Core 1 (Thread 2)
+// NOTE: Main thread handles all rendering (scene->Render + ExecuteQueue).
+// This thread only handles Present() after a short wait.
 DWORD WINAPI RenderThreadProcessor(LPVOID lpParam) {
     OutputDebugStringA("[CORE] Render Pipeline Thread successfully spawned on Core 1 (Thread 2).\n");
 
     ShaderManager* sm = g_pGlobalShaderManager;
     SpriteRenderer* sr = g_pGlobalSpriteRenderer;
+    (void)sr; // Unused in this implementation
 
     while (g_IsEngineRunning) {
-        // Вызываем асинхронную прокрутку очереди
-        sm->ExecuteQueue(sr->GetVertexBuffer(),
-                        sr->GetIndexBuffer(),
-                        sr->GetVertexDeclaration(),
-                        sizeof(SpriteVertex),
-                        NULL,
-                        sr);
-
-        // Xbox 360: Present frame in render thread after ExecuteQueue completes
-        // This ensures GPU has finished processing commands before presenting
-        LPDIRECT3DDEVICE9 pDevice = sm->GetDevice();
-        if (pDevice) {
-            pDevice->EndScene();
-            pDevice->Present(NULL, NULL, NULL, NULL);
-            pDevice->BeginScene();
+        // THREAD BARRIER: Wait for scene to be ready
+        // This prevents Core 1 from accessing unloaded resources on Core 0
+        if (!g_pSceneManager || !g_pSceneManager->IsSceneReady()) {
+            #ifdef _XBOX
+            Sleep(1);
+            #endif
+            continue;
         }
 
-        // Маленькая аппаратная уступка кванта времени Xenon OS, если очередь пустеет
-        if (sm->IsQueueEmptyForThisTick()) {
-            Sleep(1);
+        // Small yield to let main thread complete its rendering work
+        Sleep(1);
+
+        // Xbox 360: Present frame in render thread after main thread finishes
+        // Main thread does SceneManager::Render() -> scene->Render() -> ExecuteQueue
+        // Then this thread just presents the result
+        LPDIRECT3DDEVICE9 pDevice = sm->GetDevice();
+        if (pDevice) {
+            pDevice->Present(NULL, NULL, NULL, NULL);
         }
     }
     return 0;
@@ -213,6 +215,7 @@ bool GameEngine::Initialize()
     TextureRegistry::instance().initialize(m_renderer->GetDevice());
 
     m_sceneManager = new Scene::SceneManager();
+    g_pSceneManager = m_sceneManager; // Set global for render thread access
 
     // Set up queue-based rendering pipeline
     m_sceneManager->SetShaderManager(m_renderer->GetShaderManager());
