@@ -79,6 +79,7 @@ SpriteRenderer::SpriteRenderer()
       , m_pAsyncCommandBuffer(NULL)
       , m_pAsyncCall(NULL)
       , m_pGpuFence(NULL)
+      , m_isFirstFlush(true)
 #endif
 {
     // Force 4096 max sprites for performance
@@ -497,10 +498,11 @@ void SpriteRenderer::SetAsyncCommandBuffer(IDirect3DCommandBuffer9* pBuffer, IDi
     // Create GPU fence query for CPU/GPU synchronization
     if (m_pDevice && !m_pGpuFence) {
         HRESULT hr = m_pDevice->CreateQuery(D3DQUERYTYPE_EVENT, &m_pGpuFence);
-        if (SUCCEEDED(hr)) {
-            OutputDebugStringA("[SpriteRenderer] GPU fence created successfully\n");
+        if (FAILED(hr) || !m_pGpuFence) {
+            OutputDebugStringA("[SpriteRenderer] ERROR: Failed to create D3DQUERYTYPE_EVENT Fence!\n");
+            m_pGpuFence = NULL;
         } else {
-            OutputDebugStringA("[SpriteRenderer] ERROR: Failed to create GPU fence\n");
+            OutputDebugStringA("[SpriteRenderer] SUCCESS: D3DQUERYTYPE_EVENT Fence created successfully\n");
         }
     }
     
@@ -513,17 +515,18 @@ void SpriteRenderer::FlushBatchesAsync() {
     }
 
     // [XBOX 360 SYNC] Wait for GPU to finish previous frame using fence
-    // Prevents memory corruption when CPU overwrites buffer while GPU is still reading
-    if (m_pGpuFence) {
+    // Skip on first call - GPU hasn't processed anything yet
+    if (m_pGpuFence && !m_isFirstFlush) {
         while (m_pGpuFence->GetData(NULL, 0, D3DGETDATA_FLUSH) == S_FALSE) {
             #ifdef _XBOX
-            YieldProcessor(); // Official Xbox 360 SDK macro
+            YieldProcessor();
             #else
-            __nop(); // Non-Xbox fallback
+            __nop();
             #endif
             Sleep(0);
         }
     }
+    m_isFirstFlush = false; // Mark first flush complete
 
     // GUARD: Check scene graphics ready flag
     if (!::Scene::SceneManager::Instance() || !::Scene::SceneManager::Instance()->IsGraphicsReady()) {

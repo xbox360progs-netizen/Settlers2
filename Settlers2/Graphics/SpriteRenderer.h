@@ -307,5 +307,6 @@ private:
     IDirect3DCommandBuffer9* m_pAsyncCommandBuffer;
     IDirect3DAsyncCommandBufferCall9* m_pAsyncCall;
     IDirect3DQuery9* m_pGpuFence;        // GPU sync fence (D3DQUERYTYPE_EVENT)
+    bool m_isFirstFlush;                 // Skip fence wait on first call
 #endif
 };
