@@ -3,6 +3,7 @@
 #include "Scene.h"
 #include <map>
 #include <string>
+#include <xtl.h>
 
 // Forward declaration
 class ShaderManager;
@@ -66,6 +67,10 @@ public:
     bool IsGraphicsReady() const { return m_bSceneGraphicsReady; }
     void SetGraphicsReady(bool ready) { m_bSceneGraphicsReady = ready; }
 
+    // Thread-safe scene access
+    void Lock() { EnterCriticalSection(&m_cs); }
+    void Unlock() { LeaveCriticalSection(&m_cs); }
+
 private:
     std::map<std::string, Scene*> m_scenes;
     Scene* m_currentScene;
@@ -83,6 +88,12 @@ private:
     volatile bool m_bSceneGraphicsReady;
 
     static SceneManager* s_pInstance;
+
+private:
+    // Critical section for thread-safe scene switching
+    CRITICAL_SECTION m_cs;
+
+    friend class Scene;
 };
 
 } // namespace Scene

@@ -22,8 +22,13 @@ SceneManager::SceneManager()
 #ifdef _XBOX
     , m_pAsyncCall(NULL)
     , m_pCommandBuffer(NULL)
+    , m_pRecordCommandBuffer(NULL)
 #endif
+    , m_isSceneReady(false)
+    , m_bSceneGraphicsReady(false)
 {
+    InitializeCriticalSection(&m_cs);
+    s_pInstance = this;
 }
 
 SceneManager::~SceneManager()
@@ -39,6 +44,7 @@ SceneManager::~SceneManager()
         m_pCommandBuffer = NULL;
     }
 #endif
+    DeleteCriticalSection(&m_cs);
     Clear();
 }
 
@@ -149,6 +155,13 @@ void SceneManager::Render()
         return;
     }
 
+    // Check if scene is ready for rendering (prevents race conditions during initialization)
+    if (!m_isSceneReady || !m_bSceneGraphicsReady)
+    {
+        OutputDebugStringA("[SceneManager::Render] Scene not ready yet, skipping render\n");
+        return;
+    }
+
     // === MASTER LOOP RENDERING PIPELINE ===
     
     // Step 0: Begin frame and clear screen (CRITICAL!)
@@ -167,7 +180,17 @@ void SceneManager::Render()
 
     printf("[SceneManager] About to call m_currentScene->Render()\n");
     OutputDebugStringA("[SceneManager::Render] Calling m_currentScene->Render()...\n");
+    
+    // GUARD: If pointer is null or scene not ready, skip to prevent 0xC0000005
+    if (m_currentScene == nullptr) {
+        OutputDebugStringA("[SceneManager::Render] ERROR: m_currentScene is NULL!\n");
+        return;
+    }
+    
+    // THREAD SAFETY: Lock while rendering to prevent race conditions with scene switching
+    Lock();
     m_currentScene->Render();
+    Unlock();
     OutputDebugStringA("[SceneManager::Render] m_currentScene->Render() returned\n");
 
     // Step 3: SORT - Sort commands by zOrder, shader, and texture (critical for Xbox 360 performance)
