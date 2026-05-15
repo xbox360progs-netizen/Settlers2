@@ -247,38 +247,6 @@ void SceneManager::Render()
     }
     OutputDebugStringA("[SceneManager::Render] SortQueue() returned\n");
 
-    OutputDebugStringA("[SceneManager::Render] About to Execute Queue...\n");
-
-    // Step 4: EXECUTE - Execute all commands in sorted order (final render pass)
-    if (m_shaderManager && m_spriteRenderer)
-    {
-        // NOTE: Flush() is called by SpriteRenderer::End() during scene rendering
-        // No need to call here again
-        
-        // Get vertex buffer and index buffer from SpriteRenderer
-        LPDIRECT3DVERTEXBUFFER9 pVB = m_spriteRenderer->GetVertexBuffer();
-        LPDIRECT3DINDEXBUFFER9 pIB = m_spriteRenderer->GetIndexBuffer();
-        LPDIRECT3DVERTEXDECLARATION9 pDecl = m_spriteRenderer->GetVertexDeclaration();
-        
-        // DEBUG: Check if we have valid resources before ExecuteQueue
-        char debugBuf[512];
-        sprintf(debugBuf, "[SM::Render] Resources: pVB=%p, pIB=%p, pDecl=%p\n", pVB, pIB, pDecl);
-        OutputDebugStringA(debugBuf);
-        
-        // Execute queue with 32-byte stride (Xbox 360 alignment)
-        if (pVB && pIB && pDecl)
-        {
-            OutputDebugStringA("[SM::Render] Calling ExecuteQueue...\n");
-            m_shaderManager->ExecuteQueue(pVB, pIB, pDecl, 32);
-            OutputDebugStringA("[SM::Render] ExecuteQueue RETURNED!\n");
-        }
-        else
-        {
-            OutputDebugStringA("[SM::Render] NULL resources - clearing queue\n");
-            m_shaderManager->ClearQueue();
-        }
-    }
-    
     OutputDebugStringA("[SM::Render] ALL DONE - exiting Render()\n");
 }
 

@@ -24,21 +24,23 @@ HANDLE g_hRenderThread = NULL;
 ShaderManager* g_pGlobalShaderManager = NULL;
 SpriteRenderer* g_pGlobalSpriteRenderer = NULL;
 Scene::SceneManager* g_pSceneManager = NULL;
+Renderer* g_pGlobalRenderer = NULL;
 
 // Render Thread Processor - runs on Core 1 (Thread 2)
-// NOTE: Main thread handles all rendering (scene->Render + ExecuteQueue).
-// This thread waits for main thread to complete, then calls Present().
+// NOTE: Main thread handles command queue filling.
+// This thread handles ALL D3D calls: BeginScene/EndScene/Present (MUST be together on Xbox 360)
 volatile bool g_frameRendered = false;
 
 DWORD WINAPI RenderThreadProcessor(LPVOID lpParam) {
     OutputDebugStringA("[CORE] Render Pipeline Thread successfully spawned on Core 1 (Thread 2).\n");
 
-    ShaderManager* sm = g_pGlobalShaderManager;
+    Scene::SceneManager* sceneMgr = g_pSceneManager;
+    Renderer* renderer = g_pGlobalRenderer;
     (void)lpParam;
 
     // Wait for async command buffer to be initialized
     while (g_IsEngineRunning) {
-        if (g_pSceneManager && g_pSceneManager->IsSceneReady()) {
+        if (sceneMgr && sceneMgr->IsSceneReady()) {
             break;
         }
         Sleep(1);
@@ -46,30 +48,59 @@ DWORD WINAPI RenderThreadProcessor(LPVOID lpParam) {
 
     while (g_IsEngineRunning) {
         // THREAD BARRIER: Wait for scene to be ready
-        if (!g_pSceneManager || !g_pSceneManager->IsSceneReady()) {
+        if (!sceneMgr || !sceneMgr->IsSceneReady()) {
             Sleep(1);
             continue;
         }
 
-        // Wait for main thread to finish rendering this frame
+        // Wait for main thread to finish filling command queue this frame
         while (!g_frameRendered && g_IsEngineRunning) {
             Sleep(1);
         }
         g_frameRendered = false;
 
-        // Now Present - main thread has completed its work
-        LPDIRECT3DDEVICE9 pDevice = sm ? sm->GetDevice() : NULL;
-        if (pDevice) {
-            pDevice->Present(NULL, NULL, NULL, NULL);
+        // FULL RENDER PIPELINE MUST BE IN THIS THREAD (Core 1)
+        // Xbox 360 D3D9 is NOT thread-safe - all BeginScene/EndScene/Present must be together
+        if (renderer) {
+            OutputDebugStringA("[CORE] BeginFrame...\n");
+            renderer->BeginFrame();
+        }
+
+        if (sceneMgr) {
+            OutputDebugStringA("[CORE] Calling SceneManager->Render()...\n");
+            sceneMgr->Render();
+            OutputDebugStringA("[CORE] SceneManager->Render() DONE\n");
+
+            // Step 4: EXECUTE - Execute all commands in sorted order (final render pass)
+            // This MUST be in Core 1 thread alongside BeginScene/EndScene/Present
+            ShaderManager* sm = g_pGlobalShaderManager;
+            SpriteRenderer* sr = g_pGlobalSpriteRenderer;
+            if (sm && sr) {
+                LPDIRECT3DVERTEXBUFFER9 pVB = sr->GetVertexBuffer();
+                LPDIRECT3DINDEXBUFFER9 pIB = sr->GetIndexBuffer();
+                LPDIRECT3DVERTEXDECLARATION9 pDecl = sr->GetVertexDeclaration();
+                if (pVB && pIB && pDecl) {
+                    OutputDebugStringA("[CORE] Calling ExecuteQueue...\n");
+                    sm->ExecuteQueue(pVB, pIB, pDecl, 32);
+                    OutputDebugStringA("[CORE] ExecuteQueue DONE\n");
+                }
+            }
+        }
+
+        if (renderer) {
+            OutputDebugStringA("[CORE] EndFrame (EndScene + Present)...\n");
+            renderer->EndFrame();
+            OutputDebugStringA("[CORE] EndFrame DONE\n");
         }
     }
     return 0;
 }
 
 // Start Graphics Pipeline with Core 1 binding
-void StartGraphicsPipeline(ShaderManager* pShaderManager, SpriteRenderer* pSpriteRenderer) {
+void StartGraphicsPipeline(ShaderManager* pShaderManager, SpriteRenderer* pSpriteRenderer, Renderer* pRenderer) {
     g_pGlobalShaderManager = pShaderManager;
     g_pGlobalSpriteRenderer = pSpriteRenderer;
+    g_pGlobalRenderer = pRenderer;
 
     // Создаём поток рендеринга
     g_hRenderThread = CreateThread(NULL, 0, RenderThreadProcessor, NULL, 0, NULL);
@@ -242,7 +273,7 @@ bool GameEngine::Initialize()
     CreateScenes();
 
     // Xbox 360: Start render thread on Core 1
-    StartGraphicsPipeline(m_pShaderManager, m_spriteRenderer);
+    StartGraphicsPipeline(m_pShaderManager, m_spriteRenderer, m_renderer);
     OutputDebugStringA("[GameEngine::Initialize] Render thread started on Core 1\n");
 
     m_initialized = true;
@@ -373,11 +404,15 @@ void GameEngine::Render()
         return;
     }
 
-    m_renderer->BeginFrame();
-    m_sceneManager->Render();
-    m_renderer->EndSceneOnly();
+    // MAIN THREAD: Only fill command queue
+    // Do NOT call BeginFrame/EndFrame here - those MUST be in Core 1 render thread
+    // This allows CPU work (game logic, sprite filling) to happen on main thread
+    // while GPU work (BeginScene/DrawIndexedPrimitive/EndScene/Present) happens on Core 1
 
-    // Signal render thread that frame is complete - it can now call Present()
+    // Just signal that frame data is ready for Core 1 to render
+    m_sceneManager->Render();
+
+    // Signal render thread that frame is complete - it can now call BeginFrame/EndFrame
     g_frameRendered = true;
 }
 
