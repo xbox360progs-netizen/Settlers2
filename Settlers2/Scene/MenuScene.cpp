@@ -236,7 +236,7 @@ void MenuScene::Render() {
 
     OutputDebugStringA("[MenuScene::Render] About to call Begin()...\n");
     LPDIRECT3DTEXTURE9 bgTex = m_backgroundTexture.GetTexture();
-    m_spriteRenderer->Begin(SHADER_SPRITE, bgTex, 1.0f, 0, true);
+    m_spriteRenderer->Begin(SHADER_SPRITE, bgTex, 0.0f, 0, true); // Temporarily set depth to 0.0f to avoid clipping
     OutputDebugStringA("[MenuScene::Render] Begin() succeeded\n");
 
     OutputDebugStringA("[MenuScene::Render] About to call Draw()...\n");

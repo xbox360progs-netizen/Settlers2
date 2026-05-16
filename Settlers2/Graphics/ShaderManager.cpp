@@ -764,6 +764,17 @@ void ShaderManager::SetGlobalUniforms(const D3DXMATRIX* pViewProj) {
         return;
     }
     OutputDebugStringA("[SM::SetGlobalUniforms] Setting WVP and WorldViewProjection matrices\n");
+
+    // Debug: Log matrix values
+    char matBuf[512];
+    const float* m = (const float*)pViewProj;
+    sprintf(matBuf, "[SM::SetGlobalUniforms] Matrix: [%f %f %f %f; %f %f %f %f; %f %f %f %f; %f %f %f %f]\n",
+            m[0], m[1], m[2], m[3],
+            m[4], m[5], m[6], m[7],
+            m[8], m[9], m[10], m[11],
+            m[12], m[13], m[14], m[15]);
+    OutputDebugStringA(matBuf);
+
     // Set both parameter names for compatibility with different shaders
     SetMatrix("WVP", (const float*)pViewProj);
     SetMatrix("WorldViewProjection", (const float*)pViewProj);
@@ -843,7 +854,8 @@ void ShaderManager::SetShaderParameters(const RenderCommand& cmd) {
             
             // Use orthographic projection for UI (screen space)
             D3DXMATRIX matOrtho;
-            D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, -1.0f, 1.0f);
+            // CRITICAL FIX: Use near=0.0f, far=1.0f to avoid Z offset that causes clipping
+            D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
             SetMatrix("matOrtho", (const float*)&matOrtho);
             break;
         }
@@ -859,7 +871,8 @@ void ShaderManager::SetShaderParameters(const RenderCommand& cmd) {
             // For world-space objects, apply camera; for UI, use identity
             if (cmd.isUI) {
                 D3DXMATRIX matOrtho;
-                D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, -1.0f, 1.0f);
+                // CRITICAL FIX: Use near=0.0f, far=1.0f to avoid Z offset that causes clipping
+                D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
                 SetMatrix("matOrtho", (const float*)&matOrtho);
             } else if (m_hasFrameViewProj) {
                 SetMatrix("matOrtho", (const float*)&m_frameViewProj);
@@ -971,9 +984,10 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     // Set projection matrix
     D3DXMATRIX ortho;
     D3DXMatrixOrthoOffCenterLH(&ortho, 0, 1280, 720, 0, 0, 1);
-    
+
     D3DXMATRIX localOrtho;
-    D3DXMatrixOrthoOffCenterLH(&localOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, -10.0f, 10.0f);
+    // CRITICAL FIX: Use near=0.0f, far=1.0f to avoid Z offset of 0.5 that causes clipping
+    D3DXMatrixOrthoOffCenterLH(&localOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
 
     OutputDebugStringA("[SMgr::ExecuteQueue] Setting state...\n");
     // Lock();
@@ -983,10 +997,11 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     m_pDevice->SetStreamSource(0, pVB, 0, sizeof(SpriteVertex));
     m_pDevice->SetIndices(pIB);
 
-    OutputDebugStringA("[SMgr::ExecuteQueue] Disabling Z buffer...\n");
+    OutputDebugStringA("[SMgr::ExecuteQueue] Disabling Z buffer and culling...\n");
     m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
     m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
     m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+    m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE); // Disable backface culling
 
     const D3DXMATRIX* matrixToUse = pViewProj ? pViewProj : &ortho;
     SetFrameViewProj(matrixToUse);
