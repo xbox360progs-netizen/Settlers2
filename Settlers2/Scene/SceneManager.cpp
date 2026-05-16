@@ -194,7 +194,7 @@ void SceneManager::Render()
     // Note: BeginFrame/EndFrame will be called by GameEngine, not here
     // SceneManager only handles scene rendering and command execution
     
-    // Step 1: Clear previous commands from ShaderManager
+// Step 1: Clear previous commands from ShaderManager
     if (m_shaderManager)
     {
         m_shaderManager->ClearQueue();
@@ -205,14 +205,13 @@ void SceneManager::Render()
     // Nobody draws anything at this stage!
 
     char dbg[512];
-    sprintf(dbg, "[SM::Render] ENTRY - m_currentScene=0x%08X\n", m_currentScene);
+sprintf(dbg, "[SM::Render] ENTRY - m_currentScene=0x%08X\n", m_currentScene);
     OutputDebugStringA(dbg);
-    fflush(stdout);
     
     // THREAD SAFETY: Lock BEFORE accessing m_currentScene
     EnterCriticalSection(&m_cs);
     
-    sprintf(dbg, "[SM::Render] AFTER LOCK - m_currentScene=0x%08X\n", m_currentScene);
+    sprintf(dbg, "[SM::Render] AFTER LOCK\n");
     OutputDebugStringA(dbg);
     
     // GUARD: If pointer is null
@@ -233,14 +232,10 @@ void SceneManager::Render()
         return;
     }
     
-    OutputDebugStringA("[SM::Render] About to call m_currentScene->Render()...\n");
     m_currentScene->Render();
-    OutputDebugStringA("[SM::Render] m_currentScene->Render() RETURNED!\n");
-    
     LeaveCriticalSection(&m_cs);
-    OutputDebugStringA("[SM::Render] EXIT\n");
 
-    // Step 3: SORT - Sort commands by zOrder, shader, and texture (critical for Xbox 360 performance)
+    // Step 3: SORT
     OutputDebugStringA("[SceneManager::Render] Calling SortQueue()...\n");
     if (m_shaderManager)
     {
@@ -260,13 +255,16 @@ void SceneManager::Render()
         {
             OutputDebugStringA("[SM::Render] Calling ExecuteQueue...\n");
             m_shaderManager->ExecuteQueue(pVB, pIB, pDecl, 32);
-            OutputDebugStringA("[SM::Render] ExecuteQueue RETURNED!\n");
+OutputDebugStringA("[SM::Render] ExecuteQueue RETURNED!\n");
         }
         else
         {
-            OutputDebugStringA("[SM::Render] NULL resources - clearing queue\n");
-            m_shaderManager->ClearQueue();
+            OutputDebugStringA("[SceneManager::Render] ERROR: NULL buffers!\n");
         }
+    }
+
+    if (m_spriteRenderer) {
+        m_spriteRenderer->ResetVertexCount();
     }
 
     OutputDebugStringA("[SM::Render] ALL DONE - exiting Render()\n");

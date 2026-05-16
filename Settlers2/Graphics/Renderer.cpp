@@ -155,13 +155,8 @@ void Renderer::Shutdown() {
 
 void Renderer::BeginFrame() {
     if (!m_pDevice) return;
-
-    OutputDebugStringA("[Renderer::BeginFrame] CALLING BeginScene!\n");
-    fflush(stdout);
     m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0, 0, 255), 1.0f, 0);
     m_pDevice->BeginScene();
-    OutputDebugStringA("[Renderer::BeginFrame] BeginScene DONE\n");
-    fflush(stdout);
 }
 
 void Renderer::EndSceneOnly() {
@@ -173,14 +168,8 @@ void Renderer::EndSceneOnly() {
 
 void Renderer::EndFrame() {
     if (!m_pDevice) return;
-
-    OutputDebugStringA("[Renderer::EndFrame] Calling EndScene + Present...\n");
-    fflush(stdout);
     m_pDevice->EndScene();
-
-    HRESULT hr = m_pDevice->Present(NULL, NULL, NULL, NULL);
-    OutputDebugStringA("[Renderer::EndFrame] Present DONE\n");
-    fflush(stdout);
+    m_pDevice->Present(NULL, NULL, NULL, NULL);
 }
         
 

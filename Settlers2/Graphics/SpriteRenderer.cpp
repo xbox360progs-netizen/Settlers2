@@ -1136,7 +1136,9 @@ void SpriteRenderer::ResetVertexCount() {
 }
 
 void SpriteRenderer::Flush(ShaderManager* pShader) {
-    OutputDebugStringA("[SR::Flush] ENTRY\n");
+    char buf[256];
+    sprintf(buf, "[SR::Flush] ENTRY - m_spriteCount=%d, m_totalVertexCount=%d\n", m_spriteCount, m_totalVertexCount);
+    OutputDebugStringA(buf);
     
     if (m_spriteCount == 0) {
         OutputDebugStringA("[SR::Flush] EXIT: m_spriteCount == 0\n");

@@ -616,12 +616,11 @@ void ShaderManager::SubmitBatch(const RenderBatch& batch) {
 }
 
 void ShaderManager::ClearQueue() {
-    Lock();
-    // Reset all command statuses to 0 (free) for lock-free ring buffer
+    // Lock();
     for (int i = 0; i < MAX_GLOBAL_COMMANDS; ++i) {
-        InterlockedExchange(&m_commandQueue[i].status, 0);
+        m_commandQueue[i].status = 0;
     }
-    Unlock();
+    // Unlock();
 }
 
 void ShaderManager::ClearDrawBatches() {
@@ -967,7 +966,7 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     D3DXMatrixOrthoOffCenterLH(&localOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, -10.0f, 10.0f);
 
     OutputDebugStringA("[SMgr::ExecuteQueue] Setting state...\n");
-    Lock();
+    // Lock();
 
     OutputDebugStringA("[SMgr::ExecuteQueue] Setting stream source...\n");
     m_pDevice->SetVertexDeclaration(pDecl);
@@ -1022,11 +1021,16 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
             InterlockedExchange(&cmd.status, 2);
 
             if (!cmd.pTexture) {
+                OutputDebugStringA("[SMgr::ExecuteQueue] WARNING: cmd.pTexture is NULL!\n");
                 InterlockedExchange(&cmd.status, 0);
                 continue;
             }
 
             hasAnyWorkBeenDone = true;
+
+            char dbg[256];
+            sprintf(dbg, "[SMgr::ExecuteQueue] cmd: shaderID=%d, texture=%p\n", cmd.shaderID, cmd.pTexture);
+            OutputDebugStringA(dbg);
 
             if (cmd.shaderID != currentShaderID) {
                 if (passActive) {
@@ -1089,7 +1093,7 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     }
 
     OutputDebugStringA("[SMgr::ExecuteQueue] About to Unlock...\n");
-    Unlock();
+    // Unlock();
     OutputDebugStringA("[SMgr::ExecuteQueue] Unlocked\n");
 
     OutputDebugStringA("[SMgr::ExecuteQueue] Clearing textures...\n");
