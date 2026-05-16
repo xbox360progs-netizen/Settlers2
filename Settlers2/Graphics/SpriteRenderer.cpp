@@ -954,98 +954,26 @@ void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, 
 void SpriteRenderer::Draw(float x, float y, float width, float height,
                           float u0, float v0, float u1, float v1,
                           DWORD color) {
-    // DEFERRED RENDERING: Check batching state
+    // Check batching state
     if (!m_isBatching) {
         OutputDebugStringA("Draw called without Begin!\n");
         return;
     }
 
     char buf[256];
-    sprintf(buf, "[SR::Draw] DEFERRED: Adding command to queue. x=%.1f, y=%.1f, w=%.1f, h=%.1f, color=0x%08X\n", 
+    sprintf(buf, "[SR::Draw] Adding quad. x=%.1f, y=%.1f, w=%.1f, h=%.1f, color=0x%08X\n", 
             x, y, width, height, color);
     OutputDebugStringA(buf);
 
-    // DEFERRED RENDERING: Create render command and store vertices directly
-    RenderCommand cmd;
-    cmd.pTexture = m_currentTexture;
-    cmd.shaderID = m_currentShaderID;
-    cmd.depth = m_currentDepth;
-    cmd.batchType = m_currentRenderType;
-    cmd.isUI = m_currentIsUI;
-    cmd.color = color;
+    // Use CreateQuad to write vertices to staging buffer and increment m_spriteCount
+    CreateQuad(x, y, width, height, u0, v0, u1, v1, color);
     
-    // Store position and UV data
-    cmd.screenX = x;
-    cmd.screenY = y;
-    cmd.screenW = width;
-    cmd.screenH = height;
-    cmd.u0 = u0;
-    cmd.v0 = v0;
-    cmd.u1 = u1;
-    cmd.v1 = v1;
-    
-    // Create vertices directly in command (deferred approach)
-    // Vertex 0: Top-left
-    cmd.vertices[0].x = x;
-    cmd.vertices[0].y = y;
-    cmd.vertices[0].z = 0.0f;
-    cmd.vertices[0].u = u0;
-    cmd.vertices[0].v = v0;
-    cmd.vertices[0].color = color;
-    cmd.vertices[0].padding[0] = 0.0f;
-    cmd.vertices[0].padding[1] = 0.0f;
-    
-    // Vertex 1: Top-right
-    cmd.vertices[1].x = x + width;
-    cmd.vertices[1].y = y;
-    cmd.vertices[1].z = 0.0f;
-    cmd.vertices[1].u = u1;
-    cmd.vertices[1].v = v0;
-    cmd.vertices[1].color = color;
-    cmd.vertices[1].padding[0] = 0.0f;
-    cmd.vertices[1].padding[1] = 0.0f;
-    
-    // Vertex 2: Bottom-left
-    cmd.vertices[2].x = x;
-    cmd.vertices[2].y = y + height;
-    cmd.vertices[2].z = 0.0f;
-    cmd.vertices[2].u = u0;
-    cmd.vertices[2].v = v1;
-    cmd.vertices[2].color = color;
-    cmd.vertices[2].padding[0] = 0.0f;
-    cmd.vertices[2].padding[1] = 0.0f;
-    
-    // Vertex 3: Bottom-right
-    cmd.vertices[3].x = x + width;
-    cmd.vertices[3].y = y + height;
-    cmd.vertices[3].z = 0.0f;
-    cmd.vertices[3].u = u1;
-    cmd.vertices[3].v = v1;
-    cmd.vertices[3].color = color;
-    cmd.vertices[3].padding[0] = 0.0f;
-    cmd.vertices[3].padding[1] = 0.0f;
-    
-    // Set render states
-    cmd.states.zEnable = D3DZB_FALSE;
-    cmd.states.alphaBlendEnable = TRUE;
-    cmd.states.srcBlend = D3DBLEND_SRCALPHA;
-    cmd.states.destBlend = D3DBLEND_INVSRCALPHA;
-    cmd.states.cullMode = D3DCULL_NONE;
-    
-    // Set counts
-    cmd.vertexCount = 4;
-    cmd.primitiveCount = 2; // 2 triangles per quad
-    cmd.vertexStart = 0; // Will be calculated during flush
-    
-    // Add to pending commands queue
-    m_pendingCommands.push_back(cmd);
-    
-    sprintf(buf, "[SR::Draw] DEFERRED: Command added. Pending commands: %d\n", (int)m_pendingCommands.size());
+    sprintf(buf, "[SR::Draw] Quad added. spriteCount=%d\n", m_spriteCount);
     OutputDebugStringA(buf);
     
-    // Check if we need to flush (too many pending commands)
-    if (m_pendingCommands.size() >= (size_t)m_maxSprites) {
-        sprintf(buf, "[SR::Draw] DEFERRED: Queue full (%d), forcing flush\n", (int)m_pendingCommands.size());
+    // Check if we need to flush (buffer full)
+    if (m_spriteCount >= m_maxSprites) {
+        sprintf(buf, "[SR::Draw] Buffer full (%d), forcing flush\n", m_spriteCount);
         OutputDebugStringA(buf);
         Flush();
     }

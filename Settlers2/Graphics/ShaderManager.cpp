@@ -717,8 +717,11 @@ void ShaderManager::Prepare(ShaderID id, const D3DXMATRIX* pViewProj) {
             m_numPasses = 1; // Assume 1 pass for most shaders
         }
         
-        // Set ViewProjection if provided
+        // Set ViewProjection if provided (CRITICAL: must set after activating effect)
         if (pViewProj) {
+            char buf[256];
+            sprintf_s(buf, "[ShaderManager::Prepare] Calling SetGlobalUniforms for new shader ID %d\n", id);
+            OutputDebugStringA(buf);
             SetGlobalUniforms(pViewProj);
         }
         
@@ -756,9 +759,16 @@ void ShaderManager::EndCurrent() {
 
 // Set global uniforms (frame-wide data: view/projection matrix, time, etc.)
 void ShaderManager::SetGlobalUniforms(const D3DXMATRIX* pViewProj) {
-    if (!m_pActiveShader || !pViewProj) return;
+    if (!m_pActiveShader || !pViewProj) {
+        OutputDebugStringA("[SM::SetGlobalUniforms] ERROR: m_pActiveShader or pViewProj is NULL\n");
+        return;
+    }
+    OutputDebugStringA("[SM::SetGlobalUniforms] Setting WVP and WorldViewProjection matrices\n");
+    // Set both parameter names for compatibility with different shaders
+    SetMatrix("WVP", (const float*)pViewProj);
     SetMatrix("WorldViewProjection", (const float*)pViewProj);
     Commit();
+    OutputDebugStringA("[SM::SetGlobalUniforms] Matrices set and committed\n");
 }
 
 // Set local uniforms (per-entity data: texture, depth, etc.)
@@ -1050,6 +1060,8 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                     BeginPass(0);
                     passActive = true;
                     OutputDebugStringA("[SMgr::ExecuteQueue] Shader activated\n");
+                    // CRITICAL: Set matrix AFTER BeginPass for effect framework
+                    SetGlobalUniforms(activeMatrix);
                 } else {
                     OutputDebugStringA("[SMgr::ExecuteQueue] WARNING: m_pActiveEffect is NULL!\n");
                 }
@@ -1057,8 +1069,12 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
 
             if (cmd.pTexture != lastTexture) {
                 m_pDevice->SetTexture(0, cmd.pTexture);
+                // Also set texture as shader parameter for the shader to use
+                if (m_pActiveEffect) {
+                    SetTexture("g_texture", cmd.pTexture);
+                    m_pActiveEffect->CommitChanges();
+                }
                 lastTexture = cmd.pTexture;
-                if (m_pActiveEffect) m_pActiveEffect->CommitChanges();
             }
 
             if (passActive) {
@@ -1096,6 +1112,9 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         EndCurrent();
         OutputDebugStringA("[SMgr::ExecuteQueue] EndCurrent done\n");
     }
+
+    // Disable culling to ensure triangles are rendered
+    m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
 
     OutputDebugStringA("[SMgr::ExecuteQueue] About to Unlock...\n");
     // Unlock();
