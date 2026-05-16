@@ -1033,6 +1033,7 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
             OutputDebugStringA(dbg);
 
             if (cmd.shaderID != currentShaderID) {
+                OutputDebugStringA("[SMgr::ExecuteQueue] Switching shader...\n");
                 if (passActive) {
                     EndPass();
                     EndCurrent();
@@ -1041,12 +1042,16 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                 const D3DXMATRIX* activeMatrix = cmd.isUI ? &localOrtho : &m_frameViewProj;
 
                 Prepare(static_cast<ShaderID>(cmd.shaderID), activeMatrix);
+                OutputDebugStringA("[SMgr::ExecuteQueue] Prepare done\n");
                 currentShaderID = static_cast<ShaderID>(cmd.shaderID);
 
                 if (m_pActiveEffect) {
                     m_pActiveEffect->Begin(&m_numPasses, 0);
                     BeginPass(0);
                     passActive = true;
+                    OutputDebugStringA("[SMgr::ExecuteQueue] Shader activated\n");
+                } else {
+                    OutputDebugStringA("[SMgr::ExecuteQueue] WARNING: m_pActiveEffect is NULL!\n");
                 }
             }
 
@@ -1069,10 +1074,10 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                 OutputDebugStringA("[SMgr::ExecuteQueue] Calling DrawIndexedPrimitive...\n");
                 m_pDevice->DrawIndexedPrimitive(
                     D3DPT_TRIANGLELIST,
-                    0,                 // BaseVertexIndex = 0 (buffer rewritten locally each frame)
+                    cmd.baseVertex,    // Use actual base vertex offset
                     0,                 // MinIndex = 0
                     cmd.vertexCount,
-                    0,                  // StartIndex = 0 (indices are local to each sprite, buffer rewritten each frame)
+                    0,                 // StartIndex = 0
                     cmd.primitiveCount
                 );
                 OutputDebugStringA("[SMgr::ExecuteQueue] DrawIndexedPrimitive DONE\n");

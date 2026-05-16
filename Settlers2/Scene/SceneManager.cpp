@@ -263,10 +263,6 @@ OutputDebugStringA("[SM::Render] ExecuteQueue RETURNED!\n");
         }
     }
 
-    if (m_spriteRenderer) {
-        m_spriteRenderer->ResetVertexCount();
-    }
-
     OutputDebugStringA("[SM::Render] ALL DONE - exiting Render()\n");
 }
 

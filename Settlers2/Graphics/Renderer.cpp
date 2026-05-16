@@ -155,7 +155,7 @@ void Renderer::Shutdown() {
 
 void Renderer::BeginFrame() {
     if (!m_pDevice) return;
-    m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0, 0, 255), 1.0f, 0);
+    m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0, 0, 0), 1.0f, 0);
     m_pDevice->BeginScene();
 }
 
@@ -169,7 +169,9 @@ void Renderer::EndSceneOnly() {
 void Renderer::EndFrame() {
     if (!m_pDevice) return;
     m_pDevice->EndScene();
+    OutputDebugStringA("[Renderer::EndFrame] Calling Present...\n");
     m_pDevice->Present(NULL, NULL, NULL, NULL);
+    OutputDebugStringA("[Renderer::EndFrame] Present done\n");
 }
         
 

@@ -1128,11 +1128,9 @@ void SpriteRenderer::End() {
 }
 
 void SpriteRenderer::ResetVertexCount() {
-    printf("[SR::ResetVertexCount] CALLED!!! Setting m_totalVertexCount=0, m_totalIndexCount=0\n");
-    OutputDebugStringA("[SR::ResetVertexCount] CALLED!!! Setting m_totalVertexCount=0, m_totalIndexCount=0\n");
-    fflush(stdout);
     m_totalVertexCount = 0;
     m_totalIndexCount = 0;
+    m_spriteCount = 0;
 }
 
 void SpriteRenderer::Flush(ShaderManager* pShader) {
@@ -1177,6 +1175,14 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
     }
     
     size_t bytesToWrite = static_cast<size_t>(numVertices * sizeof(SpriteVertex));
+    
+    // Debug: Print first vertex position
+    SpriteVertex* verts = (SpriteVertex*)m_pStagingBuffer;
+    char vbuf[256];
+    sprintf(vbuf, "[SR::Flush] First vertex: x=%.1f, y=%.1f, z=%.1f, u=%.2f, v=%.2f\n", 
+            verts[0].x, verts[0].y, verts[0].z, verts[0].u, verts[0].v);
+    OutputDebugStringA(vbuf);
+    
     memcpy(pGpuVertices, m_pStagingBuffer, bytesToWrite);
     m_pVertexBuffer->Unlock();
     OutputDebugStringA("[SR::Flush] Unlock done\n");

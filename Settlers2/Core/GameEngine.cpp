@@ -341,6 +341,10 @@ void GameEngine::Run()
         ProcessSceneRequests();
 
         if (m_sceneManager && m_sceneManager->IsSceneReady()) {
+            if (m_spriteRenderer) {
+                m_spriteRenderer->ResetVertexCount();
+            }
+
             if (m_renderer) {
                 m_renderer->BeginFrame();
             }
