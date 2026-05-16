@@ -45,7 +45,15 @@ public:
   void SetGamepad(Input::Gamepad* gamepad) { m_gamepad = gamepad; }
   void SetTextManager(TextManager* textManager) { m_textManager = textManager; }
   void SetBinFileManager(BinFileManager* binFileManager) { m_binFileManager = binFileManager; }
-  void SetRenderer(Renderer* renderer) { m_renderer = renderer; }
+  void SetRenderer(SpriteRenderer* spriteRenderer, Renderer* renderer) {
+    char buf[256];
+    sprintf(buf, "[MenuScene::SetRenderer] old sprite=%p, new sprite=%p, renderer=%p\n", 
+            m_spriteRenderer, spriteRenderer, renderer);
+    OutputDebugStringA(buf);
+    
+    m_renderer = renderer;
+    m_spriteRenderer = spriteRenderer;
+}
   void SetTextureLoader(TextureLoader* textureLoader) { m_textureLoader = textureLoader; }
 
 private:

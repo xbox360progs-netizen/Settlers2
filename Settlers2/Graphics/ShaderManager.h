@@ -230,8 +230,7 @@ public:
     void ApplyShader(int shaderID);
     void ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB,
                      LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride,
-                     const D3DXMATRIX* pViewProj = NULL, // Optional camera matrix
-                     SpriteRenderer* pSpriteRenderer = NULL); // For Xbox 360 ring buffer reset
+                     const D3DXMATRIX* pViewProj, SpriteRenderer* pSpriteRenderer = NULL); // For Xbox 360 ring buffer reset
     
     // Execute draw batches with material-based sorting
     void ExecuteDrawBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
@@ -246,6 +245,9 @@ public:
     // Execute all batches in the queue (legacy)
     void ExecuteBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
                        LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride);
+    
+    // Reset static offsets (called by SpriteRenderer::BeginFrame)
+    static void ResetOffsets();
     
     // Get command count (for lock-free ring buffer)
     size_t GetCommandCount() const {

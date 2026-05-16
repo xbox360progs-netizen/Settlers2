@@ -74,7 +74,8 @@ SpriteRenderer::SpriteRenderer()
       m_pStagingBuffer(NULL), m_currentTexture(NULL), m_isBatching(false), m_maxSprites(4096), m_vertexBufferSize(0), m_indexBufferSize(0), m_spriteCount(0),
       m_hStartWorkEvent(NULL), m_threadsInitialized(false), m_activeBuffer(0),
       m_pGpuBufferA(NULL), m_pGpuBufferB(NULL), m_currentBackBufferIndex(0), m_pVertexBuffer(NULL),
-      m_pStaticQuadVB(NULL), m_pStaticQuadIB(NULL), m_pInstancedDecl(NULL), m_pConstantInstancedDecl(NULL)
+      m_pStaticQuadVB(NULL), m_pStaticQuadIB(NULL), m_pInstancedDecl(NULL), m_pConstantInstancedDecl(NULL),
+      m_isAccumulating(false), m_isSealed(false)
 #ifdef _XBOX
       , m_pAsyncCommandBuffer(NULL)
       , m_pAsyncCall(NULL)
@@ -103,9 +104,18 @@ SpriteRenderer::SpriteRenderer()
     m_pVB[1] = NULL;
     m_pInstanceVB[0] = NULL;
     m_pInstanceVB[1] = NULL;
+
+	OutputDebugStringA("[SpriteRenderer] Constructor called!\n");
+    char buf[256];
+    sprintf(buf, "[SpriteRenderer] this = %p\n", this);
+    OutputDebugStringA(buf);
 }
 
 SpriteRenderer::~SpriteRenderer() {
+	OutputDebugStringA("[SpriteRenderer] Destructor called!\n");
+    char buf[256];
+    sprintf(buf, "[SpriteRenderer] this = %p\n", this);
+    OutputDebugStringA(buf);
     Shutdown();
 }
 
@@ -191,24 +201,27 @@ HRESULT SpriteRenderer::Initialize(LPDIRECT3DDEVICE9 device, ShaderManager* shad
     }
 
     // Pre-fill index buffer with quad indices (never changes)
+    // CRITICAL FIX: Use ABSOLUTE indices for immediate rendering mode
+    // Pattern: [0,1,2, 0,2,3] with offset +4 for each sprite
     WORD* pIndices = NULL;
     hr = m_pIndexBuffer->Lock(0, 0, (void**)&pIndices, 0);
     sprintf(buf, "[SR::Initialize] IndexBuffer Lock hr=0x%08X, pIndices=%p\n", hr, pIndices);
     OutputDebugStringA(buf);
     if (SUCCEEDED(hr)) {
         for (int i = 0; i < m_maxSprites; i++) {
-            int baseI = i * 6;
-            // LOCAL indices for each sprite (0-3 pattern)
-            // baseVertex in DrawIndexedPrimitive will shift them to correct position
-            pIndices[baseI + 0] = 0;
-            pIndices[baseI + 1] = 1;
-            pIndices[baseI + 2] = 3;
-            pIndices[baseI + 3] = 1;
-            pIndices[baseI + 4] = 3;
-            pIndices[baseI + 5] = 2;
+            int v = (i % 1024) * 4;  // Base vertex offset for this sprite
+            int idx = i * 6; // Index offset for this sprite
+
+            // Absolute indices pattern [0,1,2, 2,1,3] with vertex offset
+			pIndices[idx + 0] = v + 0;  // 0
+			pIndices[idx + 1] = v + 1;  // 1  
+			pIndices[idx + 2] = v + 2;  // 2
+			pIndices[idx + 3] = v + 2;  // 2
+			pIndices[idx + 4] = v + 1;  // 1
+			pIndices[idx + 5] = v + 3;  // 3
         }
         m_pIndexBuffer->Unlock();
-        OutputDebugStringA("[SR::Initialize] Index buffer filled with LOCAL indices and unlocked\n");
+        OutputDebugStringA("[SR::Initialize] Index buffer filled with ABSOLUTE indices for immediate rendering\n");
     }
 
     // Create vertex declaration (must match SpriteVertex structure - 32 byte aligned)
@@ -306,6 +319,27 @@ HRESULT SpriteRenderer::Initialize(LPDIRECT3DDEVICE9 device, ShaderManager* shad
         return hr;
     }
     OutputDebugStringA("Created m_pConstantInstancedDecl successfully\n");
+
+#ifdef _XBOX
+    // Create GPU fence for CPU/GPU synchronization
+    // NOTE: If this fails, the code will continue without fence synchronization
+    if (m_pDevice) {
+        hr = m_pDevice->CreateQuery(D3DQUERYTYPE_EVENT, &m_pGpuFence);
+        if (FAILED(hr) || !m_pGpuFence) {
+            char buf[256];
+            sprintf(buf, "[SpriteRenderer] WARNING: Failed to create GPU fence (hr=0x%08X), continuing without fence sync\n", hr);
+            OutputDebugStringA(buf);
+            m_pGpuFence = NULL;
+            m_isFirstFlush = false; // Disable fence wait if creation failed
+        } else {
+            OutputDebugStringA("[SpriteRenderer] GPU fence created successfully\n");
+        }
+    } else {
+        OutputDebugStringA("[SpriteRenderer] WARNING: Device is NULL, skipping GPU fence creation\n");
+        m_pGpuFence = NULL;
+        m_isFirstFlush = false;
+    }
+#endif
 
     // Initialization log removed
 
@@ -495,16 +529,7 @@ void SpriteRenderer::SetAsyncCommandBuffer(IDirect3DCommandBuffer9* pBuffer, IDi
     m_pAsyncCommandBuffer = pBuffer;
     m_pAsyncCall = pAsyncCall;
     
-    // Create GPU fence query for CPU/GPU synchronization
-    if (m_pDevice && !m_pGpuFence) {
-        HRESULT hr = m_pDevice->CreateQuery(D3DQUERYTYPE_EVENT, &m_pGpuFence);
-        if (FAILED(hr) || !m_pGpuFence) {
-            OutputDebugStringA("[SpriteRenderer] ERROR: Failed to create D3DQUERYTYPE_EVENT Fence!\n");
-            m_pGpuFence = NULL;
-        } else {
-            OutputDebugStringA("[SpriteRenderer] SUCCESS: D3DQUERYTYPE_EVENT Fence created successfully\n");
-        }
-    }
+    // GPU fence is now created in Initialize(), not here
     
     OutputDebugStringA("[SpriteRenderer] Async command buffer set\n");
 }
@@ -517,13 +542,17 @@ void SpriteRenderer::FlushBatchesAsync() {
     // [XBOX 360 SYNC] Wait for GPU to finish previous frame using fence
     // Skip on first call - GPU hasn't processed anything yet
     if (m_pGpuFence && !m_isFirstFlush) {
-        while (m_pGpuFence->GetData(NULL, 0, D3DGETDATA_FLUSH) == S_FALSE) {
+        HRESULT hr = S_OK;
+        while ((hr = m_pGpuFence->GetData(NULL, 0, D3DGETDATA_FLUSH)) == S_FALSE) {
             #ifdef _XBOX
             YieldProcessor();
             #else
             __nop();
             #endif
             Sleep(0);
+        }
+        if (FAILED(hr) && hr != S_FALSE) {
+            OutputDebugStringA("[SR::FlushBatchesAsync] WARNING: GPU fence GetData failed, continuing anyway\n");
         }
     }
     m_isFirstFlush = false; // Mark first flush complete
@@ -838,28 +867,40 @@ void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float
     Begin(shaderID, pTexture, depth, 0, false); // Default: Single, world-space
 }
 
-void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType) {
-    Begin(shaderID, pTexture, depth, renderType, false); // Default: world-space
-}
-
 void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType, bool isUI) {
-    OutputDebugStringA("[SR::Begin] 5-PARAM VERSION ENTERED NOW!!!\n");
+    char dbg[256];
+    sprintf(dbg, "[SR::Begin] ENTRY - this=%p, shaderID=%d, texture=%p\n", this, shaderID, pTexture);
+    OutputDebugStringA(dbg);
     fflush(stdout);
+
+    // Check if this pointer is valid
+    void** vtable = *(void***)this;
+    sprintf(dbg, "[SR::Begin] vtable=%p\n", vtable);
+    OutputDebugStringA(dbg);
+    
+    if (vtable == nullptr) {
+        OutputDebugStringA("[SR::Begin] ERROR: vtable is NULL!\n");
+        return;
+    }
 
     // === ШАГ 1: БЕЗОПАСНАЯ ИЗОЛЯЦИЯ ПРЕДЫДУЩЕГО БАТЧА ===
     // Если кто-то (например, карта) забыл закрыться перед текстом,
     // или если мы переключаемся с мира на интерфейс
+    OutputDebugStringA("[SR::Begin] Checking if batching...\n");
     if (m_isBatching) {
+        OutputDebugStringA("[SR::Begin] Currently batching, checking state change...\n");
         // Проверяем, изменились ли параметры. Если да — закрываем прошлый батч
         if (m_currentTexture != pTexture || m_currentShaderID != shaderID || 
             m_currentRenderType != renderType || m_currentIsUI != isUI) 
         {
             OutputDebugStringA("[SR::Begin] AUTO-CLOSING previous batch via End() due to state change\n");
             End(); // Отправляет старую геометрию на GPU и сбрасывает m_isBatching в false
+            OutputDebugStringA("[SR::Begin] End() returned\n");
         }
     }
 
     // === ШАГ 2: КРИТИЧЕСКИЕ ПРОВЕРКИ УСТРОЙСТВА ===
+    OutputDebugStringA("[SR::Begin] Checking device...\n");
     if (!m_pDevice) {
         char buf[256];
         sprintf(buf, "[SR::Begin] CRITICAL ERROR: m_pDevice is NULL! this=%p\n", this);
@@ -936,6 +977,10 @@ void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture) 
     fflush(stdout);
 }
 
+void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType) {
+    Begin(shaderID, pTexture, depth, renderType, false); // Default: world-space
+}
+
 void SpriteRenderer::Begin(const char* shaderName, LPDIRECT3DTEXTURE9 pTexture, float depth) {
     int shaderID = ShaderNameToID(shaderName);
     Begin(static_cast<ShaderID>(shaderID), pTexture, depth);
@@ -956,27 +1001,29 @@ void SpriteRenderer::Draw(float x, float y, float width, float height,
                           DWORD color) {
     // Check batching state
     if (!m_isBatching) {
-        OutputDebugStringA("Draw called without Begin!\n");
+        OutputDebugStringA("[SR::Draw] ERROR: Draw called without Begin!\n");
         return;
     }
 
     char buf[256];
-    sprintf(buf, "[SR::Draw] Adding quad. x=%.1f, y=%.1f, w=%.1f, h=%.1f, color=0x%08X\n", 
+    sprintf(buf, "[SR::Draw] ENTRY: x=%.1f, y=%.1f, w=%.1f, h=%.1f, color=0x%08X\n",
             x, y, width, height, color);
     OutputDebugStringA(buf);
 
     // Use CreateQuad to write vertices to staging buffer and increment m_spriteCount
     CreateQuad(x, y, width, height, u0, v0, u1, v1, color);
-    
-    sprintf(buf, "[SR::Draw] Quad added. spriteCount=%d\n", m_spriteCount);
+
+    sprintf(buf, "[SR::Draw] After CreateQuad: spriteCount=%d\n", m_spriteCount);
     OutputDebugStringA(buf);
-    
+
     // Check if we need to flush (buffer full)
     if (m_spriteCount >= m_maxSprites) {
         sprintf(buf, "[SR::Draw] Buffer full (%d), forcing flush\n", m_spriteCount);
         OutputDebugStringA(buf);
         Flush();
     }
+
+    OutputDebugStringA("[SR::Draw] EXIT\n");
 }
 
 void SpriteRenderer::DrawWithTexture(float x, float y, float width, float height,
@@ -1038,18 +1085,19 @@ void SpriteRenderer::End() {
     OutputDebugStringA("[SR::End] ENTRY\n");
     
     if (!m_isBatching) {
-        OutputDebugStringA("[SR::End] WARNING: m_isBatching is false!\n");
+        OutputDebugStringA("[SR::End] Not batching, returning\n");
         return;
     }
-    
+
+    OutputDebugStringA("[SR::End] About to call Flush()...\n");
+
+    // Flush the current batch
+    Flush();
+
+    OutputDebugStringA("[SR::End] Flush() returned\n");
+
     m_isBatching = false;
-    
-    OutputDebugStringA("[SR::End] pendingCommands empty check\n");
-    if (!m_pendingCommands.empty() || m_spriteCount > 0) {
-        OutputDebugStringA("[SR::End] Calling Flush()...\n");
-        Flush();
-        OutputDebugStringA("[SR::End] Flush() completed\n");
-    }
+
     
     m_spriteCount = 0;
     OutputDebugStringA("[SR::End] EXIT\n");
@@ -1160,12 +1208,13 @@ void SpriteRenderer::SubmitBatch(ShaderManager* pShader) {
     int indexCount = m_spriteCount * 6; // 6 indices per sprite
     
     // FORCE RESET if counts look wrong (> 1000 suggests accumulation across frames)
-    if (m_totalVertexCount > 1000 || m_totalIndexCount > 3000) {
-        OutputDebugStringA("[SR::SubmitBatch] WARNING: Counts too high, forcing reset!\n");
-        m_totalVertexCount = 0;
-        m_totalIndexCount = 0;
-        vertexOffset = 0;
-    }
+    // REMOVED: This breaks the lifecycle architecture. Offsets should only reset in ResetBatchState()
+    // if (m_totalVertexCount > 1000 || m_totalIndexCount > 3000) {
+    //     OutputDebugStringA("[SR::SubmitBatch] WARNING: Counts too high, forcing reset!\n");
+    //     m_totalVertexCount = 0;
+    //     m_totalIndexCount = 0;
+    //     vertexOffset = 0;
+    // }
     
     // DEBUG: Force start from 0 if this appears to be first batch
     if (m_totalVertexCount == 0 && m_totalIndexCount == 0) {
@@ -1225,19 +1274,157 @@ void SpriteRenderer::SubmitBatch(ShaderManager* pShader) {
 }
 
 void SpriteRenderer::Flush() {
+    // Lifecycle check: only allow Flush during accumulation phase
+    if (!m_isAccumulating) {
+        OutputDebugStringA("[SR::Flush] WARNING: Flush called outside accumulation phase\n");
+        if (m_isSealed) {
+            OutputDebugStringA("[SR::Flush] ERROR: Batch is sealed, cannot Flush\n");
+            return;
+        }
+    }
+
+    // GPU synchronization for Xbox 360
+#ifdef _XBOX
+    if (m_pGpuFence && !m_isFirstFlush) {
+        // Wait until GPU finishes previous frame
+        HRESULT hr = S_OK;
+        while ((hr = m_pGpuFence->GetData(NULL, 0, D3DGETDATA_FLUSH)) == S_FALSE) {
+            YieldProcessor();
+            Sleep(0);
+        }
+        if (FAILED(hr) && hr != S_FALSE) {
+            OutputDebugStringA("[SR::Flush] WARNING: GPU fence GetData failed, continuing anyway\n");
+        }
+    }
+    m_isFirstFlush = false;
+#endif
+
     // Only return if empty
     if (m_spriteCount == 0) return;
 
-    // RING BUFFER: Check for overflow before flushing
-    // NOTE: m_totalVertexCount is incremented in SubmitBatch, not here
-    if (m_totalVertexCount + m_spriteCount * 4 > MAX_BUFFER_VERTICES) {
-        OutputDebugStringA("[SpriteRenderer::Flush] WARNING: Vertex buffer overflow, forcing Execute\n");
-        // Force execute would go here if we had access to the Execute method
+    OutputDebugStringA("[SR::Flush] ENTRY - Deferred rendering with ring buffer\n");
+
+    // Calculate current offsets
+    DWORD vertexOffset = m_totalVertexCount;
+    DWORD vertexCount = m_spriteCount * 4;
+
+    char debugBuf[256];
+    sprintf(debugBuf, "[SR::Flush] spriteCount=%d, vertexOffset=%d, totalVertexCount=%d\n",
+            m_spriteCount, vertexOffset, m_totalVertexCount);
+    OutputDebugStringA(debugBuf);
+
+    // Ring buffer overflow check
+    if (vertexOffset + vertexCount >= MAX_BUFFER_VERTICES) {
+        // Wrap around to beginning of buffer
+        vertexOffset = 0;
         m_totalVertexCount = 0;
+        OutputDebugStringA("[SR::Flush] Ring buffer wraparound\n");
     }
 
-    // Just call the version with shader manager
-    Flush(m_pShaderManager);
+    // Copy vertices to GPU buffer at correct offset
+    LPDIRECT3DVERTEXBUFFER9 currentVB = m_pVertexBuffer; // Use ring buffer
+    void* pData = NULL;
+    HRESULT hr = currentVB->Lock(
+        vertexOffset * sizeof(SpriteVertex),
+        vertexCount * sizeof(SpriteVertex),
+        &pData,
+        D3DLOCK_NOOVERWRITE
+    );
+
+    if (FAILED(hr)) {
+        OutputDebugStringA("[SR::Flush] ERROR: Failed to lock vertex buffer\n");
+        m_spriteCount = 0;
+        return;
+    }
+
+    memcpy(pData, m_pStagingBuffer, vertexCount * sizeof(SpriteVertex));
+    currentVB->Unlock();
+
+    char dbg[256];
+    sprintf(dbg, "[SR::Flush] Copied %d vertices to offset %d\n", vertexCount, vertexOffset);
+    OutputDebugStringA(dbg);
+
+    // Create command for deferred execution
+    if (m_pShaderManager) {
+        ShaderManager::RenderCommand cmd;
+        cmd.shaderID = m_currentShaderID;
+        cmd.pTexture = m_currentTexture;
+        cmd.depth = m_currentDepth;
+        cmd.vertexCount = vertexCount;
+        cmd.primitiveCount = m_spriteCount * 2;
+        cmd.baseVertex = vertexOffset;        // CORRECT vertex offset
+        cmd.vertexStart = 0;                  // Indices start at 0
+        cmd.batchType = m_currentRenderType;
+        cmd.layer = 0;
+        cmd.isUI = m_currentIsUI;
+        cmd.status = 1; // Ready for execution
+
+        cmd.states.zEnable = D3DZB_FALSE;
+        cmd.states.alphaBlendEnable = TRUE;
+        cmd.states.srcBlend = D3DBLEND_SRCALPHA;
+        cmd.states.destBlend = D3DBLEND_INVSRCALPHA;
+        cmd.states.cullMode = D3DCULL_NONE;
+
+        sprintf(dbg, "[SR::Flush] Submitting command: baseVert=%d, verts=%d, prims=%d\n",
+                cmd.baseVertex, cmd.vertexCount, cmd.primitiveCount);
+        OutputDebugStringA(dbg);
+
+        m_pShaderManager->Submit(cmd);
+        OutputDebugStringA("[SR::Flush] Command submitted with correct offsets\n");
+    }
+
+    // Issue GPU fence marker at end of Flush for next frame's synchronization
+#ifdef _XBOX
+    if (m_pGpuFence) {
+        m_pGpuFence->Issue(D3DISSUE_END);
+    }
+#endif
+
+    // Update cumulative counter for next batch
+    m_totalVertexCount += vertexCount;
+    m_spriteCount = 0;
+
+    OutputDebugStringA("[SR::Flush] EXIT\n");
+}
+
+// === Lifecycle State Machine Implementation (Critical for Xbox 360) ===
+
+void SpriteRenderer::BeginFrame() {
+    // Reset offsets and enable accumulation
+    m_totalVertexCount = 0;
+    m_totalIndexCount = 0;
+    m_spriteCount = 0;
+    
+    m_isAccumulating = true;
+    m_isSealed = false;
+    
+    // Also reset ShaderManager static offsets
+    ShaderManager::ResetOffsets();
+    
+    OutputDebugStringA("[SR::BeginFrame] Offsets reset, accumulation enabled\n");
+}
+
+void SpriteRenderer::FinalizeFrameCommands() {
+    // Seal the batch: disable Submit(), freeze offsets
+    m_isAccumulating = false;
+    m_isSealed = true;
+    
+    char buf[256];
+    sprintf(buf, "[SR::FinalizeFrameCommands] Batch sealed: totalVerts=%d, totalIndices=%d\n",
+            m_totalVertexCount, m_totalIndexCount);
+    OutputDebugStringA(buf);
+}
+
+void SpriteRenderer::ResetBatchState() {
+    // Reset batch state after ExecuteQueue() is complete
+    m_totalVertexCount = 0;
+    m_totalIndexCount = 0;
+    m_spriteCount = 0;
+    
+    m_isAccumulating = false;
+    m_isSealed = false;
+    
+    OutputDebugStringA("[SR::ResetBatchState] State reset, ready for next frame\n");
 }
 
 
@@ -1830,11 +2017,11 @@ void SpriteRenderer::CreateQuadWithTexture(float x, float y, float width, float 
                                        float u0, float v0, float u1, float v1,
                                        DWORD color, LPDIRECT3DTEXTURE9 pTexture) {
     OutputDebugStringA("[SR::CreateQuad] ENTRY\n");
-    
+
     char texBuf[256];
     sprintf(texBuf, "[SR::CreateQuad] pTexture=%p, m_currentTexture=%p\n", pTexture, m_currentTexture);
     OutputDebugStringA(texBuf);
-    
+
     // Update current texture if different
     if (pTexture != m_currentTexture) {
         m_currentTexture = pTexture;
@@ -1854,60 +2041,50 @@ void SpriteRenderer::CreateQuadWithTexture(float x, float y, float width, float 
         return;
     }
 
-    // Create render command with vertices (same as Draw() path)
-    RenderCommand cmd;
-    cmd.pTexture = m_currentTexture;
-    cmd.shaderID = m_currentShaderID;
-    cmd.depth = m_currentDepth;
-    cmd.batchType = m_currentRenderType;
-    cmd.isUI = m_currentIsUI;
-    cmd.color = color;
+    // CRITICAL FIX: Write vertices DIRECTLY to staging buffer, not to command structure
+    // Flush() copies from m_pStagingBuffer to GPU, so vertices must be in staging buffer
+    SpriteVertex* vOut = &m_pStagingBuffer[m_spriteCount * 4];
 
-    // Store position and UV data
-    cmd.screenX = x;
-    cmd.screenY = y;
-    cmd.screenW = width;
-    cmd.screenH = height;
-    cmd.u0 = u0; cmd.v0 = v0;
-    cmd.u1 = u1; cmd.v1 = v1;
+    // Debug: Log vertex coordinates
+    char coordBuf[512];
+    sprintf(coordBuf, "[SR::CreateQuad] Creating quad: x=%.1f, y=%.1f, w=%.1f, h=%.1f\n", x, y, width, height);
+    OutputDebugStringA(coordBuf);
 
-    // Create vertices directly in command
-    cmd.vertices[0].x = x; cmd.vertices[0].y = y; cmd.vertices[0].z = 0.0f;
-    cmd.vertices[0].u = u0; cmd.vertices[0].v = v0;
-    cmd.vertices[0].color = color;
-    cmd.vertices[0].padding[0] = 0.0f; cmd.vertices[0].padding[1] = 0.0f;
+    // Vertex 0: Top-left
+    vOut[0].x = x; vOut[0].y = y; vOut[0].z = 0.0f;
+    vOut[0].u = u0; vOut[0].v = v0;
+    vOut[0].color = color;
+    vOut[0].padding[0] = 0.0f; vOut[0].padding[1] = 0.0f;
 
-    cmd.vertices[1].x = x + width; cmd.vertices[1].y = y; cmd.vertices[1].z = 0.0f;
-    cmd.vertices[1].u = u1; cmd.vertices[1].v = v0;
-    cmd.vertices[1].color = color;
-    cmd.vertices[1].padding[0] = 0.0f; cmd.vertices[1].padding[1] = 0.0f;
+    // Vertex 1: Top-right
+    vOut[1].x = x + width; vOut[1].y = y; vOut[1].z = 0.0f;
+    vOut[1].u = u1; vOut[1].v = v0;
+    vOut[1].color = color;
+    vOut[1].padding[0] = 0.0f; vOut[1].padding[1] = 0.0f;
 
-    cmd.vertices[2].x = x; cmd.vertices[2].y = y + height; cmd.vertices[2].z = 0.0f;
-    cmd.vertices[2].u = u0; cmd.vertices[2].v = v1;
-    cmd.vertices[2].color = color;
-    cmd.vertices[2].padding[0] = 0.0f; cmd.vertices[2].padding[1] = 0.0f;
+    // Vertex 2: Bottom-left
+    vOut[2].x = x; vOut[2].y = y + height; vOut[2].z = 0.0f;
+    vOut[2].u = u0; vOut[2].v = v1;
+    vOut[2].color = color;
+    vOut[2].padding[0] = 0.0f; vOut[2].padding[1] = 0.0f;
 
-    cmd.vertices[3].x = x + width; cmd.vertices[3].y = y + height; cmd.vertices[3].z = 0.0f;
-    cmd.vertices[3].u = u1; cmd.vertices[3].v = v1;
-    cmd.vertices[3].color = color;
-    cmd.vertices[3].padding[0] = 0.0f; cmd.vertices[3].padding[1] = 0.0f;
+    // Vertex 3: Bottom-right
+    vOut[3].x = x + width; vOut[3].y = y + height; vOut[3].z = 0.0f;
+    vOut[3].u = u1; vOut[3].v = v1;
+    vOut[3].color = color;
+    vOut[3].padding[0] = 0.0f; vOut[3].padding[1] = 0.0f;
 
-    // Set render states
-    cmd.states.zEnable = D3DZB_FALSE;
-    cmd.states.alphaBlendEnable = TRUE;
-    cmd.states.srcBlend = D3DBLEND_SRCALPHA;
-    cmd.states.destBlend = D3DBLEND_INVSRCALPHA;
-    cmd.states.cullMode = D3DCULL_NONE;
+    // Debug: Log actual vertex positions
+    sprintf(coordBuf, "[SR::CreateQuad] Vertices: [%.1f,%.1f] [%.1f,%.1f] [%.1f,%.1f] [%.1f,%.1f]\n",
+            vOut[0].x, vOut[0].y, vOut[1].x, vOut[1].y, vOut[2].x, vOut[2].y, vOut[3].x, vOut[3].y);
+    OutputDebugStringA(coordBuf);
 
-    // Set counts
-    cmd.vertexCount = 4;
-    cmd.primitiveCount = 2;
-    cmd.vertexStart = 0;
-
-    // Add to pending commands queue (same as Draw() path)
-    m_pendingCommands.push_back(cmd);
-
+    // Increment sprite count
     m_spriteCount++;
+
+    char dbgBuf[256];
+    sprintf(dbgBuf, "[SR::CreateQuad] Wrote 4 vertices to staging buffer. spriteCount=%d\n", m_spriteCount);
+    OutputDebugStringA(dbgBuf);
 
     OutputDebugStringA("[SR::CreateQuad] FINISHED\n");
 }

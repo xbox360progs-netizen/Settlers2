@@ -98,6 +98,9 @@ HRESULT Renderer::Initialize() {
 
 void Renderer::SetSpriteRenderer(SpriteRenderer* pSpriteRenderer) {
     m_pSpriteRenderer = pSpriteRenderer;
+	char buf[256];
+    sprintf(buf, "[Renderer] SetSpriteRenderer: %p\n", pSpriteRenderer);
+    OutputDebugStringA(buf);
 }
 
 HRESULT Renderer::LoadShader(ShaderID id, const char* filepath, const char* techniqueName) {
@@ -172,6 +175,12 @@ void Renderer::EndFrame() {
     OutputDebugStringA("[Renderer::EndFrame] Calling Present...\n");
     m_pDevice->Present(NULL, NULL, NULL, NULL);
     OutputDebugStringA("[Renderer::EndFrame] Present done\n");
+	if (m_pSpriteRenderer) {
+        OutputDebugStringA("[Renderer::EndFrame] Resetting sprite counters...\n");
+        m_pSpriteRenderer->ResetVertexCount();
+    } else {
+        OutputDebugStringA("[Renderer::EndFrame] WARNING: m_pSpriteRenderer is NULL!\n");
+    }
 }
         
 

@@ -61,6 +61,12 @@ void GameEngine::CreateScenes()
             loadingScene->SetBinFileManager(m_binFileManager);
         // LoadingScene will be used by MenuScene before switching to Game/Editor
     }
+
+	char buf[256];
+    sprintf(buf, "[GameEngine::CreateScenes] BEFORE SetRenderer: m_spriteRenderer=%p, vtable=%p\n", 
+            m_spriteRenderer, m_spriteRenderer ? *(void***)m_spriteRenderer : nullptr);
+    OutputDebugStringA(buf);
+
     if (loadingScene)
         m_sceneManager->AddScene(loadingScene);
 
@@ -68,7 +74,9 @@ void GameEngine::CreateScenes()
     if (menuScene) {
         menuScene->SetTextManager(m_textManager);
         menuScene->SetBinFileManager(m_binFileManager);
+		menuScene->SetRenderer(m_spriteRenderer, m_renderer);
         menuScene->Initialize(m_renderer->GetDevice(), m_spriteRenderer, m_renderer, m_inputManager->GetGamepad(), m_textureLoader);
+		
     }
     
     m_sceneManager->AddScene(menuScene);
@@ -129,6 +137,13 @@ bool GameEngine::Initialize()
         std::cerr << "[GameEngine] Failed to initialize SpriteRenderer" << std::endl;
         return false;
     }
+
+	char buf[256];
+    sprintf(buf, "[GameEngine::Initialize] BEFORE SpriteRenderer: m_spriteRenderer=%p, vtable=%p\n", 
+            m_spriteRenderer, m_spriteRenderer ? *(void***)m_spriteRenderer : nullptr);
+    OutputDebugStringA(buf);
+
+	m_renderer->SetSpriteRenderer(m_spriteRenderer); 
 
     m_inputManager = new Input::InputManager();
     if (!m_inputManager->Initialize(NULL, m_renderer->GetDevice()))
@@ -339,10 +354,10 @@ void GameEngine::Run()
         }
 
         ProcessSceneRequests();
-
-        if (m_sceneManager && m_sceneManager->IsSceneReady()) {
+if (m_sceneManager && m_sceneManager->IsSceneReady()) {
+            // НАЧАЛО КАДРА: Сброс состояния SpriteRenderer
             if (m_spriteRenderer) {
-                m_spriteRenderer->ResetVertexCount();
+                m_spriteRenderer->BeginFrame(); // Включаем накопление команд
             }
 
             if (m_renderer) {
@@ -350,14 +365,24 @@ void GameEngine::Run()
             }
 
             if (m_sceneManager) {
-                m_sceneManager->Render();
+                m_sceneManager->Render(); // Накапливаем команды
             }
 
+            // КОНЕЦ КАДРА: Запечатываем и выполняем команды
+            if (m_spriteRenderer) {
+                m_spriteRenderer->FinalizeFrameCommands(); // Запечатываем батч
+            }
+            
             if (m_renderer) {
-                m_renderer->EndFrame();
+                m_renderer->EndFrame(); // Выполняем команды и Present()
+            }
+            
+            // Подготовка к следующему кадру
+            if (m_spriteRenderer) {
+                m_spriteRenderer->ResetBatchState(); // Сбрасываем состояние
             }
         }
-
+        
         Sleep(16);
 #else
         DWORD currentTime = GetTickCount();

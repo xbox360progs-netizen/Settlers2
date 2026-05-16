@@ -162,6 +162,17 @@ public:
     // Public wrapper for staging area (external callers)
     void FillStagingAreaPublic(int startIdx, int count, const SpriteData* data);
 
+    // === Lifecycle State Machine for Command Buffer (Critical for Xbox 360) ===
+    
+    // Begin frame: reset offsets and enable accumulation
+    void BeginFrame();
+    
+    // Finalize frame commands: seal the batch, disable Submit(), freeze offsets
+    void FinalizeFrameCommands();
+    
+    // Reset batch state: called after ExecuteQueue() to prepare for next frame
+    void ResetBatchState();
+
     // Shader registry helpers
 private:
     int GetShaderId(const char* name);
@@ -179,6 +190,7 @@ private:
     // Atlas-based rendering: Draw sprite by name (for convenience)
     void DrawSprite(SpriteAtlas* atlas, const char* spriteName, float x, float y, DWORD color = 0xFFFFFFFF);
    
+	
 
     // Atlas-based rendering: Draw sprite by index (optimized for per-frame use)
     void DrawIndexedSprite(SpriteAtlas* atlas, uint32_t spriteIndex, float x, float y, DWORD color = 0xFFFFFFFF);
@@ -288,6 +300,10 @@ private:
     DWORD m_totalVertexCount; // Total vertices accumulated since last Execute
     DWORD m_totalIndexCount;  // Total indices accumulated (6 per sprite)
     static const DWORD MAX_BUFFER_VERTICES = 16384; // Max vertices before forced Execute
+
+    // Lifecycle state machine for command buffer (critical for Xbox 360)
+    bool m_isAccumulating; // true: Submit() allowed, offsets growing
+    bool m_isSealed;       // true: Submit() forbidden, offsets frozen, ready for Execute
 
     // Configuration
     int m_maxSprites;

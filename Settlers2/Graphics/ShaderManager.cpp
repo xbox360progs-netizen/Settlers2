@@ -531,13 +531,19 @@ void ShaderManager::CopyTextVertices(const void* vertices, size_t vertexCount) {
 }
 
 void ShaderManager::Submit(const RenderCommand& cmd) {
+    // Lifecycle check: prevent Submit() after batch is sealed
+    // This prevents accidental writes after FinalizeFrameCommands()
+    // Note: We can't directly check SpriteRenderer state here, but the caller should ensure
+    // Submit() is only called during accumulation phase
+    
     RenderCommand cmdWithOffset = cmd;
     
     // XBOX 360 FIX: Reset vertex offset for background (shaderID 0) to ensure vertexStart=0
-    if (cmd.shaderID == 0) {
-        s_currentVertexOffset = 0;
-        s_batchIndex = 0;
-    }
+    // REMOVED: This breaks the lifecycle architecture. Offsets should only reset in BeginFrame()
+    // if (cmd.shaderID == 0) {
+    //     s_currentVertexOffset = 0;
+    //     s_batchIndex = 0;
+    // }
 
     // Use vertexStart and baseVertex as-is - SpriteRenderer already calculates correct offsets
     cmdWithOffset.vertexStart = cmd.vertexStart;
@@ -560,6 +566,11 @@ void ShaderManager::Submit(const RenderCommand& cmd) {
     if (targetSlot != -1) {
         m_commandQueue[targetSlot] = cmdWithOffset;
         InterlockedExchange(&m_commandQueue[targetSlot].status, 1);
+        
+        char debugBuf[256];
+        sprintf(debugBuf, "[ShaderManager::Submit] Submitting command %d: baseVert=%d, verts=%d, texture=%p\n",
+                targetSlot, cmd.baseVertex, cmd.vertexCount, cmd.pTexture);
+        OutputDebugStringA(debugBuf);
     } else {
         OutputDebugStringA("[ShaderManager::Submit] CRITICAL: Command Ring Buffer Overflow!\n");
     }
@@ -573,15 +584,25 @@ void ShaderManager::PushCommand(const RenderCommand& cmd) {
 // Push command for Xbox 360 ring buffer architecture
 void ShaderManager::PushXbox360Command(const RenderCommand& newCmd) {
     int targetSlot = -1;
+    int attempts = 0;
+    const int MAX_ATTEMPTS = 1000; // Protection against infinite loop
 
     // Ищем свободную ячейку в циклическом кольцевом буфере команд кадра
-    for (int i = 0; i < MAX_GLOBAL_COMMANDS; ++i) {
-        // Статус 0 означает, что ячейка свободна.
-        // Атомарно переводим её в статус 2 (блокировка под запись Потоком Логики)
-        if (InterlockedCompareExchange(&m_commandQueue[i].status, 2, 0) == 0) {
-            targetSlot = i;
-            break;
+    while (attempts < MAX_ATTEMPTS) {
+        for (int i = 0; i < MAX_GLOBAL_COMMANDS; ++i) {
+            // Статус 0 означает, что ячейка свободна.
+            // Атомарно переводим её в статус 2 (блокировка под запись Потоком Логики)
+            if (InterlockedCompareExchange(&m_commandQueue[i].status, 2, 0) == 0) {
+                targetSlot = i;
+                break;
+            }
         }
+        
+        if (targetSlot != -1) break;
+        
+        // Если нет свободных слотов, ждем немного
+        attempts++;
+        Sleep(1);
     }
 
     if (targetSlot != -1) {
@@ -598,8 +619,9 @@ void ShaderManager::PushXbox360Command(const RenderCommand& newCmd) {
 
         // Атомарно выставляем статус 1: "Пачка полностью готова к рендеру"
         InterlockedExchange(&queuedCmd.status, 1);
+        OutputDebugStringA("[ShaderManager] Command submitted successfully\n");
     } else {
-        OutputDebugStringA("[ShaderManager] CRITICAL: Multi-threaded Command Queue Overflow on Xbox 360!\n");
+        OutputDebugStringA("[ShaderManager] CRITICAL: Command queue overflow after retries!\n");
     }
 }
 
@@ -964,8 +986,9 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     OutputDebugStringA("[SMgr::ExecuteQueue] ENTRY\n");
 
     // Reset vertex offset at start of each frame
-    s_currentVertexOffset = 0;
-    s_batchIndex = 0;
+    // REMOVED: This should be done in BeginFrame(), not here
+    // s_currentVertexOffset = 0;
+    // s_batchIndex = 0;
 
     // CRITICAL: Check device before proceeding
     if (!m_pDevice) {
@@ -1031,9 +1054,13 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         RenderCommand& cmd = m_commandQueue[i];
         if (cmd.status == 1) {
             commandCount++;
+            char dbg[256];
+            sprintf(dbg, "[ExecuteQueue] Command %d: baseVert=%d, verts=%d, texture=%p\n",
+                    i, cmd.baseVertex, cmd.vertexCount, cmd.pTexture);
+            OutputDebugStringA(dbg);
         }
     }
-    
+
     char cmdBuf[256];
     sprintf(cmdBuf, "[SMgr::ExecuteQueue] Found %d commands to execute\n", commandCount);
     OutputDebugStringA(cmdBuf);
@@ -1098,17 +1125,17 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                 }
 
                 char renderMsg[512];
-                sprintf(renderMsg, "[SMgr::ExecuteQueue] Draw: depth=%.2f, baseVert=%d, verts=%d, prims=%d\n",
-                        cmd.depth, cmd.baseVertex, cmd.vertexCount, cmd.primitiveCount);
+                sprintf(renderMsg, "[SMgr::ExecuteQueue] Draw: depth=%.2f, baseVert=%d, startIdx=%d, verts=%d, prims=%d\n",
+                        cmd.depth, cmd.baseVertex, cmd.vertexStart, cmd.vertexCount, cmd.primitiveCount);
                 OutputDebugStringA(renderMsg);
 
                 OutputDebugStringA("[SMgr::ExecuteQueue] Calling DrawIndexedPrimitive...\n");
                 m_pDevice->DrawIndexedPrimitive(
                     D3DPT_TRIANGLELIST,
-                    cmd.baseVertex,    // Use actual base vertex offset
+                    cmd.baseVertex,    // CORRECT vertex offset from ring buffer
                     0,                 // MinIndex = 0
                     cmd.vertexCount,
-                    0,                 // StartIndex = 0
+                    cmd.vertexStart,   // CORRECT index buffer offset
                     cmd.primitiveCount
                 );
                 OutputDebugStringA("[SMgr::ExecuteQueue] DrawIndexedPrimitive DONE\n");
@@ -1142,10 +1169,18 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     m_pDevice->SetTexture(3, NULL);
     OutputDebugStringA("[SMgr::ExecuteQueue] Textures cleared\n");
 
-    s_currentVertexOffset = 0;
-    s_batchIndex = 0;
+    // REMOVED: This should be done in ResetBatchState(), not here
+    // s_currentVertexOffset = 0;
+    // s_batchIndex = 0;
 
     OutputDebugStringA("[SMgr::ExecuteQueue] About to return...\n");
+}
+
+// Reset static offsets (called by SpriteRenderer::BeginFrame)
+void ShaderManager::ResetOffsets() {
+    s_currentVertexOffset = 0;
+    s_batchIndex = 0;
+    OutputDebugStringA("[ShaderManager::ResetOffsets] Static offsets reset\n");
 }
 
 void ShaderManager::ExecuteBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 

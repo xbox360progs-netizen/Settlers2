@@ -71,6 +71,9 @@ public:
     void Lock() { EnterCriticalSection(&m_cs); }
     void Unlock() { LeaveCriticalSection(&m_cs); }
 
+    // Frame rendering flag management
+    void ResetFrameRendered();
+
 private:
     std::map<std::string, Scene*> m_scenes;
     Scene* volatile m_currentScene;  // volatile for Xenon cache coherency
@@ -86,6 +89,9 @@ private:
     // Thread barrier for scene readiness
     volatile bool m_isSceneReady;
     volatile bool m_bSceneGraphicsReady;
+
+    // Frame rendering flag to prevent duplicate rendering
+    bool m_frameRendered;
 
     static SceneManager* s_pInstance;
 

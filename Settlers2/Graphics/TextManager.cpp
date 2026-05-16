@@ -150,189 +150,82 @@ void TextManager::PushLetterCommand(const Glyph& glyph, LPDIRECT3DTEXTURE9 textu
 
 void TextManager::DrawString(const std::string& text, float x, float y, D3DCOLOR color, float scale, FontID fontID, bool isUI, FontStyle style, float depth)
 {
-//    char dbg[256];
-//    sprintf(dbg, "[TextManager::DrawString] ENTRY text='%s' x=%.1f y=%.1f m_font=%p m_spriteRenderer=%p\n",
-//            text.c_str(), x, y, m_font, m_spriteRenderer);
-//    OutputDebugStringA(dbg);
-
     if (!m_font) return;
     
-    // Shadow offset
-    D3DCOLOR shadowColor = D3DCOLOR_ARGB(255, 0, 0, 0); // Black shadow
-    
-    // Get font texture
     LPDIRECT3DTEXTURE9 fontTexture = m_font->GetTexture();
     if (!fontTexture) return;
     
-    // Calculate line height
     float lineHeight = m_font->GetLineHeight() * scale;
-    float baseDepth = depth;
-    
-    // Starting position
     float penX = x;
     float penY = y;
     
-    // Limit text length to prevent overflow
-    if (text.length() > 1000) {
-        return;
-    }
-    
-    // Get font data
-    std::map<FontID, FontData>::iterator it = m_fontData.find(fontID);
-    fontTexture = m_font->GetTexture(); 
-    const Glyph* glyphs = nullptr;
-    int glyphCount = 0;
-    lineHeight = m_font->GetLineHeight();
-    
-    if (it != m_fontData.end()) {
-        fontTexture = it->second.texture;
-        glyphCount = it->second.glyphCount;
-        lineHeight = it->second.lineHeight;
-    }
-    
-    penX = x;
-    penY = y;
-    
-    // Optimized text rendering: draw each character with DrawWithTexture
-    if (text.empty()) return;
-    
-    // Calculate total vertices needed (4 per character + 6 for shadow if needed)
-    size_t textLength = text.size();
-    
-    // Calculate bounding box for the text
-    float textWidth = 0.0f;
-    float textHeight = lineHeight;
-    
-    // Begin batch for this text
-    // REMOVED: Begin/End calls moved to TextManager level for proper batching
-    // if (m_spriteRenderer) {
-    //     OutputDebugStringA("[TextManager] About to call SpriteRenderer::Begin...\n");
-    //     m_spriteRenderer->Begin("sprite", fontTexture);
-    //     OutputDebugStringA("[TextManager] After SpriteRenderer::Begin\n");
-    //     m_spriteRenderer->SetCurrentDepth(0.1f); // Text is in front of background
-    // } else {
-    //     OutputDebugStringA("[TextManager] WARNING: m_spriteRenderer is NULL!\n");
-    // }
-    
     int letterCount = 0;
-    for (size_t i = 0; i < textLength; ++i)
+    for (size_t i = 0; i < text.length(); ++i)
     {
         unsigned char c = (unsigned char)text[i];
         
-        // New line handling
-        if (c == '\n') { penX = x; penY += lineHeight * scale; continue; }
+        if (c == '\n') { 
+            penX = x; 
+            penY += lineHeight; 
+            continue; 
+        }
         if (c == '\r') continue;
         
-        // Get glyph data
-        Glyph glyph;
-        bool hasGlyph = false;
+        // Получаем данные символа
+        const std::vector<FontChar>& chars = m_font->GetChars();
+        if (c >= chars.size()) continue;
         
-        if (glyphs && c < glyphCount) {
-            glyph = glyphs[c];
-            hasGlyph = true;
-        } else if (m_font) {
-            const std::vector<FontChar>& chars = m_font->GetChars();
-            if (c < chars.size()) {
-                const FontChar& fc = chars[c];
-                glyph.u0 = fc.u0;
-                glyph.v0 = fc.v0;
-                glyph.u1 = fc.u1;
-                glyph.v1 = fc.v1;
-                glyph.width = fc.width;
-                glyph.height = fc.height;
-                glyph.xOffset = fc.xOffset;
-                glyph.yOffset = fc.yOffset;
-                glyph.xAdvance = fc.xAdvance;
-                hasGlyph = true;
-            }
+        const FontChar& ch = chars[c];
+        
+        // Рассчитываем размеры символа
+        float charW = ch.width * scale;
+        float charH = ch.height * scale;
+        float charX = penX + ch.xOffset * scale;
+        float charY = penY + ch.yOffset * scale;
+        
+        // Используем уже нормализованные UV из BitmapFont
+        float u0 = ch.u0;  // Уже в диапазоне 0-1
+        float v0 = ch.v0;  // Уже в диапазоне 0-1
+        float u1 = ch.u1;  // Уже в диапазоне 0-1
+        float v1 = ch.v1;  // Уже в диапазоне 0-1
+        
+        // Добавляем небольшой padding для предотвращения bleeding
+        float uvPadding = 0.5f / 512.0f; // Маленький padding
+        u0 += uvPadding;
+        v0 += uvPadding;
+        u1 -= uvPadding;
+        v1 -= uvPadding;
+        
+        // Отрисовка тени если нужно
+        if (style == FONT_STYLE_SHADOW && m_spriteRenderer) {
+            m_spriteRenderer->DrawWithTexture(
+                charX + 2.0f, charY + 2.0f, 
+                charW, charH, 
+                u0, v0, u1, v1, 
+                fontTexture, 0xFF000000
+            );
         }
-            
-        if (!hasGlyph) continue; // Skip missing glyphs
-            
-        // Calculate character position and UVs
-        // Use scale directly - no normalization needed
-        float charW = glyph.width * scale;
-        float charH = glyph.height * scale;
-        float charX = penX + glyph.xOffset * scale;
-        float charY = penY + glyph.yOffset * scale;
-            
-        // UV coordinates from BitmapFont are already normalized (0-1)
-        // Just add small padding to prevent atlas bleeding
-        float uvPadding = 0.001f; // Small UV-space padding
-        float u0 = glyph.u0 + uvPadding;
-        float v0 = glyph.v0 + uvPadding;
-        float u1 = glyph.u1 - uvPadding;
-        float v1 = glyph.v1 - uvPadding;
         
-//        char dbg[256];
-//        sprintf(dbg, "[TextManager] char='%c' pos=(%.1f,%.1f) uv=(%.4f,%.4f,%.4f,%.4f) size=(%.1f,%.1f)\n", 
-//                c, charX, charY, u0, v0, u1, v1, charW, charH);
-//        OutputDebugStringA(dbg);
-        
-        // Clamp UVs to valid range
-        u0 = max(0.0f, min(1.0f, u0));
-        v0 = max(0.0f, min(1.0f, v0));
-        u1 = max(0.0f, min(1.0f, u1));
-        v1 = max(0.0f, min(1.0f, v1));
-        
-		// Draw shadow first if needed
-		if (style == FONT_STYLE_SHADOW && m_spriteRenderer) {
-			float shadowX = charX + 1.0f;
-			float shadowY = charY + 1.0f;
-//			char dbg[256];
-//			sprintf(dbg, "[TextManager] About to call DrawWithTexture for SHADOW at (%.1f,%.1f)\n", shadowX, shadowY);
-//			OutputDebugStringA(dbg);
-			m_spriteRenderer->DrawWithTexture(shadowX, shadowY, charW, charH, u0, v0, u1, v1, fontTexture, 0xFF000000);
-		}
-        
-		// Draw main character
-		if (m_spriteRenderer) {
-//			char dbg[256];
-//			sprintf(dbg, "[TextManager] About to call DrawWithTexture for MAIN char at (%.1f,%.1f)\n", charX, charY);
-//			OutputDebugStringA(dbg);
-			m_spriteRenderer->DrawWithTexture(charX, charY, charW, charH, u0, v0, u1, v1, fontTexture, color);
-//			sprintf(dbg, "[TextManager] DrawWithTexture for MAIN char returned\n");
-//			OutputDebugStringA(dbg);
-		} else {
-			OutputDebugStringA("[TextManager] ERROR: m_spriteRenderer is NULL in DrawString!\n");
-		}
+        // Основная отрисовка символа
+        if (m_spriteRenderer) {
+            m_spriteRenderer->DrawWithTexture(
+                charX, charY, 
+                charW, charH, 
+                u0, v0, u1, v1, 
+                fontTexture, color
+            );
+        }
 
-		// Update text dimensions
-		textWidth += charW;
-		textHeight = (textHeight > charH) ? textHeight : charH; //  max  
-
-		// Advance pen position
-		penX += glyph.xAdvance * scale;
-		letterCount++;
-	}   
-    
-// End batch and flush to GPU
-    // REMOVED: Begin/End calls moved to TextManager level for proper batching
-    // if (m_spriteRenderer) {
-    //     m_spriteRenderer->End();
-    //     // REMOVED Flush() - let MenuScene control batch timing
-    //     // m_spriteRenderer->Flush();
-    // }
+        // Продвигаем позицию
+        penX += ch.xAdvance * scale;
+        letterCount++;
+    }
 }
 
 void TextManager::DrawTextToScreen(const std::string& text, float x, float y, D3DCOLOR color, float scale, FontID fontID, FontStyle style)
 {
-//    char debugBuf[256];
-//    sprintf(debugBuf, "[TextManager::DrawTextToScreen] Drawing '%s' at (%.1f,%.1f) with color=0x%08X\n", 
-//            text.c_str(), x, y, color);
-//    OutputDebugStringA(debugBuf);
-    
-    // Получаем текстуру атласа напрямую из BitmapFont
-    LPDIRECT3DTEXTURE9 fontTex = m_font->GetTexture();
-    
-    // Логируем адрес текстуры
-//    sprintf(debugBuf, "[TextManager] Using texture: %p\n", fontTex);
-//    OutputDebugStringA(debugBuf);
-    
+    // Просто вызываем DrawString без дополнительных batch-вызовов
     DrawString(text, x, y, color, scale, fontID, true, style, 0.05f);
-    
-//    sprintf(debugBuf, "[TextManager::DrawTextToScreen] Completed drawing '%s'\n", text.c_str());
-//    OutputDebugStringA(debugBuf);
 }
 
 void TextManager::DrawTextToWorld(const std::string& text, float worldX, float worldY, D3DCOLOR color, float scale, FontID fontID, FontStyle style)
@@ -342,33 +235,30 @@ void TextManager::DrawTextToWorld(const std::string& text, float worldX, float w
 
 void TextManager::BeginTextBatch(FontID fontID, float depth)
 {
-//    char dbg[256];
-//    sprintf(dbg, "[TextManager::BeginTextBatch] ENTRY m_spriteRenderer=%p\n", m_spriteRenderer);
-//    OutputDebugStringA(dbg);
-    
+    char dbg[256];
+    sprintf(dbg, "[TextManager::BeginTextBatch] ENTRY - fontID=%d, depth=%.2f, m_spriteRenderer=%p\n", fontID, depth, m_spriteRenderer);
+    OutputDebugStringA(dbg);
+
     if (!m_spriteRenderer) {
         OutputDebugStringA("[TextManager::BeginTextBatch] ERROR: m_spriteRenderer is NULL!\n");
         return;
     }
-    
+
     LPDIRECT3DTEXTURE9 fontTexture = GetFontTexture(fontID);
-//    sprintf(dbg, "[TextManager::BeginTextBatch] fontTexture=%p\n", fontTexture);
-//    OutputDebugStringA(dbg);
-    
-    if (!fontTexture) {
-        // Fallback to default font texture
-        if (m_font) {
-            fontTexture = m_font->GetTexture();
-//            sprintf(dbg, "[TextManager::BeginTextBatch] Using fallback fontTexture=%p\n", fontTexture);
-//            OutputDebugStringA(dbg);
-        }
+    sprintf(dbg, "[TextManager::BeginTextBatch] fontTexture=%p\n", fontTexture);
+    OutputDebugStringA(dbg);
+
+    if (!fontTexture && m_font) {
+        fontTexture = m_font->GetTexture();
+        sprintf(dbg, "[TextManager::BeginTextBatch] Using fallback fontTexture=%p\n", fontTexture);
+        OutputDebugStringA(dbg);
     }
-    
+
     if (fontTexture) {
-//        OutputDebugStringA("[TextManager] BeginTextBatch - calling SpriteRenderer::Begin...\n");
-        m_spriteRenderer->Begin("sprite", fontTexture);
-        m_spriteRenderer->SetCurrentDepth(depth);
-//        OutputDebugStringA("[TextManager] BeginTextBatch completed\n");
+        OutputDebugStringA("[TextManager] BeginTextBatch - calling SpriteRenderer::Begin...\n");
+        m_spriteRenderer->Begin(SHADER_SPRITE, fontTexture, depth, 0, true);
+        OutputDebugStringA("[TextManager] BeginTextBatch completed - Begin() returned successfully\n");
+        OutputDebugStringA("[TextManager] BeginTextBatch - EXITING FUNCTION\n");
     } else {
         OutputDebugStringA("[TextManager::BeginTextBatch] ERROR: No font texture available!\n");
     }
@@ -376,11 +266,32 @@ void TextManager::BeginTextBatch(FontID fontID, float depth)
 
 void TextManager::EndTextBatch()
 {
+    OutputDebugStringA("[TextManager::EndTextBatch] ENTRY\n");
+    
+    char dbg[256];
+    sprintf(dbg, "[TextManager::EndTextBatch] m_spriteRenderer=%p\n", m_spriteRenderer);
+    OutputDebugStringA(dbg);
+    
     if (m_spriteRenderer) {
-//        OutputDebugStringA("[TextManager] EndTextBatch - calling SpriteRenderer::End...\n");
+        OutputDebugStringA("[TextManager::EndTextBatch] About to call SpriteRenderer::End...\n");
+        
+        // Check if the pointer is valid by checking vtable
+        void** vtable = *(void***)m_spriteRenderer;
+        sprintf(dbg, "[TextManager::EndTextBatch] m_spriteRenderer vtable=%p\n", vtable);
+        OutputDebugStringA(dbg);
+        
+        if (vtable == nullptr) {
+            OutputDebugStringA("[TextManager::EndTextBatch] ERROR: m_spriteRenderer vtable is NULL!\n");
+            return;
+        }
+        
         m_spriteRenderer->End();
+        OutputDebugStringA("[TextManager::EndTextBatch] SpriteRenderer::End() returned\n");
         OutputDebugStringA("[TextManager] EndTextBatch completed\n");
+    } else {
+        OutputDebugStringA("[TextManager::EndTextBatch] ERROR: m_spriteRenderer is NULL!\n");
     }
+    OutputDebugStringA("[TextManager::EndTextBatch] EXIT\n");
 }
 
 void TextManager::Begin()

@@ -27,6 +27,7 @@ SceneManager::SceneManager()
 #endif
     , m_isSceneReady(false)
     , m_bSceneGraphicsReady(false)
+    , m_frameRendered(false)
 {
     InitializeCriticalSection(&m_cs);
     s_pInstance = this;
@@ -176,6 +177,12 @@ void SceneManager::Update(float deltaTime)
 
 void SceneManager::Render()
 {
+    // Prevent duplicate rendering in the same frame
+    if (m_frameRendered) {
+        return; // Already rendered in this frame
+    }
+    m_frameRendered = true;
+
     if (!m_currentScene)
     {
         return;
@@ -194,10 +201,22 @@ void SceneManager::Render()
     // Note: BeginFrame/EndFrame will be called by GameEngine, not here
     // SceneManager only handles scene rendering and command execution
     
-// Step 1: Clear previous commands from ShaderManager
+    // Step 1: CLEAR - Clear command queue at start of frame
     if (m_shaderManager)
     {
         m_shaderManager->ClearQueue();
+    }
+
+    // Step 1.5: BEGIN FRAME - Reset offsets and enable accumulation
+    OutputDebugStringA("[SM::Render] About to call BeginFrame()...\n");
+    if (m_spriteRenderer)
+    {
+        m_spriteRenderer->BeginFrame();
+        OutputDebugStringA("[SM::Render] BeginFrame() returned\n");
+    }
+    else
+    {
+        OutputDebugStringA("[SM::Render] ERROR: m_spriteRenderer is NULL!\n");
     }
 
     // Step 2: RECORD - Collect all render commands from scene
@@ -235,6 +254,12 @@ sprintf(dbg, "[SM::Render] ENTRY - m_currentScene=0x%08X\n", m_currentScene);
     m_currentScene->Render();
     LeaveCriticalSection(&m_cs);
 
+    // Step 2.5: FINALIZE - Seal the batch, disable Submit(), freeze offsets
+    if (m_spriteRenderer)
+    {
+        m_spriteRenderer->FinalizeFrameCommands();
+    }
+
     // Step 3: SORT
     OutputDebugStringA("[SceneManager::Render] Calling SortQueue()...\n");
     if (m_shaderManager)
@@ -254,13 +279,19 @@ sprintf(dbg, "[SM::Render] ENTRY - m_currentScene=0x%08X\n", m_currentScene);
         if (pVB && pIB && pDecl)
         {
             OutputDebugStringA("[SM::Render] Calling ExecuteQueue...\n");
-            m_shaderManager->ExecuteQueue(pVB, pIB, pDecl, 32);
-OutputDebugStringA("[SM::Render] ExecuteQueue RETURNED!\n");
+            m_shaderManager->ExecuteQueue(pVB, pIB, pDecl, 32, nullptr, m_spriteRenderer);
+            OutputDebugStringA("[SM::Render] ExecuteQueue RETURNED!\n");
         }
         else
         {
             OutputDebugStringA("[SceneManager::Render] ERROR: NULL buffers!\n");
         }
+    }
+
+    // Step 5: RESET - Reset batch state after ExecuteQueue() is complete
+    if (m_spriteRenderer)
+    {
+        m_spriteRenderer->ResetBatchState();
     }
 
     OutputDebugStringA("[SM::Render] ALL DONE - exiting Render()\n");
@@ -279,6 +310,10 @@ void SceneManager::Clear()
     }
     m_scenes.clear();
     m_currentScene = NULL;
+}
+
+void SceneManager::ResetFrameRendered() {
+    m_frameRendered = false;
 }
 
 #ifdef _XBOX

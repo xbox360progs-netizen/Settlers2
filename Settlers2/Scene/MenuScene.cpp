@@ -77,6 +77,15 @@ void MenuScene::Initialize(LPDIRECT3DDEVICE9 device, SpriteRenderer* spriteRende
   
   std::cout << "[MenuScene] Initialize called" << std::endl;
   
+  char buf[256];
+    sprintf(buf, "[MenuScene::Initialize] this=%p, spriteRenderer=%p, vtable=%p\n", 
+            this, spriteRenderer, spriteRenderer ? *(void***)spriteRenderer : nullptr);
+    OutputDebugStringA(buf);
+    
+    if (!spriteRenderer) {
+        OutputDebugStringA("[MenuScene::Initialize] ERROR: spriteRenderer is NULL!\n");
+    }
+
   LoadTextures();
 }
 
@@ -92,6 +101,10 @@ void MenuScene::Initialize(LPDIRECT3DDEVICE9 device, SpriteRenderer* spriteRende
   OutputDebugStringA(buf);
   std::cout << "[MenuScene] Initialize called" << std::endl;
   
+    sprintf(buf, "[MenuScene::Initialize] this=%p, spriteRenderer=%p, vtable=%p\n", 
+            this, spriteRenderer, spriteRenderer ? *(void***)spriteRenderer : nullptr);
+    OutputDebugStringA(buf);
+
   if (m_spriteRenderer) {
     sprintf(buf, "[MenuScene::Initialize] m_spriteRenderer->GetDevice()=%p\n", m_spriteRenderer->GetDevice());
     OutputDebugStringA(buf);
@@ -217,50 +230,62 @@ void MenuScene::Render() {
     OutputDebugStringA("[MenuScene::Render] ENTRY\n");
     
     if (!m_spriteRenderer) {
-        OutputDebugStringA("[MenuScene::Render] m_spriteRenderer is NULL!\n");
+        OutputDebugStringA("[MenuScene::Render] ERROR: m_spriteRenderer is NULL!\n");
         return;
     }
-    OutputDebugStringA("[MenuScene::Render] m_spriteRenderer OK\n");
     
     if (!m_backgroundTexture.GetTexture()) {
-        OutputDebugStringA("[MenuScene::Render] background texture is NULL!\n");
+        OutputDebugStringA("[MenuScene::Render] ERROR: Missing background texture!\n");
         return;
     }
-    OutputDebugStringA("[MenuScene::Render] background texture OK\n");
-    
-    if (!m_textManager) {
-        OutputDebugStringA("[MenuScene::Render] m_textManager is NULL!\n");
-        return;
-    }
-    OutputDebugStringA("[MenuScene::Render] m_textManager OK\n");
 
-    OutputDebugStringA("[MenuScene::Render] About to call Begin()...\n");
     LPDIRECT3DTEXTURE9 bgTex = m_backgroundTexture.GetTexture();
-    m_spriteRenderer->Begin(SHADER_SPRITE, bgTex, 0.0f, 0, true); // Temporarily set depth to 0.0f to avoid clipping
-    OutputDebugStringA("[MenuScene::Render] Begin() succeeded\n");
+    char buf[256];
+    sprintf(buf, "[MenuScene::Render] bgTex = %p\n", bgTex);
+    OutputDebugStringA(buf);
 
-    OutputDebugStringA("[MenuScene::Render] About to call Draw()...\n");
-    m_spriteRenderer->Draw(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
-    OutputDebugStringA("[MenuScene::Render] Draw() succeeded\n");
-
-    OutputDebugStringA("[MenuScene::Render] About to call End()...\n");
-    m_spriteRenderer->End();
-    OutputDebugStringA("[MenuScene::Render] End() succeeded\n");
-
-    OutputDebugStringA("[MenuScene::Render] About to call BeginTextBatch()...\n");
-    m_textManager->BeginTextBatch(FONT_MENU, 0.0f);
-    OutputDebugStringA("[MenuScene::Render] BeginTextBatch() succeeded\n");
+    // Check if m_spriteRenderer pointer is valid before calling Begin
+    void** spriteVtable = *(void***)m_spriteRenderer;
+    sprintf(buf, "[MenuScene::Render] m_spriteRenderer vtable=%p\n", spriteVtable);
+    OutputDebugStringA(buf);
     
-    float startY = 280.0f;
-    float spacingY = 80.0f;
-    for (int i = 0; i < m_menuCount; ++i) {
-        DWORD itemColor = (i == m_selectedIndex) ? 0xFFFFD700 : 0xFFFFFFFF;
-        float itemX = (i == m_selectedIndex) ? 140.0f : 100.0f;
-        m_textManager->DrawTextToScreen(m_menuItems[i], itemX, startY + (i * spacingY), itemColor, 0.3f);
+    if (spriteVtable == nullptr) {
+        OutputDebugStringA("[MenuScene::Render] ERROR: m_spriteRenderer vtable is NULL!\n");
+        return;
     }
 
-    OutputDebugStringA("[MenuScene::Render] About to call EndTextBatch()...\n");
-    m_textManager->EndTextBatch();
+    // Бэкграунд
+    OutputDebugStringA("[MenuScene::Render] About to call Begin for background...\n");
+    m_spriteRenderer->Begin(SHADER_SPRITE, bgTex, 0.9f, 0, true);
+    sprintf(buf, "[MenuScene::Render] After Begin: current texture = %p\n", bgTex);
+    OutputDebugStringA(buf);
+    
+    OutputDebugStringA("[MenuScene::Render] About to call Draw...\n");
+    m_spriteRenderer->Draw(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
+    OutputDebugStringA("[MenuScene::Render] Draw returned\n");
+    
+    OutputDebugStringA("[MenuScene::Render] About to call End...\n");
+    m_spriteRenderer->End();
+    OutputDebugStringA("[MenuScene::Render] End returned\n");
+
+    // Текст
+    if (m_textManager) {
+        OutputDebugStringA("[MenuScene::Render] About to call BeginTextBatch...\n");
+        m_textManager->BeginTextBatch(FONT_MENU, 0.1f);
+        OutputDebugStringA("[MenuScene::Render] BeginTextBatch returned\n");
+        
+        float startY = 280.0f;
+        float spacingY = 80.0f;
+        for (int i = 0; i < m_menuCount; ++i) {
+            DWORD itemColor = (i == m_selectedIndex) ? 0xFFFFD700 : 0xFFFFFFFF;
+            float itemX = (i == m_selectedIndex) ? 140.0f : 100.0f;
+            m_textManager->DrawString(m_menuItems[i], itemX, startY + (i * spacingY), itemColor, 0.3f);
+        }
+        
+        OutputDebugStringA("[MenuScene::Render] About to call EndTextBatch...\n");
+        m_textManager->EndTextBatch();
+        OutputDebugStringA("[MenuScene::Render] EndTextBatch returned\n");
+    }
     OutputDebugStringA("[MenuScene::Render] EXIT\n");
 }
 
