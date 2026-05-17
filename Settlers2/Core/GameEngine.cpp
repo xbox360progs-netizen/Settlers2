@@ -143,6 +143,23 @@ bool GameEngine::Initialize()
             m_spriteRenderer, m_spriteRenderer ? *(void***)m_spriteRenderer : nullptr);
     OutputDebugStringA(buf);
 
+	if (m_spriteRenderer) {
+    void** vtable = *(void***)m_spriteRenderer;
+    sprintf(buf, "[GameEngine::Initialize] BEFORE SpriteRenderer: m_spriteRenderer=%p, vtable=%p\n", 
+            m_spriteRenderer, vtable);
+    OutputDebugStringA(buf);
+
+	__try {
+        if (vtable) {
+            OutputDebugStringA("[GameEngine::Initialize] Object seems alive\n");
+        } else {
+            OutputDebugStringA("[GameEngine::Initialize] vtable is NULL, but object might be alive\n");
+        }
+    } __except(EXCEPTION_EXECUTE_HANDLER) {
+        OutputDebugStringA("[GameEngine::Initialize] Memory access error!\n");
+    }
+	}
+
 	m_renderer->SetSpriteRenderer(m_spriteRenderer); 
 
     m_inputManager = new Input::InputManager();

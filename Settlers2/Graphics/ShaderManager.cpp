@@ -48,7 +48,8 @@ void ShaderManager::StateCache::ResetDirtyStates(LPDIRECT3DDEVICE9 device, const
 }
 
 ShaderManager::ShaderManager()
-    : m_pDevice(NULL), m_pActiveShader(NULL), m_pActiveEffect(NULL), m_numPasses(0), m_currentShaderID(SHADER_INVALID), m_isLocked(false), m_hasFrameViewProj(false) {
+    : m_pDevice(NULL), m_pActiveShader(NULL), m_pActiveEffect(NULL), m_numPasses(0), m_currentShaderID(SHADER_INVALID), m_isLocked(false), m_hasFrameViewProj(false),
+      m_isAccumulating(false), m_isSealed(false), m_baseVertexIndex(0), m_vertexStart(0) {
     // Reserve memory for command queue to avoid expensive reallocations on Xbox 360
     // m_commandQueue is now a fixed-size array for lock-free ring buffer
     m_drawBatches.reserve(500);
@@ -486,8 +487,8 @@ bool ShaderManager::HasShader(ShaderID id) const {
 
 // === Queue-based Rendering System Implementation ===
 
-static DWORD s_currentVertexOffset = 0;
-static DWORD s_batchIndex = 0;
+// REMOVED: static offsets are now member variables for proper lifecycle management
+// Offsets are tracked in SpriteRenderer and passed via RenderCommand
 
 LPDIRECT3DVERTEXBUFFER9 ShaderManager::GetSharedVertexBuffer() {
     // Lazily create a shared VB used for text/sprite staging if needed
@@ -520,11 +521,14 @@ void ShaderManager::CopyTextVertices(const void* vertices, size_t vertexCount) {
     sprintf(debugBuf, "[ShaderManager::CopyTextVertices] Copying %zu text vertices\n", vertexCount);
     OutputDebugStringA(debugBuf);
     
-    // Copy to the end of current vertex buffer
-    if (s_currentVertexOffset + vertexCount > 4096 * 4) {
+    // Use member variable for overflow check
+    if (m_vertexStart + vertexCount > 4096 * 4) {
         OutputDebugStringA("[ShaderManager::CopyTextVertices] ERROR: Vertex buffer overflow!\n");
         return;
     }
+    
+    // Update vertex offset
+    m_vertexStart += (int)vertexCount;
     
     // This will be copied during ExecuteQueue Lock phase
     // For now, just store the vertices for later copying
@@ -532,26 +536,27 @@ void ShaderManager::CopyTextVertices(const void* vertices, size_t vertexCount) {
 
 void ShaderManager::Submit(const RenderCommand& cmd) {
     // Lifecycle check: prevent Submit() after batch is sealed
-    // This prevents accidental writes after FinalizeFrameCommands()
-    // Note: We can't directly check SpriteRenderer state here, but the caller should ensure
-    // Submit() is only called during accumulation phase
-    
+    if (m_isSealed) {
+        OutputDebugStringA("[ShaderManager::Submit] REJECTED: batch is sealed\n");
+        return;
+    }
+
+    if (!m_isAccumulating) {
+        OutputDebugStringA("[ShaderManager::Submit] REJECTED: not accumulating\n");
+        return;
+    }
+
     RenderCommand cmdWithOffset = cmd;
-    
-    // XBOX 360 FIX: Reset vertex offset for background (shaderID 0) to ensure vertexStart=0
-    // REMOVED: This breaks the lifecycle architecture. Offsets should only reset in BeginFrame()
-    // if (cmd.shaderID == 0) {
-    //     s_currentVertexOffset = 0;
-    //     s_batchIndex = 0;
-    // }
 
-    // Use vertexStart and baseVertex as-is - SpriteRenderer already calculates correct offsets
+    // CRITICAL: For ABSOLUTE indices (relative to VB start), baseVertex MUST be 0
+    // Otherwise we'll get first-letter-from-wrong-sprite bug
+    cmdWithOffset.baseVertex = 0;
+
+    // Use vertexStart as-is - SpriteRenderer already calculates correct index buffer offset
     cmdWithOffset.vertexStart = cmd.vertexStart;
-    cmdWithOffset.baseVertex = cmd.baseVertex;
-    cmdWithOffset.batchIndex = s_batchIndex++;
 
-    // Update vertex offset for next batch
-    s_currentVertexOffset += cmd.vertexCount;
+    // REMOVED: s_currentVertexOffset tracking - offsets already calculated in SpriteRenderer
+    // Double offset tracking is the source of the double offset bug
 
     // For lock-free ring buffer, use atomic operations instead of push_back
     // Find free slot and atomically capture it
@@ -569,7 +574,7 @@ void ShaderManager::Submit(const RenderCommand& cmd) {
         
         char debugBuf[256];
         sprintf(debugBuf, "[ShaderManager::Submit] Submitting command %d: baseVert=%d, verts=%d, texture=%p\n",
-                targetSlot, cmd.baseVertex, cmd.vertexCount, cmd.pTexture);
+                targetSlot, cmdWithOffset.baseVertex, cmd.vertexCount, cmd.pTexture);
         OutputDebugStringA(debugBuf);
     } else {
         OutputDebugStringA("[ShaderManager::Submit] CRITICAL: Command Ring Buffer Overflow!\n");
@@ -1176,11 +1181,33 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     OutputDebugStringA("[SMgr::ExecuteQueue] About to return...\n");
 }
 
-// Reset static offsets (called by SpriteRenderer::BeginFrame)
-void ShaderManager::ResetOffsets() {
-    s_currentVertexOffset = 0;
-    s_batchIndex = 0;
-    OutputDebugStringA("[ShaderManager::ResetOffsets] Static offsets reset\n");
+// Lifecycle State Machine Implementation
+
+void ShaderManager::BeginFrame() {
+    m_isAccumulating = true;
+    m_isSealed = false;
+    m_baseVertexIndex = 0;
+    m_vertexStart = 0;
+
+    OutputDebugStringA("[ShaderManager::BeginFrame] Accumulation enabled, state reset\n");
+}
+
+void ShaderManager::FinalizeFrameCommands() {
+    m_isAccumulating = false;
+    m_isSealed = true;
+
+    OutputDebugStringA("[ShaderManager::FinalizeFrameCommands] Batch sealed\n");
+}
+
+void ShaderManager::ResetFrameState() {
+    m_isAccumulating = false;
+    m_isSealed = false;
+    m_baseVertexIndex = 0;
+    m_vertexStart = 0;
+
+    ClearQueue();
+
+    OutputDebugStringA("[ShaderManager::ResetFrameState] State reset, queue cleared\n");
 }
 
 void ShaderManager::ExecuteBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 

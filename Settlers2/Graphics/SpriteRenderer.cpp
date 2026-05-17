@@ -13,9 +13,9 @@
 #pragma comment(lib, "d3d9.lib")
 #pragma comment(lib, "d3dx9.lib")
 
-#ifndef DISABLE_RENDER_LOGS
-#define OutputDebugStringA(...) do { } while(0)
-#endif
+//#ifndef DISABLE_RENDER_LOGS
+//#define OutputDebugStringA(...) do { } while(0)
+//#endif
 
 using namespace Scene;
 
@@ -1398,8 +1398,10 @@ void SpriteRenderer::BeginFrame() {
     m_isAccumulating = true;
     m_isSealed = false;
     
-    // Also reset ShaderManager static offsets
-    ShaderManager::ResetOffsets();
+    // Delegate lifecycle to ShaderManager (single source of truth)
+    if (m_pShaderManager) {
+        m_pShaderManager->BeginFrame();
+    }
     
     OutputDebugStringA("[SR::BeginFrame] Offsets reset, accumulation enabled\n");
 }
@@ -1408,6 +1410,11 @@ void SpriteRenderer::FinalizeFrameCommands() {
     // Seal the batch: disable Submit(), freeze offsets
     m_isAccumulating = false;
     m_isSealed = true;
+    
+    // Delegate lifecycle to ShaderManager (single source of truth)
+    if (m_pShaderManager) {
+        m_pShaderManager->FinalizeFrameCommands();
+    }
     
     char buf[256];
     sprintf(buf, "[SR::FinalizeFrameCommands] Batch sealed: totalVerts=%d, totalIndices=%d\n",
@@ -1423,6 +1430,11 @@ void SpriteRenderer::ResetBatchState() {
     
     m_isAccumulating = false;
     m_isSealed = false;
+    
+    // Delegate lifecycle to ShaderManager (single source of truth)
+    if (m_pShaderManager) {
+        m_pShaderManager->ResetFrameState();
+    }
     
     OutputDebugStringA("[SR::ResetBatchState] State reset, ready for next frame\n");
 }

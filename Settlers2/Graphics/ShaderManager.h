@@ -246,8 +246,16 @@ public:
     void ExecuteBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
                        LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride);
     
-    // Reset static offsets (called by SpriteRenderer::BeginFrame)
-    static void ResetOffsets();
+    // Lifecycle State Machine (owned by ShaderManager - single source of truth)
+    void BeginFrame();
+    void FinalizeFrameCommands();
+    void ResetFrameState();
+    bool IsAccumulating() const { return m_isAccumulating; }
+    bool IsSealed() const { return m_isSealed; }
+    void SetBaseVertexIndex(int baseVertex) { m_baseVertexIndex = baseVertex; }
+    int GetBaseVertexIndex() const { return m_baseVertexIndex; }
+    void SetVertexStart(int vertexStart) { m_vertexStart = vertexStart; }
+    int GetVertexStart() const { return m_vertexStart; }
     
     // Get command count (for lock-free ring buffer)
     size_t GetCommandCount() const {
@@ -304,6 +312,12 @@ private:
     
     // State locking (prevents external state corruption during ExecuteQueue)
     bool m_isLocked;
+    
+    // Lifecycle state machine (owned by ShaderManager - single source of truth)
+    bool m_isAccumulating;
+    bool m_isSealed;
+    int m_baseVertexIndex;
+    int m_vertexStart;
     
     // Global Constant Buffer (set once per frame, not per sprite)
     D3DXMATRIX m_frameViewProj;
