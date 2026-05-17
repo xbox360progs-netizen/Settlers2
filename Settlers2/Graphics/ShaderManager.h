@@ -334,9 +334,8 @@ private:
     HRESULT LoadInternal(ShaderID id, const char* path, const char* technique);
 
     // Render command queue for Master Loop rendering (Lock-Free Ring Buffer for Xbox 360)
-    // Made public for SpriteRenderer lock-free access
-    static const int MAX_GLOBAL_COMMANDS = 256;
 public:
+    static const int MAX_GLOBAL_COMMANDS = 256;
     RenderCommand m_commandQueue[MAX_GLOBAL_COMMANDS];
 private:
     

@@ -930,13 +930,25 @@ void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float
 
     // === ШАГ 5: ИНИЦИАЛИЗАЦИЯ ПАРАМЕТРОВ ТЕКУЩЕГО БАТЧА ===
     m_currentShaderID = shaderID;
-    m_currentTexture = pTexture;
     m_currentDepth = depth;
     m_currentRenderType = renderType;
     m_currentIsUI = isUI;
     
     m_isBatching = true;  // Включаем батчинг заново для нового компонента
-    m_spriteCount = 0;    // Начинаем считать спрайты нового компонента с нуля
+    m_spriteCount = 0;    // СБРАСЫВАЕМ В НАЧАЛЕ - чтобы пинок не затирался!
+    
+    // XBOX 360 GPU PRIMER: Detect texture change and add invisible first quad
+    static LPDIRECT3DTEXTURE9 s_lastBeginTexture = nullptr;
+    
+    if (pTexture != m_currentTexture && s_lastBeginTexture != nullptr && s_lastBeginTexture != pTexture) {
+        // Texture changed from previous batch - insert GPU primer (invisible quad)
+        OutputDebugStringA("[SR::Begin] GPU PRIMER: inserting invisible first quad\n");
+        // CreateQuad увеличит m_spriteCount до 1, и никто его не затрёт
+        CreateQuad(0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0x00000000);
+    }
+    
+    m_currentTexture = pTexture;
+    s_lastBeginTexture = pTexture;
 }
 
 void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, int layer, float yPosition) {
@@ -1198,6 +1210,18 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
     // CRITICAL: Copy from global offset in staging buffer to prevent overwriting
     // Background was written at offset 0, text at offset m_totalVertexCount
     void* pSrc = (void*)((SpriteVertex*)m_pStagingBuffer + m_totalVertexCount);
+    
+    // Debug: log first vertex UV to verify correct data
+    SpriteVertex* srcVerts = (SpriteVertex*)pSrc;
+    char debugBuf[512];
+    sprintf(debugBuf, "[SR::Flush] memcpy: totalVert=%d, src=%p, firstVert u=%.4f v=%.4f, secondVert u=%.4f v=%.4f\n",
+            m_totalVertexCount, pSrc, 
+            srcVerts[0].u, srcVerts[0].v,
+            srcVerts[4].u, srcVerts[4].v);  // Second letter's first vertex
+    OutputDebugStringA(debugBuf);
+    
+    // NOTE: Copy to START of GPU vertex buffer, NOT to offset
+    // ABSOLUTE indices will read from correct positions (baseVertex=0 makes indices point directly)
     memcpy(pGpuVertices, pSrc, bytesToWrite);
     OutputDebugStringA("[SR::Flush] memcpy done\n");
     m_pVertexBuffer->Unlock();
@@ -2082,7 +2106,8 @@ void SpriteRenderer::CreateQuadWithTexture(float x, float y, float width, float 
     // CRITICAL FIX: Write vertices with GLOBAL offset to prevent overwriting previous batches
     // Each batch must write to its own position in staging buffer, not from zero!
     // This prevents text from overwriting background in CPU staging buffer
-    int globalVertexIndex = m_totalVertexCount + (m_spriteCount * 4);
+    // NOTE: Use (m_spriteCount - 1) because spriteCount is incremented AFTER we calculate position
+    int globalVertexIndex = m_totalVertexCount + ((m_spriteCount > 0 ? m_spriteCount - 1 : 0) * 4);
     SpriteVertex* vOut = &m_pStagingBuffer[globalVertexIndex];
 
     // Debug: Log vertex coordinates

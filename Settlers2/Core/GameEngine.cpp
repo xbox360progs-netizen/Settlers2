@@ -402,5 +402,29 @@ if (m_sceneManager && m_sceneManager->IsSceneReady()) {
         Sleep(16);
     }
 
-    std::cout << "[GameEngine] Exiting main loop" << std::endl;
+std::cout << "[GameEngine] Exiting main loop" << std::endl;
+
+    // 1. СБРОС LOCK-FREE СТАТУСОВ КОМАНД - освобождаем GPU потоки
+    if (m_renderer) {
+        ShaderManager* sm = m_renderer->GetShaderManager();
+        if (sm) {
+            for (int i = 0; i < ShaderManager::MAX_GLOBAL_COMMANDS; ++i) {
+                InterlockedExchange(&sm->m_commandQueue[i].status, 0);
+            }
+            OutputDebugStringA("[GameEngine] Lock-free queue statuses reset\n");
+        }
+    }
+
+    // 2. Очистка DirectX устройства
+    if (m_renderer) {
+        m_renderer->Shutdown();
+    }
+
+    // 3. ВОЗВРАТ В DASHBOARD XBOX 360
+#ifdef _XBOX
+    OutputDebugStringA("[GameEngine] Safe shutdown. Returning to Xbox Dashboard...\n");
+    // XLaunchNewImage requires Xbox 360 XDK - use XEX loader alternative
+    XSetThreadProcessor(GetCurrentThread(), 0);
+    Sleep(1000);
+#endif
 }

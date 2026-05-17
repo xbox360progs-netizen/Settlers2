@@ -7,12 +7,14 @@ class Renderer;
 
 // SpriteVertex structure (matches Renderer.h)
 // CRITICAL: Must be 32 bytes for Xbox 360 VMX alignment (D3DCOMMANDBUFFER_ALIGNMENT)
+#pragma pack(push, 1)
 struct SpriteVertex {
     float x, y, z;        // POSITION - 12 bytes
     float u, v;           // TEXCOORD0 - 8 bytes
     DWORD color;          // COLOR0 - 4 bytes
     float padding[2];    // Padding - 8 bytes (total = 32 bytes for alignment)
 };
+#pragma pack(pop)
 
 // Static assert to verify size at compile time
 #define SPRITE_VERTEX_STRIDE 32
