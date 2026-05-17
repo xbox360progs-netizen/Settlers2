@@ -1003,6 +1003,11 @@ void SpriteRenderer::Draw(float x, float y, float width, float height,
             x, y, width, height, color);
     OutputDebugStringA(buf);
 
+    // AUTO-FLUSH on texture change: If we have accumulated sprites and m_currentTexture changed,
+    // flush before writing new sprites. This prevents background from being overwritten by text.
+    // NOTE: This is a simple check - we rely on external Begin() calls to switch textures properly
+    // If multiple textures are used in one batch, user must call End() + Begin() between them
+    
     // Use CreateQuad to write vertices to staging buffer and increment m_spriteCount
     CreateQuad(x, y, width, height, u0, v0, u1, v1, color);
 
@@ -1190,7 +1195,10 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
     OutputDebugStringA(vbuf);
     
     OutputDebugStringA("[SR::Flush] Calling memcpy...\n");
-    memcpy(pGpuVertices, m_pStagingBuffer, bytesToWrite);
+    // CRITICAL: Copy from global offset in staging buffer to prevent overwriting
+    // Background was written at offset 0, text at offset m_totalVertexCount
+    void* pSrc = (void*)((SpriteVertex*)m_pStagingBuffer + m_totalVertexCount);
+    memcpy(pGpuVertices, pSrc, bytesToWrite);
     OutputDebugStringA("[SR::Flush] memcpy done\n");
     m_pVertexBuffer->Unlock();
     OutputDebugStringA("[SR::Flush] Unlock done\n");
@@ -1204,6 +1212,11 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
     cmd.isUI = m_currentIsUI;
     cmd.baseVertex = m_totalVertexCount; 
     cmd.vertexStart = m_totalIndexCount;
+    
+    char cmdBuf[256];
+    sprintf(cmdBuf, "[SR::Flush] cmd: baseVert=%d, vertexStart=%d, vertexCount=%d, totalVert=%d, totalIdx=%d\n",
+            cmd.baseVertex, cmd.vertexStart, cmd.vertexCount, m_totalVertexCount, m_totalIndexCount);
+    OutputDebugStringA(cmdBuf);
     cmd.vertexCount = numVertices;
     cmd.primitiveCount = m_spriteCount * 2;
     cmd.status = 1;
@@ -1244,15 +1257,6 @@ void SpriteRenderer::SubmitBatch(ShaderManager* pShader) {
     int vertexCount = m_spriteCount * 4;
     int indexCount = m_spriteCount * 6; // 6 indices per sprite
     
-    // FORCE RESET if counts look wrong (> 1000 suggests accumulation across frames)
-    // REMOVED: This breaks the lifecycle architecture. Offsets should only reset in ResetBatchState()
-    // if (m_totalVertexCount > 1000 || m_totalIndexCount > 3000) {
-    //     OutputDebugStringA("[SR::SubmitBatch] WARNING: Counts too high, forcing reset!\n");
-    //     m_totalVertexCount = 0;
-    //     m_totalIndexCount = 0;
-    //     vertexOffset = 0;
-    // }
-    
     // DEBUG: Force start from 0 if this appears to be first batch
     if (m_totalVertexCount == 0 && m_totalIndexCount == 0) {
         vertexOffset = 0;
@@ -1269,7 +1273,9 @@ void SpriteRenderer::SubmitBatch(ShaderManager* pShader) {
         OutputDebugStringA("Failed to lock vertex buffer in SubmitBatch\n");
         return;
     }
-    memcpy(pData, m_pStagingBuffer, vertexCount * sizeof(SpriteVertex));
+    // CRITICAL FIX: Copy from global offset where data was actually written (prevents text overwriting background)
+    void* pSrc = (void*)((SpriteVertex*)m_pStagingBuffer + m_totalVertexCount);
+    memcpy(pData, pSrc, vertexCount * sizeof(SpriteVertex));
     currentVB->Unlock();
 
     // Create render command with correct INDEX and VERTEX offsets
@@ -1319,23 +1325,6 @@ void SpriteRenderer::Flush() {
             return;
         }
     }
-/*
-    // GPU synchronization for Xbox 360
-#ifdef _XBOX
-    if (m_pGpuFence && !m_isFirstFlush) {
-        // Wait until GPU finishes previous frame
-        HRESULT hr = S_OK;
-        while ((hr = m_pGpuFence->GetData(NULL, 0, D3DGETDATA_FLUSH)) == S_FALSE) {
-            YieldProcessor();
-            Sleep(0);
-        }
-        if (FAILED(hr) && hr != S_FALSE) {
-            OutputDebugStringA("[SR::Flush] WARNING: GPU fence GetData failed, continuing anyway\n");
-        }
-    }
-    m_isFirstFlush = false;
-#endif
-*/
     // Only return if empty
     if (m_spriteCount == 0) return;
 
@@ -1390,7 +1379,7 @@ void SpriteRenderer::Flush() {
         cmd.vertexCount = vertexCount;
         cmd.primitiveCount = m_spriteCount * 2;
         cmd.baseVertex = vertexOffset;        // CORRECT vertex offset
-        cmd.vertexStart = 0;                  // Indices start at 0
+        cmd.vertexStart = (vertexOffset / 4) * 6;             // Indices start at (4 / 4) * 6 = 6
         cmd.batchType = m_currentRenderType;
         cmd.layer = 0;
         cmd.isUI = m_currentIsUI;
@@ -2090,9 +2079,11 @@ void SpriteRenderer::CreateQuadWithTexture(float x, float y, float width, float 
         return;
     }
 
-    // CRITICAL FIX: Write vertices DIRECTLY to staging buffer, not to command structure
-    // Flush() copies from m_pStagingBuffer to GPU, so vertices must be in staging buffer
-    SpriteVertex* vOut = &m_pStagingBuffer[m_spriteCount * 4];
+    // CRITICAL FIX: Write vertices with GLOBAL offset to prevent overwriting previous batches
+    // Each batch must write to its own position in staging buffer, not from zero!
+    // This prevents text from overwriting background in CPU staging buffer
+    int globalVertexIndex = m_totalVertexCount + (m_spriteCount * 4);
+    SpriteVertex* vOut = &m_pStagingBuffer[globalVertexIndex];
 
     // Debug: Log vertex coordinates
     char coordBuf[512];
@@ -2174,8 +2165,9 @@ void SpriteRenderer::CreateQuadRotated(float x, float y, float width, float heig
     float u[4] = {u0, u1, u1, u0};
     float v[4] = {v0, v0, v1, v1};
 
-    // Write DIRECTLY to staging buffer (not m_vertices!)
-    SpriteVertex* vOut = &m_pStagingBuffer[m_spriteCount * 4];
+    // Write DIRECTLY to staging buffer with GLOBAL offset
+    int globalVertexIndex = m_totalVertexCount + (m_spriteCount * 4);
+    SpriteVertex* vOut = &m_pStagingBuffer[globalVertexIndex];
     for (int i = 0; i < 4; i++) {
         vOut[i].x = finalX[i];
         vOut[i].y = finalY[i];

@@ -643,11 +643,12 @@ void ShaderManager::SubmitBatch(const RenderBatch& batch) {
 }
 
 void ShaderManager::ClearQueue() {
-    // Lock();
+    // CRITICAL: Clear all command fields to prevent ghost commands from previous frame
     for (int i = 0; i < MAX_GLOBAL_COMMANDS; ++i) {
+        memset(&m_commandQueue[i], 0, sizeof(RenderCommand));
         m_commandQueue[i].status = 0;
     }
-    // Unlock();
+    OutputDebugStringA("[ShaderManager::ClearQueue] Queue cleared\n");
 }
 
 void ShaderManager::ClearDrawBatches() {

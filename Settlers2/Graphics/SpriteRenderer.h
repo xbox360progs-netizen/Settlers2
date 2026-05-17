@@ -146,6 +146,12 @@ public:
 
     // Get current vertex count
     int GetVertexCount() const { return m_spriteCount * 4; }
+    
+    // Get total accumulated vertex count (for TextManager to calculate offset)
+    int GetTotalVertexCount() const { return m_totalVertexCount; }
+    
+    // Increment total vertex count (for TextManager to update after rendering)
+    void IncrementTotalVertexCount(int count) { m_totalVertexCount += count; }
 
     // Get device for external state management
     LPDIRECT3DDEVICE9 GetDevice() const { return m_pDevice; }

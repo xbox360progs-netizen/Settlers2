@@ -374,13 +374,26 @@ void TextManager::RenderScreen()
         ShaderManager* shaderManager = m_renderer->GetShaderManager();
         LPDIRECT3DVERTEXBUFFER9 pVB = shaderManager->GetSharedVertexBuffer();
         
+        // CRITICAL FIX: Lock at correct offset to NOT overwrite previous batches (like background)
+        // Get current vertex offset from SpriteRenderer so text goes AFTER other geometry
+        SpriteRenderer* spriteRenderer = m_renderer->GetSpriteRenderer();
+        DWORD vertexOffsetBytes = 0;
+        if (spriteRenderer) {
+            vertexOffsetBytes = spriteRenderer->GetTotalVertexCount() * sizeof(SpriteVertex);
+        }
+        
         if (pVB) {
             void* pData = NULL;
-            HRESULT hr = pVB->Lock(0, m_screenVertices.size() * sizeof(SpriteVertex), &pData, 0);
+            // FIX: Lock at correct offset, not at 0!
+            HRESULT hr = pVB->Lock(vertexOffsetBytes, m_screenVertices.size() * sizeof(SpriteVertex), &pData, D3DLOCK_NOOVERWRITE);
             if (SUCCEEDED(hr)) {
                 memcpy(pData, m_screenVertices.data(), m_screenVertices.size() * sizeof(SpriteVertex));
                 pVB->Unlock();
-//                OutputDebugStringA("[TextManager::RenderScreen] Text vertices copied to shared buffer\n");
+                
+                // Update total vertex count so subsequent renders don't overwrite
+                if (spriteRenderer) {
+                    spriteRenderer->IncrementTotalVertexCount((DWORD)m_screenVertices.size());
+                }
             } else {
                 OutputDebugStringA("[TextManager::RenderScreen] ERROR: Failed to lock shared vertex buffer\n");
             }
