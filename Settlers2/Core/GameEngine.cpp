@@ -370,31 +370,19 @@ void GameEngine::Run()
 
         ProcessSceneRequests();
 if (m_sceneManager && m_sceneManager->IsSceneReady()) {
-            // ������ �����: ����� ��������� SpriteRenderer
-            if (m_spriteRenderer) {
-                m_spriteRenderer->BeginFrame(); // �������� ���������� ������
-            }
-
+            // CRITICAL FIX: Reset the frame rendered flag to allow SceneManager::Render() to execute
+            m_sceneManager->ResetFrameRendered();
+            
             if (m_renderer) {
                 m_renderer->BeginFrame();
             }
 
             if (m_sceneManager) {
-                m_sceneManager->Render(); // ����������� �������
-            }
-
-            // ����� �����: ������������ � ��������� �������
-            if (m_spriteRenderer) {
-                m_spriteRenderer->FinalizeFrameCommands(); // ������������ ����
+                m_sceneManager->Render();
             }
             
             if (m_renderer) {
-                m_renderer->EndFrame(); // ��������� ������� � Present()
-            }
-            
-            // ���������� � ���������� �����
-            if (m_spriteRenderer) {
-                m_spriteRenderer->ResetBatchState(); // ���������� ���������
+                m_renderer->EndFrame(); 
             }
         }
         

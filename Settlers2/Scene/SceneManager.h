@@ -49,6 +49,7 @@ public:
     // Queue-based rendering support
     void SetShaderManager(ShaderManager* shaderManager) { m_shaderManager = shaderManager; }
     void SetSpriteRenderer(SpriteRenderer* spriteRenderer) { m_spriteRenderer = spriteRenderer; }
+    SpriteRenderer* GetSpriteRenderer() const { return m_spriteRenderer; }
 
     // Xbox 360 async command buffer support
 #ifdef _XBOX

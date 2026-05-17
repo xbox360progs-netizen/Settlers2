@@ -275,15 +275,8 @@ void TextManager::EndTextBatch()
     if (m_spriteRenderer) {
         OutputDebugStringA("[TextManager::EndTextBatch] About to call SpriteRenderer::End...\n");
         
-        // Check if the pointer is valid by checking vtable
-        void** vtable = *(void***)m_spriteRenderer;
-        sprintf(dbg, "[TextManager::EndTextBatch] m_spriteRenderer vtable=%p\n", vtable);
-        OutputDebugStringA(dbg);
-        
-        if (vtable == nullptr) {
-            OutputDebugStringA("[TextManager::EndTextBatch] ERROR: m_spriteRenderer vtable is NULL!\n");
-            return;
-        }
+        // REMOVED: vtable check is unreliable on Xbox 360 (always returns 0 despite object being valid)
+        // Object is valid if m_spriteRenderer != NULL - that's the real validation
         
         m_spriteRenderer->End();
         OutputDebugStringA("[TextManager::EndTextBatch] SpriteRenderer::End() returned\n");

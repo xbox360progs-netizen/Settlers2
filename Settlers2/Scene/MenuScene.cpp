@@ -229,6 +229,15 @@ void MenuScene::Update(float deltaTime) {
 void MenuScene::Render() {
     OutputDebugStringA("[MenuScene::Render] ENTRY\n");
     
+    // Simple nullptr check only - vtable check is unreliable on Xbox 360
+    if (!m_spriteRenderer) {
+        OutputDebugStringA("[MenuScene::Render] m_spriteRenderer is NULL, trying SceneManager...\n");
+        SceneManager* sm = GetSceneManager();
+        if (sm) {
+            m_spriteRenderer = sm->GetSpriteRenderer();
+        }
+    }
+    
     if (!m_spriteRenderer) {
         OutputDebugStringA("[MenuScene::Render] ERROR: m_spriteRenderer is NULL!\n");
         return;
@@ -243,16 +252,6 @@ void MenuScene::Render() {
     char buf[256];
     sprintf(buf, "[MenuScene::Render] bgTex = %p\n", bgTex);
     OutputDebugStringA(buf);
-
-    // Check if m_spriteRenderer pointer is valid before calling Begin
-    void** spriteVtable = *(void***)m_spriteRenderer;
-    sprintf(buf, "[MenuScene::Render] m_spriteRenderer vtable=%p\n", spriteVtable);
-    OutputDebugStringA(buf);
-    
-    if (spriteVtable == nullptr) {
-        OutputDebugStringA("[MenuScene::Render] ERROR: m_spriteRenderer vtable is NULL!\n");
-        return;
-    }
 
     // Бэкграунд
     OutputDebugStringA("[MenuScene::Render] About to call Begin for background...\n");

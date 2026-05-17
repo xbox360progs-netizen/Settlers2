@@ -548,11 +548,11 @@ void ShaderManager::Submit(const RenderCommand& cmd) {
 
     RenderCommand cmdWithOffset = cmd;
 
-    // CRITICAL: For ABSOLUTE indices (relative to VB start), baseVertex MUST be 0
-    // Otherwise we'll get first-letter-from-wrong-sprite bug
-    cmdWithOffset.baseVertex = 0;
-
-    // Use vertexStart as-is - SpriteRenderer already calculates correct index buffer offset
+    // Use baseVertex and vertexStart as-is from SpriteRenderer
+    // SpriteRenderer already calculates cumulative offsets in Flush()
+    // cmd.baseVertex = vertex offset in VB (where to start reading vertices)
+    // cmd.vertexStart = index offset in IB (where to start reading indices)
+    cmdWithOffset.baseVertex = cmd.baseVertex;
     cmdWithOffset.vertexStart = cmd.vertexStart;
 
     // REMOVED: s_currentVertexOffset tracking - offsets already calculated in SpriteRenderer
@@ -1135,14 +1135,16 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                 OutputDebugStringA(renderMsg);
 
                 OutputDebugStringA("[SMgr::ExecuteQueue] Calling DrawIndexedPrimitive...\n");
-                // CRITICAL: For ABSOLUTE indices, BaseVertexIndex MUST be 0
-                // cmd.vertexStart contains the index buffer offset (already accumulated by SpriteRenderer)
+                // BaseVertexIndex: offset in vertex buffer where this batch's vertices start
+                // vertexStart: offset in index buffer where this batch's indices start
+                // For ABSOLUTE indices: indices contain actual vertex positions, 
+                // BaseVertexIndex adds to each index to get final vertex position
                 m_pDevice->DrawIndexedPrimitive(
                     D3DPT_TRIANGLELIST,
-                    0,                 // BaseVertexIndex = 0 for ABSOLUTE indices
-                    0,                 // MinIndex = 0
+                    cmd.baseVertex,   // Vertex buffer offset (cumulative from SpriteRenderer)
+                    0,                // MinIndex = 0
                     cmd.vertexCount,
-                    cmd.vertexStart,   // Index buffer offset (cumulative)
+                    cmd.vertexStart,  // Index buffer offset (cumulative)
                     cmd.primitiveCount
                 );
                 OutputDebugStringA("[SMgr::ExecuteQueue] DrawIndexedPrimitive DONE\n");

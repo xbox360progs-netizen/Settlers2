@@ -175,12 +175,8 @@ void Renderer::EndFrame() {
     OutputDebugStringA("[Renderer::EndFrame] Calling Present...\n");
     m_pDevice->Present(NULL, NULL, NULL, NULL);
     OutputDebugStringA("[Renderer::EndFrame] Present done\n");
-	if (m_pSpriteRenderer) {
-        OutputDebugStringA("[Renderer::EndFrame] Resetting sprite counters...\n");
-        m_pSpriteRenderer->ResetVertexCount();
-    } else {
-        OutputDebugStringA("[Renderer::EndFrame] WARNING: m_pSpriteRenderer is NULL!\n");
-    }
+    // REMOVED: ResetVertexCount() is already called in ResetBatchState() inside SceneManager::Render()
+    // Double reset causes issues with frame timing
 }
         
 

@@ -873,15 +873,8 @@ void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float
     OutputDebugStringA(dbg);
     fflush(stdout);
 
-    // Check if this pointer is valid
-    void** vtable = *(void***)this;
-    sprintf(dbg, "[SR::Begin] vtable=%p\n", vtable);
-    OutputDebugStringA(dbg);
-    
-    if (vtable == nullptr) {
-        OutputDebugStringA("[SR::Begin] ERROR: vtable is NULL!\n");
-        return;
-    }
+    // REMOVED: vtable check is unreliable on Xbox 360 (always returns 0 despite object being valid)
+    // Object is valid if m_pDevice != NULL - that's the real validation
 
     // === ШАГ 1: БЕЗОПАСНАЯ ИЗОЛЯЦИЯ ПРЕДЫДУЩЕГО БАТЧА ===
     // Если кто-то (например, карта) забыл закрыться перед текстом,
@@ -1110,17 +1103,49 @@ void SpriteRenderer::ResetVertexCount() {
 }
 
 void SpriteRenderer::Flush(ShaderManager* pShader) {
+    OutputDebugStringA("[SR::Flush] LINE 1\n");
+    
+    // Guard against corrupted m_spriteCount
+    if (m_spriteCount < 0 || m_spriteCount > 10000) {
+        char buf[256];
+        sprintf(buf, "[SR::Flush] ERROR: m_spriteCount corrupted! value=%d\n", m_spriteCount);
+        OutputDebugStringA(buf);
+        m_spriteCount = 0;
+        return;
+    }
+    
+    OutputDebugStringA("[SR::Flush] LINE 2\n");
     char buf[256];
-    sprintf(buf, "[SR::Flush] ENTRY - m_spriteCount=%d, m_totalVertexCount=%d\n", m_spriteCount, m_totalVertexCount);
+    sprintf(buf, "[SR::Flush] ENTRY - m_spriteCount=%d, m_totalVertexCount=%d, m_pDevice=%p\n", 
+            m_spriteCount, m_totalVertexCount, m_pDevice);
     OutputDebugStringA(buf);
+    OutputDebugStringA("[SR::Flush] LINE 3\n");
     
     if (m_spriteCount == 0) {
         OutputDebugStringA("[SR::Flush] EXIT: m_spriteCount == 0\n");
         return;
     }
 
+    // Check device is valid
+    if (!m_pDevice) {
+        OutputDebugStringA("[SR::Flush] ERROR: m_pDevice is NULL!\n");
+        return;
+    }
+
     int numVertices = m_spriteCount * 4;
     int numIndices = m_spriteCount * 6;
+    
+    OutputDebugStringA("[SR::Flush] About to check buffer...\n");
+    
+    // Simple bounds check - reset if we exceed ring buffer capacity
+    // Ring buffer capacity: 4096 sprites * 4 verts * 3x ring = 49152 verts max
+    if (m_totalVertexCount > 48000 || numVertices > 16000) {
+        char buf[256];
+        sprintf(buf, "[SR::Flush] WARNING: Resetting due to bounds. total=%d, new=%d\n",
+                m_totalVertexCount, numVertices);
+        OutputDebugStringA(buf);
+        m_totalVertexCount = 0;
+    }
     
     OutputDebugStringA("[SR::Flush] Checking vertex buffer...\n");
     if (!m_pVertexBuffer) {
@@ -1152,14 +1177,21 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
     
     size_t bytesToWrite = static_cast<size_t>(numVertices * sizeof(SpriteVertex));
     
+    // Debug: Print data size info
+    char vbuf[512];
+    sprintf(vbuf, "[SR::Flush] numVerts=%d, bytes=%zu, m_totalVert=%d, m_maxSprites=%d\n", 
+            numVertices, bytesToWrite, m_totalVertexCount, m_maxSprites);
+    OutputDebugStringA(vbuf);
+    
     // Debug: Print first vertex position
     SpriteVertex* verts = (SpriteVertex*)m_pStagingBuffer;
-    char vbuf[256];
     sprintf(vbuf, "[SR::Flush] First vertex: x=%.1f, y=%.1f, z=%.1f, u=%.2f, v=%.2f\n", 
             verts[0].x, verts[0].y, verts[0].z, verts[0].u, verts[0].v);
     OutputDebugStringA(vbuf);
     
+    OutputDebugStringA("[SR::Flush] Calling memcpy...\n");
     memcpy(pGpuVertices, m_pStagingBuffer, bytesToWrite);
+    OutputDebugStringA("[SR::Flush] memcpy done\n");
     m_pVertexBuffer->Unlock();
     OutputDebugStringA("[SR::Flush] Unlock done\n");
 
@@ -1287,7 +1319,7 @@ void SpriteRenderer::Flush() {
             return;
         }
     }
-
+/*
     // GPU synchronization for Xbox 360
 #ifdef _XBOX
     if (m_pGpuFence && !m_isFirstFlush) {
@@ -1303,7 +1335,7 @@ void SpriteRenderer::Flush() {
     }
     m_isFirstFlush = false;
 #endif
-
+*/
     // Only return if empty
     if (m_spriteCount == 0) return;
 
@@ -1395,7 +1427,7 @@ void SpriteRenderer::Flush() {
 // === Lifecycle State Machine Implementation (Critical for Xbox 360) ===
 
 void SpriteRenderer::BeginFrame() {
-    // Reset offsets and enable accumulation
+    // Reset offsets and enable accumulation for new frame
     m_totalVertexCount = 0;
     m_totalIndexCount = 0;
     m_spriteCount = 0;
