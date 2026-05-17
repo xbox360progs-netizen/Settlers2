@@ -43,10 +43,15 @@ void LoadingScene::SetTargetScene(const std::string& sceneName)
 void LoadingScene::Load()
 {
     std::cout << "[LoadingScene] Load() called" << std::endl;
+    std::cout.flush();
     std::cout << "[LoadingScene] m_textureLoader = " << (m_textureLoader ? "VALID" : "NULL") << std::endl;
+    std::cout.flush();
     std::cout << "[LoadingScene] m_renderer = " << (m_renderer ? "VALID" : "NULL") << std::endl;
+    std::cout.flush();
     std::cout << "[LoadingScene] m_spriteRenderer = " << (m_spriteRenderer ? "VALID" : "NULL") << std::endl;
+    std::cout.flush();
     std::cout << "[LoadingScene] m_binFileManager = " << (m_binFileManager ? "VALID" : "NULL") << std::endl;
+    std::cout.flush();
 
     // Initialize Xbox 360 async loading variables
     m_targetProgressPercentage = 0;
@@ -63,6 +68,12 @@ void LoadingScene::Load()
 
     // Initialize texture registry device bindings and manifest-based paths
     if (m_renderer) {
+        std::cout << "[LoadingScene] Initializing TextureRegistry..." << std::endl;
+        std::cout.flush();
+        
+        // Initialize thread safety first
+        TextureRegistry::instance().initThreadSafety();
+        
         TextureRegistry::instance().initialize(m_renderer->GetDevice());
         // Set BinFileManager for atlas loading support using static helper
         extern void SetBinFileManagerStatic(BinFileManager* mgr);
@@ -73,12 +84,18 @@ void LoadingScene::Load()
         TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Menu");
     }
 
+    std::cout << "[LoadingScene] TextureRegistry initialized" << std::endl;
+    std::cout.flush();
+
     // Clear previous tasks
     m_loadTasks.clear();
 
     // Load background texture first using TextureRegistry
     std::cout << "[LoadingScene] Loading background texture via TextureRegistry..." << std::endl;
+    std::cout.flush();
     LPDIRECT3DTEXTURE9 pBgTex = TextureRegistry::instance().getTextureOrLoad("loading_background");
+    std::cout << "[LoadingScene] getTextureOrLoad returned, pBgTex=" << pBgTex << std::endl;
+    std::cout.flush();
     if (pBgTex) {
         m_backgroundTexture.SetTexture(pBgTex);
         std::cout << "[LoadingScene] Background texture loaded successfully via TextureRegistry" << std::endl;
@@ -86,7 +103,11 @@ void LoadingScene::Load()
         std::cout << "[LoadingScene] WARNING: Failed to load background texture via TextureRegistry" << std::endl;
         // Fallback to direct loading
         if (m_textureLoader && m_renderer) {
+            std::cout << "[LoadingScene] Trying fallback direct loading..." << std::endl;
+            std::cout.flush();
             HRESULT hr = m_textureLoader->Load(L"game:\\Media\\Textures\\Background\\loading_background.png", &pBgTex);
+            std::cout << "[LoadingScene] Direct load hr=0x" << std::hex << hr << std::dec << std::endl;
+            std::cout.flush();
             if (SUCCEEDED(hr) && pBgTex) {
                 m_backgroundTexture.SetTexture(pBgTex);
                 TextureRegistry::instance().registerTexture("loading_background", pBgTex);
@@ -97,45 +118,53 @@ void LoadingScene::Load()
         }
     }
 
+    // Pre-load UI textures SYNCHRONOUSLY on main thread (Thread 0) - needed for immediate rendering
+    std::cout << "[LoadingScene] Pre-loading UI textures on main thread..." << std::endl;
+    std::cout.flush();
+    TextureRegistry::instance().getTextureOrLoad("progressBarBackground");
+    std::cout << "[LoadingScene] progressBarBackground pre-loaded" << std::endl;
+    std::cout.flush();
+    TextureRegistry::instance().getTextureOrLoad("loading_background");
+    std::cout << "[LoadingScene] loading_background pre-loaded" << std::endl;
+    std::cout.flush();
+
     // Setup all load tasks using TextureRegistry approach
     std::cout << "[LoadingScene] Setting up load tasks..." << std::endl;
+    std::cout.flush();
     SetupLoadTasks();
     std::cout << "[LoadingScene] Load tasks setup complete, total tasks: " << m_loadTasks.size() << std::endl;
+    std::cout.flush();
 
     // Diagnostics
     TextureRegistry::instance().logManifestPathsStatus();
 
-    // Start async loading thread on Core 1
-    std::cout << "[LoadingScene] Starting async loading thread on Core 1..." << std::endl;
-
-    // 1. Create thread in suspended state
+    // Start async loading - thread only reads files to RAM, main thread creates textures
+    std::cout << "[LoadingScene] Starting async file reader thread..." << std::endl;
+    std::cout.flush();
+    
+    DWORD threadId = 0;
     m_hLoadingThread = CreateThread(
         NULL,                   // Default security
-        0,                      // Default stack size
+        64 * 1024,              // 64KB stack
         XboxThreadFunc,         // Thread function
         this,                   // Context parameter
-        CREATE_SUSPENDED,       // Create suspended
-        NULL                    // No thread ID
+        0,                      // Run immediately
+        &threadId               // Store thread ID
     );
 
     if (m_hLoadingThread != NULL) {
-        // 2. Move thread to Core 1, Hardware Thread 0 (Index 2)
-        DWORD dwPreviousProcessor = XSetThreadProcessor(m_hLoadingThread, 2);
-
-        if (dwPreviousProcessor != (DWORD)-1) {
-            std::cout << "[LoadingScene] Thread successfully moved to Core 1" << std::endl;
-            // 3. Resume thread execution
-            ResumeThread(m_hLoadingThread);
-        } else {
-            std::cout << "[LoadingScene] WARNING: XSetThreadProcessor failed, running on current core" << std::endl;
-            ResumeThread(m_hLoadingThread);
-        }
+        std::cout << "[LoadingScene] Async thread started, threadId=" << threadId << std::endl;
+        std::cout.flush();
     } else {
-        std::cout << "[LoadingScene] ERROR: Failed to create loading thread" << std::endl;
+        DWORD err = GetLastError();
+        std::cout << "[LoadingScene] ERROR: Failed to create loading thread, error=" << err << std::endl;
+        std::cout.flush();
     }
 
+    // Return immediately - loading continues in background
     m_loaded = true;
-    std::cout << "[LoadingScene] Load() complete" << std::endl;
+    std::cout << "[LoadingScene] Load() complete - returning to SceneManager" << std::endl;
+    std::cout.flush();
 }
 
 void LoadingScene::Unload()
@@ -161,14 +190,17 @@ DWORD WINAPI LoadingScene::XboxThreadFunc(LPVOID lpParam)
     return 0;
 }
 
-// Async loading running on Core 1
+// Async loading running on background thread
 void LoadingScene::AsyncLoadResources()
 {
-    std::cout << "[LoadingScene::AsyncLoadResources] Started on Core 1" << std::endl;
-
+    std::cout << "[LoadingScene::AsyncLoadResources] Started!" << std::endl;
+    std::cout.flush();
+    
     // Execute all load tasks
     for (size_t i = 0; i < m_loadTasks.size(); ++i) {
         LoadTask& task = m_loadTasks[i];
+        std::cout << "[LoadingScene::AsyncLoadResources] Executing: " << task.name << std::endl;
+        std::cout.flush();
 
         // Update status text
         m_statusText = task.name;

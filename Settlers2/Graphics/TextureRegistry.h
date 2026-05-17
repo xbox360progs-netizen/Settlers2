@@ -12,7 +12,7 @@
 class TextureRegistry {
 public:
     static TextureRegistry& instance();
-    LPDIRECT3DTEXTURE9 getTexture(const std::string& name) const;
+    LPDIRECT3DTEXTURE9 getTexture(const std::string& name);
     LPDIRECT3DTEXTURE9 getNotFoundTexture() const;
     // Load on demand: try to load texture from disk if not registered yet, using a sensible default path map
     LPDIRECT3DTEXTURE9 getTextureOrLoad(const std::string& name);
@@ -28,20 +28,41 @@ public:
     // If sectionName is empty, load all sections; otherwise load only the specified section
     void initializeFromManifest(const std::string& manifestPath = "textures.ini", const std::string& sectionName = "");
     // Diagnostics helpers for tests/validation
-    bool isPathRegistered(const std::string& name) const;
-    bool doesPathExistForName(const std::string& name) const;
+    bool isPathRegistered(const std::string& name);
+    bool doesPathExistForName(const std::string& name);
     // Diagnostics helper to log manifest paths and statuses
-    void logManifestPathsStatus() const;
+    void logManifestPathsStatus();
     // Step 8: Flag to disable manifest loading for local development
     void setManifestDisabled(bool disabled);
     bool isManifestDisabled() const;
     // Atlas registry
     void registerAtlas(const std::string& name, std::tr1::shared_ptr<class SpriteAtlas> atlas);
-    std::tr1::shared_ptr<class SpriteAtlas> getAtlas(const std::string& name) const;
+    std::tr1::shared_ptr<class SpriteAtlas> getAtlas(const std::string& name);
     void unregisterAtlas(const std::string& name);
 
 private:
     TextureRegistry() : m_notFoundTexture(nullptr), m_device(nullptr) {}
+    ~TextureRegistry() {}
+    
+    void ensureInitialized() const {
+        // Lazy initialization of critical section
+        static bool initialized = false;
+        if (!initialized) {
+            InitializeCriticalSection(&m_cs);
+            initialized = true;
+        }
+    }
+    
+public:
+    // Call this once at startup to initialize critical section
+    void initThreadSafety() {
+        InitializeCriticalSection(&m_cs);
+    }
+    void shutdownThreadSafety() {
+        DeleteCriticalSection(&m_cs);
+    }
+    
+private:
 
     LPDIRECT3DTEXTURE9 getTextureImpl(const std::string& name) const;
     LPDIRECT3DTEXTURE9 getTextureOrLoadImpl(const std::string& name);
@@ -53,4 +74,6 @@ private:
     std::map<std::string, std::tr1::shared_ptr<class SpriteAtlas> > m_atlases;
     // Additional registry for manifest-based texture paths
     std::map<std::string, std::wstring> m_texturePaths;
+    // Thread safety (non-const for EnterCriticalSection)
+    mutable CRITICAL_SECTION m_cs;
 };

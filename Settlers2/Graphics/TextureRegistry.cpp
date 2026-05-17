@@ -28,10 +28,12 @@ TextureRegistry& TextureRegistry::instance() {
     return s_instance;
 }
 
-LPDIRECT3DTEXTURE9 TextureRegistry::getTexture(const std::string& name) const {
-    std::map<std::string, LPDIRECT3DTEXTURE9>::const_iterator it = m_textures.find(name);
-    if (it != m_textures.end()) return it->second;
-    return NULL;
+LPDIRECT3DTEXTURE9 TextureRegistry::getTexture(const std::string& name) {
+    EnterCriticalSection(&m_cs);
+    std::map<std::string, LPDIRECT3DTEXTURE9>::iterator it = m_textures.find(name);
+    LPDIRECT3DTEXTURE9 result = (it != m_textures.end()) ? it->second : NULL;
+    LeaveCriticalSection(&m_cs);
+    return result;
 }
 
 LPDIRECT3DTEXTURE9 TextureRegistry::getNotFoundTexture() const {
@@ -47,14 +49,18 @@ void TextureRegistry::registerAtlas(const std::string& name, std::tr1::shared_pt
     }
 }
 
-std::tr1::shared_ptr<SpriteAtlas> TextureRegistry::getAtlas(const std::string& name) const {
-    std::map<std::string, std::tr1::shared_ptr<SpriteAtlas> >::const_iterator it = m_atlases.find(name);
-    if (it != m_atlases.end()) return it->second;
-    return std::tr1::shared_ptr<SpriteAtlas>();
+std::tr1::shared_ptr<SpriteAtlas> TextureRegistry::getAtlas(const std::string& name) {
+    EnterCriticalSection(&m_cs);
+    std::map<std::string, std::tr1::shared_ptr<SpriteAtlas> >::iterator it = m_atlases.find(name);
+    std::tr1::shared_ptr<SpriteAtlas> result = (it != m_atlases.end()) ? it->second : std::tr1::shared_ptr<SpriteAtlas>();
+    LeaveCriticalSection(&m_cs);
+    return result;
 }
 
 void TextureRegistry::unregisterAtlas(const std::string& name) {
+    EnterCriticalSection(&m_cs);
     m_atlases.erase(name);
+    LeaveCriticalSection(&m_cs);
 }
 
 LPDIRECT3DTEXTURE9 TextureRegistry::getTextureOrLoad(const std::string& name) {
@@ -144,15 +150,18 @@ LPDIRECT3DTEXTURE9 TextureRegistry::getTextureOrLoad(const std::string& name) {
 
 void TextureRegistry::registerTexture(const std::string& name, LPDIRECT3DTEXTURE9 tex) {
     if (name.empty()) return;
+    EnterCriticalSection(&m_cs);
     std::map<std::string, LPDIRECT3DTEXTURE9>::iterator it = m_textures.find(name);
     if (it != m_textures.end()) {
         if (it->second) it->second->Release();
         it->second = tex;
         if (tex) tex->AddRef();
+        LeaveCriticalSection(&m_cs);
         return;
     }
     m_textures.insert(std::pair<std::string, LPDIRECT3DTEXTURE9>(name, tex));
     if (tex) tex->AddRef();
+    LeaveCriticalSection(&m_cs);
 }
 
 void TextureRegistry::unregisterTexture(const std::string& name) {
@@ -267,31 +276,43 @@ void TextureRegistry::initializeFromManifest(const std::string& manifestPath, co
     OutputDebugStringA(logBuf);
 }
 
-bool TextureRegistry::isPathRegistered(const std::string& name) const {
-    return m_texturePaths.find(name) != m_texturePaths.end();
+bool TextureRegistry::isPathRegistered(const std::string& name) {
+    EnterCriticalSection(&m_cs);
+    bool result = m_texturePaths.find(name) != m_texturePaths.end();
+    LeaveCriticalSection(&m_cs);
+    return result;
 }
 
-bool TextureRegistry::doesPathExistForName(const std::string& name) const {
-    std::map<std::string, std::wstring>::const_iterator it = m_texturePaths.find(name);
-    if (it == m_texturePaths.end()) return false;
-    return (_waccess(it->second.c_str(), 0) == 0);
+bool TextureRegistry::doesPathExistForName(const std::string& name) {
+    EnterCriticalSection(&m_cs);
+    std::map<std::string, std::wstring>::iterator it = m_texturePaths.find(name);
+    bool result = false;
+    if (it != m_texturePaths.end()) {
+        result = (_waccess(it->second.c_str(), 0) == 0);
+    }
+    LeaveCriticalSection(&m_cs);
+    return result;
 }
 
-void TextureRegistry::logManifestPathsStatus() const {
+void TextureRegistry::logManifestPathsStatus() {
+    EnterCriticalSection(&m_cs);
     if (m_texturePaths.empty()) {
         OutputDebugStringA("[TextureRegistry] No paths registered\n");
+        LeaveCriticalSection(&m_cs);
         return;
     }
     char buf[256];
     _snprintf(buf, sizeof(buf), "[TextureRegistry] Total paths registered: %d\n", (int)m_texturePaths.size());
     OutputDebugStringA(buf);
-    for (std::map<std::string, std::wstring>::const_iterator kv = m_texturePaths.begin(); 
+    for (std::map<std::string, std::wstring>::iterator kv = m_texturePaths.begin(); 
          kv != m_texturePaths.end(); ++kv) {
-        bool exists = doesPathExistForName(kv->first);
+        bool exists = (_waccess(kv->second.c_str(), 0) == 0);
         char log[256];
         _snprintf(log, sizeof(log), "[TextureRegistry] %s -> exists=%d\n", kv->first.c_str(), exists ? 1 : 0);
         OutputDebugStringA(log);
     }
+    LeaveCriticalSection(&m_cs);
+}
     int missing = 0;
     for (std::map<std::string, std::wstring>::const_iterator kv = m_texturePaths.begin(); 
          kv != m_texturePaths.end(); ++kv) {

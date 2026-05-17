@@ -115,18 +115,37 @@ bool SceneManager::SwitchTo(const std::string& name)
         m_currentScene->OnExit();
     }
 
-    // Enter new scene
-    m_currentScene = it->second;
+    // Enter new scene (keep reference only, load outside critical section)
+    Scene* newScene = it->second;
+    m_currentScene = newScene;
     std::cout << "[SceneManager] Entering new scene: " << m_currentScene->GetName() << std::endl;
 
-    // Load if not loaded
-    if (!m_currentScene->IsLoaded())
+    // UNLOCK before loading to avoid deadlock (Load may access SceneManager/Renderer)
+    bool needsLoad = !m_currentScene->IsLoaded();
+    LeaveCriticalSection(&m_cs);
+    std::cout << "[SceneManager] Critical section unlocked, needsLoad=" << (needsLoad?"true":"false") << std::endl;
+    std::cout.flush();
+
+    // Load OUTSIDE critical section to prevent deadlock
+    if (needsLoad)
     {
-        std::cout << "[SceneManager] Loading scene: " << m_currentScene->GetName() << std::endl;
+        std::cout << "[SceneManager] Calling Load() outside critical section..." << std::endl;
+        std::cout.flush();
         m_currentScene->Load();
+        std::cout << "[SceneManager] Load() returned" << std::endl;
+        std::cout.flush();
     }
 
+    // Re-lock for finalization
+    EnterCriticalSection(&m_cs);
+    std::cout << "[SceneManager] About to call OnEnter()" << std::endl;
+    std::cout.flush();
+    OutputDebugStringA("[SceneManager] About to call OnEnter()\n");
     m_currentScene->OnEnter();
+    std::cout << "[SceneManager] OnEnter() returned" << std::endl;
+    std::cout.flush();
+    OutputDebugStringA("[SceneManager] OnEnter() returned\n");
+    
     std::cout << "[SceneManager] Switch complete to: " << name << std::endl;
 
     // UNBLOCK render thread - scene is ready
