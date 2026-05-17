@@ -29,11 +29,9 @@ TextureRegistry& TextureRegistry::instance() {
 }
 
 LPDIRECT3DTEXTURE9 TextureRegistry::getTexture(const std::string& name) {
-    EnterCriticalSection(&m_cs);
+    // Don't use critical section here - caller (getTextureOrLoad) handles it
     std::map<std::string, LPDIRECT3DTEXTURE9>::iterator it = m_textures.find(name);
-    LPDIRECT3DTEXTURE9 result = (it != m_textures.end()) ? it->second : NULL;
-    LeaveCriticalSection(&m_cs);
-    return result;
+    return (it != m_textures.end()) ? it->second : NULL;
 }
 
 LPDIRECT3DTEXTURE9 TextureRegistry::getNotFoundTexture() const {
@@ -64,9 +62,12 @@ void TextureRegistry::unregisterAtlas(const std::string& name) {
 }
 
 LPDIRECT3DTEXTURE9 TextureRegistry::getTextureOrLoad(const std::string& name) {
+    EnterCriticalSection(&m_cs);
+    
     LPDIRECT3DTEXTURE9 tex = getTexture(name);
     if (tex) {
         OutputDebugStringA(("[TextureRegistry] Texture '" + name + "' found in cache\n").c_str());
+        LeaveCriticalSection(&m_cs);
         return tex;
     }
     
@@ -74,10 +75,13 @@ LPDIRECT3DTEXTURE9 TextureRegistry::getTextureOrLoad(const std::string& name) {
     std::map<std::string, std::wstring>::const_iterator itPath = m_texturePaths.find(name);
     if (itPath == m_texturePaths.end()) {
         OutputDebugStringA(("[TextureRegistry] Path not registered for '" + name + "'\n").c_str());
+        LeaveCriticalSection(&m_cs);
         return m_notFoundTexture;
     }
     
     std::wstring wpath = itPath->second;
+    LeaveCriticalSection(&m_cs);
+    
     // Build full path for Xbox 360
     if (wpath.find(L"game:\\") != 0 && wpath.find(L"game:/") != 0) {
         static const std::wstring basePath = L"game:\\Media\\Textures\\";
@@ -202,18 +206,24 @@ void TextureRegistry::initialize(LPDIRECT3DDEVICE9 device) {
 
 void TextureRegistry::registerTexturePath(const std::string& name, const std::string& path) {
     if (name.empty()) return;
+    EnterCriticalSection(&m_cs);
     std::wstring wpath(path.begin(), path.end());
     m_texturePaths[name] = wpath;
+    LeaveCriticalSection(&m_cs);
 }
 
 void TextureRegistry::initializeFromManifest(const std::string& manifestPath, const std::string& sectionName) {
+    EnterCriticalSection(&m_cs);
+    
     if (manifestPath.empty()) {
         OutputDebugStringA("[TextureRegistry] initializeFromManifest: manifestPath is empty\n");
+        LeaveCriticalSection(&m_cs);
         return;
     }
     
     if (isManifestDisabled()) {
         OutputDebugStringA("[TextureRegistry] initializeFromManifest: manifest disabled\n");
+        LeaveCriticalSection(&m_cs);
         return;
     }
     
@@ -227,6 +237,7 @@ void TextureRegistry::initializeFromManifest(const std::string& manifestPath, co
     if (err != 0 || !fin) {
         _snprintf(logBuf, sizeof(logBuf), "[TextureRegistry] FAILED to open manifest: error=%d\n", err);
         OutputDebugStringA(logBuf);
+        LeaveCriticalSection(&m_cs);
         return;
     }
     
@@ -264,7 +275,8 @@ void TextureRegistry::initializeFromManifest(const std::string& manifestPath, co
         
         if (!name.empty() && !path.empty()) {
             // Регистрируем путь как есть (относительный путь)
-            registerTexturePath(name, path);
+            std::wstring wpathLocal(path.begin(), path.end());
+            m_texturePaths[name] = wpathLocal;
             totalLoaded++;
             _snprintf(logBuf, sizeof(logBuf), "[TextureRegistry] Registered: %s -> %s\n", name.c_str(), path.c_str());
             OutputDebugStringA(logBuf);
@@ -274,6 +286,8 @@ void TextureRegistry::initializeFromManifest(const std::string& manifestPath, co
     fclose(fin);
     _snprintf(logBuf, sizeof(logBuf), "[TextureRegistry] Total loaded: %d\n", totalLoaded);
     OutputDebugStringA(logBuf);
+    
+    LeaveCriticalSection(&m_cs);
 }
 
 bool TextureRegistry::isPathRegistered(const std::string& name) {
@@ -312,7 +326,7 @@ void TextureRegistry::logManifestPathsStatus() {
         OutputDebugStringA(log);
     }
     LeaveCriticalSection(&m_cs);
-}
+
     int missing = 0;
     for (std::map<std::string, std::wstring>::const_iterator kv = m_texturePaths.begin(); 
          kv != m_texturePaths.end(); ++kv) {
