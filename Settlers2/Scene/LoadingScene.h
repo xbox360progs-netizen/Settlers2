@@ -46,6 +46,7 @@ private:
     void CreateNextScene();
 	void SetupLoadTasks();
     void LoadAtlasOrTexture(const char* name, const char* pngPath);
+    void StartAsyncLoading();
 
     // Xbox 360 Async Loading
     static DWORD WINAPI XboxThreadFunc(LPVOID lpParam);
@@ -74,6 +75,7 @@ private:
     float m_loadProgress;
     std::string m_statusText;
     bool m_loadingComplete;
+    bool m_loadStarted;
 
     // Xbox 360 threading variables
     HANDLE m_hLoadingThread;

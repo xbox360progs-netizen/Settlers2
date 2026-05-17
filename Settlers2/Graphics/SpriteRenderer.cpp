@@ -939,15 +939,17 @@ void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float
     
     // XBOX 360 GPU PRIMER: Detect texture change and add invisible first quad
     static LPDIRECT3DTEXTURE9 s_lastBeginTexture = nullptr;
-    
-    if (pTexture != m_currentTexture && s_lastBeginTexture != nullptr && s_lastBeginTexture != pTexture) {
+
+    LPDIRECT3DTEXTURE9 previousTexture = m_currentTexture;
+    m_currentTexture = pTexture;
+
+    if (pTexture != previousTexture && s_lastBeginTexture != nullptr && s_lastBeginTexture != pTexture) {
         // Texture changed from previous batch - insert GPU primer (invisible quad)
         OutputDebugStringA("[SR::Begin] GPU PRIMER: inserting invisible first quad\n");
         // CreateQuad увеличит m_spriteCount до 1, и никто его не затрёт
-        CreateQuad(0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0x00000000);
+        CreateQuad(-4.0f, -4.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0x00000000);
     }
-    
-    m_currentTexture = pTexture;
+
     s_lastBeginTexture = pTexture;
 }
 

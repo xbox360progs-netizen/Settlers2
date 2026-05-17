@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "ShaderManager.h"
 #include "Renderer.h"
 #include "SpriteRenderer.h"
@@ -1130,59 +1130,26 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                     m_pActiveEffect->CommitChanges();
                 }
 
-                char renderMsg[512];
-                sprintf(renderMsg, "[SMgr::ExecuteQueue] Draw: depth=%.2f, baseVert=%d, startIdx=%d, verts=%d, prims=%d\n",
-                        cmd.depth, cmd.baseVertex, cmd.vertexStart, cmd.vertexCount, cmd.primitiveCount);
-                OutputDebugStringA(renderMsg);
-
-                OutputDebugStringA("[SMgr::ExecuteQueue] Calling DrawIndexedPrimitive...\n");
-                
-                // === ИСТИННЫЙ ФИКС ДЛЯ АБСОЛЮТНЫХ ИНДЕКСОВ XBOX 360 ===
-                m_pDevice->DrawIndexedPrimitive(
-                    D3DPT_TRIANGLELIST,
-                    0,                                 // ЖЕСТКО 0! Убираем удваивание
-                    0,                                 // MinIndex всегда 0
-                    cmd.vertexCount,                   // Только количество вершин этого батча
-                    cmd.vertexStart,                   // Оффсет в индексном буфере
-                    cmd.primitiveCount                 // Количество треугольников
-                );
-                
-                OutputDebugStringA("[SMgr::ExecuteQueue] DrawIndexedPrimitive DONE\n");
-
-                InterlockedExchange(&cmd.status, 0);
-                OutputDebugStringA("[SMgr::ExecuteQueue] status reset\n");
-            }
-
-                // XBOX 360 BUG WORKAROUND: Skip first quad (it's used as GPU pipeline primer)
-                // Real text starts from 2nd quad (vertices 4-7, indices 6-11)
-                DWORD actualVertexStart = 0;
                 DWORD actualVertexCount = cmd.vertexCount;
                 DWORD actualPrimCount = cmd.primitiveCount;
-                
-                // If this is text batch (has previous batch = background), skip first quad
-                if (cmd.baseVertex > 0 && cmd.vertexCount > 4) {
-                    OutputDebugStringA("[SMgr::ExecuteQueue] SKIPPING first quad as GPU primer...\n");
-                    actualVertexStart = 4;  // Skip first 4 vertices (first quad)
-                    actualVertexCount = cmd.vertexCount - 4;
-                    actualPrimCount = cmd.primitiveCount - 2; // Skip 2 prims
-                }
+                DWORD actualIndexStart = cmd.vertexStart;
 
                 char renderMsg[512];
                 sprintf(renderMsg, "[SMgr::ExecuteQueue] Draw: depth=%.2f, baseVert=%d, startIdx=%d, verts=%d, prims=%d\n",
-                        cmd.depth, cmd.baseVertex, cmd.vertexStart, actualVertexCount, actualPrimCount);
+                        cmd.depth, cmd.baseVertex, actualIndexStart, actualVertexCount, actualPrimCount);
                 OutputDebugStringA(renderMsg);
 
                 OutputDebugStringA("[SMgr::ExecuteQueue] Calling DrawIndexedPrimitive...\n");
-                // BaseVertexIndex: offset in vertex buffer where this batch's vertices start
-// vertexStart: offset in index buffer where this batch's indices start
+                // BaseVertexIndex is fixed at 0 because the index buffer stores absolute indices.
+                // vertexStart selects the first index for this batch.
                 // For ABSOLUTE indices: indices contain actual vertex positions, 
                 // BaseVertexIndex adds to each index to get final vertex position
                 m_pDevice->DrawIndexedPrimitive(
-D3DPT_TRIANGLELIST,
-                    0,                // baseVertex = 0 (data at position 0)
-                    0,                // MinIndex = 0
-                    actualVertexCount, // Skip first quad for GPU primer
-                    cmd.vertexStart + 6, // Skip first 6 indices (first quad)
+                    D3DPT_TRIANGLELIST,
+                    0,
+                    0,
+                    actualVertexCount,
+                    actualIndexStart,
                     actualPrimCount
                 );
                 OutputDebugStringA("[SMgr::ExecuteQueue] DrawIndexedPrimitive DONE\n");
@@ -1191,6 +1158,7 @@ D3DPT_TRIANGLELIST,
                 OutputDebugStringA("[SMgr::ExecuteQueue] status reset\n");
             }
         }
+    }
     
 
     OutputDebugStringA("[SMgr::ExecuteQueue] Loop done - about to close shader pass...\n");

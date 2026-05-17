@@ -17,6 +17,7 @@ LoadingScene::LoadingScene()
     , m_currentTaskProgress(0.0f)
     , m_loadProgress(0.0f)
     , m_loadingComplete(false)
+    , m_loadStarted(false)
     , m_textureLoader(nullptr)
     , m_renderer(nullptr)
     , m_spriteRenderer(nullptr)
@@ -64,6 +65,7 @@ void LoadingScene::Load()
     m_currentTaskProgress = 0.0f;
     m_loadProgress = 0.0f;
     m_loadingComplete = false;
+    m_loadStarted = false;
     m_statusText = "Loading...";
 
     // Initialize texture registry device bindings and manifest-based paths
@@ -105,33 +107,20 @@ void LoadingScene::Load()
     // Diagnostics
     TextureRegistry::instance().logManifestPathsStatus();
 
-    // Start async loading - background thread handles all file I/O and D3D operations
-    // Main thread only renders progress bar and retrieves ready resources
-    std::cout << "[LoadingScene] Starting async file reader thread..." << std::endl;
-    std::cout.flush();
-    
-    DWORD threadId = 0;
-    m_hLoadingThread = CreateThread(
-        NULL,                   // Default security
-        64 * 1024,              // 64KB stack
-        XboxThreadFunc,         // Thread function
-        this,                   // Context parameter
-        0,                      // Run immediately
-        &threadId               // Store thread ID
-    );
-
-    if (m_hLoadingThread != NULL) {
-        std::cout << "[LoadingScene] Async thread started, threadId=" << threadId << std::endl;
-        std::cout.flush();
-    } else {
-        DWORD err = GetLastError();
-        std::cout << "[LoadingScene] ERROR: Failed to create loading thread, error=" << err << std::endl;
-        std::cout.flush();
-    }
-
-    // Return immediately - loading continues in background
+    // Async loading is started from Update() after SceneManager finishes SwitchTo().
     m_loaded = true;
     std::cout << "[LoadingScene] Load() complete - returning to SceneManager" << std::endl;
+    std::cout.flush();
+}
+
+void LoadingScene::StartAsyncLoading()
+{
+    if (m_loadStarted) {
+        return;
+    }
+
+    m_loadStarted = true;
+    std::cout << "[LoadingScene] Single-thread loading started" << std::endl;
     std::cout.flush();
 }
 
@@ -418,6 +407,31 @@ void LoadingScene::CreateNextScene()
 
 void LoadingScene::Update(float deltaTime)
 {
+    if (!m_loadStarted) {
+        StartAsyncLoading();
+    }
+
+    if (!m_loadingComplete && m_currentTaskIndex < m_loadTasks.size()) {
+        LoadTask& task = m_loadTasks[m_currentTaskIndex];
+        m_statusText = task.name;
+
+        char logBuf[256];
+        _snprintf(logBuf, sizeof(logBuf), "[LoadingScene] Main-thread task %d/%d: %s\n",
+                  (int)m_currentTaskIndex, (int)m_loadTasks.size(), task.name.c_str());
+        OutputDebugStringA(logBuf);
+
+        ExecuteCurrentTask();
+
+        float progressPercent = (m_totalWeight > 0.0f) ? ((m_completedWeight / m_totalWeight) * 100.0f) : 100.0f;
+        InterlockedExchange(&m_targetProgressPercentage, (LONG)progressPercent);
+
+        if (m_currentTaskIndex >= m_loadTasks.size()) {
+            InterlockedExchange(&m_isLoadComplete, 1);
+            InterlockedExchange(&m_targetProgressPercentage, 100);
+            OutputDebugStringA("[LoadingScene] Single-thread loading complete\n");
+        }
+    }
+
     // Atomically read target progress (0-100)
     LONG targetProgress = InterlockedExchangeAdd(&m_targetProgressPercentage, 0);
     float targetProgressFloat = (float)targetProgress / 100.0f; // Convert to 0.0-1.0
@@ -432,16 +446,7 @@ void LoadingScene::Update(float deltaTime)
 
     // Check if loading is complete
     LONG isComplete = InterlockedExchangeAdd(&m_isLoadComplete, 0);
-    if (isComplete && m_currentRenderProgress >= 0.99f) {
-        // Wait for thread to finish
-        if (m_hLoadingThread != NULL) {
-            WaitForSingleObject(m_hLoadingThread, INFINITE);
-            XCloseHandle(m_hLoadingThread);
-            m_hLoadingThread = NULL;
-        }
-
-        // Switch to target scene
-        m_loadingComplete = true;
+    if (!m_loadingComplete && isComplete && m_currentRenderProgress >= 0.99f) {
         CreateNextScene();
     }
 }
@@ -457,9 +462,19 @@ void LoadingScene::Render()
 		}
 	}
 
-	// Draw loading background if available
-	if (m_renderer && m_backgroundTexture.GetTexture()) {
-		m_renderer->DrawSingleSprite(&m_backgroundTexture, 1.0f, 0.0f, m_screenW, m_screenH);
+	if (!m_spriteRenderer || !m_renderer) {
+		return;
+	}
+
+	LPDIRECT3DTEXTURE9 pBackgroundTex = TextureRegistry::instance().getTexture("loading_background");
+	if (pBackgroundTex && m_backgroundTexture.GetTexture() != pBackgroundTex) {
+		m_backgroundTexture.SetTexture(pBackgroundTex);
+	}
+
+	if (m_backgroundTexture.GetTexture()) {
+		m_spriteRenderer->Begin(SHADER_SPRITE, m_backgroundTexture.GetTexture(), 0.95f, 0, true);
+		m_spriteRenderer->Draw(0.0f, 0.0f, m_screenW, m_screenH, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
+		m_spriteRenderer->End();
 	}
 
 // 3. Параметры геометрии прогресс-бара
@@ -472,42 +487,34 @@ void LoadingScene::Render()
 	float fillWidth = barWidth * m_currentRenderProgress;
 
 	// Защита от нулевого/отрицательного квада для видеокарты Xbox 360
-	if (m_currentRenderProgress < 0.01f) {
-		return;
-	}
-
 	// 4. Отрисовка полосы через отложенный рендерер UI (Deferred SpriteRenderer)
-	if (m_spriteRenderer && m_renderer) {
+	{
 
 		// Получаем указатель на текстуру из кэша (лог подтвердил, что она успешно находится в кэше)
-		LPDIRECT3DTEXTURE9 pProgressBarTex = TextureRegistry::instance().getTextureOrLoad("progressBarBackground");
+		LPDIRECT3DTEXTURE9 pProgressBarTex = TextureRegistry::instance().getTexture("progressBarBackground");
 		if (!pProgressBarTex) {
 			return;
 		}
 
 		// Открываем пакет отложенных команд рендерера
 		m_spriteRenderer->Begin(SHADER_SPRITE, pProgressBarTex, 0.0f, 0, true);
-
 		// Передаем точные UV-координаты. Поскольку текстура одиночная:
 		// Левый край: U0 = 0.0f
 		// Правый край плавно сдвигается: U1 = m_currentRenderProgress
-		m_spriteRenderer->Draw(
+		if (m_currentRenderProgress > 0.0f && fillWidth > 0.0f) {
+			m_spriteRenderer->Draw(
 			barX, barY,                    // Позиция на экране
 			fillWidth, barHeight,          // Динамическая ширина и фиксированная высота
 			0.0f, 0.0f,                    // UV старт (Top-Left)
 			m_currentRenderProgress, 1.0f, // UV конец (Bottom-Right, U растет вместе с % загрузки!)
 			0xFFFFFFFF                     // Цвет (Белый)
-		);
+			);
+		}
 
 		// Закрываем пакет. Теперь m_pendingCommands гарантированно равен 1
 		m_spriteRenderer->End();
 
 		// 5. КРИТИЧЕСКИЙ ВЫЗОВ СБРОСА ОЧЕРЕДИ
-		ShaderManager* pShaderManager = m_renderer ? m_renderer->GetShaderManager() : nullptr;
-
-		if (pShaderManager) {
-			m_spriteRenderer->Flush(pShaderManager);
-		}
 	}
 }
 }
