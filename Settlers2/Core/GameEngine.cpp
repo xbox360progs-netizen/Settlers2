@@ -138,27 +138,6 @@ bool GameEngine::Initialize()
         return false;
     }
 
-	char buf[256];
-    sprintf(buf, "[GameEngine::Initialize] BEFORE SpriteRenderer: m_spriteRenderer=%p, vtable=%p\n", 
-            m_spriteRenderer, m_spriteRenderer ? *(void***)m_spriteRenderer : nullptr);
-    OutputDebugStringA(buf);
-
-	if (m_spriteRenderer) {
-    void** vtable = *(void***)m_spriteRenderer;
-    sprintf(buf, "[GameEngine::Initialize] BEFORE SpriteRenderer: m_spriteRenderer=%p, vtable=%p\n", 
-            m_spriteRenderer, vtable);
-    OutputDebugStringA(buf);
-
-	__try {
-        if (vtable) {
-            OutputDebugStringA("[GameEngine::Initialize] Object seems alive\n");
-        } else {
-            OutputDebugStringA("[GameEngine::Initialize] vtable is NULL, but object might be alive\n");
-        }
-    } __except(EXCEPTION_EXECUTE_HANDLER) {
-        OutputDebugStringA("[GameEngine::Initialize] Memory access error!\n");
-    }
-	}
 
 	m_renderer->SetSpriteRenderer(m_spriteRenderer); 
 
@@ -404,7 +383,6 @@ if (m_sceneManager && m_sceneManager->IsSceneReady()) {
 
 std::cout << "[GameEngine] Exiting main loop" << std::endl;
 
-    // 1. СБРОС LOCK-FREE СТАТУСОВ КОМАНД - освобождаем GPU потоки
     if (m_renderer) {
         ShaderManager* sm = m_renderer->GetShaderManager();
         if (sm) {
@@ -415,12 +393,10 @@ std::cout << "[GameEngine] Exiting main loop" << std::endl;
         }
     }
 
-    // 2. Очистка DirectX устройства
     if (m_renderer) {
         m_renderer->Shutdown();
     }
 
-    // 3. ВОЗВРАТ В DASHBOARD XBOX 360
 #ifdef _XBOX
     OutputDebugStringA("[GameEngine] Safe shutdown. Returning to Xbox Dashboard...\n");
     // XLaunchNewImage requires Xbox 360 XDK - use XEX loader alternative

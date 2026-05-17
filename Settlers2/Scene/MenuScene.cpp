@@ -57,17 +57,19 @@ void MenuScene::Load() {
 void MenuScene::LoadTextures() {
     TextureRegistry& registry = TextureRegistry::instance();
     
-    // 1. Инициализируем список путей из конфига (если еще не сделано)
-    registry.initializeFromManifest("game:\\Media\\Config\\textures.ini", "Menu");
-    
-    // 2. Просто просим текстуру по имени
-    LPDIRECT3DTEXTURE9 tex = registry.getTextureOrLoad("menu_background");
+    // Main thread should NOT do file I/O or D3D operations - background thread handles this
+    // Simply retrieve already-loaded texture from cache
+    LPDIRECT3DTEXTURE9 tex = registry.getTexture("menu_background");
     
     if (tex) {
         m_backgroundTexture.SetTexture(tex);
     } else {
-        // Здесь мы окажемся только если даже заглушка не создалась
-        OutputDebugStringA("[MenuScene] Serious error: background texture is NULL\n");
+        // If background thread hasn't loaded it yet, use not-found texture
+        OutputDebugStringA("[MenuScene] Warning: menu_background not loaded yet by background thread\n");
+        tex = registry.getNotFoundTexture();
+        if (tex) {
+            m_backgroundTexture.SetTexture(tex);
+        }
     }
 }
 
@@ -77,10 +79,6 @@ void MenuScene::Initialize(LPDIRECT3DDEVICE9 device, SpriteRenderer* spriteRende
   
   std::cout << "[MenuScene] Initialize called" << std::endl;
   
-  char buf[256];
-    sprintf(buf, "[MenuScene::Initialize] this=%p, spriteRenderer=%p, vtable=%p\n", 
-            this, spriteRenderer, spriteRenderer ? *(void***)spriteRenderer : nullptr);
-    OutputDebugStringA(buf);
     
     if (!spriteRenderer) {
         OutputDebugStringA("[MenuScene::Initialize] ERROR: spriteRenderer is NULL!\n");
@@ -101,14 +99,6 @@ void MenuScene::Initialize(LPDIRECT3DDEVICE9 device, SpriteRenderer* spriteRende
   OutputDebugStringA(buf);
   std::cout << "[MenuScene] Initialize called" << std::endl;
   
-    sprintf(buf, "[MenuScene::Initialize] this=%p, spriteRenderer=%p, vtable=%p\n", 
-            this, spriteRenderer, spriteRenderer ? *(void***)spriteRenderer : nullptr);
-    OutputDebugStringA(buf);
-
-  if (m_spriteRenderer) {
-    sprintf(buf, "[MenuScene::Initialize] m_spriteRenderer->GetDevice()=%p\n", m_spriteRenderer->GetDevice());
-    OutputDebugStringA(buf);
-  }
   
   LoadTextures();
 }

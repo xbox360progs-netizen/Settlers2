@@ -80,20 +80,8 @@ void LoadingScene::Load()
         if (m_binFileManager) {
             SetBinFileManagerStatic(m_binFileManager);
         }
-        // Load manifest-based texture paths (Menu section for dpad_cross and cursor)
-        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Menu");
-        
-        // Load all other manifest sections synchronously on main thread to prevent deadlock
-        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "UI");
-        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Mountains");
-        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "MountainsWater");
-        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Trees");
-        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Rocks");
-        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Decorations");
-        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Buildings");
-        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Roads");
-        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Units");
-        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "ResourceIcons");
+        // Main thread should NOT do file I/O or D3D operations
+        // All manifest initialization moved to background thread in SetupLoadTasks
     }
 
     std::cout << "[LoadingScene] TextureRegistry initialized" << std::endl;
@@ -102,42 +90,9 @@ void LoadingScene::Load()
     // Clear previous tasks
     m_loadTasks.clear();
 
-    // Load background texture first using TextureRegistry
-    std::cout << "[LoadingScene] Loading background texture via TextureRegistry..." << std::endl;
-    std::cout.flush();
-    LPDIRECT3DTEXTURE9 pBgTex = TextureRegistry::instance().getTextureOrLoad("loading_background");
-    std::cout << "[LoadingScene] getTextureOrLoad returned, pBgTex=" << pBgTex << std::endl;
-    std::cout.flush();
-    if (pBgTex) {
-        m_backgroundTexture.SetTexture(pBgTex);
-        std::cout << "[LoadingScene] Background texture loaded successfully via TextureRegistry" << std::endl;
-    } else {
-        std::cout << "[LoadingScene] WARNING: Failed to load background texture via TextureRegistry" << std::endl;
-        // Fallback to direct loading
-        if (m_textureLoader && m_renderer) {
-            std::cout << "[LoadingScene] Trying fallback direct loading..." << std::endl;
-            std::cout.flush();
-            HRESULT hr = m_textureLoader->Load(L"game:\\Media\\Textures\\Background\\loading_background.png", &pBgTex);
-            std::cout << "[LoadingScene] Direct load hr=0x" << std::hex << hr << std::dec << std::endl;
-            std::cout.flush();
-            if (SUCCEEDED(hr) && pBgTex) {
-                m_backgroundTexture.SetTexture(pBgTex);
-                TextureRegistry::instance().registerTexture("loading_background", pBgTex);
-                std::cout << "[LoadingScene] Background texture loaded via fallback method" << std::endl;
-            } else {
-                std::cout << "[LoadingScene] ERROR: Failed to load background texture via fallback" << std::endl;
-            }
-        }
-    }
-
-    // Pre-load UI textures SYNCHRONOUSLY on main thread (Thread 0) - needed for immediate rendering
-    std::cout << "[LoadingScene] Pre-loading UI textures on main thread..." << std::endl;
-    std::cout.flush();
-    TextureRegistry::instance().getTextureOrLoad("progressBarBackground");
-    std::cout << "[LoadingScene] progressBarBackground pre-loaded" << std::endl;
-    std::cout.flush();
-    TextureRegistry::instance().getTextureOrLoad("loading_background");
-    std::cout << "[LoadingScene] loading_background pre-loaded" << std::endl;
+    // Main thread should NOT do D3D operations - background thread will load all textures
+    // LoadingScene will use not-found texture until background thread completes
+    std::cout << "[LoadingScene] Background texture will be loaded by background thread" << std::endl;
     std::cout.flush();
 
     // Setup all load tasks using TextureRegistry approach
@@ -150,32 +105,31 @@ void LoadingScene::Load()
     // Diagnostics
     TextureRegistry::instance().logManifestPathsStatus();
 
-    // DISABLED: Background thread causes D3D device deadlock on Xbox 360
-    // Load all resources synchronously on main thread instead
-    std::cout << "[LoadingScene] Loading resources synchronously on main thread (background thread disabled to prevent D3D deadlock)" << std::endl;
+    // Start async loading - background thread handles all file I/O and D3D operations
+    // Main thread only renders progress bar and retrieves ready resources
+    std::cout << "[LoadingScene] Starting async file reader thread..." << std::endl;
     std::cout.flush();
     
-    // Execute all load tasks synchronously
-    for (size_t i = 0; i < m_loadTasks.size(); ++i) {
-        LoadTask& task = m_loadTasks[i];
-        std::cout << "[LoadingScene] Executing: " << task.name << std::endl;
-        std::cout.flush();
-        
-        m_statusText = task.name;
-        
-        if (task.taskFunc) {
-            task.taskFunc();
-        }
-        
-        m_completedWeight += task.weight;
-        std::cout << "[LoadingScene] Task '" << task.name << "' completed" << std::endl;
-    }
-    
-    // Signal completion
-    InterlockedExchange(&m_isLoadComplete, 1);
-    std::cout << "[LoadingScene] All tasks completed synchronously" << std::endl;
-    std::cout.flush();
+    DWORD threadId = 0;
+    m_hLoadingThread = CreateThread(
+        NULL,                   // Default security
+        64 * 1024,              // 64KB stack
+        XboxThreadFunc,         // Thread function
+        this,                   // Context parameter
+        0,                      // Run immediately
+        &threadId               // Store thread ID
+    );
 
+    if (m_hLoadingThread != NULL) {
+        std::cout << "[LoadingScene] Async thread started, threadId=" << threadId << std::endl;
+        std::cout.flush();
+    } else {
+        DWORD err = GetLastError();
+        std::cout << "[LoadingScene] ERROR: Failed to create loading thread, error=" << err << std::endl;
+        std::cout.flush();
+    }
+
+    // Return immediately - loading continues in background
     m_loaded = true;
     std::cout << "[LoadingScene] Load() complete - returning to SceneManager" << std::endl;
     std::cout.flush();
@@ -303,39 +257,67 @@ void LoadingScene::LoadAtlasOrTexture(const char* name, const char* pngPath)
 
 void LoadingScene::SetupLoadTasks()
 {
-    // ===== BACKGROUND TEXTURES =====
+    // ===== MENU TEXTURES (must load first for MenuScene) =====
     AddLoadTask([this]() {
-    }, "Load Background Textures", 0.5f);
+        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Menu");
+        TextureRegistry::instance().getTextureOrLoad("menu_background");
+    }, "Load Texture: Menu", 0.5f);
+
+    // ===== LOADING SCREEN TEXTURES =====
+    AddLoadTask([this]() {
+        TextureRegistry::instance().getTextureOrLoad("loading_background");
+        TextureRegistry::instance().getTextureOrLoad("progressBarBackground");
+    }, "Load Texture: Loading Screen", 0.5f);
 
     // ===== UI TEXTURES =====
-    // Moved to main thread Load() to prevent deadlock
+    AddLoadTask([this]() {
+        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "UI");
+    }, "Load Texture: UI", 0.5f);
 
     // ===== MOUNTAINS =====
-    // Moved to main thread Load() to prevent deadlock
+    AddLoadTask([this]() {
+        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Mountains");
+    }, "Load Texture: Mountains", 1.5f);
 
     // ===== MountainsWater =====
-    // Moved to main thread Load() to prevent deadlock
+    AddLoadTask([this]() {
+        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "MountainsWater");
+    }, "Load Texture: MountainsWater", 1.5f);
 
     // ===== TREES =====
-    // Moved to main thread Load() to prevent deadlock
+    AddLoadTask([this]() {
+        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Trees");
+    }, "Load Texture: Trees", 1.5f);
 
     // ===== ROCKS =====
-    // Moved to main thread Load() to prevent deadlock
+    AddLoadTask([this]() {
+        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Rocks");
+    }, "Load Texture: Rocks", 1.0f);
 
     // ===== DECORATIONS =====
-    // Moved to main thread Load() to prevent deadlock
+    AddLoadTask([this]() {
+        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Decorations");
+    }, "Load Texture: Decorations", 1.0f);
 
     // ===== BUILDINGS =====
-    // Moved to main thread Load() to prevent deadlock
+    AddLoadTask([this]() {
+        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Buildings");
+    }, "Load Texture: Buildings", 1.5f);
 
     // ===== ROADS =====
-    // Moved to main thread Load() to prevent deadlock
+    AddLoadTask([this]() {
+        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Roads");
+    }, "Load Texture: Roads", 0.5f);
 
     // ===== UNITS =====
-    // Moved to main thread Load() to prevent deadlock
+    AddLoadTask([this]() {
+        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Units");
+    }, "Load Texture: Units", 1.0f);
 
     // ===== RESOURCE ICONS =====
-    // Moved to main thread Load() to prevent deadlock
+    AddLoadTask([this]() {
+        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "ResourceIcons");
+    }, "Load Texture: ResourceIcons", 0.5f);
 
     // ===== ATLAS ICONS =====
     AddLoadTask([this]() {
