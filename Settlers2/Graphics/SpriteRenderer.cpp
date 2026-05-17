@@ -1181,8 +1181,13 @@ void SpriteRenderer::Flush(ShaderManager* pShader) {
         OutputDebugStringA("[SR::Flush] pShader is valid\n");
         pShader->PushXbox360Command(cmd);
         OutputDebugStringA("[SR::Flush] PushXbox360Command done\n");
+    } else if (m_pShaderManager) {
+        // Fallback: use internal ShaderManager if no external one provided
+        OutputDebugStringA("[SR::Flush] Using fallback m_pShaderManager\n");
+        m_pShaderManager->PushXbox360Command(cmd);
+        OutputDebugStringA("[SR::Flush] PushXbox360Command done (fallback)\n");
     } else {
-        OutputDebugStringA("[SR::Flush] WARNING: pShader is NULL!\n");
+        OutputDebugStringA("[SR::Flush] ERROR: pShader is NULL and m_pShaderManager is NULL!\n");
     }
 
     m_totalVertexCount += numVertices;
