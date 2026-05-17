@@ -1135,12 +1135,14 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                 OutputDebugStringA(renderMsg);
 
                 OutputDebugStringA("[SMgr::ExecuteQueue] Calling DrawIndexedPrimitive...\n");
+                // CRITICAL: For ABSOLUTE indices, BaseVertexIndex MUST be 0
+                // cmd.vertexStart contains the index buffer offset (already accumulated by SpriteRenderer)
                 m_pDevice->DrawIndexedPrimitive(
                     D3DPT_TRIANGLELIST,
-                    cmd.baseVertex,    // CORRECT vertex offset from ring buffer
+                    0,                 // BaseVertexIndex = 0 for ABSOLUTE indices
                     0,                 // MinIndex = 0
                     cmd.vertexCount,
-                    cmd.vertexStart,   // CORRECT index buffer offset
+                    cmd.vertexStart,   // Index buffer offset (cumulative)
                     cmd.primitiveCount
                 );
                 OutputDebugStringA("[SMgr::ExecuteQueue] DrawIndexedPrimitive DONE\n");
