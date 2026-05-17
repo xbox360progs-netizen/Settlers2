@@ -19,6 +19,8 @@
 #include <xtl.h>
 #include <stdio.h>
 
+extern void SetBinFileManagerStatic(BinFileManager* mgr);
+
 volatile bool g_IsEngineRunning = true;
 
 //-------------------------------------------------------------------------------------
@@ -173,8 +175,12 @@ bool GameEngine::Initialize()
     m_binFileManager->SetDevice(m_renderer->GetDevice());
     m_textureLoader = new TextureLoader(m_renderer->GetDevice());
 
-    // Initialize TextureRegistry with the device
+    // Initialize TextureRegistry before any scene can query it.
+    TextureRegistry::instance().initThreadSafety();
     TextureRegistry::instance().initialize(m_renderer->GetDevice());
+    SetBinFileManagerStatic(m_binFileManager);
+    TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Menu");
+    TextureRegistry::instance().getTextureOrLoad("menu_background");
 
     m_sceneManager = new Scene::SceneManager();
 

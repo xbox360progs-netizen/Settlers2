@@ -41,25 +41,32 @@ public:
     void unregisterAtlas(const std::string& name);
 
 private:
-    TextureRegistry() : m_notFoundTexture(nullptr), m_device(nullptr) {}
-    ~TextureRegistry() {}
-    
-    void ensureInitialized() const {
-        // Lazy initialization of critical section
-        static bool initialized = false;
-        if (!initialized) {
-            InitializeCriticalSection(&m_cs);
-            initialized = true;
-        }
+    TextureRegistry()
+        : m_notFoundTexture(nullptr)
+        , m_device(nullptr)
+        , m_threadSafetyInitialized(false)
+    {
+        initThreadSafety();
+    }
+
+    ~TextureRegistry()
+    {
+        shutdownThreadSafety();
     }
     
 public:
     // Call this once at startup to initialize critical section
     void initThreadSafety() {
-        InitializeCriticalSection(&m_cs);
+        if (!m_threadSafetyInitialized) {
+            InitializeCriticalSection(&m_cs);
+            m_threadSafetyInitialized = true;
+        }
     }
     void shutdownThreadSafety() {
-        DeleteCriticalSection(&m_cs);
+        if (m_threadSafetyInitialized) {
+            DeleteCriticalSection(&m_cs);
+            m_threadSafetyInitialized = false;
+        }
     }
     
 private:
@@ -76,4 +83,5 @@ private:
     std::map<std::string, std::wstring> m_texturePaths;
     // Thread safety (non-const for EnterCriticalSection)
     mutable CRITICAL_SECTION m_cs;
+    bool m_threadSafetyInitialized;
 };

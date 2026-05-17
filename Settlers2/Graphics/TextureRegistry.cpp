@@ -29,9 +29,11 @@ TextureRegistry& TextureRegistry::instance() {
 }
 
 LPDIRECT3DTEXTURE9 TextureRegistry::getTexture(const std::string& name) {
-    // Don't use critical section here - caller (getTextureOrLoad) handles it
+    EnterCriticalSection(&m_cs);
     std::map<std::string, LPDIRECT3DTEXTURE9>::iterator it = m_textures.find(name);
-    return (it != m_textures.end()) ? it->second : NULL;
+    LPDIRECT3DTEXTURE9 result = (it != m_textures.end()) ? it->second : NULL;
+    LeaveCriticalSection(&m_cs);
+    return result;
 }
 
 LPDIRECT3DTEXTURE9 TextureRegistry::getNotFoundTexture() const {
@@ -39,12 +41,14 @@ LPDIRECT3DTEXTURE9 TextureRegistry::getNotFoundTexture() const {
 }
 
 void TextureRegistry::registerAtlas(const std::string& name, std::tr1::shared_ptr<SpriteAtlas> atlas) {
+    EnterCriticalSection(&m_cs);
     std::map<std::string, std::tr1::shared_ptr<SpriteAtlas> >::iterator it = m_atlases.find(name);
     if (it != m_atlases.end()) {
         it->second = atlas;
     } else {
         m_atlases.insert(std::pair<std::string, std::tr1::shared_ptr<SpriteAtlas> >(name, atlas));
     }
+    LeaveCriticalSection(&m_cs);
 }
 
 std::tr1::shared_ptr<SpriteAtlas> TextureRegistry::getAtlas(const std::string& name) {
@@ -63,8 +67,11 @@ void TextureRegistry::unregisterAtlas(const std::string& name) {
 
 LPDIRECT3DTEXTURE9 TextureRegistry::getTextureOrLoad(const std::string& name) {
     EnterCriticalSection(&m_cs);
+
+    // Directly access m_textures to avoid double-lock with getTexture()
+    std::map<std::string, LPDIRECT3DTEXTURE9>::iterator it = m_textures.find(name);
+    LPDIRECT3DTEXTURE9 tex = (it != m_textures.end()) ? it->second : NULL;
     
-    LPDIRECT3DTEXTURE9 tex = getTexture(name);
     if (tex) {
         OutputDebugStringA(("[TextureRegistry] Texture '" + name + "' found in cache\n").c_str());
         LeaveCriticalSection(&m_cs);
@@ -106,7 +113,7 @@ LPDIRECT3DTEXTURE9 TextureRegistry::getTextureOrLoad(const std::string& name) {
         if (binFileManager) {
             std::string binPathA(binPathW.begin(), binPathW.end());
             char debugBuf[512];
-        fclose(binTest);
+            fclose(binTest);
             _snprintf(debugBuf, sizeof(debugBuf), "[TextureRegistry] Found .bin, loading as atlas: %s\n", binPathA.c_str());
             OutputDebugStringA(debugBuf);
             std::tr1::shared_ptr<SpriteAtlas> atlas = binFileManager->LoadAtlas(binPathA, name);
@@ -115,6 +122,8 @@ LPDIRECT3DTEXTURE9 TextureRegistry::getTextureOrLoad(const std::string& name) {
                 registerAtlas(name, atlas);
                 return atlas->GetTexture();
             }
+        } else {
+            fclose(binTest);
         }
     }
     
@@ -169,22 +178,28 @@ void TextureRegistry::registerTexture(const std::string& name, LPDIRECT3DTEXTURE
 }
 
 void TextureRegistry::unregisterTexture(const std::string& name) {
+    EnterCriticalSection(&m_cs);
     std::map<std::string, LPDIRECT3DTEXTURE9>::iterator it = m_textures.find(name);
     if (it != m_textures.end()) {
         if (it->second) it->second->Release();
         m_textures.erase(it);
     }
+    LeaveCriticalSection(&m_cs);
 }
 
 void TextureRegistry::clear() {
+    EnterCriticalSection(&m_cs);
     for (std::map<std::string, LPDIRECT3DTEXTURE9>::iterator it = m_textures.begin(); it != m_textures.end(); ++it) {
         if (it->second) it->second->Release();
     }
     m_textures.clear();
+    m_atlases.clear();
+    m_texturePaths.clear();
     if (m_notFoundTexture) {
         m_notFoundTexture->Release();
         m_notFoundTexture = NULL;
     }
+    LeaveCriticalSection(&m_cs);
 }
 
 void TextureRegistry::initialize(LPDIRECT3DDEVICE9 device) {

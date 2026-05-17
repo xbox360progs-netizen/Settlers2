@@ -163,12 +163,18 @@ void LoadingScene::AsyncLoadResources()
 {
     std::cout << "[LoadingScene::AsyncLoadResources] Started!" << std::endl;
     std::cout.flush();
+    OutputDebugStringA("[LoadingScene::AsyncLoadResources] Started!\n");
     
     // Execute all load tasks
     for (size_t i = 0; i < m_loadTasks.size(); ++i) {
         LoadTask& task = m_loadTasks[i];
         std::cout << "[LoadingScene::AsyncLoadResources] Executing: " << task.name << std::endl;
         std::cout.flush();
+        
+        char logBuf[256];
+        _snprintf(logBuf, sizeof(logBuf), "[LoadingScene::AsyncLoadResources] Executing task %d/%d: %s\n", 
+                  (int)i, (int)m_loadTasks.size(), task.name.c_str());
+        OutputDebugStringA(logBuf);
 
         // Update status text
         m_statusText = task.name;
@@ -189,11 +195,16 @@ void LoadingScene::AsyncLoadResources()
         m_completedWeight = completedSoFar;
 
         std::cout << "[LoadingScene::AsyncLoadResources] Task '" << task.name << "' completed (" << (int)progressPercent << "%)" << std::endl;
+        _snprintf(logBuf, sizeof(logBuf), "[LoadingScene::AsyncLoadResources] Task '%s' completed (%d%%)\n", 
+                  task.name.c_str(), (int)progressPercent);
+        OutputDebugStringA(logBuf);
     }
 
     // Signal completion
     InterlockedExchange(&m_isLoadComplete, 1);
     std::cout << "[LoadingScene::AsyncLoadResources] All tasks completed" << std::endl;
+    OutputDebugStringA("[LoadingScene::AsyncLoadResources] *** ALL TASKS COMPLETED ***\n");
+    std::cout.flush();
 }
 
 void LoadingScene::LoadAtlasOrTexture(const char* name, const char* pngPath)
