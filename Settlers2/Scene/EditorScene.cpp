@@ -108,6 +108,7 @@ void EditorScene::Load() {
     // Get ShaderManager from Renderer BEFORE initialization
     if (m_renderer) {
         m_shaderManager = m_renderer->GetShaderManager();
+		m_spriteRenderer = m_renderer->GetSpriteRenderer();
         OutputDebugStringA("[EditorScene] Got ShaderManager from Renderer\n");
     }
 
@@ -615,22 +616,31 @@ void EditorScene::Render() {
 
         // Second pass: Render resource amounts ONLY (text)
         if (m_textManager) {
-            m_textManager->BeginTextBatch(FONT_MENU, 0.0f);
-            for (int y = 0; y < layerHeight; y++) {
-                for (int x = 0; x < layerWidth; x++) {
-                    const World::ResourceNode& node = map->GetResourceNode(x, y);
-                    if (node.type != World::ResourceType_None && node.isVisible && node.amount > 0) {
-                        float worldX, worldY;
-                        coords.NodeTileToWorld(x, y, worldX, worldY);
-                        char amountStr[32];
-                        sprintf_s(amountStr, "%d", node.amount);
-                        float screenX, screenY;
-                        m_camera->WorldToScreen(worldX, worldY, screenX, screenY);
-                        m_textManager->DrawTextToScreen(amountStr, screenX + 20.0f, screenY, 0xFFFFFFFF, 0.8f);
-                    }
-                }
-            }
-            m_textManager->EndTextBatch();
+			m_textManager->BeginTextBatch(FONT_MENU, 0.0f);
+			for (int y = 0; y < layerHeight; ++y) {
+				for (int x = 0; x < layerWidth; ++x) {
+					const World::ResourceNode& node = map->GetResourceNode(x, y);
+					if (node.type != World::ResourceType_None && node.isVisible && node.amount > 0) {
+						float worldX, worldY;
+						coords.NodeTileToWorld(x, y, worldX, worldY);
+						char amountStr[32];
+						sprintf_s(amountStr, "%d", node.amount);
+
+						float screenX, screenY;
+						m_camera->WorldToScreen(worldX, worldY, screenX, screenY);
+
+						// FONT_MENU, FONT_STYLE_NORMAL
+						m_textManager->DrawTextToScreen(amountStr,
+							screenX + 20.0f,
+							screenY,
+							0xFFFFFFFF,   // colour
+							0.8f,         // scale
+							FONT_MENU,    // fontID
+							FONT_STYLE_NORMAL);
+					}
+				}
+			}
+			m_textManager->EndTextBatch();
         }
     }
 
@@ -714,8 +724,8 @@ void EditorScene::Render() {
         const char* layerNames[] = { "Roads", "Nodes", "Placement", "Resources" , "Ground", "Objects", "Overlay"};
         int layerIdx = static_cast<int>(m_currentLayer);
         if (layerIdx >= 0 && layerIdx < 7) {
-            m_textManager->DrawTextToScreen("Layer:", 10.0f, m_renderer->GetScreenHeight() - 40.0f, 0xFFAAAAAA, 0.25f);
-            m_textManager->DrawTextToScreen(layerNames[layerIdx], 100.0f, m_renderer->GetScreenHeight() - 40.0f, 0xFFFFFFFF, 0.25f);
+            m_textManager->DrawTextToScreen("Layer:", 10.0f, m_renderer->GetScreenHeight() - 40.0f, 0xFFAAAAAA, 0.25f, FONT_MENU, FONT_STYLE_NORMAL);
+            m_textManager->DrawTextToScreen(layerNames[layerIdx], 100.0f, m_renderer->GetScreenHeight() - 40.0f, 0xFFFFFFFF, 0.25f, FONT_MENU, FONT_STYLE_NORMAL);
         }
 
         m_textManager->EndTextBatch();

@@ -55,58 +55,111 @@ MapEditor::~MapEditor() {
     delete m_tileRenderer;
 }
 
-void MapEditor::Initialize(World::Map* map, Renderer* renderer, Input::InputManager* inputManager, IDirect3DDevice9* device) {
+void MapEditor::Initialize(World::Map* map, Renderer* renderer,
+                          Input::InputManager* inputManager,
+                          IDirect3DDevice9* device)
+{
+    // Сохраняем переданные зависимости
     m_map = map;
     m_renderer = renderer;
     m_inputManager = inputManager;
     m_pDevice = device;
+	SetSpriteRenderer(renderer->GetSpriteRenderer());
 
-    CoordinateSystem::GetInstance().Initialize(MAP_WIDTH, MAP_HEIGHT);
+    // === ИСПРАВЛЕНИЕ: инициализируем систему координат реальным размером Ground-слоя ===
+    int groundWidth  = 20;   // значения по умолчанию (на случай, если слой ещё не создан)
+    int groundHeight = 20;
+    if (m_map)
+    {
+        World::TileLayer* groundLayer = m_map->GetLayer(World::Ground);
+        if (groundLayer)
+        {
+            groundWidth  = groundLayer->GetWidth();
+            groundHeight = groundLayer->GetHeight();
+        }
+    }
+    CoordinateSystem::GetInstance().Initialize(groundWidth, groundHeight);
+    // ============================================================================
+
+    // Кешируем позиции узлов (для быстрого доступа при рендеринге/выборе)
     CacheNodePositions();
 
+    // Загрузка текстур и атласов
     TextureRegistry& registry = TextureRegistry::instance();
     m_groundTexture = registry.getTextureOrLoad("ground");
-    m_groundAtlas = registry.getAtlas("ground");
-    m_objectAtlas = registry.getAtlas("icon_tree");
+    m_groundAtlas   = registry.getAtlas("ground");
+    m_objectAtlas   = registry.getAtlas("icon_tree");
     m_cursorTexture = registry.getTextureOrLoad("background_cursor_red");
     m_isoCursorTexture = registry.getTextureOrLoad("cursor");
 
-    // Create a simple white dot texture for weight map
-    if (device) {
-        D3DXCreateTexture(device, 1, 1, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &m_dotTexture);
-        if (m_dotTexture) {
+    // Создаём простую белую точку для весовой карты (используется в RenderWeightMap)
+    if (device)
+    {
+        D3DXCreateTexture(device, 1, 1, 1, 0,
+                          D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT,
+                          &m_dotTexture);
+        if (m_dotTexture)
+        {
             D3DLOCKED_RECT lockRect;
-            m_dotTexture->LockRect(0, &lockRect, NULL, 0);
+            m_dotTexture->LockRect(0, &lockRect, nullptr, 0);
             *(DWORD*)lockRect.pBits = D3DCOLOR_ARGB(255, 255, 255, 255);
             m_dotTexture->UnlockRect(0);
         }
     }
 
-    // Initialize weight map as deep water (default for water tile)
+    // Инициализируем весовую карту (по умолчанию – глубокая вода)
     m_weightMap = new Logic::WeightMap(GRID_WIDTH, GRID_HEIGHT);
-    for (int y = 0; y < GRID_HEIGHT; ++y) {
-        for (int x = 0; x < GRID_WIDTH; ++x) {
+    for (int y = 0; y < GRID_HEIGHT; ++y)
+    {
+        for (int x = 0; x < GRID_WIDTH; ++x)
+        {
             m_weightMap->SetWeight(x, y, Logic::WEIGHT_DEEP_WATER);
         }
     }
 
-    if (renderer && map) {
-        m_tileRenderer = new TileRenderer(renderer, map->GetWidth(), map->GetHeight());
+    // Создаём рендерер тайлов, если есть рендерер и карта
+    if (renderer && map)
+    {
+        m_tileRenderer = new TileRenderer(renderer,
+                                          map->GetWidth(),
+                                          map->GetHeight());
         m_tileRenderer->SetMap(map);
     }
 
+    // Инициализация UI (палитра тайлов, панель инструментов)
     CreateUI(device);
 
+    // Заполняем начальное состояние карты (все тайлы получают регион 0 из атласа "ground")
     InitializeMap();
 
-    // Center camera on the iso diamond center
-    if (m_map) {
+    // Центрируем камеру в центре изометрического алмаза карты
+    if (m_map)
+    {
         CoordinateSystem& coords = CoordinateSystem::GetInstance();
         float cx, cy;
         coords.GetDiamondCenter(cx, cy);
         m_cameraX = cx;
         m_cameraY = cy;
     }
+
+    // === ОТЛАДОЧНЫЙ ВЫВОД: проверяем, что преобразование координат даёт ожидаемый диапазон ===
+    // (можно закомментировать/удалить после подтверждения, что карта видна)
+    CoordinateSystem& coords = CoordinateSystem::GetInstance();
+    float wx0, wy0, wx1, wy1;
+    coords.GroundTileToWorld(0, 0, wx0, wy0);              // левый верхний угол карты
+    coords.GroundTileToWorld(groundWidth - 1,
+                            groundHeight - 1,
+                            wx1, wy1);                     // правый нижний угол
+    char dbgBuf[256];
+    _snprintf(dbgBuf, sizeof(dbgBuf),
+              "[DEBUG] Ground tile (0,0) -> World: (%f, %f)\n",
+              wx0, wy0);
+    OutputDebugStringA(dbgBuf);
+    _snprintf(dbgBuf, sizeof(dbgBuf),
+              "[DEBUG] Ground tile (%d,%d) -> World: (%f, %f)\n",
+              groundWidth-1, groundHeight-1, wx1, wy1);
+    OutputDebugStringA(dbgBuf);
+    // ========================================================================
 }
 
 void MapEditor::Update(float deltaTime) {

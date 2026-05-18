@@ -222,6 +222,8 @@ void TextManager::DrawString(const std::string& text, float x, float y, D3DCOLOR
     }
 }
 
+
+
 void TextManager::DrawTextToScreen(const std::string& text, float x, float y, D3DCOLOR color, float scale, FontID fontID, FontStyle style)
 {
     // Просто вызываем DrawString без дополнительных batch-вызовов
