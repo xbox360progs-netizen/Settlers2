@@ -74,18 +74,102 @@ HRESULT Renderer::Initialize() {
 
     SetProjectionMatrix(1280.0f, 720.0f);
 
-    m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-    m_pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
-    m_pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
-    m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
-    m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+    // Get the back buffer surface for dimensions
+    hr = m_pDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &m_pBackBuffer);
+    if (FAILED(hr)) {
+        OutputDebugStringA("[Renderer] ERROR: GetBackBuffer failed!\n");
+        return hr;
+    }
 
-    m_pDevice->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
-    m_pDevice->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
-    m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
-    m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
+    D3DSURFACE_DESC desc;
+    m_pBackBuffer->GetDesc(&desc);
 
-    return S_OK;
+    // Position buffer (R32G32B32A32_FLOAT)
+    hr = m_pDevice->CreateRenderTarget(
+        desc.Width, desc.Height,
+        D3DFMT_A32B32G32R32F, // Xbox 360: A32B32G32R32F ��� �������
+        D3DMULTISAMPLE_NONE,
+        0,
+        TRUE,
+        &m_pGBufferPos,
+        NULL
+    );
+    if (FAILED(hr)) { OutputDebugStringA("[Renderer] ERROR: CreateRenderTarget for Pos failed!\n"); goto cleanup; }
+
+    // Normal buffer (A16B16G16R16F)
+    hr = m_pDevice->CreateRenderTarget(
+        desc.Width, desc.Height,
+        D3DFMT_A16B16G16R16F,
+        D3DMULTISAMPLE_NONE,
+        0,
+        TRUE,
+        &m_pGBufferNormal,
+        NULL
+    );
+    if (FAILED(hr)) { OutputDebugStringA("[Renderer] ERROR: CreateRenderTarget for Normal failed!\n"); goto cleanup; }
+
+    // Albedo buffer (A8R8G8B8)
+    hr = m_pDevice->CreateRenderTarget(
+        desc.Width, desc.Height,
+        D3DFMT_A8R8G8B8,
+        D3DMULTISAMPLE_NONE,
+        0,
+        TRUE,
+        &m_pGBufferAlbedo,
+        NULL
+    );
+    if (FAILED(hr)) { OutputDebugStringA("[Renderer] ERROR: CreateRenderTarget for Albedo failed!\n"); goto cleanup; }
+
+    // Specular buffer (A8R8G8B8) - A = gloss, RGB = specular color
+    hr = m_pDevice->CreateRenderTarget(
+        desc.Width, desc.Height,
+        D3DFMT_A8R8G8B8,
+        D3DMULTISAMPLE_NONE,
+        0,
+        TRUE,
+        &m_pGBufferSpec,
+        NULL
+    );
+    if (FAILED(hr)) { OutputDebugStringA("[Renderer] ERROR: CreateRenderTarget for Specular failed!\n"); goto cleanup; }
+
+    // Depth buffer (D24S8)
+    hr = m_pDevice->CreateDepthStencilSurface(
+        desc.Width, desc.Height,
+        D3DFMT_D24S8,
+        D3DMULTISAMPLE_NONE,
+        0,
+        TRUE,
+        &m_pGBufferDepth,
+        NULL
+    );
+    if (FAILED(hr)) { OutputDebugStringA("[Renderer] ERROR: CreateDepthStencilSurface failed!\n"); goto cleanup; }
+
+    // If we got here, all succeeded
+    hr = S_OK;
+
+    cleanup:
+    if (FAILED(hr)) {
+        // Clean up any successfully created resources
+        if (m_pGBufferPos) { m_pGBufferPos->Release(); m_pGBufferPos = NULL; }
+        if (m_pGBufferNormal) { m_pGBufferNormal->Release(); m_pGBufferNormal = NULL; }
+        if (m_pGBufferAlbedo) { m_pGBufferAlbedo->Release(); m_pGBufferAlbedo = NULL; }
+        if (m_pGBufferSpec) { m_pGBufferSpec->Release(); m_pGBufferSpec = NULL; }
+        if (m_pGBufferDepth) { m_pGBufferDepth->Release(); m_pGBufferDepth = NULL; }
+        if (m_pBackBuffer) { m_pBackBuffer->Release(); m_pBackBuffer = NULL; }
+    }
+
+m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+m_pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+m_pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+
+m_pDevice->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
+m_pDevice->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
+m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
+
+return S_OK;
 }
 
 void Renderer::SetSpriteRenderer(SpriteRenderer* pSpriteRenderer) {
@@ -147,6 +231,11 @@ void Renderer::Shutdown() {
     if (m_pVertexShader) { m_pVertexShader->Release(); m_pVertexShader = NULL; }
     if (m_pPixelShader) { m_pPixelShader->Release(); m_pPixelShader = NULL; }
     if (m_pVertexDecl) { m_pVertexDecl->Release(); m_pVertexDecl = NULL; }
+    if (m_pGBufferPos) { m_pGBufferPos->Release(); m_pGBufferPos = NULL; }
+    if (m_pGBufferNormal) { m_pGBufferNormal->Release(); m_pGBufferNormal = NULL; }
+    if (m_pGBufferAlbedo) { m_pGBufferAlbedo->Release(); m_pGBufferAlbedo = NULL; }
+    if (m_pGBufferSpec) { m_pGBufferSpec->Release(); m_pGBufferSpec = NULL; }
+    if (m_pGBufferDepth) { m_pGBufferDepth->Release(); m_pGBufferDepth = NULL; }
     if (m_pBackBuffer) { m_pBackBuffer->Release(); m_pBackBuffer = NULL; }
     if (m_pDevice) { m_pDevice->Release(); m_pDevice = NULL; }
     if (m_pD3D) { m_pD3D->Release(); m_pD3D = NULL; }
@@ -202,6 +291,92 @@ void Renderer::OnResetDevice() {
     m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 
     SetProjectionMatrix(1280.0f, 720.0f);
+
+        HRESULT hr;
+
+        // Get the back buffer surface for dimensions
+        hr = m_pDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &m_pBackBuffer);
+        if (FAILED(hr)) {
+            OutputDebugStringA("[Renderer] ERROR: GetBackBuffer failed!\n");
+            return;
+        }
+
+        D3DSURFACE_DESC desc;
+        m_pBackBuffer->GetDesc(&desc);
+
+        // Position buffer (R32G32B32A32_FLOAT)
+        hr = m_pDevice->CreateRenderTarget(
+            desc.Width, desc.Height,
+            D3DFMT_A32B32G32R32F, // Xbox 360: A32B32G32R32F ��� �������
+            D3DMULTISAMPLE_NONE,
+            0,
+            TRUE,
+            &m_pGBufferPos,
+            NULL
+        );
+        if (FAILED(hr)) { OutputDebugStringA("[Renderer] ERROR: CreateRenderTarget for Pos failed!\n"); goto cleanup; }
+
+        // Normal buffer (A16B16G16R16F)
+        hr = m_pDevice->CreateRenderTarget(
+            desc.Width, desc.Height,
+            D3DFMT_A16B16G16R16F,
+            D3DMULTISAMPLE_NONE,
+            0,
+            TRUE,
+            &m_pGBufferNormal,
+            NULL
+        );
+        if (FAILED(hr)) { OutputDebugStringA("[Renderer] ERROR: CreateRenderTarget for Normal failed!\n"); goto cleanup; }
+
+        // Albedo buffer (A8R8G8B8)
+        hr = m_pDevice->CreateRenderTarget(
+            desc.Width, desc.Height,
+            D3DFMT_A8R8G8B8,
+            D3DMULTISAMPLE_NONE,
+            0,
+            TRUE,
+            &m_pGBufferAlbedo,
+            NULL
+        );
+        if (FAILED(hr)) { OutputDebugStringA("[Renderer] ERROR: CreateRenderTarget for Albedo failed!\n"); goto cleanup; }
+
+        // Specular buffer (A8R8G8B8) - A = gloss, RGB = specular color
+        hr = m_pDevice->CreateRenderTarget(
+            desc.Width, desc.Height,
+            D3DFMT_A8R8G8B8,
+            D3DMULTISAMPLE_NONE,
+            0,
+            TRUE,
+            &m_pGBufferSpec,
+            NULL
+        );
+        if (FAILED(hr)) { OutputDebugStringA("[Renderer] ERROR: CreateRenderTarget for Specular failed!\n"); goto cleanup; }
+
+        // Depth buffer (D24S8)
+        hr = m_pDevice->CreateDepthStencilSurface(
+            desc.Width, desc.Height,
+            D3DFMT_D24S8,
+            D3DMULTISAMPLE_NONE,
+            0,
+            TRUE,
+            &m_pGBufferDepth,
+            NULL
+        );
+        if (FAILED(hr)) { OutputDebugStringA("[Renderer] ERROR: CreateDepthStencilSurface failed!\n"); goto cleanup; }
+
+        // If we got here, all succeeded
+        hr = S_OK;
+
+        cleanup:
+        if (FAILED(hr)) {
+            // Clean up any successfully created resources
+            if (m_pGBufferPos) { m_pGBufferPos->Release(); m_pGBufferPos = NULL; }
+            if (m_pGBufferNormal) { m_pGBufferNormal->Release(); m_pGBufferNormal = NULL; }
+            if (m_pGBufferAlbedo) { m_pGBufferAlbedo->Release(); m_pGBufferAlbedo = NULL; }
+            if (m_pGBufferSpec) { m_pGBufferSpec->Release(); m_pGBufferSpec = NULL; }
+            if (m_pGBufferDepth) { m_pGBufferDepth->Release(); m_pGBufferDepth = NULL; }
+            if (m_pBackBuffer) { m_pBackBuffer->Release(); m_pBackBuffer = NULL; }
+        }
 }
 
 void Renderer::SetProjectionMatrix(float width, float height) {
@@ -284,3 +459,50 @@ void Renderer::DrawSingleSprite(Texture* texture, float x, float y, float width,
     m_pShaderManager->EndPass();
     m_pShaderManager->EndShader();
 }
+
+void Renderer::BindGBuffer()
+{
+    if (!m_pDevice) return;
+
+    m_pDevice->SetRenderTarget(0, m_pGBufferPos);
+    m_pDevice->SetRenderTarget(1, m_pGBufferNormal);
+    m_pDevice->SetRenderTarget(2, m_pGBufferAlbedo);
+    m_pDevice->SetRenderTarget(3, m_pGBufferSpec);
+
+    m_pDevice->SetDepthStencilSurface(m_pGBufferDepth);
+}
+
+void Renderer::UnbindGBuffer()
+{
+    if (!m_pDevice) return;
+
+    m_pDevice->SetRenderTarget(0, NULL);
+    m_pDevice->SetRenderTarget(1, NULL);
+    m_pDevice->SetRenderTarget(2, NULL);
+    m_pDevice->SetRenderTarget(3, NULL);
+
+    m_pDevice->SetDepthStencilSurface(NULL);
+}
+
+void Renderer::ClearGBuffers()
+{
+    if (!m_pDevice) return;
+
+    m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0,0,0), 1.0f, 0);
+}
+
+void Renderer::ApplyDeferredLighting()
+{
+    if (!m_pDevice) return;
+
+    m_pDevice->SetRenderTarget(0, m_pBackBuffer);
+    m_pDevice->SetRenderTarget(1, NULL);
+    m_pDevice->SetRenderTarget(2, NULL);
+    m_pDevice->SetRenderTarget(3, NULL);
+
+    m_pDevice->SetDepthStencilSurface(NULL);
+
+    m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0,0,0), 1.0f, 0);
+}
+
+

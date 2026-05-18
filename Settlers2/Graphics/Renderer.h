@@ -72,4 +72,17 @@ private:
 
     float m_projMatrix[16];
     LPDIRECT3DVERTEXDECLARATION9 m_pVertexDecl;
+
+    // G-buffers for deferred rendering
+    LPDIRECT3DSURFACE9 m_pGBufferPos;   // Position (R32G32B32A32_FLOAT)
+    LPDIRECT3DSURFACE9 m_pGBufferNormal; // Normal (A16B16G16R16F or similar)
+    LPDIRECT3DSURFACE9 m_pGBufferAlbedo; // Albedo (A8R8G8B8)
+    LPDIRECT3DSURFACE9 m_pGBufferSpec;   // Specular + gloss (A8R8G8B8)
+    LPDIRECT3DSURFACE9 m_pGBufferDepth;  // Depth (D24S8 or D32)
+
+    // Helper methods for MRT management
+    void BindGBuffer();
+    void UnbindGBuffer();
+    void ClearGBuffers();
+    void ApplyDeferredLighting(); // Deferred lighting pass
 };
