@@ -355,58 +355,22 @@ void MapEditor::RenderGridLayer() {
     World::TileLayer* groundLayer = m_map->GetLayer(World::Ground);
     if (!groundLayer) return;
 
-    float camX = m_cameraX;
-    float camY = m_cameraY;
-    float zoom = m_zoomLevel;
-    float scX = m_renderer->GetScreenWidth() * 0.5f;
-    float scY = m_renderer->GetScreenHeight() * 0.5f;
-
-    // === FRUSTUM CULLING: Calculate visible tile range based on camera ===
-    // Screen bounds in world coordinates
-    float screenW = m_renderer->GetScreenWidth();
-    float screenH = m_renderer->GetScreenHeight();
-    float halfW = screenW * 0.5f;
-    float halfH = screenH * 0.5f;
-    
-    // Convert screen bounds to world bounds
-    float minWorldX = camX - halfW / static_cast<float>(zoom);
-    float maxWorldX = camX + halfW / static_cast<float>(zoom);
-    float minWorldY = camY - halfH / static_cast<float>(zoom);
-    float maxWorldY = camY + halfH / static_cast<float>(zoom);
-    
-    // Convert world bounds to tile bounds with padding for safety
-    // For Ground tiles (20x20 grid)
-    int minGroundX = 0, maxGroundX = groundLayer->GetWidth();
-    int minGroundY = 0, maxGroundY = groundLayer->GetHeight();
-    
-    // Simple culling: iterate all for now, but can be optimized further
-    // For Xbox 360, we'll limit to visible tiles when map gets larger
-
-    // Ground layer - Y-sorting depth: 0.9-1.0 (farthest)
+    // Ground layer - render in world coordinates (shader handles camera transform)
     {
-        float tw = 238.0f * zoom;
-        float th = 148.0f * zoom;
-        int mapHeight = groundLayer->GetHeight();
+        float tw = 238.0f;  // World-space tile width
+        float th = 148.0f;  // World-space tile height
 
-        // Use SHADER_SPRITE_CONSTANT_INSTANCED with Y-depth sorting (ID 1 is valid, ID 0 is missing)
+        // Use SHADER_SPRITE with world coordinates (shader handles camera transform)
         m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_SPRITE_CONSTANT_INSTANCED), reinterpret_cast<LPDIRECT3DTEXTURE9>(m_groundAtlas->GetTexture()), 0.0f, 0.95f, 0.0001f, 1);
         
-        for (int y = minGroundY; y < maxGroundY; ++y) {
-            for (int x = minGroundX; x < maxGroundX; ++x) {
+        for (int y = 0; y < groundLayer->GetHeight(); ++y) {
+            for (int x = 0; x < groundLayer->GetWidth(); ++x) {
                 float wx, wy;
                 CoordinateSystem::GetInstance().GroundTileToWorld(x, y, wx, wy);
                 
-                // Simple frustum check: skip if outside screen bounds
-                float sx = scX + (wx - camX) * zoom;
-                float sy = scY + (wy - camY) * zoom;
-                
-                // Skip if tile is completely off-screen
-                if (sx + tw < 0 || sx - tw > screenW || sy + th < 0 || sy - th > screenH) {
-                    continue;
-                }
-                
                 const World::Tile& tile = groundLayer->GetTile(x, y);
-                m_spriteRenderer->Draw(sx - tw * 0.5f, sy - th * 0.5f, tw, th, tile.u0, tile.v0, tile.u1, tile.v1, 0xFFFFFFFF);
+                // Draw in world coordinates - shader will apply camera transform
+                m_spriteRenderer->Draw(wx, wy, tw, th, tile.u0, tile.v0, tile.u1, tile.v1, 0xFFFFFFFF);
             }
         }
         m_spriteRenderer->End();
@@ -416,9 +380,8 @@ void MapEditor::RenderGridLayer() {
     {
         World::TileLayer* overlayLayer = m_map->GetLayer(World::Overlay);
         if (overlayLayer && m_groundAtlas) {
-            float ntw = 119.0f * zoom;
-            float nth = 72.0f * zoom;
-            int mapHeight = overlayLayer->GetHeight();
+            float ntw = 119.0f;  // World-space node tile width
+            float nth = 72.0f;   // World-space node tile height
 
             // Use SHADER_SPRITE_CONSTANT_INSTANCED with Y-depth sorting
             m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_SPRITE_CONSTANT_INSTANCED), reinterpret_cast<LPDIRECT3DTEXTURE9>(m_groundAtlas->GetTexture()), 0.0f, 0.65f, 0.0001f, 1);
@@ -430,15 +393,8 @@ void MapEditor::RenderGridLayer() {
 
                     float wx, wy;
                     CoordinateSystem::GetInstance().NodeTileToWorld(x, y, wx, wy);
-                    float sx = scX + (wx - camX) * zoom;
-                    float sy = scY + (wy - camY) * zoom;
                     
-                    // Frustum culling: skip if off-screen
-                    if (sx + ntw < 0 || sx - ntw > screenW || sy + nth < 0 || sy - nth > screenH) {
-                        continue;
-                    }
-                    
-                    m_spriteRenderer->Draw(sx - ntw * 0.5f, sy - nth * 0.5f, ntw, nth, tile.u0, tile.v0, tile.u1, tile.v1, 0x80FFFFFF);
+                    m_spriteRenderer->Draw(wx, wy, ntw, nth, tile.u0, tile.v0, tile.u1, tile.v1, 0x80FFFFFF);
                 }
             }
             m_spriteRenderer->End();
@@ -450,7 +406,6 @@ void MapEditor::RenderGridLayer() {
         World::TileLayer* placementLayer = m_map->GetLayer(World::Placement);
         if (placementLayer) {
             CoordinateSystem& coords = CoordinateSystem::GetInstance();
-            int mapHeight = NODES_H;
 
             // Use SHADER_SPRITE_CONSTANT_INSTANCED with Y-depth sorting
             m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_SPRITE_CONSTANT_INSTANCED), m_dotTexture, 0.0f, 0.65f, 0.0001f, 1);
@@ -459,20 +414,13 @@ void MapEditor::RenderGridLayer() {
                 for (int x = 0; x < NODES_W; ++x) {
                     float wx, wy;
                     coords.NodeTileToWorld(x, y, wx, wy);
-                    float sx = scX + (wx - camX) * zoom;
-                    float sy = scY + (wy - camY) * zoom;
-                    
-                    // Frustum culling: skip if off-screen
-                    if (sx + 8.0f < 0 || sx - 8.0f > screenW || sy + 8.0f < 0 || sy - 8.0f > screenH) {
-                        continue;
-                    }
                     
                     const World::Tile& tile = placementLayer->GetTile(x, y);
 
                     if (tile.regionIndex >= 0) {
-                        m_spriteRenderer->Draw(sx - 4.0f, sy - 4.0f, 8.0f, 8.0f, 0.0f, 0.0f, 1.0f, 1.0f, D3DCOLOR_ARGB(255, 0, 255, 0));
+                        m_spriteRenderer->Draw(wx, wy, 8.0f, 8.0f, 0.0f, 0.0f, 1.0f, 1.0f, D3DCOLOR_ARGB(255, 0, 255, 0));
                     } else {
-                        m_spriteRenderer->Draw(sx - 4.0f, sy - 4.0f, 8.0f, 8.0f, 0.0f, 0.0f, 1.0f, 1.0f, D3DCOLOR_ARGB(255, 100, 100, 100));
+                        m_spriteRenderer->Draw(wx, wy, 8.0f, 8.0f, 0.0f, 0.0f, 1.0f, 1.0f, D3DCOLOR_ARGB(255, 100, 100, 100));
                     }
                 }
             }
@@ -484,10 +432,9 @@ void MapEditor::RenderGridLayer() {
     if (m_currentLayer == World::Resources) {
         World::TileLayer* resourcesLayer = m_map->GetLayer(World::Resources);
         if (resourcesLayer && m_objectAtlas) {
-            float ntw = 119.0f * zoom;
-            float nth = 72.0f * zoom;
+            float ntw = 119.0f;  // World-space node tile width
+            float nth = 72.0f;   // World-space node tile height
             CoordinateSystem& coords = CoordinateSystem::GetInstance();
-            int mapHeight = GRID_HEIGHT;
 
             // Use SHADER_SPRITE_CONSTANT_INSTANCED with Y-depth sorting
             m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_SPRITE_CONSTANT_INSTANCED), reinterpret_cast<LPDIRECT3DTEXTURE9>(m_groundAtlas->GetTexture()), 0.0f, 0.65f, 0.0001f, 1);
@@ -499,15 +446,8 @@ void MapEditor::RenderGridLayer() {
 
                     float wx, wy;
                     coords.NodeTileToWorld(x, y, wx, wy);
-                    float sx = scX + (wx - camX) * zoom;
-                    float sy = scY + (wy - camY) * zoom;
                     
-                    // Frustum culling: skip if off-screen
-                    if (sx + ntw < 0 || sx - ntw > screenW || sy + nth < 0 || sy - nth > screenH) {
-                        continue;
-                    }
-                    
-                    m_spriteRenderer->Draw(sx - ntw * 0.5f, sy - nth * 0.5f, ntw, nth, tile.u0, tile.v0, tile.u1, tile.v1, 0xFFFFFFFF);
+                    m_spriteRenderer->Draw(wx, wy, ntw, nth, tile.u0, tile.v0, tile.u1, tile.v1, 0xFFFFFFFF);
                 }
             }
             m_spriteRenderer->End();
@@ -518,10 +458,9 @@ void MapEditor::RenderGridLayer() {
     if (m_currentLayer == World::Roads) {
         World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
         if (roadsLayer && m_objectAtlas) {
-            float ntw = 119.0f * zoom;
-            float nth = 72.0f * zoom;
+            float ntw = 119.0f;  // World-space node tile width
+            float nth = 72.0f;   // World-space node tile height
             CoordinateSystem& coords = CoordinateSystem::GetInstance();
-            int mapHeight = GRID_HEIGHT;
 
             // Use SHADER_SPRITE_CONSTANT_INSTANCED with Y-depth sorting
             m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_SPRITE_CONSTANT_INSTANCED), reinterpret_cast<LPDIRECT3DTEXTURE9>(m_groundAtlas->GetTexture()), 0.0f, 0.65f, 0.0001f, 1);
@@ -533,15 +472,8 @@ void MapEditor::RenderGridLayer() {
 
                     float wx, wy;
                     coords.NodeTileToWorld(x, y, wx, wy);
-                    float sx = scX + (wx - camX) * zoom;
-                    float sy = scY + (wy - camY) * zoom;
                     
-                    // Frustum culling: skip if off-screen
-                    if (sx + ntw < 0 || sx - ntw > screenW || sy + nth < 0 || sy - nth > screenH) {
-                        continue;
-                    }
-                    
-                    m_spriteRenderer->Draw(sx - ntw * 0.5f, sy - nth * 0.5f, ntw, nth, tile.u0, tile.v0, tile.u1, tile.v1, 0xFFFFFFFF);
+                    m_spriteRenderer->Draw(wx, wy, ntw, nth, tile.u0, tile.v0, tile.u1, tile.v1, 0xFFFFFFFF);
                 }
             }
             m_spriteRenderer->End();
@@ -561,31 +493,23 @@ void MapEditor::RenderCursor() {
     float tileW = static_cast<float>(firstRegion->width);
     float tileH = static_cast<float>(firstRegion->height);
 
-    float screenCenterX = m_renderer->GetScreenWidth() * 0.5f;
-    float screenCenterY = m_renderer->GetScreenHeight() * 0.5f;
+    float cursorWidth = tileW;
+    float cursorHeight = tileH;
 
-    float cursorWidth = tileW * m_zoomLevel;
-    float cursorHeight = tileH * m_zoomLevel;
-
-    float cursorScreenX, cursorScreenY;
+    float cursorWorldX, cursorWorldY;
 
     if (m_currentLayer == World::Ground) {
         CoordinateSystem& coords = CoordinateSystem::GetInstance();
-        float wx, wy;
-        coords.GroundTileToWorld(m_cursorTileX, m_cursorTileY, wx, wy);
-        cursorScreenX = screenCenterX + (wx - m_cameraX) * m_zoomLevel;
-        cursorScreenY = screenCenterY + (wy - m_cameraY) * m_zoomLevel;
+        coords.GroundTileToWorld(m_cursorTileX, m_cursorTileY, cursorWorldX, cursorWorldY);
     } else {
         CoordinateSystem& coords = CoordinateSystem::GetInstance();
-        float wx, wy;
-        coords.NodeTileToWorld(m_cursorTileX, m_cursorTileY, wx, wy);
-        cursorScreenX = screenCenterX + (wx - m_cameraX) * m_zoomLevel;
-        cursorScreenY = screenCenterY + (wy - m_cameraY) * m_zoomLevel;
+        coords.NodeTileToWorld(m_cursorTileX, m_cursorTileY, cursorWorldX, cursorWorldY);
     }
 
-    Texture tex;
-    tex.SetTexture(cursorTex);
-    m_renderer->DrawSingleSprite(&tex, cursorScreenX - cursorWidth * 0.5f, cursorScreenY - cursorHeight * 0.5f, cursorWidth, cursorHeight);
+    // Draw in world coordinates using sprite renderer
+    m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_SPRITE_CONSTANT_INSTANCED), cursorTex, cursorWorldY, 0.99f, 0.0001f, 1);
+    m_spriteRenderer->Draw(cursorWorldX, cursorWorldY, cursorWidth, cursorHeight, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
+    m_spriteRenderer->End();
 }
 
 void MapEditor::SetTileByIndex(int index) {
@@ -684,22 +608,17 @@ void MapEditor::RenderWeightMap() {
     if (!m_dotTexture) return;
 
     CoordinateSystem& coords = CoordinateSystem::GetInstance();
-    float scX = static_cast<float>(m_renderer->GetScreenWidth()) * 0.5f;
-    float scY = static_cast<float>(m_renderer->GetScreenHeight()) * 0.5f;
-    float ds = 16.0f * m_zoomLevel;
+    float ds = 16.0f;  // World-space dot size
     float hds = ds * 0.5f;
-    float z = m_zoomLevel;
 
-    // UNIFIED SHADER: Use sprite_constant_instanced
-    m_spriteRenderer->Begin("sprite_constant_instanced", m_dotTexture);
+    // Use SHADER_SPRITE_CONSTANT_INSTANCED with world coordinates
+    m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_SPRITE_CONSTANT_INSTANCED), m_dotTexture, 0.0f, 0.98f, 0.0001f, 1);
 
     for (int ny = 0; ny < NODES_H; ++ny) {
         for (int nx = 0; nx < NODES_W; ++nx) {
             float wx, wy;
             coords.NodeTileToWorld(nx, ny, wx, wy);
-            float sx = scX + (wx - m_cameraX) * z;
-            float sy = scY + (wy - m_cameraY) * z;
-            m_spriteRenderer->Draw(sx - hds, sy - hds, ds, ds, 0.0f, 0.0f, 1.0f, 1.0f, D3DCOLOR_ARGB(255, 100, 100, 255));
+            m_spriteRenderer->Draw(wx, wy, ds, ds, 0.0f, 0.0f, 1.0f, 1.0f, D3DCOLOR_ARGB(255, 100, 100, 255));
         }
     }
 

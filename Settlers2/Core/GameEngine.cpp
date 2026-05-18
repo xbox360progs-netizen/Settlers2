@@ -116,7 +116,10 @@ bool GameEngine::Initialize()
         return true;
     }
 
+    m_pShaderManager = new ShaderManager();
+
     m_renderer = new Renderer();
+    m_renderer->SetShaderManager(m_pShaderManager);
     HRESULT hr = m_renderer->Initialize();
     if (FAILED(hr))
     {
@@ -124,13 +127,9 @@ bool GameEngine::Initialize()
         return false;
     }
 
-    // Create shader manager after renderer has device
-    m_pShaderManager = new ShaderManager();
+    // Initialize shader manager after renderer has created the device.
     m_pShaderManager->Initialize(m_renderer->GetDevice());
     m_pShaderManager->Init();
-
-    // Pass shader manager to renderer
-    m_renderer->SetShaderManager(m_pShaderManager);
 
     m_spriteRenderer = new SpriteRenderer();
     hr = m_spriteRenderer->Initialize(m_renderer->GetDevice(), m_renderer->GetShaderManager());

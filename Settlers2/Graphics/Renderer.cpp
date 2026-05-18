@@ -8,7 +8,7 @@
 Renderer::Renderer()  
     : m_pD3D(NULL), m_pDevice(NULL), m_pBackBuffer(NULL),
       m_pVertexDecl(NULL), m_pVertexShader(NULL), m_pPixelShader(NULL),
-      m_pSpriteRenderer(NULL) {
+      m_pShaderManager(NULL), m_pSpriteRenderer(NULL) {
     ZeroMemory(&m_d3dpp, sizeof(m_d3dpp));
     ZeroMemory(m_projMatrix, sizeof(m_projMatrix));
 }
@@ -46,8 +46,12 @@ HRESULT Renderer::Initialize() {
     
     m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
 
-    hr = m_shaderManager.Initialize(m_pDevice);
-    if (FAILED(hr)) { OutputDebugStringA("ShaderManager Initialize Failed!\n"); return hr; }
+    // ShaderManager is now set externally via SetShaderManager()
+    if (!m_pShaderManager) {
+        OutputDebugStringA("[Renderer] WARNING: m_pShaderManager is NULL - call SetShaderManager() before Initialize()\n");
+    }
+
+    // Shaders are now loaded by GameEngine, not here
     
     D3DVERTEXELEMENT9 decl[] = {
         { 0,  0, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0 },
@@ -66,19 +70,7 @@ HRESULT Renderer::Initialize() {
         OutputDebugStringA("Vertex declaration created OK\n");
     }
 
-    hr = LoadShader(SHADER_SPRITE, "game:\\Media\\Shaders\\SpriteShader.fx", "SpriteBatchTech");
-    if (FAILED(hr)) {
-        OutputDebugStringA("Failed to load default sprite shader\n");
-    }
-
-    hr = LoadShader(SHADER_SPRITE_CONSTANT_INSTANCED, "game:\\Media\\Shaders\\SpriteConstantInstanced.fx", "SpriteConstantInstancedTech");
-    if (FAILED(hr)) {
-        OutputDebugStringA("Failed to load constant instanced sprite shader\n");
-    } else {
-        OutputDebugStringA("Successfully loaded sprite_constant_instanced shader\n");
-    }
-
-    // Font shader removed - text now uses SHADER_SPRITE through SpriteRenderer
+    // Shaders are now loaded by ShaderManager::Init() - no duplicate loading here
 
     SetProjectionMatrix(1280.0f, 720.0f);
 
@@ -104,15 +96,19 @@ void Renderer::SetSpriteRenderer(SpriteRenderer* pSpriteRenderer) {
 }
 
 HRESULT Renderer::LoadShader(ShaderID id, const char* filepath, const char* techniqueName) {
-    return m_shaderManager.LoadShader(id, filepath, techniqueName);
+    if (!m_pShaderManager) return E_FAIL;
+    return m_pShaderManager->LoadShader(id, filepath, techniqueName);
 }
 
 bool Renderer::SetShader(ShaderID id) {
-    return m_shaderManager.SetActiveShader(id);
+    if (!m_pShaderManager) return false;
+    return m_pShaderManager->SetActiveShader(id);
 }
 
 void Renderer::ResetToDefaultShader() {
-    m_shaderManager.SetActiveShader(SHADER_SPRITE_CONSTANT_INSTANCED);
+    if (m_pShaderManager) {
+        m_pShaderManager->SetActiveShader(SHADER_SPRITE_CONSTANT_INSTANCED);
+    }
 }
 
 void Renderer::Setup2DRenderStates() {
@@ -146,7 +142,7 @@ void Renderer::RestoreFromUI() {
 }
 
 void Renderer::Shutdown() {
-    m_shaderManager.Shutdown();
+    // ShaderManager is now owned by GameEngine, don't shut it down here
     
     if (m_pVertexShader) { m_pVertexShader->Release(); m_pVertexShader = NULL; }
     if (m_pPixelShader) { m_pPixelShader->Release(); m_pPixelShader = NULL; }
@@ -185,15 +181,18 @@ void Renderer::Clear(D3DCOLOR color) {
 }
 
 void Renderer::OnLostDevice() {
-    m_shaderManager.OnLostDevice();
+    if (m_pShaderManager) {
+        m_pShaderManager->OnLostDevice();
+    }
 }
 
 void Renderer::OnResetDevice() {
-    m_shaderManager.OnResetDevice();
+    if (m_pShaderManager) {
+        m_pShaderManager->OnResetDevice();
+    }
 
     m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
     m_pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
-    m_pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
     m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
     m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
 
@@ -246,16 +245,21 @@ void Renderer::DrawSingleSprite(Texture* texture, float x, float y, float width,
     vertices[3].color = color; vertices[3].u = u0; vertices[3].v = v1;
     vertices[3].padding[0] = 0; vertices[3].padding[1] = 0;
 
-    ShaderManager::Shader* pShader = m_shaderManager.GetShader(SHADER_SPRITE);
+    if (!m_pShaderManager) {
+        OutputDebugStringA("[Renderer] DrawSingleSprite: m_pShaderManager is NULL\n");
+        return;
+    }
+
+    ShaderManager::Shader* pShader = m_pShaderManager->GetShader(SHADER_SPRITE);
     if (!pShader || !pShader->pEffect || !m_pVertexDecl) {
         OutputDebugStringA("[Renderer] DrawSingleSprite: Shader/vertex decl is NULL\n");
         return;
     }
 
-    m_shaderManager.SetActiveShader(SHADER_SPRITE);
-    m_shaderManager.SetTexture("g_texture", tex);
-    m_shaderManager.BeginShader();
-    m_shaderManager.BeginPass(0);
+    m_pShaderManager->SetActiveShader(SHADER_SPRITE);
+    m_pShaderManager->SetTexture("g_texture", tex);
+    m_pShaderManager->BeginShader();
+    m_pShaderManager->BeginPass(0);
 
     // Set WVP matrix
     D3DXMATRIX ortho;
@@ -277,6 +281,6 @@ void Renderer::DrawSingleSprite(Texture* texture, float x, float y, float width,
     m_pDevice->SetTexture(0, tex);
     m_pDevice->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 2, vertices, sizeof(SpriteVertex));
 
-    m_shaderManager.EndPass();
-    m_shaderManager.EndShader();
+    m_pShaderManager->EndPass();
+    m_pShaderManager->EndShader();
 }

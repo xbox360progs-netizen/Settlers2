@@ -13,9 +13,9 @@
 #pragma comment(lib, "d3d9.lib")
 #pragma comment(lib, "d3dx9.lib")
 
-//#ifndef DISABLE_RENDER_LOGS
-//#define OutputDebugStringA(...) do { } while(0)
-//#endif
+#ifndef DISABLE_RENDER_LOGS
+#define OutputDebugStringA(...) do { } while(0)
+#endif
 
 using namespace Scene;
 

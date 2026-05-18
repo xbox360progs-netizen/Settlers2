@@ -191,7 +191,6 @@ bool ShaderManager::LoadBaseShaders() {
     }
 
     if (allSuccess) {
-        OutputDebugStringA("[ShaderManager] LoadBaseShaders: All base shaders loaded successfully\n");
     } else {
         OutputDebugStringA("[ShaderManager] WARNING: Some base shaders failed to load\n");
     }
@@ -312,14 +311,18 @@ HRESULT ShaderManager::LoadShader(ShaderID id, const char* filepath, const char*
     // Also add to m_effects map for Prepare() to find
     m_effects[id] = shader.pEffect;
 
-    char successMsg[256];
-    sprintf_s(successMsg, "[ShaderManager] Shader ID %d stored in effects list\n", id);
+    char successMsg[512];
+    sprintf_s(successMsg, "[ShaderManager] Shader ID %d stored in m_shaders (pEffect=%p) and m_effects\n", id, shader.pEffect);
     OutputDebugStringA(successMsg);
 
     return S_OK;
 }
 
 bool ShaderManager::SetActiveShader(ShaderID id) {
+    char debugMsg[512];
+    sprintf_s(debugMsg, "[ShaderManager::SetActiveShader] Looking for ID %d, m_shaders.size()=%d\n", id, (int)m_shaders.size());
+    OutputDebugStringA(debugMsg);
+
     std::map<ShaderID, Shader>::iterator it = m_shaders.find(id);
     if (it == m_shaders.end()) {
         char errorMsg[256];
@@ -328,9 +331,19 @@ bool ShaderManager::SetActiveShader(ShaderID id) {
         return false;
     }
 
+    Shader* pShader = &it->second;
+    ID3DXEffect* pEffect = pShader->pEffect;
+    if (!pEffect) {
+        char errorMsg[256];
+        sprintf_s(errorMsg, "[ShaderManager] Shader ID %d has NULL effect\n", id);
+        OutputDebugStringA(errorMsg);
+        return false;
+    }
+
     // If the same shader is already active, don't EndShader+restart it
     // (calling End() on an already-ended effect causes BSOD on Xbox 360)
-    if (m_pActiveShader == &it->second) {
+    if (m_pActiveShader == pShader && m_pActiveEffect == pEffect) {
+        m_currentShaderID = id;
         return true;
     }
 
@@ -338,7 +351,14 @@ bool ShaderManager::SetActiveShader(ShaderID id) {
         EndShader();
     }
 
-    m_pActiveShader = &it->second;
+    m_pActiveShader = pShader;
+    m_pActiveEffect = pEffect;
+    m_currentShaderID = id;
+    m_pActiveEffect->SetTechnique(m_pActiveShader->hTechnique);
+
+    char activeMsg[256];
+    sprintf_s(activeMsg, "[ShaderManager::SetActiveShader] Active ID %d -> effect=%p\n", id, m_pActiveEffect);
+    OutputDebugStringA(activeMsg);
     return true;
 }
 
@@ -353,8 +373,9 @@ ShaderManager::Shader* ShaderManager::GetShader(ShaderID id) {
 void ShaderManager::BeginShader() {
     if (!m_pActiveShader || !m_pActiveShader->pEffect) return;
 
-    m_pActiveShader->pEffect->SetTechnique(m_pActiveShader->hTechnique);
-    m_pActiveShader->pEffect->Begin(&m_numPasses, 0);
+    m_pActiveEffect = m_pActiveShader->pEffect;
+    m_pActiveEffect->SetTechnique(m_pActiveShader->hTechnique);
+    m_pActiveEffect->Begin(&m_numPasses, 0);
 }
 
 void ShaderManager::BeginPass(UINT pass) {
@@ -374,6 +395,8 @@ void ShaderManager::EndShader() {
 
     m_pActiveShader->pEffect->End();
     m_pActiveShader = NULL;  // Clear so SetActiveShader won't call End() again
+    m_pActiveEffect = NULL;
+    m_currentShaderID = SHADER_INVALID;
 }
 
 void ShaderManager::Commit() {
@@ -512,14 +535,10 @@ LPDIRECT3DVERTEXBUFFER9 ShaderManager::GetSharedVertexBuffer() {
         return NULL;
     }
 
-    OutputDebugStringA("[ShaderManager::GetSharedVertexBuffer] Created shared VB successfully\n");
     return m_sharedVB;
 }
 
 void ShaderManager::CopyTextVertices(const void* vertices, size_t vertexCount) {
-    char debugBuf[256];
-    sprintf(debugBuf, "[ShaderManager::CopyTextVertices] Copying %zu text vertices\n", vertexCount);
-    OutputDebugStringA(debugBuf);
     
     // Use member variable for overflow check
     if (m_vertexStart + vertexCount > 4096 * 4) {
@@ -624,7 +643,6 @@ void ShaderManager::PushXbox360Command(const RenderCommand& newCmd) {
 
         // Атомарно выставляем статус 1: "Пачка полностью готова к рендеру"
         InterlockedExchange(&queuedCmd.status, 1);
-        OutputDebugStringA("[ShaderManager] Command submitted successfully\n");
     } else {
         OutputDebugStringA("[ShaderManager] CRITICAL: Command queue overflow after retries!\n");
     }
@@ -648,7 +666,6 @@ void ShaderManager::ClearQueue() {
         memset(&m_commandQueue[i], 0, sizeof(RenderCommand));
         m_commandQueue[i].status = 0;
     }
-    OutputDebugStringA("[ShaderManager::ClearQueue] Queue cleared\n");
 }
 
 void ShaderManager::ClearDrawBatches() {
@@ -706,7 +723,6 @@ HRESULT ShaderManager::LoadAll() {
         return hr;
     }
     
-    OutputDebugStringA("[ShaderManager] All shaders loaded successfully\n");
     return S_OK;
 }
 
@@ -718,7 +734,7 @@ void ShaderManager::Prepare(ShaderID id, const D3DXMATRIX* pViewProj) {
     }
     
     // Lazy switching: only switch if different from current
-    if (id == m_currentShaderID) {
+    if (id == m_currentShaderID && m_pActiveShader && m_pActiveEffect) {
         // Already active, just update global uniforms
         if (pViewProj) {
             SetGlobalUniforms(pViewProj);
@@ -726,54 +742,19 @@ void ShaderManager::Prepare(ShaderID id, const D3DXMATRIX* pViewProj) {
         return;
     }
     
-    // End previous shader if active
-    if (m_currentShaderID != SHADER_INVALID) {
-        EndCurrent();
-    }
-    
-    // Use centralized m_effects map
-    std::map<ShaderID, ID3DXEffect*>::iterator it = m_effects.find(id);
-    if (it != m_effects.end() && it->second) {
-        m_pActiveEffect = it->second;
-        m_currentShaderID = id;
-        
-        // Get technique
-        D3DXHANDLE hTechnique = m_pActiveEffect->GetTechnique(0);
-        if (hTechnique) {
-            // Set technique (don't Begin/End here - will be done in rendering loop)
-            m_pActiveEffect->SetTechnique(hTechnique);
-            m_numPasses = 1; // Assume 1 pass for most shaders
-        }
-        
-        // Set ViewProjection if provided (CRITICAL: must set after activating effect)
-        if (pViewProj) {
-            char buf[256];
-            sprintf_s(buf, "[ShaderManager::Prepare] Calling SetGlobalUniforms for new shader ID %d\n", id);
-            OutputDebugStringA(buf);
-            SetGlobalUniforms(pViewProj);
-        }
-        
+    // Use SetActiveShader to properly set m_pActiveShader
+    if (!SetActiveShader(id)) {
+        OutputDebugStringA("[ShaderManager] Prepare: Failed to set active shader\n");
         return;
     }
     
-    // Shader not found in centralized map
-    char errorMsg[256];
-    sprintf_s(errorMsg, "[ShaderManager] Prepare: Shader ID %d not found in m_effects (total effects in map: %d)\n", id, (int)m_effects.size());
-    OutputDebugStringA(errorMsg);
-
-    // Log all available shader IDs for debugging
-    char debugMsg[512];
-    sprintf_s(debugMsg, "[ShaderManager] Available shader IDs in m_effects: ");
-    OutputDebugStringA(debugMsg);
-    for (std::map<ShaderID, ID3DXEffect*>::iterator it = m_effects.begin(); it != m_effects.end(); ++it) {
-        char idMsg[64];
-        sprintf_s(idMsg, "%d ", it->first);
-        OutputDebugStringA(idMsg);
+    // Set ViewProjection if provided (CRITICAL: must set after activating shader)
+    if (pViewProj) {
+        char buf[256];
+        sprintf_s(buf, "[ShaderManager::Prepare] Calling SetGlobalUniforms for new shader ID %d\n", id);
+        OutputDebugStringA(buf);
+        SetGlobalUniforms(pViewProj);
     }
-    OutputDebugStringA("\n");
-
-    m_pActiveEffect = NULL;
-    m_currentShaderID = SHADER_INVALID;
 }
 
 // End current shader (deactivate effect)
@@ -791,7 +772,6 @@ void ShaderManager::SetGlobalUniforms(const D3DXMATRIX* pViewProj) {
         OutputDebugStringA("[SM::SetGlobalUniforms] ERROR: m_pActiveShader or pViewProj is NULL\n");
         return;
     }
-    OutputDebugStringA("[SM::SetGlobalUniforms] Setting WVP and WorldViewProjection matrices\n");
 
     // Debug: Log matrix values
     char matBuf[512];
@@ -807,7 +787,6 @@ void ShaderManager::SetGlobalUniforms(const D3DXMATRIX* pViewProj) {
     SetMatrix("WVP", (const float*)pViewProj);
     SetMatrix("WorldViewProjection", (const float*)pViewProj);
     Commit();
-    OutputDebugStringA("[SM::SetGlobalUniforms] Matrices set and committed\n");
 }
 
 // Set local uniforms (per-entity data: texture, depth, etc.)
@@ -989,7 +968,6 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                                 LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride,
                                 const D3DXMATRIX* pViewProj, SpriteRenderer* pSpriteRenderer) {
 
-    OutputDebugStringA("[SMgr::ExecuteQueue] ENTRY\n");
 
     // Reset vertex offset at start of each frame
     // REMOVED: This should be done in BeginFrame(), not here
@@ -1001,14 +979,12 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         OutputDebugStringA("[SMgr::ExecuteQueue] ERROR: m_pDevice is NULL!\n");
         return;
     }
-    OutputDebugStringA("[SMgr::ExecuteQueue] m_pDevice OK\n");
 
     // Guard against null buffers
     if (!pVB || !pIB || !pDecl) {
         OutputDebugStringA("[SMgr::ExecuteQueue] ERROR: NULL buffers!\n");
         return;
     }
-    OutputDebugStringA("[SMgr::ExecuteQueue] Buffers valid\n");
 
     // Set projection matrix
     D3DXMATRIX ortho;
@@ -1018,15 +994,12 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     // CRITICAL FIX: Use near=0.0f, far=1.0f to avoid Z offset of 0.5 that causes clipping
     D3DXMatrixOrthoOffCenterLH(&localOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
 
-    OutputDebugStringA("[SMgr::ExecuteQueue] Setting state...\n");
     // Lock();
 
-    OutputDebugStringA("[SMgr::ExecuteQueue] Setting stream source...\n");
     m_pDevice->SetVertexDeclaration(pDecl);
     m_pDevice->SetStreamSource(0, pVB, 0, sizeof(SpriteVertex));
     m_pDevice->SetIndices(pIB);
 
-    OutputDebugStringA("[SMgr::ExecuteQueue] Disabling Z buffer and culling...\n");
     m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
     m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
     m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
@@ -1036,18 +1009,15 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     SetFrameViewProj(matrixToUse);
 
     // Set vertex declaration and stream source once for entire frame
-    OutputDebugStringA("[SMgr::ExecuteQueue] Setting vertex data...\n");
     m_pDevice->SetVertexDeclaration(pDecl);
     m_pDevice->SetStreamSource(0, pVB, 0, sizeof(SpriteVertex));
     m_pDevice->SetIndices(pIB);
 
     // Disable Z-buffer for 2D UI rendering
-    OutputDebugStringA("[SMgr::ExecuteQueue] Disabling Z...\n");
     m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
     m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
     m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
 
-    OutputDebugStringA("[SMgr::ExecuteQueue] Unlocking...\n");
     Unlock();
 
     ShaderID currentShaderID = SHADER_INVALID;
@@ -1100,7 +1070,6 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                 const D3DXMATRIX* activeMatrix = cmd.isUI ? &localOrtho : &m_frameViewProj;
 
                 Prepare(static_cast<ShaderID>(cmd.shaderID), activeMatrix);
-                OutputDebugStringA("[SMgr::ExecuteQueue] Prepare done\n");
                 currentShaderID = static_cast<ShaderID>(cmd.shaderID);
 
                 if (m_pActiveEffect) {
@@ -1139,7 +1108,6 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                         cmd.depth, cmd.baseVertex, actualIndexStart, actualVertexCount, actualPrimCount);
                 OutputDebugStringA(renderMsg);
 
-                OutputDebugStringA("[SMgr::ExecuteQueue] Calling DrawIndexedPrimitive...\n");
                 // BaseVertexIndex is fixed at 0 because the index buffer stores absolute indices.
                 // vertexStart selects the first index for this batch.
                 // For ABSOLUTE indices: indices contain actual vertex positions, 
@@ -1152,43 +1120,32 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                     actualIndexStart,
                     actualPrimCount
                 );
-                OutputDebugStringA("[SMgr::ExecuteQueue] DrawIndexedPrimitive DONE\n");
 
                 InterlockedExchange(&cmd.status, 0);
-                OutputDebugStringA("[SMgr::ExecuteQueue] status reset\n");
             }
         }
     }
     
 
-    OutputDebugStringA("[SMgr::ExecuteQueue] Loop done - about to close shader pass...\n");
     if (passActive) {
-        OutputDebugStringA("[SMgr::ExecuteQueue] Calling EndPass()...\n");
         EndPass();
-        OutputDebugStringA("[SMgr::ExecuteQueue] EndPass done, calling EndCurrent()...\n");
         EndCurrent();
-        OutputDebugStringA("[SMgr::ExecuteQueue] EndCurrent done\n");
     }
 
     // Disable culling to ensure triangles are rendered
     m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
 
-    OutputDebugStringA("[SMgr::ExecuteQueue] About to Unlock...\n");
     // Unlock();
-    OutputDebugStringA("[SMgr::ExecuteQueue] Unlocked\n");
 
-    OutputDebugStringA("[SMgr::ExecuteQueue] Clearing textures...\n");
     m_pDevice->SetTexture(0, NULL);
     m_pDevice->SetTexture(1, NULL);
     m_pDevice->SetTexture(2, NULL);
     m_pDevice->SetTexture(3, NULL);
-    OutputDebugStringA("[SMgr::ExecuteQueue] Textures cleared\n");
 
     // REMOVED: This should be done in ResetBatchState(), not here
     // s_currentVertexOffset = 0;
     // s_batchIndex = 0;
 
-    OutputDebugStringA("[SMgr::ExecuteQueue] About to return...\n");
 }
 
 // Lifecycle State Machine Implementation
@@ -1199,14 +1156,12 @@ void ShaderManager::BeginFrame() {
     m_baseVertexIndex = 0;
     m_vertexStart = 0;
 
-    OutputDebugStringA("[ShaderManager::BeginFrame] Accumulation enabled, state reset\n");
 }
 
 void ShaderManager::FinalizeFrameCommands() {
     m_isAccumulating = false;
     m_isSealed = true;
 
-    OutputDebugStringA("[ShaderManager::FinalizeFrameCommands] Batch sealed\n");
 }
 
 void ShaderManager::ResetFrameState() {
@@ -1217,7 +1172,6 @@ void ShaderManager::ResetFrameState() {
 
     ClearQueue();
 
-    OutputDebugStringA("[ShaderManager::ResetFrameState] State reset, queue cleared\n");
 }
 
 void ShaderManager::ExecuteBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUFFER9 pIB, 
@@ -1239,6 +1193,7 @@ void ShaderManager::ExecuteBatches(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXB
                 EndShader();
             }
             m_pActiveShader = batch.pShader;
+            m_pActiveEffect = batch.pShader ? batch.pShader->pEffect : NULL;
             BeginShader();
         }
         

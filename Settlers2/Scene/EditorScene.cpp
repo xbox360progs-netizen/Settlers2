@@ -721,26 +721,10 @@ void EditorScene::Render() {
         m_textManager->EndTextBatch();
     }
     
-    // === STEP 4: MASTER LOOP - Execute all queued render commands ===
-    // Camera ViewProj already set via UpdateGlobalMatrices
+    // === STEP 4: Flush sprite commands to queue ===
+    // ExecuteQueue will be called by SceneManager
     if (m_shaderManager && m_spriteRenderer) {
         m_spriteRenderer->Flush(m_shaderManager);
-
-        LPDIRECT3DVERTEXBUFFER9 pVB = m_spriteRenderer->GetVertexBuffer();
-        LPDIRECT3DINDEXBUFFER9 pIB = m_spriteRenderer->GetIndexBuffer();
-        LPDIRECT3DVERTEXDECLARATION9 pDecl = m_spriteRenderer->GetVertexDeclaration();
-        
-        // Pass ViewProj to ExecuteQueue (used for per-command isUI override)
-        D3DXMATRIX viewProj;
-        if (m_camera) {
-            D3DXMatrixMultiply(&viewProj, &m_camera->GetViewMatrix(), &m_camera->GetProjectionMatrix());
-        } else {
-            D3DXMatrixIdentity(&viewProj);
-        }
-        
-        if (pVB && pIB && pDecl) {
-            m_shaderManager->ExecuteQueue(pVB, pIB, pDecl, 32, &viewProj);
-        }
     }
 
     m_renderer->EndFrame();

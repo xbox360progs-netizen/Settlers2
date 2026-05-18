@@ -297,8 +297,11 @@ sprintf(dbg, "[SM::Render] ENTRY - m_currentScene=0x%08X\n", m_currentScene);
         LPDIRECT3DVERTEXDECLARATION9 pDecl = m_spriteRenderer->GetVertexDeclaration();
         if (pVB && pIB && pDecl)
         {
+            // Get cached view/projection matrix from ShaderManager
+            const D3DXMATRIX& viewProj = m_shaderManager->GetFrameViewProj();
+
             OutputDebugStringA("[SM::Render] Calling ExecuteQueue...\n");
-            m_shaderManager->ExecuteQueue(pVB, pIB, pDecl, 32, nullptr, m_spriteRenderer);
+            m_shaderManager->ExecuteQueue(pVB, pIB, pDecl, 32, &viewProj, m_spriteRenderer);
             OutputDebugStringA("[SM::Render] ExecuteQueue RETURNED!\n");
         }
         else

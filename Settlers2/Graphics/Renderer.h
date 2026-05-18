@@ -33,12 +33,12 @@ public:
     LPDIRECT3DVERTEXDECLARATION9 GetVertexDecl() const { return m_pVertexDecl; }
 
     // Shader management
-    ShaderManager* GetShaderManager() { return &m_shaderManager; }
+    ShaderManager* GetShaderManager() { return m_pShaderManager; }
+    void SetShaderManager(ShaderManager* pShaderManager) { m_pShaderManager = pShaderManager; }
     
     // SpriteRenderer access
     SpriteRenderer* GetSpriteRenderer() { return m_pSpriteRenderer; }
     void SetSpriteRenderer(SpriteRenderer* pSpriteRenderer);
-    void SetShaderManager(ShaderManager* pShaderManager) {} // Deprecated - keep for compatibility
     HRESULT LoadShader(ShaderID id, const char* filepath, const char* techniqueName = "SpriteBatchTech");
     bool SetShader(ShaderID id);
     void ResetToDefaultShader();
@@ -64,7 +64,7 @@ private:
     LPDIRECT3DSURFACE9  m_pBackBuffer;
     D3DPRESENT_PARAMETERS m_d3dpp;
 
-    ShaderManager m_shaderManager;
+    ShaderManager* m_pShaderManager;
     SpriteRenderer* m_pSpriteRenderer;
 
     LPDIRECT3DVERTEXSHADER9 m_pVertexShader;
