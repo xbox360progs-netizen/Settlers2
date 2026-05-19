@@ -1175,6 +1175,18 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
 
 // 3. ФИЗИЧЕСКИЙ ВЫЗОВ ОТРИСОВКИ НА GPU
 			if (passActive) {
+				// ДИНАМИЧЕСКОЕ ПЕРЕКЛЮЧЕНИЕ Z-БУФЕРА ДЛЯ ТЕКУЩЕЙ КОМАНДЫ
+				if (cmd.isUI) {
+					// Для UI (текст, интерфейс) выключаем Z-буфер
+					m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+					m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+				} else {
+					// Для мира (карта, сетка, ландшафт) Z-буфер ЖИЗНЕННО НЕОБХОДИМ!
+					m_pDevice->SetRenderState(D3DRS_ZENABLE, TRUE);
+					m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, TRUE);
+					m_pDevice->SetRenderState(D3DRS_ZFUNC, D3DCMP_LESSEQUAL);
+				}
+
 				// === XBOX 360 GPU KICK: ПИНОК ДРАЙВЕРА ПОСЛЕ СМЕНЫ ТЕКСТУРЫ/ШЕЙДЕРА ===
 				// Отрисовываем 1 невидимый треугольник из самого начала буфера,
 				// чтобы заставить драйвер Xbox 360 применить измененные состояния (Commit/SetTexture)
@@ -1188,8 +1200,8 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
 				);
 
 				char renderMsg[512];
-				sprintf(renderMsg, "[SMgr::ExecuteQueue] FIXED Draw: depth=%.2f, baseVert=%d, verts=%d, prims=%d\n",
-					cmd.depth, cmd.baseVertex, cmd.vertexCount, cmd.primitiveCount);
+				sprintf(renderMsg, "[SMgr::ExecuteQueue] FIXED Draw: depth=%.2f, baseVert=%d, verts=%d, prims=%d, isUI=%d\n",
+					cmd.depth, cmd.baseVertex, cmd.vertexCount, cmd.primitiveCount, cmd.isUI);
 				OutputDebugStringA(renderMsg);
 
 				// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ ДЛЯ КОЛЬЦЕВОГО БУФЕРА

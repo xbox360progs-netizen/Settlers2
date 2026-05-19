@@ -919,45 +919,18 @@ void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float
     
     OutputDebugStringA("[SR::Begin] Render states set successfully\n");
 
-    // === ШАГ 4: АКТИВАЦИЯ ШЕЙДЕРА ===
-    OutputDebugStringA("[SR::Begin] Setting active shader...\n");
-    if (m_pShaderManager) {
-        m_pShaderManager->SetActiveShader(shaderID);
-        OutputDebugStringA("[SR::Begin] Active shader set\n");
-
-        // === ШАГ 4.5: ПЕРЕДАЧА ФЛАГА isUI В SHADERMANAGER ===
-        // КРИТИЧЕСКИЙ ФИКС: Сообщаем системе шейдеров, нужно ли применять матрицу камеры или UI-матрицу
-        if (isUI) {
-            // UI режим: передаем NULL, Prepare() использует дефолтную ортогональную матрицу
-            m_pShaderManager->Prepare(shaderID, NULL);
-            OutputDebugStringA("[SR::Begin] UI mode: Prepare(NULL)\n");
-        } else {
-            // World режим: передаем кэшированную матрицу камеры (m_frameViewProj)
-            // Она должна быть установлена заранее через UpdateGlobalMatrices() или SetFrameViewProj()
-            const D3DXMATRIX* pViewProj = &m_pShaderManager->GetFrameViewProj();
-            m_pShaderManager->Prepare(shaderID, pViewProj);
-            char matMsg[256];
-            sprintf(matMsg, "[SR::Begin] World mode: Prepare(viewProj=%p)\n", pViewProj);
-            OutputDebugStringA(matMsg);
-        }
-    } else {
-        OutputDebugStringA("[SR::Begin] WARNING: m_pShaderManager is NULL\n");
-    }
-
-    // Логируем успешный старт нового чистого батча
-    char debugMsg[256];
-    sprintf(debugMsg, "[SpriteRenderer::Begin] SUCCESS: shaderID=%d, texture=%p, depth=%.2f, renderType=%d, isUI=%d\n",
-            shaderID, pTexture, depth, renderType, isUI);
-    OutputDebugStringA(debugMsg);
-    OutputDebugStringA("[SR::Begin] FINISHED\n");
+    // === ШАГ 4: УДАЛЕНО ИЗ BEGIN ===
+    // Отложенная очередь ExecuteQueue сама переключит шейдеры в правильном порядке.
+    // Вызов SetActiveShader и Prepare здесь ломает отложенную очередь команд!
 
     // === ШАГ 5: ИНИЦИАЛИЗАЦИЯ ПАРАМЕТРОВ ТЕКУЩЕГО БАТЧА ===
     m_currentShaderID = shaderID;
+    m_currentTexture = pTexture; // КРИТИЧЕСКИЙ ФИКС: Сохраняем текстуру!
     m_currentDepth = depth;
     m_currentRenderType = renderType;
     m_currentIsUI = isUI;
-    
-    m_isBatching = true;  // Включаем батчинг заново для нового компонента
+
+    m_isBatching = true;
     m_spriteCount = 0;
 }
 
@@ -1396,7 +1369,7 @@ void SpriteRenderer::Flush() {
         return;
     }
 
-    memcpy(pData, m_pStagingBuffer, vertexCount * sizeof(SpriteVertex));
+    memcpy(pData, m_pStagingBuffer + vertexOffset, vertexCount * sizeof(SpriteVertex));
     currentVB->Unlock();
 
     char dbg[256];
