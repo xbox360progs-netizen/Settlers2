@@ -917,6 +917,22 @@ void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float
     if (m_pShaderManager) {
         m_pShaderManager->SetActiveShader(shaderID);
         OutputDebugStringA("[SR::Begin] Active shader set\n");
+
+        // === ШАГ 4.5: ПЕРЕДАЧА ФЛАГА isUI В SHADERMANAGER ===
+        // КРИТИЧЕСКИЙ ФИКС: Сообщаем системе шейдеров, нужно ли применять матрицу камеры или UI-матрицу
+        if (isUI) {
+            // UI режим: передаем NULL, Prepare() использует дефолтную ортогональную матрицу
+            m_pShaderManager->Prepare(shaderID, NULL);
+            OutputDebugStringA("[SR::Begin] UI mode: Prepare(NULL)\n");
+        } else {
+            // World режим: передаем кэшированную матрицу камеры (m_frameViewProj)
+            // Она должна быть установлена заранее через UpdateGlobalMatrices() или SetFrameViewProj()
+            const D3DXMATRIX* pViewProj = &m_pShaderManager->GetFrameViewProj();
+            m_pShaderManager->Prepare(shaderID, pViewProj);
+            char matMsg[256];
+            sprintf(matMsg, "[SR::Begin] World mode: Prepare(viewProj=%p)\n", pViewProj);
+            OutputDebugStringA(matMsg);
+        }
     } else {
         OutputDebugStringA("[SR::Begin] WARNING: m_pShaderManager is NULL\n");
     }

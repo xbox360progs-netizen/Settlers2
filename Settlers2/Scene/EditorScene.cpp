@@ -128,7 +128,14 @@ void EditorScene::Load() {
     m_camera = new Camera();
     if (m_camera) {
         m_camera->Initialize(1280.0f, 720.0f);
+        m_camera->SetPosition(0.0f, 0.0f);
+        m_camera->Update();
         OutputDebugStringA("[EditorScene] Camera initialized\n");
+    }
+
+    // Sync camera to ShaderManager
+    if (m_shaderManager) {
+        m_shaderManager->UpdateGlobalMatrices(&m_camera->GetViewMatrix(), &m_camera->GetProjectionMatrix());
     }
 
     // Initialize InputController for world coordinate translation
