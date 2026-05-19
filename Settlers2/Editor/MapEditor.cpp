@@ -424,7 +424,7 @@ void MapEditor::RenderGridLayer() {
         float th = 148.0f;  // World-space tile height
 
         // Use SHADER_SPRITE with world coordinates (shader handles camera transform)
-        m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_SPRITE_CONSTANT_INSTANCED), reinterpret_cast<LPDIRECT3DTEXTURE9>(m_groundAtlas->GetTexture()), 0.0f, 0.95f, 0.0001f, 1);
+        m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_TERRAIN), reinterpret_cast<LPDIRECT3DTEXTURE9>(m_groundAtlas->GetTexture()), 0.0f, 0.95f, 0.0001f, 1);
         
         for (int y = 0; y < groundLayer->GetHeight(); ++y) {
             for (int x = 0; x < groundLayer->GetWidth(); ++x) {
@@ -447,7 +447,7 @@ void MapEditor::RenderGridLayer() {
             float nth = 72.0f;   // World-space node tile height
 
             // Use SHADER_SPRITE_CONSTANT_INSTANCED with Y-depth sorting
-            m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_SPRITE_CONSTANT_INSTANCED), reinterpret_cast<LPDIRECT3DTEXTURE9>(m_groundAtlas->GetTexture()), 0.0f, 0.65f, 0.0001f, 1);
+            m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_TERRAIN), reinterpret_cast<LPDIRECT3DTEXTURE9>(m_groundAtlas->GetTexture()), 0.0f, 0.65f, 0.0001f, 1);
             
             for (int y = 0; y < overlayLayer->GetHeight(); ++y) {
                 for (int x = 0; x < overlayLayer->GetWidth(); ++x) {
@@ -471,7 +471,7 @@ void MapEditor::RenderGridLayer() {
             CoordinateSystem& coords = CoordinateSystem::GetInstance();
 
             // Use SHADER_SPRITE_CONSTANT_INSTANCED with Y-depth sorting
-            m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_SPRITE_CONSTANT_INSTANCED), m_dotTexture, 0.0f, 0.65f, 0.0001f, 1);
+            m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_TERRAIN), m_dotTexture, 0.0f, 0.65f, 0.0001f, 1);
             
             for (int y = 0; y < NODES_H; ++y) {
                 for (int x = 0; x < NODES_W; ++x) {
@@ -500,7 +500,7 @@ void MapEditor::RenderGridLayer() {
             CoordinateSystem& coords = CoordinateSystem::GetInstance();
 
             // Use SHADER_SPRITE_CONSTANT_INSTANCED with Y-depth sorting
-            m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_SPRITE_CONSTANT_INSTANCED), reinterpret_cast<LPDIRECT3DTEXTURE9>(m_groundAtlas->GetTexture()), 0.0f, 0.65f, 0.0001f, 1);
+            m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_TERRAIN), reinterpret_cast<LPDIRECT3DTEXTURE9>(m_groundAtlas->GetTexture()), 0.0f, 0.65f, 0.0001f, 1);
             
             for (int y = 0; y < GRID_HEIGHT; ++y) {
                 for (int x = 0; x < GRID_WIDTH; ++x) {
@@ -526,7 +526,7 @@ void MapEditor::RenderGridLayer() {
             CoordinateSystem& coords = CoordinateSystem::GetInstance();
 
             // Use SHADER_SPRITE_CONSTANT_INSTANCED with Y-depth sorting
-            m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_SPRITE_CONSTANT_INSTANCED), reinterpret_cast<LPDIRECT3DTEXTURE9>(m_groundAtlas->GetTexture()), 0.0f, 0.65f, 0.0001f, 1);
+            m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_TERRAIN), reinterpret_cast<LPDIRECT3DTEXTURE9>(m_groundAtlas->GetTexture()), 0.0f, 0.65f, 0.0001f, 1);
             
             for (int y = 0; y < GRID_HEIGHT; ++y) {
                 for (int x = 0; x < GRID_WIDTH; ++x) {
@@ -570,7 +570,7 @@ void MapEditor::RenderCursor() {
     }
 
     // Draw in world coordinates using sprite renderer
-    m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_SPRITE_CONSTANT_INSTANCED), cursorTex, cursorWorldY, 0.99f, 0.0001f, 1);
+    m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_TERRAIN), cursorTex, cursorWorldY, 0.99f, 0.0001f, 1);
     m_spriteRenderer->Draw(cursorWorldX, cursorWorldY, cursorWidth, cursorHeight, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
     m_spriteRenderer->End();
 }

@@ -1,9 +1,9 @@
 // World.fx
 float4x4 gViewProj : register(c0); // Матрица камеры
-texture g_Texture; // Текстура
+texture g_texture; // Текстура
 
 sampler2D texSampler : register(s0) {
-    Texture = <g_Texture>;
+    Texture = <g_texture>;
     MinFilter = LINEAR; MagFilter = LINEAR; MipFilter = LINEAR;
     AddressU = CLAMP; AddressV = CLAMP;
 };

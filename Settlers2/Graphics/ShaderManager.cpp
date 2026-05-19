@@ -54,7 +54,9 @@ ShaderManager::ShaderManager()
     // m_commandQueue is now a fixed-size array for lock-free ring buffer
     m_drawBatches.reserve(500);
     m_batches.reserve(500);
-    D3DXMatrixIdentity(&m_frameViewProj);
+    for (int i = 0; i < SHADER_COUNT; ++i) {
+        D3DXMatrixIdentity(&m_shaderMatrices[i]);
+    }
     D3DXMatrixIdentity(&m_cachedView);
     D3DXMatrixIdentity(&m_cachedProj);
     // Initialize synchronization primitive
@@ -156,6 +158,11 @@ bool ShaderManager::LoadBaseShaders() {
 
 
     bool allSuccess = true;
+
+	if (FAILED(LoadShader(SHADER_TERRAIN, "game:\\Media\\Shaders\\World.fx", "WorldTech"))) {
+        OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_TERRAIN (World.fx)\n");
+        allSuccess = false;
+    }
 
     // Load World.fx (for world-space rendering: tiles, trees, units)
     if (FAILED(LoadShader(SHADER_WORLD, "game:\\Media\\Shaders\\World.fx", "WorldTech"))) {
@@ -760,6 +767,8 @@ void ShaderManager::Prepare(ShaderID id, const D3DXMATRIX* pViewProj) {
         sprintf_s(buf, "[ShaderManager::Prepare] Calling SetGlobalUniforms for new shader ID %d\n", id);
         OutputDebugStringA(buf);
         SetGlobalUniforms(pViewProj);
+    } else {
+        SetGlobalUniforms(&m_shaderMatrices[id]);
     }
 }
 
@@ -777,6 +786,10 @@ void ShaderManager::SetGlobalUniforms(const D3DXMATRIX* pViewProj) {
     if (!m_pActiveShader || !pViewProj) {
         OutputDebugStringA("[SM::SetGlobalUniforms] ERROR: m_pActiveShader or pViewProj is NULL\n");
         return;
+    }
+
+    if (m_currentShaderID >= 0 && m_currentShaderID < SHADER_COUNT) {
+        m_shaderMatrices[m_currentShaderID] = *pViewProj;
     }
 
     // Debug: Log matrix values
@@ -842,70 +855,89 @@ void ShaderManager::SetShaderParameters(const RenderCommand& cmd) {
     ShaderID id = static_cast<ShaderID>(cmd.shaderID);
     
     switch (id) {
+        // 1. ИГРОВОЙ МИР И ЛАНДШАФТ (Берут ViewProj из камеры)
+        case SHADER_TERRAIN:
         case SHADER_WORLD:
         {
-            // World shader: set texture + camera ViewProj matrix
+            if (cmd.pTexture) {                
+                SetTexture("g_Texture", cmd.pTexture);
+                SetTexture("Texture", cmd.pTexture); 
+            }
+            if (m_hasFrameViewProj) {
+                SetMatrix("gViewProj", (const float*)&m_shaderMatrices[id]);
+            }
+            break;
+        }
+
+        // 2. СТАНДАРТНЫЕ СПРАЙТЫ И СУЩНОСТИ (Деревья, юниты, домики в мире)
+        case SHADER_SPRITE_CONSTANT_INSTANCED:
+        case SHADER_ENTITY:
+        {
             if (cmd.pTexture) {
                 SetTexture("g_texture", cmd.pTexture);
             }
-            // Use camera ViewProj for world-space rendering
             if (m_hasFrameViewProj) {
-                SetMatrix("gViewProj", (const float*)&m_frameViewProj);
+                // В SpriteConstantInstanced.fx и Entity шейдерах обычно используется WVP или gViewProj
+                SetMatrix("gViewProj", (const float*)&m_shaderMatrices[id]);
+                SetMatrix("WorldViewProjection", (const float*)&m_shaderMatrices[id]);
+            }
+            break;
+        }
+
+        // 3. СТАРЫЙ СПРАЙТОВЫЙ ШЕЙДЕР (Для совместимости UI / Мир)
+        case SHADER_SPRITE:
+        {
+            if (cmd.pTexture) {
+                SetTexture("g_texture", cmd.pTexture);
+            }
+            if (cmd.isUI) {
+                D3DXMATRIX matOrtho;
+                D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
+                SetMatrix("matOrtho", (const float*)&matOrtho);
+            } else if (m_hasFrameViewProj) {
+                SetMatrix("matOrtho", (const float*)&m_shaderMatrices[id]);
             }
             break;
         }
             
+        // 4. ИНТЕРФЕЙС (Плоская 2D-ортография)
         case SHADER_UI:
         {
-            // UI shader: set texture + screen orthographic matrix + disable Z-write
             if (cmd.pTexture) {
                 SetTexture("g_texture", cmd.pTexture);
             }
-            // Disable Z-write for UI to prevent depth conflicts
             m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
             m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
             
-            // Use orthographic projection for UI (screen space)
             D3DXMATRIX matOrtho;
-            // CRITICAL FIX: Use near=0.0f, far=1.0f to avoid Z offset that causes clipping
             D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
             SetMatrix("matOrtho", (const float*)&matOrtho);
             break;
         }
-            
-        case SHADER_SPRITE:
-        case SHADER_SPRITE_CONSTANT_INSTANCED:
-        case SHADER_TERRAIN:
+
+        // 5. РАДИАЛЬНОЕ МЕНЮ РЕДАКТОРА
+        case SHADER_RADIALMENU:
         {
-            // Legacy sprite shaders: set texture + ortho/world matrix
             if (cmd.pTexture) {
                 SetTexture("g_texture", cmd.pTexture);
             }
-            // For world-space objects, apply camera; for UI, use identity
-            if (cmd.isUI) {
-                D3DXMATRIX matOrtho;
-                // CRITICAL FIX: Use near=0.0f, far=1.0f to avoid Z offset that causes clipping
-                D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
-                SetMatrix("matOrtho", (const float*)&matOrtho);
-            } else if (m_hasFrameViewProj) {
-                SetMatrix("matOrtho", (const float*)&m_frameViewProj);
-            }
-            break;
-        }
-            
-        case SHADER_RADIALMENU:
-        {
-            // RadialMenu shader: set WorldViewProjection
             if (cmd.isUI) {
                 D3DXMATRIX matOrtho;
                 D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
                 SetMatrix("WorldViewProjection", (const float*)&matOrtho);
             } else if (m_hasFrameViewProj) {
-                SetMatrix("WorldViewProjection", (const float*)&m_frameViewProj);
+                SetMatrix("WorldViewProjection", (const float*)&m_shaderMatrices[id]);
             }
+            break;
+        }
+
+        // 6. ОТЛОЖЕННОЕ ОСВЕЩЕНИЕ (Ждет пост-процессинг матрицы)
+        case SHADER_DEFERRED_LIGHTING:
+        {
             if (cmd.pTexture) {
-                SetTexture("g_texture", cmd.pTexture);
+                SetTexture("g_texture", cmd.pTexture); // Например, G-Buffer Color/Normal
             }
+            // Сюда можно будет дописать передачу позиции солнца/источников света
             break;
         }
             
@@ -918,12 +950,20 @@ void ShaderManager::SetShaderParameters(const RenderCommand& cmd) {
 
 // Set frame-wide ViewProjection matrix (Global Constant Buffer)
 void ShaderManager::SetFrameViewProj(const D3DXMATRIX* pViewProj) {
-    if (pViewProj) {
-        m_frameViewProj = *pViewProj;
-        m_hasFrameViewProj = true;
-    } else {
-        D3DXMatrixIdentity(&m_frameViewProj);
-        m_hasFrameViewProj = false;
+    if (!pViewProj) return; // Полностью игнорируем пустые вызовы
+    
+    if (m_currentShaderID >= 0 && m_currentShaderID < SHADER_COUNT) {
+        
+        // Проверяем, является ли пришедшая матрица плоским UI-окном [-1, 1]
+        const float* m = (const float*)pViewProj;
+        bool isUiMatrix = (m[12] == -1.0f && m[13] == 1.0f);
+        
+        if (isUiMatrix && (m_currentShaderID == SHADER_TERRAIN || m_currentShaderID == SHADER_WORLD)) {
+            return; 
+        }
+        
+        // В остальных случаях безопасно сохраняем матрицу в массив по ID шейдера
+        m_shaderMatrices[m_currentShaderID] = *pViewProj;
     }
 }
 
@@ -932,11 +972,15 @@ void ShaderManager::SetFrameViewProj(const D3DXMATRIX* pViewProj) {
 void ShaderManager::UpdateGlobalMatrices(const D3DXMATRIX* pView, const D3DXMATRIX* pProj) {
     if (pView) m_cachedView = *pView;
     if (pProj) m_cachedProj = *pProj;
-    
+
     // Compute combined ViewProjection
-    D3DXMatrixMultiply(&m_frameViewProj, &m_cachedView, &m_cachedProj);
+    D3DXMATRIX viewProj;
+    D3DXMatrixMultiply(&viewProj, &m_cachedView, &m_cachedProj);
     m_hasFrameViewProj = true;
-    
+
+    // NOTE: Do NOT update all shader matrices here!
+    // Each shader matrix is updated individually in SetGlobalUniforms() or ExecuteQueue()
+
     // Propagate to all loaded shaders (set WorldViewProjection on each)
     Shader* pPreviousShader = m_pActiveShader; // Save current shader
     
@@ -945,17 +989,24 @@ void ShaderManager::UpdateGlobalMatrices(const D3DXMATRIX* pView, const D3DXMATR
             m_pActiveShader = &(it->second); // Temporarily set active for SetMatrix
             
             // Set WorldViewProjection (common name for most shaders)
-            SetMatrix("WorldViewProjection", (const float*)&m_frameViewProj);
-            
+            SetMatrix("WorldViewProjection", (const float*)&viewProj);
+
             // Also set matOrtho for sprite shaders (same as ViewProj for 2D)
-            SetMatrix("matOrtho", (const float*)&m_frameViewProj);
-            
+            SetMatrix("matOrtho", (const float*)&viewProj);
+
             // Also set matWVP for sprite shaders (alternative name)
-            SetMatrix("matWVP", (const float*)&m_frameViewProj);
+            SetMatrix("matWVP", (const float*)&viewProj);
         }
     }
     
     m_pActiveShader = pPreviousShader; // Restore previous shader
+}
+
+void ShaderManager::SetShaderMatrix(ShaderID id, const D3DXMATRIX* pMatrix) {
+    if (id >= 0 && id < SHADER_COUNT && pMatrix) {
+        m_shaderMatrices[id] = *pMatrix;
+        m_hasFrameViewProj = true;
+    }
 }
 
 // Validate shader handle
@@ -1073,10 +1124,12 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
 
                 // === КРИТИЧЕСКИЙ ФИКС Z-БУФЕРА ===
                 // Включаем Z-тест для world-space шейдеров (карта), выключаем для UI
-                if (static_cast<ShaderID>(cmd.shaderID) == SHADER_WORLD) {
+                ShaderID sid = static_cast<ShaderID>(cmd.shaderID);
+                bool isWorldShader = (sid == SHADER_WORLD || sid == SHADER_SPRITE_CONSTANT_INSTANCED || sid == SHADER_SPRITE || sid == SHADER_TERRAIN || sid == SHADER_ENTITY);
+                if (isWorldShader) {
                     m_pDevice->SetRenderState(D3DRS_ZENABLE, TRUE);       // Включаем Z-тест для карты
                     m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, TRUE);   // Разрешаем запись в Z-буфер
-                    OutputDebugStringA("[SMgr::ExecuteQueue] Z-buffer ENABLED for SHADER_WORLD\n");
+                    OutputDebugStringA("[SMgr::ExecuteQueue] Z-buffer ENABLED for world shader\n");
                 } else {
                     m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);      // Выключаем для UI/текста
                     m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
@@ -1084,9 +1137,7 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                 }
                 // ==================================
 
-                const D3DXMATRIX* activeMatrix = cmd.isUI ? &localOrtho : &m_frameViewProj;
-
-                Prepare(static_cast<ShaderID>(cmd.shaderID), activeMatrix);
+                Prepare(static_cast<ShaderID>(cmd.shaderID), nullptr);
                 currentShaderID = static_cast<ShaderID>(cmd.shaderID);
 
                 if (m_pActiveEffect) {
@@ -1094,8 +1145,7 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                     BeginPass(0);
                     passActive = true;
                     OutputDebugStringA("[SMgr::ExecuteQueue] Shader activated\n");
-                    // CRITICAL: Set matrix AFTER BeginPass for effect framework
-                    SetGlobalUniforms(activeMatrix);
+                    // CRITICAL: Matrix already set in Prepare() via nullptr -> m_shaderMatrices
                 } else {
                     OutputDebugStringA("[SMgr::ExecuteQueue] WARNING: m_pActiveEffect is NULL!\n");
                 }

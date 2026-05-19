@@ -199,7 +199,10 @@ public:
     // Update global camera matrices (view + projection) for all loaded shaders
     // Caches internally and propagates to all active effects
     void UpdateGlobalMatrices(const D3DXMATRIX* pView, const D3DXMATRIX* pProj);
-    
+
+    // Set matrix directly into shader array (for Camera to use without active shader)
+    void SetShaderMatrix(ShaderID id, const D3DXMATRIX* pMatrix);
+
     // Centralized initialization: load all required shaders at startup
     // Returns false if any shader fails to load
     bool Init();
@@ -211,7 +214,12 @@ public:
     ID3DXEffect* GetEffect(ShaderID id);
     
     // Get current frame ViewProjection (for external queries)
-    const D3DXMATRIX& GetFrameViewProj() const { return m_frameViewProj; }
+    const D3DXMATRIX& GetFrameViewProj() const { 
+        if (m_currentShaderID >= 0 && m_currentShaderID < SHADER_COUNT) {
+            return m_shaderMatrices[m_currentShaderID];
+        }
+        return m_shaderMatrices[0];
+    }
 
     // Get current active shader ID
     ShaderID GetCurrentShaderID() const { return m_currentShaderID; }
@@ -321,7 +329,7 @@ private:
     int m_vertexStart;
     
     // Global Constant Buffer (set once per frame, not per sprite)
-    D3DXMATRIX m_frameViewProj;
+    D3DXMATRIX m_shaderMatrices[SHADER_COUNT];
     bool m_hasFrameViewProj;
     
     // Cached camera matrices (view + projection separately)

@@ -1,6 +1,7 @@
 ﻿// Graphics/Camera.cpp
 #include "stdafx.h"
 #include "Camera.h"
+#include "ShaderManager.h"
 
 Camera::Camera()
 : m_pShaderManager(nullptr)
@@ -37,18 +38,19 @@ void Camera::Update()
     D3DXMATRIX scale;
     D3DXMATRIX uncenter;
 
-    // камера двигает мир в обратную сторону
-    D3DXMatrixTranslation(&translate, -m_posX, -m_posY, 0.0f);
+    if (m_pShaderManager) {
+        D3DXMATRIX identity;
+        D3DXMatrixIdentity(&identity);
+        m_pShaderManager->UpdateGlobalMatrices(&identity, &identity);
+    }
 
-    // zoom от центра экрана
+    D3DXMatrixTranslation(&translate, -m_posX, -m_posY, 0.0f);
     D3DXMatrixTranslation(&center, -halfW, -halfH, 0.0f);
     D3DXMatrixScaling(&scale, m_zoom, m_zoom, 1.0f);
     D3DXMatrixTranslation(&uncenter, halfW, halfH, 0.0f);
 
-    // VIEW matrix
     m_view = translate * center * scale * uncenter;
 
-    // projection следует за позицией камеры
     float viewHalfW = halfW / m_zoom;
     float viewHalfH = halfH / m_zoom;
 
@@ -62,7 +64,10 @@ void Camera::Update()
         1.0f);
 
     if (m_pShaderManager) {
+        D3DXMATRIX viewProj = m_view * m_proj;
         m_pShaderManager->UpdateGlobalMatrices(&m_view, &m_proj);
+        m_pShaderManager->SetShaderMatrix(SHADER_TERRAIN, &viewProj);
+        m_pShaderManager->SetShaderMatrix(SHADER_WORLD, &viewProj);
     }
 }
 
@@ -83,7 +88,9 @@ void Camera::UpdateUI()
         1.0f);
 
     if (m_pShaderManager) {
+        D3DXMATRIX viewProj = m_proj;
         m_pShaderManager->UpdateGlobalMatrices(&m_view, &m_proj);
+        m_pShaderManager->SetGlobalUniforms(&viewProj);
     }
 }
 

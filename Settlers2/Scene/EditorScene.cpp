@@ -530,6 +530,11 @@ void EditorScene::Update(float deltaTime) {
 			m_mapEditor->PaintCurrentTile();
 		}
 	}
+
+	if (m_camera && m_camera->GetPosX() == 0.0f && m_camera->GetPosY() == 0.0f) {
+		m_camera->SetPosition(300.0f, 300.0f);
+		m_camera->Zoom(1.5f);
+	}
 }
 
 void EditorScene::Render() {
