@@ -442,6 +442,10 @@ void EditorScene::Update(float deltaTime) {
 		}
 		
 		m_camera->Update();
+		
+		if (m_shaderManager) {
+			m_shaderManager->UpdateGlobalMatrices(&m_camera->GetViewMatrix(), &m_camera->GetProjectionMatrix());
+		}
 	}
 
 	// When GridMenu is visible, update it and handle selection
@@ -526,19 +530,10 @@ void EditorScene::Update(float deltaTime) {
 }
 
 void EditorScene::Render() {
-    if (!m_renderer || !m_shaderManager || !m_spriteRenderer) return;
-    
-    m_renderer->Clear(D3DCOLOR_XRGB(50, 50, 50));
+    if (!m_mapEditor) return;
 
-    if (m_camera) {
-        m_camera->Update();
-        m_shaderManager->UpdateGlobalMatrices(&m_camera->GetViewMatrix(), &m_camera->GetProjectionMatrix());
-    }
-
-    if (m_mapEditor) {
-        m_mapEditor->RenderGeometry();
-        m_mapEditor->RenderUI();
-    }
+    m_mapEditor->RenderGeometry();
+    m_mapEditor->RenderUI();
 
     if (m_textManager) {
         m_textManager->BeginTextBatch(FONT_MENU, 0.0f);
@@ -547,8 +542,6 @@ void EditorScene::Render() {
         m_textManager->DrawTextToScreen(fpsText, 10.0f, 10.0f, 0xFF00FF00, 0.25f);
         m_textManager->EndTextBatch();
     }
-    
-    m_renderer->EndFrame();
 }
 
 void EditorScene::OnEnter() {

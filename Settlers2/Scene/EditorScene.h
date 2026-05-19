@@ -47,7 +47,6 @@ EditorScene();
     virtual void Render();
     virtual void OnEnter();
     virtual void OnExit();
-    virtual bool HasCustomRenderPipeline() const override { return true; }
 
     void SetRenderer(Renderer* renderer) { m_renderer = renderer; }
     void SetSpriteRenderer(SpriteRenderer* spriteRenderer) { m_spriteRenderer = spriteRenderer; }
