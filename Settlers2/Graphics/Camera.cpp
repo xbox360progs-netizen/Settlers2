@@ -90,7 +90,7 @@ void Camera::UpdateUI()
     if (m_pShaderManager) {
         D3DXMATRIX viewProj = m_proj;
         m_pShaderManager->UpdateGlobalMatrices(&m_view, &m_proj);
-        m_pShaderManager->SetGlobalUniforms(&viewProj);
+        m_pShaderManager->SetGlobalUniforms(SHADER_WORLD, &viewProj);
     }
 }
 

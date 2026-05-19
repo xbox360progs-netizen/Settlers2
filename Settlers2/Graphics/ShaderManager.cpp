@@ -747,12 +747,21 @@ void ShaderManager::Prepare(ShaderID id, const D3DXMATRIX* pViewProj) {
         OutputDebugStringA("[ShaderManager] Prepare: Invalid shader ID\n");
         return;
     }
+
+    // Если матрица передана принудительно на этапе рендеринга очереди,
+    // мы ОБЯЗАНЫ обновить кэш m_shaderMatrices до любых проверок ленивого переключения,
+    // чтобы ExecuteQueue всегда читал актуальные данные!
+    if (pViewProj && id >= 0 && id < SHADER_COUNT) {
+        m_shaderMatrices[id] = *pViewProj;
+    }
     
-    // Lazy switching: only switch if different from current
+// Lazy switching: only switch if different from current
     if (id == m_currentShaderID && m_pActiveShader && m_pActiveEffect) {
         // Already active, just update global uniforms
         if (pViewProj) {
-            SetGlobalUniforms(pViewProj);
+            SetGlobalUniforms(id, pViewProj);
+        } else {
+            SetGlobalUniforms(id, &m_shaderMatrices[id]);
         }
         return;
     }
@@ -768,9 +777,9 @@ void ShaderManager::Prepare(ShaderID id, const D3DXMATRIX* pViewProj) {
         char buf[256];
         sprintf_s(buf, "[ShaderManager::Prepare] Calling SetGlobalUniforms for new shader ID %d\n", id);
         OutputDebugStringA(buf);
-        SetGlobalUniforms(pViewProj);
+        SetGlobalUniforms(id, pViewProj);
     } else {
-        SetGlobalUniforms(&m_shaderMatrices[id]);
+        SetGlobalUniforms(id, &m_shaderMatrices[id]);
     }
 }
 
@@ -784,56 +793,45 @@ void ShaderManager::EndCurrent() {
 }
 
 // Set global uniforms (frame-wide data: view/projection matrix, time, etc.)
-void ShaderManager::SetGlobalUniforms(const D3DXMATRIX* pViewProj) {
+void ShaderManager::SetGlobalUniforms(ShaderID id, const D3DXMATRIX* pViewProj) {
     if (!m_pActiveShader || !pViewProj) {
         OutputDebugStringA("[SM::SetGlobalUniforms] ERROR: m_pActiveShader or pViewProj is NULL\n");
         return;
     }
 
-    if (m_currentShaderID >= 0 && m_currentShaderID < SHADER_COUNT) {
-        m_shaderMatrices[m_currentShaderID] = *pViewProj;
-    }
-
-    // Debug: Log matrix values
-    char matBuf[512];
     const float* m = (const float*)pViewProj;
-    sprintf(matBuf, "[SM::SetGlobalUniforms] Matrix: [%f %f %f %f; %f %f %f %f; %f %f %f %f; %f %f %f %f]\n",
-            m[0], m[1], m[2], m[3],
-            m[4], m[5], m[6], m[7],
-            m[8], m[9], m[10], m[11],
-            m[12], m[13], m[14], m[15]);
-    OutputDebugStringA(matBuf);
 
-    // ОБРАБОТКА ТЕКСТА И ИНТЕРФЕЙСА (Шейдер ID 0)
-    if (m_currentShaderID == 0) {
-        // 1. Отключаем тест и запись глубины, чтобы текст не перекрывался 3D-миром
-        m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
-        m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+    // Iron-clad detector of flat UI matrix
+    bool isUiMatrix = (fabs(m[12]) <= 1.0f && fabs(m[13]) <= 1.0f &&
+                       fabs(m[14]) <= 1.0f && fabs(m[15]) == 1.0f);
 
-        // 2. Включаем альфа-блендинг для прозрачного фона букв
-        m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-        m_pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
-        m_pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+    if (id >= 0 && id < SHADER_COUNT) {
+        // PROTECT: Block UI matrices from corrupting 3D world shader cache during command accumulation
+        if (isUiMatrix && (id == SHADER_TERRAIN || id == SHADER_WORLD || id == SHADER_SPRITE || id == SHADER_SPRITE_CONSTANT_INSTANCED)) {
+            SetMatrix("WVP", (const float*)pViewProj);
+            SetMatrix("WorldViewProjection", (const float*)pViewProj);
+            SetMatrix("gScreenProj", (const float*)pViewProj);
+            SetMatrix("matOrtho", (const float*)pViewProj);
+            Commit();
+            return;
+        }
 
-        // 3. Строим правильную 2D-матрицу ортографии (1280x720 пикселей)
-        D3DXMATRIX matOrtho;
-        D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
+        // PROTECT: Block 3D camera matrices from corrupting UI cache (ID 0) during queue execution
+        if (!isUiMatrix && (id == 0 || id == SHADER_UI)) {
+            SetMatrix("WVP", (const float*)pViewProj);
+            SetMatrix("WorldViewProjection", (const float*)pViewProj);
+            Commit();
+            return;
+        }
 
-        // Передаем ортографическую матрицу во все возможные имена параметров 2D-шейдера
-        SetMatrix("WVP", (const float*)&matOrtho);
-        SetMatrix("WorldViewProjection", (const float*)&matOrtho);
-        SetMatrix("matOrtho", (const float*)&matOrtho);
-    }
-    else {
-        // ДЛЯ ВСЕХ ОСТАЛЬНЫХ 3D ШЕЙДЕРОВ (Ландшафт, Объекты)
-        // Возвращаем стандартные 3D-настройки рендера
-        m_pDevice->SetRenderState(D3DRS_ZENABLE, TRUE);
-        m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, TRUE);
-
-        SetMatrix("WVP", (const float*)pViewProj);
-        SetMatrix("WorldViewProjection", (const float*)pViewProj);
+        // Normal path: write to the exact shader slot passed
+        m_shaderMatrices[id] = *pViewProj;
     }
 
+    SetMatrix("WVP", (const float*)pViewProj);
+    SetMatrix("WorldViewProjection", (const float*)pViewProj);
+    SetMatrix("gScreenProj", (const float*)pViewProj);
+    SetMatrix("matOrtho", (const float*)pViewProj);
     Commit();
 }
 
@@ -1183,7 +1181,7 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                 passActive = false;
             }
 
-            Prepare(static_cast<ShaderID>(cmd.shaderID), nullptr);
+            Prepare(static_cast<ShaderID>(cmd.shaderID), &m_shaderMatrices[SHADER_WORLD]);
             currentShaderID = static_cast<ShaderID>(cmd.shaderID);
 
             if (m_pActiveEffect) {
@@ -1191,13 +1189,13 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                 BeginPass(0);
                 passActive = true;
                 
-                SetMatrix("gViewProj", (const float*)&m_shaderMatrices[SHADER_TERRAIN]);
-                SetMatrix("WVP", (const float*)&m_shaderMatrices[SHADER_TERRAIN]);
-                SetMatrix("WorldViewProjection", (const float*)&m_shaderMatrices[SHADER_TERRAIN]);
+                SetMatrix("gViewProj", (const float*)&m_shaderMatrices[SHADER_WORLD]);
+                SetMatrix("WVP", (const float*)&m_shaderMatrices[SHADER_WORLD]);
+                SetMatrix("WorldViewProjection", (const float*)&m_shaderMatrices[SHADER_WORLD]);
                 Commit();
 
                 char dbg[256];
-                sprintf(dbg, "[PHASE1] Shader %d activated with world matrix from SHADER_TERRAIN slot\n", currentShaderID);
+                sprintf(dbg, "[PHASE1] Shader %d activated with world matrix from SHADER_WORLD slot\n", currentShaderID);
                 OutputDebugStringA(dbg);
             }
         }
@@ -1219,6 +1217,10 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                 cmd.vertexStart,
                 cmd.primitiveCount
             );
+        } else {
+            char dbg[256];
+            sprintf(dbg, "[PHASE1] WARNING: passActive=false, skipping draw for slot %d, shaderID=%d\n", i, cmd.shaderID);
+            OutputDebugStringA(dbg);
         }
 
         InterlockedExchange(&cmd.status, 0);
@@ -1268,7 +1270,7 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                 passActive = false;
             }
 
-            Prepare(static_cast<ShaderID>(cmd.shaderID), nullptr);
+            Prepare(static_cast<ShaderID>(cmd.shaderID), &localOrtho);
             currentShaderID = static_cast<ShaderID>(cmd.shaderID);
 
             if (m_pActiveEffect) {
@@ -1284,6 +1286,10 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
 
                 char dbg[256];
                 sprintf(dbg, "[PHASE2] Shader %d activated with ortho matrix, slot %d\n", currentShaderID, i);
+                OutputDebugStringA(dbg);
+            } else {
+                char dbg[256];
+                sprintf(dbg, "[PHASE2] WARNING: m_pActiveEffect is NULL for slot %d, shaderID=%d\n", i, cmd.shaderID);
                 OutputDebugStringA(dbg);
             }
         }
@@ -1307,6 +1313,10 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                 cmd.vertexStart,
                 cmd.primitiveCount
             );
+        } else {
+            char dbg[256];
+            sprintf(dbg, "[PHASE2] WARNING: passActive=false, skipping draw for slot %d, shaderID=%d\n", i, cmd.shaderID);
+            OutputDebugStringA(dbg);
         }
 
         InterlockedExchange(&cmd.status, 0);

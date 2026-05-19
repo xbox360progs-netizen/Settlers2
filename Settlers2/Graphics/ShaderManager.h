@@ -180,7 +180,7 @@ public:
     void EndCurrent();
     
     // Set global uniforms (frame-wide data: view/projection matrix, time, etc.)
-    void SetGlobalUniforms(const D3DXMATRIX* pViewProj);
+    void SetGlobalUniforms(ShaderID id, const D3DXMATRIX* pViewProj);
     
     // Set local uniforms (per-entity data: texture, depth, etc.)
     void SetLocalUniforms(LPDIRECT3DTEXTURE9 pTexture, float depth);
