@@ -8,9 +8,11 @@
 #include <xtl.h>
 
 #include "RenderTypes.h"
+#include "Material.h"
 
 // Forward declaration for ThreadData struct
 class SpriteRenderer;
+class MaterialManager;
 
 // Xbox 360 async command buffer forward declarations
 #ifdef _XBOX
@@ -74,11 +76,23 @@ public:
     HRESULT Initialize(LPDIRECT3DDEVICE9 device, ShaderManager* shaderManager, int maxSprites = 4096);
     void Shutdown();
 
+    // Set MaterialManager for material-based rendering
+    void SetMaterialManager(MaterialManager* materialManager) { m_pMaterialManager = materialManager; }
+    MaterialManager* GetMaterialManager() const { return m_pMaterialManager; }
+
     // Xbox 360 device loss handling
     void OnLostDevice();
     void OnResetDevice();
 
-    // Begin a batch with specific shader and texture
+    // Begin a batch with material ID - MaterialManager resolves shader, textures, flags
+    void Begin(int materialID);
+    void Begin(int materialID, float depth);
+    void Begin(int materialID, float depth, int renderType);
+    void Begin(int materialID, float depth, int renderType, bool isUI);
+    void Begin(int materialID, int layer, float yPosition);
+    void Begin(int materialID, int layer, float yPosition, int renderType, bool isUI);
+
+    // Legacy Begin overloads with ShaderID (for backward compatibility)
     void Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture);
     void Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth);
     void Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType);
@@ -261,6 +275,7 @@ private:
 
     LPDIRECT3DDEVICE9 m_pDevice;
     ShaderManager* m_pShaderManager;
+    MaterialManager* m_pMaterialManager;
     LPDIRECT3DVERTEXBUFFER9 m_pVB[2]; // Double buffering for Xbox 360
     LPDIRECT3DVERTEXBUFFER9 m_pGpuBufferA; // Explicit GPU buffer A (for ping-pong)
     LPDIRECT3DVERTEXBUFFER9 m_pGpuBufferB; // Explicit GPU buffer B (for ping-pong)

@@ -1,7 +1,9 @@
 #pragma once
 #include <d3d9.h>
 #include <string>
+#include <vector>
 #include "RenderFrame.h"
+#include "GPUTimer.h"
 
 namespace Graphics {
 
@@ -11,11 +13,15 @@ struct DebugRenderStats {
     int triangles;
     int rtSwitches;
     int shaderSwitches;
+    int textureBinds;
+    int stateChanges;
+    int resolves;
     int lightCount;
     float geometryPassMs;
     float lightingPassMs;
     float transparentPassMs;
     float totalMs;
+    float frameTimeMs;
 };
 
 class DebugOverlay {
@@ -28,6 +34,7 @@ public:
 
     void SetRenderStats(const DebugRenderStats& stats);
     void SetPassStats(RenderPassType pass, const PassStats& stats);
+    void SetGPUTimerResults(const std::vector<GPUTimerResult>& results);
 
     void Render();
 
@@ -53,6 +60,7 @@ private:
 
     DebugRenderStats m_stats;
     PassStats m_passStats[PASS_COUNT];
+    std::vector<GPUTimerResult> m_gpuResults;
 };
 
 }

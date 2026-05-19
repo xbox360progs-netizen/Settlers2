@@ -1,14 +1,22 @@
 #pragma once
 #include <d3d9.h>
 #include <vector>
+#include <map>
 #include "RenderTypes.h"
+#include "GPUTimer.h"
 
 namespace Graphics {
+
+class ShaderManager;
+class SpriteRenderer;
+class MaterialManager;
+class RenderPassBase;
+class GPUTimer;
 
 enum RenderPassType {
     PASS_GEOMETRY,
     PASS_LIGHTING,
-    PASS_SHADOW,
+    PASS_ALPHATEST,
     PASS_TRANSPARENT,
     PASS_UI,
     PASS_POSTFX,
@@ -21,6 +29,19 @@ struct PassStats {
     int batchCount;
     int triangles;
     float gpuTimeMs;
+};
+
+enum RenderLayerType {
+    LAYER_OPAQUE,
+    LAYER_ALPHATEST,
+    LAYER_TRANSPARENT,
+    LAYER_UI
+};
+
+struct PassDependency {
+    RenderPassType dependent;
+    RenderPassType dependency;
+    bool required;
 };
 
 class RenderQueueBase {
@@ -53,6 +74,7 @@ struct GeometryCommand {
     float depth;
     int shaderID;
     void* texture;
+    RenderLayerType layer;
 };
 
 struct TransparentCommand {
@@ -61,6 +83,7 @@ struct TransparentCommand {
     float depth;
     int shaderID;
     bool isUI;
+    int materialID;
 };
 
 struct UICommand {
@@ -68,6 +91,7 @@ struct UICommand {
     void* texture;
     float screenX, screenY;
     float width, height;
+    int materialID;
 };
 
 struct PostFXCommand {
@@ -91,6 +115,9 @@ public:
     void Initialize(LPDIRECT3DDEVICE9 pDevice);
     void Shutdown();
 
+    void SetDependencies(ShaderManager* shaderMgr, SpriteRenderer* spriteRenderer, MaterialManager* materialMgr);
+    void SetGPUTimer(GPUTimer* timer) { m_gpuTimer = timer; }
+
     void BeginFrame();
     void EndFrame();
 
@@ -99,13 +126,19 @@ public:
     void AddUICommand(const UICommand& cmd);
     void AddPostFXCommand(const PostFXCommand& cmd);
 
+    void AddPass(RenderPassBase* pass);
+    void RemovePass(RenderPassType type);
+    RenderPassBase* GetPass(RenderPassType type);
+
+    void Execute();
     void ExecuteGeometryPass();
     void ExecuteLightingPass();
+    void ExecuteAlphaTestPass();
     void ExecuteTransparentPass();
     void ExecuteUIPass();
     void ExecutePostFXPass();
 
-    void Execute();
+    void ValidateResources();
 
     void BindGBuffer();
     void UnbindGBuffer();
@@ -116,6 +149,7 @@ public:
     
     int GetTotalDrawCalls() const;
     int GetTotalBatches() const;
+    int GetCommandCount(RenderPassType type) const;
 
     void SetDebugViewMode(int mode) { m_debugViewMode = mode; }
     int GetDebugViewMode() const { return m_debugViewMode; }
@@ -131,13 +165,28 @@ public:
     static const int DEBUG_SPECULAR = 4;
     static const int DEBUG_LIGHTING = 5;
 
+    void SetPassDependency(RenderPassType dependent, RenderPassType dependency, bool required = true);
+    bool ValidatePassDependencies() const;
+    void SortPassesByDependency();
+
+    bool IsInitialized() const { return m_initialized; }
+
 private:
     void ValidateRenderTargets();
     void ValidateShaders();
     void ValidateBlendState();
     void ValidateDepthState();
+    void ValidateMaterial(int materialID);
+    void ValidatePassState(RenderPassType pass);
+
+    int m_startTimer(const char* name);
+    void m_endTimer(int timerIndex);
 
     LPDIRECT3DDEVICE9 m_pDevice;
+    ShaderManager* m_shaderManager;
+    SpriteRenderer* m_spriteRenderer;
+    MaterialManager* m_materialManager;
+    GPUTimer* m_gpuTimer;
     
     TypedRenderQueue<GeometryCommand> m_geometryQueue;
     TypedRenderQueue<TransparentCommand> m_transparentQueue;
@@ -156,6 +205,9 @@ private:
     int m_debugViewMode;
     
     bool m_initialized;
+
+    std::map<RenderPassType, RenderPassBase*> m_passes;
+    std::vector<PassDependency> m_dependencies;
 };
 
 }

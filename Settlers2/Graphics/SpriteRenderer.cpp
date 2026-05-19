@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "SpriteRenderer.h"
 #include "ShaderManager.h"
+#include "Material.h"
 #include "Renderer.h"
 #include "../Scene/SceneManager.h"
 #include <stdio.h>
@@ -948,6 +949,91 @@ void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, int l
 void SpriteRenderer::BeginWorldObject(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float worldY, float layerBase, float yScale, int renderType) {
     float depth = layerBase + (worldY * yScale);
     Begin(shaderID, pTexture, depth, renderType, false); // World-space, not UI
+}
+
+// MaterialManager-based Begin methods - MaterialManager resolves shader, textures, and flags
+void SpriteRenderer::Begin(int materialID) {
+    if (!m_pMaterialManager) {
+        OutputDebugStringA("[SR::Begin] WARNING: MaterialManager not set, using default shader!\n");
+        Begin(SHADER_SPRITE, NULL, 1.0f, 0, false);
+        return;
+    }
+
+    Material* mat = m_pMaterialManager->GetMaterial(materialID);
+    if (!mat) {
+        OutputDebugStringA("[SR::Begin] WARNING: Invalid material ID, using default!\n");
+        Begin(SHADER_SPRITE, NULL, 1.0f, 0, false);
+        return;
+    }
+
+    ShaderID resolvedShader = SHADER_SPRITE;
+    LPDIRECT3DTEXTURE9 diffuseTex = mat->pDiffuseMap;
+
+    if (mat->Flags & MATERIAL_FLAG_TRANSPARENT) {
+        resolvedShader = SHADER_SPRITE;
+    } else if (mat->Flags & MATERIAL_FLAG_NORMALMAP) {
+        resolvedShader = SHADER_SPRITE_GBUFFER;
+    }
+
+    Begin(resolvedShader, diffuseTex, 1.0f, 0, false);
+}
+
+void SpriteRenderer::Begin(int materialID, float depth) {
+    if (!m_pMaterialManager) {
+        Begin(SHADER_SPRITE, NULL, depth, 0, false);
+        return;
+    }
+
+    Material* mat = m_pMaterialManager->GetMaterial(materialID);
+    if (!mat) {
+        Begin(SHADER_SPRITE, NULL, depth, 0, false);
+        return;
+    }
+
+    ShaderID resolvedShader = SHADER_SPRITE;
+    LPDIRECT3DTEXTURE9 diffuseTex = mat->pDiffuseMap;
+
+    if (mat->Flags & MATERIAL_FLAG_NORMALMAP) {
+        resolvedShader = SHADER_SPRITE_GBUFFER;
+    }
+
+    Begin(resolvedShader, diffuseTex, depth, 0, false);
+}
+
+void SpriteRenderer::Begin(int materialID, float depth, int renderType) {
+    Begin(materialID, depth, renderType, false);
+}
+
+void SpriteRenderer::Begin(int materialID, float depth, int renderType, bool isUI) {
+    if (!m_pMaterialManager) {
+        Begin(SHADER_SPRITE, NULL, depth, renderType, isUI);
+        return;
+    }
+
+    Material* mat = m_pMaterialManager->GetMaterial(materialID);
+    if (!mat) {
+        Begin(SHADER_SPRITE, NULL, depth, renderType, isUI);
+        return;
+    }
+
+    ShaderID resolvedShader = SHADER_SPRITE;
+    LPDIRECT3DTEXTURE9 diffuseTex = mat->pDiffuseMap;
+
+    if (mat->Flags & MATERIAL_FLAG_NORMALMAP) {
+        resolvedShader = SHADER_SPRITE_GBUFFER;
+    }
+
+    Begin(resolvedShader, diffuseTex, depth, renderType, isUI);
+}
+
+void SpriteRenderer::Begin(int materialID, int layer, float yPosition) {
+    float compositeDepth = (float)(layer * 1000) + yPosition;
+    Begin(materialID, compositeDepth, 0, false);
+}
+
+void SpriteRenderer::Begin(int materialID, int layer, float yPosition, int renderType, bool isUI) {
+    float compositeDepth = (float)(layer * 1000) + yPosition;
+    Begin(materialID, compositeDepth, renderType, isUI);
 }
 
 // Legacy Begin overloads (map shader names to handles for backward compatibility)
