@@ -42,7 +42,8 @@ public:
 
     void Initialize(World::Map* map, ::Renderer* renderer, Input::InputManager* inputManager, IDirect3DDevice9* device);
     void Update(float deltaTime);
-    void Render();
+    void RenderGeometry();
+    void RenderUI();
 
     void SetEditMode(EditMode mode) { m_currentMode = mode; }
     void SetBrushSize(BrushSize size) { m_brushSize = size; }

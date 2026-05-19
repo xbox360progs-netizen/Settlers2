@@ -460,6 +460,28 @@ void Renderer::DrawSingleSprite(Texture* texture, float x, float y, float width,
     m_pShaderManager->EndShader();
 }
 
+void Renderer::DrawFullscreenQuad() {
+    if (!m_pDevice || !m_pVertexDecl) {
+        OutputDebugStringA("[Renderer] DrawFullscreenQuad: Device or VertexDecl is NULL\n");
+        return;
+    }
+
+    struct QuadVertex {
+        float x, y, z;
+        float u, v;
+    };
+
+    QuadVertex vertices[4] = {
+        { -1.0f, -1.0f, 0.0f, 0.0f, 0.0f },
+        {  1.0f, -1.0f, 0.0f, 1.0f, 0.0f },
+        {  1.0f,  1.0f, 0.0f, 1.0f, 1.0f },
+        { -1.0f,  1.0f, 0.0f, 0.0f, 1.0f }
+    };
+
+    m_pDevice->SetVertexDeclaration(m_pVertexDecl);
+    m_pDevice->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 2, vertices, sizeof(QuadVertex));
+}
+
 void Renderer::BindGBuffer()
 {
     if (!m_pDevice) return;

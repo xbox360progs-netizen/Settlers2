@@ -270,6 +270,10 @@ sprintf(dbg, "[SM::Render] ENTRY - m_currentScene=0x%08X\n", m_currentScene);
         return;
     }
     
+    bool hasCustomPipeline = m_currentScene->HasCustomRenderPipeline();
+    sprintf(dbg, "[SM::Render] Custom pipeline=%d\n", hasCustomPipeline);
+    OutputDebugStringA(dbg);
+    
     m_currentScene->Render();
     LeaveCriticalSection(&m_cs);
 
@@ -289,25 +293,32 @@ sprintf(dbg, "[SM::Render] ENTRY - m_currentScene=0x%08X\n", m_currentScene);
 
     // Step 4: EXECUTE - Execute all commands in sorted order (final render pass)
     // This MUST be in the same thread as BeginScene/EndScene/Present on Xbox 360 D3D9
-    OutputDebugStringA("[SceneManager::Render] About to Execute Queue...\n");
-    if (m_shaderManager && m_spriteRenderer)
+    // Skip for custom pipeline scenes - they handle ExecuteQueue themselves
+    if (!hasCustomPipeline)
     {
-        LPDIRECT3DVERTEXBUFFER9 pVB = m_spriteRenderer->GetVertexBuffer();
-        LPDIRECT3DINDEXBUFFER9 pIB = m_spriteRenderer->GetIndexBuffer();
-        LPDIRECT3DVERTEXDECLARATION9 pDecl = m_spriteRenderer->GetVertexDeclaration();
-        if (pVB && pIB && pDecl)
+        OutputDebugStringA("[SceneManager::Render] About to Execute Queue...\n");
+        if (m_shaderManager && m_spriteRenderer)
         {
-            // Get cached view/projection matrix from ShaderManager
-            const D3DXMATRIX& viewProj = m_shaderManager->GetFrameViewProj();
+            LPDIRECT3DVERTEXBUFFER9 pVB = m_spriteRenderer->GetVertexBuffer();
+            LPDIRECT3DINDEXBUFFER9 pIB = m_spriteRenderer->GetIndexBuffer();
+            LPDIRECT3DVERTEXDECLARATION9 pDecl = m_spriteRenderer->GetVertexDeclaration();
+            if (pVB && pIB && pDecl)
+            {
+                const D3DXMATRIX& viewProj = m_shaderManager->GetFrameViewProj();
 
-            OutputDebugStringA("[SM::Render] Calling ExecuteQueue...\n");
-            m_shaderManager->ExecuteQueue(pVB, pIB, pDecl, 32, &viewProj, m_spriteRenderer);
-            OutputDebugStringA("[SM::Render] ExecuteQueue RETURNED!\n");
+                OutputDebugStringA("[SM::Render] Calling ExecuteQueue...\n");
+                m_shaderManager->ExecuteQueue(pVB, pIB, pDecl, 32, &viewProj, m_spriteRenderer);
+                OutputDebugStringA("[SM::Render] ExecuteQueue RETURNED!\n");
+            }
+            else
+            {
+                OutputDebugStringA("[SceneManager::Render] ERROR: NULL buffers!\n");
+            }
         }
-        else
-        {
-            OutputDebugStringA("[SceneManager::Render] ERROR: NULL buffers!\n");
-        }
+    }
+    else
+    {
+        OutputDebugStringA("[SM::Render] Skipping ExecuteQueue - custom pipeline handles it\n");
     }
 
     // Step 5: RESET - Reset batch state after ExecuteQueue() is complete

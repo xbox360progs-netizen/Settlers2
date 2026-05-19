@@ -56,6 +56,15 @@ public:
     void DrawSingleSprite(Texture* texture, float x, float y, float width, float height,
                           float u0, float v0, float u1, float v1, D3DCOLOR color = 0xFFFFFFFF);
 
+    // Fullscreen quad for deferred lighting pass
+    void DrawFullscreenQuad();
+
+    // G-Buffer management for deferred rendering
+    void BindGBuffer();
+    void UnbindGBuffer();
+    void ClearGBuffers();
+    void ApplyDeferredLighting();
+
 private:
     void SetProjectionMatrix(float width, float height);
 
@@ -79,10 +88,4 @@ private:
     LPDIRECT3DSURFACE9 m_pGBufferAlbedo; // Albedo (A8R8G8B8)
     LPDIRECT3DSURFACE9 m_pGBufferSpec;   // Specular + gloss (A8R8G8B8)
     LPDIRECT3DSURFACE9 m_pGBufferDepth;  // Depth (D24S8 or D32)
-
-    // Helper methods for MRT management
-    void BindGBuffer();
-    void UnbindGBuffer();
-    void ClearGBuffers();
-    void ApplyDeferredLighting(); // Deferred lighting pass
 };

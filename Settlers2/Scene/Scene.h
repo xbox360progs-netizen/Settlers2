@@ -49,6 +49,8 @@ public:
     SceneManager* GetSceneManager() const;
     void SetSceneManager(SceneManager* manager);
 
+    virtual bool HasCustomRenderPipeline() const { return false; }
+
 protected:
     std::string m_name;
     bool m_loaded;

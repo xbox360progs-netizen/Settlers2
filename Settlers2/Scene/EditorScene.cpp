@@ -526,172 +526,87 @@ void EditorScene::Update(float deltaTime) {
 }
 
 void EditorScene::Render() {
-    if (!m_renderer) return;
-    
-    // FIX: Clear entire screen at start of render loop to fix icon tails (Xbox 360 EDRAM issue)
-    if (m_renderer->GetDevice()) {
-        m_renderer->GetDevice()->Clear(0, NULL, D3DCLEAR_TARGET, 0xFF000000, 1.0f, 0);
+    if (!m_renderer) {
+        OutputDebugStringA("[EditorScene::Render] m_renderer is NULL!\n");
+        return;
     }
     
+    if (!m_renderer->GetDevice()) {
+        OutputDebugStringA("[EditorScene::Render] m_renderer->GetDevice() is NULL!\n");
+        return;
+    }
+
+    if (!m_shaderManager) {
+        OutputDebugStringA("[EditorScene::Render] m_shaderManager is NULL!\n");
+        return;
+    }
+
+    if (!m_spriteRenderer) {
+        OutputDebugStringA("[EditorScene::Render] m_spriteRenderer is NULL!\n");
+        return;
+    }
+
+    OutputDebugStringA("[EditorScene::Render] Starting custom pipeline\n");
+
+    m_renderer->GetDevice()->Clear(0, NULL, D3DCLEAR_TARGET, 0xFF000000, 1.0f, 0);
     m_renderer->Clear(D3DCOLOR_XRGB(50, 50, 50));
 
-    // === STEP 1: Update global camera matrices (once per frame) ===
-    if (m_shaderManager && m_camera) {
+    if (m_camera) {
         m_camera->Update();
         m_shaderManager->UpdateGlobalMatrices(&m_camera->GetViewMatrix(), &m_camera->GetProjectionMatrix());
     }
 
-    // === STEP 2: Render map through MapEditor (fills command queue) ===
+    OutputDebugStringA("[EditorScene::Render] GEOMETRY PASS\n");
+
+    LPDIRECT3DVERTEXBUFFER9 pVB = m_spriteRenderer->GetVertexBuffer();
+    LPDIRECT3DINDEXBUFFER9 pIB = m_spriteRenderer->GetIndexBuffer();
+    LPDIRECT3DVERTEXDECLARATION9 pDecl = m_spriteRenderer->GetVertexDeclaration();
+    const D3DXMATRIX& viewProj = m_shaderManager->GetFrameViewProj();
+
+    if (!pVB || !pIB || !pDecl) {
+        OutputDebugStringA("[EditorScene::Render] ERROR: NULL buffers! VB=");
+        char buf[64];
+        sprintf(buf, "%p, IB=%p, Decl=%p\n", pVB, pIB, pDecl);
+        OutputDebugStringA(buf);
+        return;
+    }
+
+    m_renderer->BindGBuffer();
+    m_renderer->Clear(D3DCOLOR_XRGB(0, 0, 0));
+
     if (m_mapEditor) {
-        m_mapEditor->Render();
+        OutputDebugStringA("[EditorScene::Render] Calling RenderGeometry...\n");
+        m_mapEditor->RenderGeometry();
+    } else {
+        OutputDebugStringA("[EditorScene::Render] m_mapEditor is NULL!\n");
     }
 
-    // === STEP 2.5: Render selection hex (white outline) ===
-    if (m_hasSelection && m_mapEditor && m_mapEditor->GetMap()) {
-        float tileCenterX, tileCenterY;
-        CoordinateSystem& coords = CoordinateSystem::GetInstance();
-        
-        if (m_currentLayer == World::Ground) {
-            coords.GroundTileToWorldCenter(m_selectedTileX, m_selectedTileY, tileCenterX, tileCenterY);
-        } else {
-            coords.NodeTileToWorld(m_selectedTileX, m_selectedTileY, tileCenterX, tileCenterY);
-        }
-        
-        // Submit selection hex as a render command
-        // For now, we'll just render a simple white outline using the sprite renderer
-        // This should be replaced with a proper hex outline shader later
-        if (m_spriteRenderer) {
-            // Create a simple white outline effect
-            // This is a placeholder - should use a proper selection shader
-            D3DXVECTOR3 selectionPos(tileCenterX, tileCenterY, 0.1f);
-            // Submit to render queue (implementation depends on your sprite renderer API)
-        }
+    OutputDebugStringA("[EditorScene::Render] Flushing sprite renderer...\n");
+    m_spriteRenderer->Flush(m_shaderManager);
+
+    OutputDebugStringA("[EditorScene::Render] Executing geometry queue...\n");
+    m_shaderManager->ExecuteQueue(pVB, pIB, pDecl, 32, &viewProj, m_spriteRenderer);
+    m_shaderManager->ClearQueue();
+
+    OutputDebugStringA("[EditorScene::Render] LIGHTING PASS\n");
+
+    m_renderer->UnbindGBuffer();
+
+    if (!m_shaderManager->SetActiveShader(SHADER_DEFERRED_LIGHTING)) {
+        OutputDebugStringA("[EditorScene::Render] ERROR: SetActiveShader(SHADER_DEFERRED_LIGHTING) failed!\n");
+        m_renderer->EndFrame();
+        return;
     }
+    m_shaderManager->BeginShader();
+    m_shaderManager->BeginPass(0);
 
-    // === STEP 2.6: Render phantom resource (alpha 0.5) ===
-    if (m_currentState == STATE_PLACING && m_activeResourceType != World::ResourceType_None) {
-        float phantomX, phantomY;
-        CoordinateSystem& coords = CoordinateSystem::GetInstance();
-        
-        if (m_currentLayer == World::Ground) {
-            coords.GroundTileToWorldCenter(m_phantomTileX, m_phantomTileY, phantomX, phantomY);
-        } else {
-            coords.NodeTileToWorld(m_phantomTileX, m_phantomTileY, phantomX, phantomY);
-        }
-        
-        // Render phantom resource with alpha 0.5
-        // This is a placeholder - should use proper sprite rendering with alpha
-        if (m_spriteRenderer && m_shaderManager) {
-            // TODO: Get texture for the active resource type
-            // For now, just a placeholder
-            D3DXVECTOR3 phantomPos(phantomX, phantomY, 0.05f);
-            // Submit render command with alpha = 0.5
-        }
-    }
+    m_renderer->DrawFullscreenQuad();
 
-    // === STEP 2.7: Render placed resources on map ===
-    if (m_mapEditor && m_mapEditor->GetMap()) {
-        World::Map* map = m_mapEditor->GetMap();
-        int layerWidth = map->GetWidth() * 2;
-        int layerHeight = map->GetHeight() * 2;
+    m_shaderManager->EndPass();
+    m_shaderManager->EndShader();
 
-        CoordinateSystem& coords = CoordinateSystem::GetInstance();
+    OutputDebugStringA("[EditorScene::Render] UI PASS\n");
 
-        // First pass: Render resource icons ONLY (sprites)
-        if (m_spriteRenderer) {
-            m_spriteRenderer->Begin(SHADER_SPRITE, nullptr, 0.02f, 0, false);
-            for (int y = 0; y < layerHeight; y++) {
-                for (int x = 0; x < layerWidth; x++) {
-                    const World::ResourceNode& node = map->GetResourceNode(x, y);
-                    if (node.type != World::ResourceType_None && node.isVisible) {
-                        float worldX, worldY;
-                        coords.NodeTileToWorld(x, y, worldX, worldY);
-                        D3DXVECTOR3 resourcePos(worldX, worldY, 0.02f);
-                    }
-                }
-            }
-            m_spriteRenderer->End();
-            m_spriteRenderer->Flush(m_shaderManager);
-        }
-
-        // Second pass: Render resource amounts ONLY (text)
-        if (m_textManager) {
-			m_textManager->BeginTextBatch(FONT_MENU, 0.0f);
-			for (int y = 0; y < layerHeight; ++y) {
-				for (int x = 0; x < layerWidth; ++x) {
-					const World::ResourceNode& node = map->GetResourceNode(x, y);
-					if (node.type != World::ResourceType_None && node.isVisible && node.amount > 0) {
-						float worldX, worldY;
-						coords.NodeTileToWorld(x, y, worldX, worldY);
-						char amountStr[32];
-						sprintf_s(amountStr, "%d", node.amount);
-
-						float screenX, screenY;
-						m_camera->WorldToScreen(worldX, worldY, screenX, screenY);
-
-						// FONT_MENU, FONT_STYLE_NORMAL
-						m_textManager->DrawTextToScreen(amountStr,
-							screenX + 20.0f,
-							screenY,
-							0xFFFFFFFF,   // colour
-							0.8f,         // scale
-							FONT_MENU,    // fontID
-							FONT_STYLE_NORMAL);
-					}
-				}
-			}
-			m_textManager->EndTextBatch();
-        }
-    }
-
-    // === STEP 2.8: Render weight debug overlay (in WEIGHTS mode) ===
-    if (m_editorMode == MODE_WEIGHTS && m_mapEditor && m_mapEditor->GetMap()) {
-        World::Map* map = m_mapEditor->GetMap();
-        int layerWidth = map->GetWidth() * 2;  // Objects layer is 40x40
-        int layerHeight = map->GetHeight() * 2;
-
-        CoordinateSystem& coords = CoordinateSystem::GetInstance();
-
-        // Color coding for weights:
-        // 0 (Deep): 0xCC0000FF (Blue)
-        // 1 (Shallow): 0xCC00FFFF (Cyan)
-        // 2 (Land): 0xCC00FF00 (Green)
-        // 3 (Block): 0xCCFF0000 (Red)
-
-        for (int y = 0; y < layerHeight; y++) {
-            for (int x = 0; x < layerWidth; x++) {
-                BYTE weight = map->GetNodeWeight(x, y);
-
-                // Skip default land weight to reduce clutter
-                if (weight == World::Weight_Land) {
-                    continue;
-                }
-
-                float worldX, worldY;
-                coords.NodeTileToWorld(x, y, worldX, worldY);
-
-                // Determine color based on weight
-                D3DCOLOR color = 0xCC00FF00; // Default green (Land)
-                switch (weight) {
-                    case World::Weight_Deep:    color = 0xCC0000FF; break; // Blue
-                    case World::Weight_Shallow: color = 0xCC00FFFF; break; // Cyan
-                    case World::Weight_Land:    color = 0xCC00FF00; break; // Green
-                    case World::Weight_Block:   color = 0xCCFF0000; break; // Red
-                }
-
-                // Render small square at tile center to indicate weight
-                // This is a placeholder - should use dynamic vertex buffer for performance
-                if (m_spriteRenderer) {
-                    D3DXVECTOR3 weightPos(worldX, worldY, 0.01f);
-                    // TODO: Submit render command with color
-                    // For now, this is just a placeholder
-                }
-            }
-        }
-    }
-
-    // === STEP 3: Render UI elements (RadialMenu, GridMenu, WeightMenu) ===
-    // These submit commands with isUI=true and depth=0.0f
     if (m_radialMenu && m_radialMenu->IsVisible()) {
         m_radialMenu->Render();
         m_radialMenu->RenderIcons(m_spriteRenderer);
@@ -701,26 +616,13 @@ void EditorScene::Render() {
         m_gridMenu->Render(m_spriteRenderer);
     }
 
-    if (m_spriteRenderer && m_shaderManager) {
-        m_spriteRenderer->Flush(m_shaderManager);
-    }
-
-    // Render WeightMenu when visible
-    // TEMPORARILY COMMENTED OUT TO ISOLATE GPU HANG
-    // if (m_weightMenuVisible && m_weightMenu) {
-    //     m_weightMenu->Render();
-    // }
-
-    // Draw FPS counter (top-left)
     if (m_textManager) {
-        float textDepth = 0.0f;
-        m_textManager->BeginTextBatch(FONT_MENU, textDepth);
+        m_textManager->BeginTextBatch(FONT_MENU, 0.0f);
 
         char fpsText[64];
         sprintf(fpsText, "FPS: %d", m_fps);
         m_textManager->DrawTextToScreen(fpsText, 10.0f, 10.0f, 0xFF00FF00, 0.25f);
 
-        // Draw current layer name (bottom-left)
         const char* layerNames[] = { "Roads", "Nodes", "Placement", "Resources" , "Ground", "Objects", "Overlay"};
         int layerIdx = static_cast<int>(m_currentLayer);
         if (layerIdx >= 0 && layerIdx < 7) {
@@ -731,13 +633,9 @@ void EditorScene::Render() {
         m_textManager->EndTextBatch();
     }
     
-    // === STEP 4: Flush sprite commands to queue ===
-    // ExecuteQueue will be called by SceneManager
-    if (m_shaderManager && m_spriteRenderer) {
-        m_spriteRenderer->Flush(m_shaderManager);
-    }
-
+    OutputDebugStringA("[EditorScene::Render] Calling EndFrame...\n");
     m_renderer->EndFrame();
+    OutputDebugStringA("[EditorScene::Render] Done\n");
 }
 
 void EditorScene::OnEnter() {

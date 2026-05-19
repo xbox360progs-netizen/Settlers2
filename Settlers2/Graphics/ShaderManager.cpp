@@ -190,6 +190,12 @@ bool ShaderManager::LoadBaseShaders() {
         allSuccess = false;
     }
 
+    // Load DeferredLighting.fx (for deferred rendering lighting pass)
+    if (FAILED(LoadShader(SHADER_DEFERRED_LIGHTING, "game:\\Media\\Shaders\\DeferredLighting.fx", "LightingTech"))) {
+        OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_DEFERRED_LIGHTING (DeferredLighting.fx)\n");
+        allSuccess = false;
+    }
+
     if (allSuccess) {
     } else {
         OutputDebugStringA("[ShaderManager] WARNING: Some base shaders failed to load\n");

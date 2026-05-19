@@ -171,7 +171,7 @@ void MapEditor::Update(float deltaTime) {
     }
 }
 
-void MapEditor::Render() {
+void MapEditor::RenderGeometry() {
 
     if (m_pDevice) {
         m_pDevice->SetVertexShader(NULL);
@@ -180,10 +180,10 @@ void MapEditor::Render() {
     }
 
     RenderGridLayer();
-	m_spriteRenderer->End(); 
+	m_spriteRenderer->End();
     if (m_showNodes) {
         RenderWeightMap();
-		m_spriteRenderer->End(); 
+		m_spriteRenderer->End();
     }
 
     if (m_showObjects && m_currentLayer == World::Objects) {
@@ -197,11 +197,14 @@ void MapEditor::Render() {
         m_pDevice->SetPixelShader(NULL);
         m_pDevice->SetTexture(0, NULL);
     }
+}
+
+void MapEditor::RenderUI() {
 
     RenderCursor();
     RenderTilePreview();
     RenderActiveTile();
-	m_spriteRenderer->End(); 
+	m_spriteRenderer->End();
 }
 void MapEditor::HandleInput() {
     if (!m_inputManager) return;
