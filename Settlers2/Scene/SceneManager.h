@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Scene.h"
+#include "../Graphics/RenderFrame.h"
 #include <map>
 #include <string>
 #include <xtl.h>
@@ -9,6 +10,7 @@
 class ShaderManager;
 class SpriteRenderer;
 class Renderer;
+using Graphics::RenderFrame;
 
 // Xbox 360 async command buffer forward declarations
 #ifdef _XBOX
@@ -53,6 +55,9 @@ public:
     void SetRenderer(Renderer* renderer) { m_renderer = renderer; }
     SpriteRenderer* GetSpriteRenderer() const { return m_spriteRenderer; }
     Renderer* GetRenderer() const { return m_renderer; }
+    void SetRenderFrame(RenderFrame* frame) { m_renderFrame = frame; }
+    RenderFrame* GetRenderFrame() const { return m_renderFrame; }
+    void SubmitRenderCommands();
 
     // Xbox 360 async command buffer support
 #ifdef _XBOX
@@ -84,6 +89,7 @@ private:
     ShaderManager* m_shaderManager;
     SpriteRenderer* m_spriteRenderer;
     Renderer* m_renderer;
+    RenderFrame* m_renderFrame;
 
 #ifdef _XBOX
     IDirect3DAsyncCommandBufferCall9* m_pAsyncCall;

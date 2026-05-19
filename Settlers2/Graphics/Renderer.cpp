@@ -2,13 +2,15 @@
 #include "Renderer.h"
 #include "Texture.h"
 #include "SpriteRenderer.h"
+#include "RenderFrame.h"
+#include "GPUTimer.h"
 #include <stdio.h>
 #include <d3dx9.h>
 
 Renderer::Renderer()
     : m_pD3D(NULL), m_pDevice(NULL), m_pBackBuffer(NULL),
       m_pVertexDecl(NULL), m_pVertexShader(NULL), m_pPixelShader(NULL),
-      m_pShaderManager(NULL), m_pSpriteRenderer(NULL),
+      m_pShaderManager(NULL), m_pSpriteRenderer(NULL), m_pRenderFrame(NULL), m_pGPUTimer(NULL),
       m_debugViewMode(0) {
     ZeroMemory(&m_d3dpp, sizeof(m_d3dpp));
     ZeroMemory(m_projMatrix, sizeof(m_projMatrix));
@@ -170,6 +172,19 @@ m_pDevice->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
 m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
 m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 
+m_pGPUTimer = new GPUTimer();
+if (m_pGPUTimer) {
+    m_pGPUTimer->Initialize(m_pDevice);
+}
+
+m_pRenderFrame = new RenderFrame();
+if (m_pRenderFrame) {
+    m_pRenderFrame->Initialize(m_pDevice);
+    m_pRenderFrame->SetDependencies(m_pShaderManager, m_pSpriteRenderer, nullptr);
+    m_pRenderFrame->SetGPUTimer(m_pGPUTimer);
+    OutputDebugStringA("[Renderer] RenderFrame initialized\n");
+}
+
 return S_OK;
 }
 
@@ -229,6 +244,17 @@ void Renderer::RestoreFromUI() {
 void Renderer::Shutdown() {
     // ShaderManager is now owned by GameEngine, don't shut it down here
     
+    if (m_pRenderFrame) {
+        m_pRenderFrame->Shutdown();
+        delete m_pRenderFrame;
+        m_pRenderFrame = nullptr;
+    }
+    if (m_pGPUTimer) {
+        m_pGPUTimer->Shutdown();
+        delete m_pGPUTimer;
+        m_pGPUTimer = nullptr;
+    }
+
     if (m_pVertexShader) { m_pVertexShader->Release(); m_pVertexShader = NULL; }
     if (m_pPixelShader) { m_pPixelShader->Release(); m_pPixelShader = NULL; }
     if (m_pVertexDecl) { m_pVertexDecl->Release(); m_pVertexDecl = NULL; }

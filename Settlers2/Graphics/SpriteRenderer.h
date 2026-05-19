@@ -10,9 +10,10 @@
 #include "RenderTypes.h"
 #include "Material.h"
 
+using Graphics::MaterialManager;
+
 // Forward declaration for ThreadData struct
 class SpriteRenderer;
-class MaterialManager;
 
 // Xbox 360 async command buffer forward declarations
 #ifdef _XBOX
@@ -97,6 +98,7 @@ public:
     void Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth);
     void Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType);
     void Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType, bool isUI);
+    void Begin(ShaderID shaderID, float depth);  // Disambiguation overload
     void Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, int layer, float yPosition); // Composite depth: layer*1000 + y
     void Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, int layer, float yPosition, int renderType, bool isUI);
     

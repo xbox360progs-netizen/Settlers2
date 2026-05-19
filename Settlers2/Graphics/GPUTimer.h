@@ -1,5 +1,7 @@
 #pragma once
 #include <d3d9.h>
+#include <d3dx9.h>
+#include <xtl.h>
 #include <vector>
 #include <string>
 
@@ -39,8 +41,8 @@ private:
     int m_currentFrame;
 
     struct TimerData {
-        IDirect3DQUERY9* pStartQuery;
-        IDirect3DQUERY9* pEndQuery;
+        IDirect3DQuery9* pStartQuery;
+        IDirect3DQuery9* pEndQuery;
         const char* name;
         bool started;
         bool ended;
@@ -52,8 +54,8 @@ private:
 
     std::vector<TimerData> m_timers;
     std::vector<GPUTimerResult> m_results;
-    IDirect3DQUERY9* m_pFrameStartQuery;
-    IDirect3DQUERY9* m_pFrameEndQuery;
+    IDirect3DQuery9* m_pFrameStartQuery;
+    IDirect3DQuery9* m_pFrameEndQuery;
     UINT64 m_frameStartData;
     UINT64 m_frameEndData;
     float m_frameStartMs;
@@ -71,13 +73,13 @@ public:
     void BeginFrame();
     void EndFrame();
 
-    void RecordDrawCall() { m_drawCalls++; }
-    void RecordTriangleCount(int count) { m_triangles += count; }
-    void RecordRTBind() { m_rtBinds++; }
-    void RecordShaderSwitch() { m_shaderSwitches++; }
-    void RecordTextureBind() { m_textureBinds++; }
-    void RecordStateChange() { m_stateChanges++; }
-    void RecordResolve() { m_resolves++; }
+    void RecordDrawCall() { m_currentStats.drawCalls++; }
+    void RecordTriangleCount(int count) { m_currentStats.triangles += count; }
+    void RecordRTBind() { m_currentStats.rtBinds++; }
+    void RecordShaderSwitch() { m_currentStats.shaderSwitches++; }
+    void RecordTextureBind() { m_currentStats.textureBinds++; }
+    void RecordStateChange() { m_currentStats.stateChanges++; }
+    void RecordResolve() { m_currentStats.resolves++; }
 
     void ResetCounters();
 

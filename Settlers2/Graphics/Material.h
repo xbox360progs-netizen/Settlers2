@@ -1,5 +1,9 @@
 #pragma once
 #include <d3d9.h>
+#include <string>
+#include <vector>
+#include <cstdint>
+#include "ShaderManager.h"
 
 namespace Graphics {
 
@@ -15,28 +19,40 @@ enum MaterialFlags {
     MATERIAL_FLAG_RECEIVE_SHADOWS = 1 << 7
 };
 
-struct Material {
+class Material {
+public:
     IDirect3DTexture9* pDiffuseMap;
     IDirect3DTexture9* pNormalMap;
     IDirect3DTexture9* pMaterialMap;
-    
+
     uint32_t Flags;
-    
+
     float Roughness;
     float Metallic;
     float EmissiveIntensity;
     float AmbientOcclusion;
-    
-    Material()
-        : pDiffuseMap(NULL)
-        , pNormalMap(NULL)
-        , pMaterialMap(NULL)
-        , Flags(MATERIAL_FLAG_NONE)
-        , Roughness(0.5f)
-        , Metallic(0.0f)
-        , EmissiveIntensity(0.0f)
-        , AmbientOcclusion(1.0f)
-    {}
+
+    std::string m_name;
+    uint32_t m_shaderFlags;
+    int m_tileID;
+
+    Material() 
+        : pDiffuseMap(NULL), pNormalMap(NULL), pMaterialMap(NULL),
+          Flags(MATERIAL_FLAG_NONE), Roughness(0.5f), Metallic(0.0f),
+          EmissiveIntensity(0.0f), AmbientOcclusion(1.0f),
+          m_name(""), m_shaderFlags(0), m_tileID(-1) {}
+
+    Material(const char* name) 
+        : pDiffuseMap(NULL), pNormalMap(NULL), pMaterialMap(NULL),
+          Flags(MATERIAL_FLAG_NONE), Roughness(0.5f), Metallic(0.0f),
+          EmissiveIntensity(0.0f), AmbientOcclusion(1.0f),
+          m_name(name ? name : ""), m_shaderFlags(0), m_tileID(-1) {}
+
+    ~Material() {}
+
+    bool IsValid() const {
+        return pDiffuseMap != NULL;
+    }
 };
 
 inline uint32_t PackMaterialMap(float roughness, float ao, float emissive, float metallic) {
@@ -69,13 +85,21 @@ public:
 
     void BindMaterial(int id);
 
+    enum ShaderVariant {
+        SHADER_VARIANT_OPAQUE,
+        SHADER_VARIANT_ALPHATEST,
+        SHADER_VARIANT_TRANSPARENT,
+        SHADER_VARIANT_NORMALMAP,
+        SHADER_VARIANT_EMISSIVE,
+        SHADER_VARIANT_PBR
+    };
+
+    ShaderVariant ResolveShaderVariant(int materialID) const;
+    ShaderID ResolveShader(int materialID) const;
+
 private:
     IDirect3DDevice9* m_pDevice;
-    struct MaterialEntry {
-        Material material;
-        int refCount;
-    };
-    std::vector<MaterialEntry> m_materials;
+    std::vector<Material*> m_materials;
     int m_nextID;
 };
 

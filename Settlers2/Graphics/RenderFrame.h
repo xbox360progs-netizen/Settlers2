@@ -4,14 +4,16 @@
 #include <map>
 #include "RenderTypes.h"
 #include "GPUTimer.h"
+#include "Material.h"
 
 namespace Graphics {
 
-class ShaderManager;
-class SpriteRenderer;
-class MaterialManager;
 class RenderPassBase;
 class GPUTimer;
+class RenderTargetManager;
+class RenderDebugOverlay;
+
+using ::ShaderManager;
 
 enum RenderPassType {
     PASS_GEOMETRY,
@@ -115,8 +117,11 @@ public:
     void Initialize(LPDIRECT3DDEVICE9 pDevice);
     void Shutdown();
 
-    void SetDependencies(ShaderManager* shaderMgr, SpriteRenderer* spriteRenderer, MaterialManager* materialMgr);
+    void SetDependencies(ShaderManager* shaderMgr, ::SpriteRenderer* spriteRenderer, MaterialManager* materialMgr);
     void SetGPUTimer(GPUTimer* timer) { m_gpuTimer = timer; }
+    void SetRenderTargetManager(RenderTargetManager* mgr) { m_rtManager = mgr; }
+    void SetDebugOverlay(RenderDebugOverlay* overlay) { m_debugOverlay = overlay; }
+    RenderDebugOverlay* GetDebugOverlay() const { return m_debugOverlay; }
 
     void BeginFrame();
     void EndFrame();
@@ -125,6 +130,7 @@ public:
     void AddTransparentCommand(const TransparentCommand& cmd);
     void AddUICommand(const UICommand& cmd);
     void AddPostFXCommand(const PostFXCommand& cmd);
+    void AddPostFXPass(PostFXCommand::PostFXType type, float intensity = 1.0f, const float* params = nullptr);
 
     void AddPass(RenderPassBase* pass);
     void RemovePass(RenderPassType type);
@@ -184,9 +190,11 @@ private:
 
     LPDIRECT3DDEVICE9 m_pDevice;
     ShaderManager* m_shaderManager;
-    SpriteRenderer* m_spriteRenderer;
+    ::SpriteRenderer* m_spriteRenderer;
     MaterialManager* m_materialManager;
     GPUTimer* m_gpuTimer;
+    RenderTargetManager* m_rtManager;
+    RenderDebugOverlay* m_debugOverlay;
     
     TypedRenderQueue<GeometryCommand> m_geometryQueue;
     TypedRenderQueue<TransparentCommand> m_transparentQueue;

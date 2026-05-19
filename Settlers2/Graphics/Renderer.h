@@ -1,5 +1,7 @@
 #pragma once
 #include "ShaderManager.h"
+#include "GPUTimer.h"
+#include "RenderFrame.h"
 #include <d3d9.h>
 #include <d3dx9.h>
 #include "RenderTypes.h"
@@ -8,6 +10,8 @@ static_assert(sizeof(SpriteVertex) == 32, "SpriteVertex must be 32 bytes");
 
 class Texture;
 class SpriteRenderer;
+using Graphics::RenderFrame;
+using Graphics::GPUTimer;
 
 class Renderer {
 public:
@@ -39,6 +43,8 @@ public:
     // SpriteRenderer access
     SpriteRenderer* GetSpriteRenderer() { return m_pSpriteRenderer; }
     void SetSpriteRenderer(SpriteRenderer* pSpriteRenderer);
+    RenderFrame* GetRenderFrame() { return m_pRenderFrame; }
+    void SetRenderFrame(RenderFrame* frame) { m_pRenderFrame = frame; }
     HRESULT LoadShader(ShaderID id, const char* filepath, const char* techniqueName = "SpriteBatchTech");
     bool SetShader(ShaderID id);
     void ResetToDefaultShader();
@@ -83,9 +89,11 @@ private:
 
     ShaderManager* m_pShaderManager;
     SpriteRenderer* m_pSpriteRenderer;
+    RenderFrame* m_pRenderFrame;
+    GPUTimer* m_pGPUTimer;
 
     LPDIRECT3DVERTEXSHADER9 m_pVertexShader;
-    LPDIRECT3DPIXELSHADER9  m_pPixelShader;
+    LPDIRECT3DPIXELSHADER9 m_pPixelShader;
 
     float m_projMatrix[16];
     LPDIRECT3DVERTEXDECLARATION9 m_pVertexDecl;

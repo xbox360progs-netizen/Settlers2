@@ -3,6 +3,7 @@
 #include "../Graphics/ShaderManager.h"
 #include "../Graphics/SpriteRenderer.h"
 #include "../Graphics/Renderer.h"
+#include "../Graphics/RenderFrame.h"
 #include "../Graphics/RenderTypes.h"
 #include "../Scene/MenuScene.h"
 #include <iostream>
@@ -22,6 +23,7 @@ SceneManager::SceneManager()
     , m_shaderManager(NULL)
     , m_spriteRenderer(NULL)
     , m_renderer(NULL)
+    , m_renderFrame(NULL)
 #ifdef _XBOX
     , m_pAsyncCall(NULL)
     , m_pCommandBuffer(NULL)
@@ -453,5 +455,27 @@ void SceneManager::InitializeAsyncCommandBuffer(LPDIRECT3DDEVICE9 pDevice)
     OutputDebugStringA("[SceneManager] Async command buffer call created successfully\n");
 }
 #endif
+
+void SceneManager::SubmitRenderCommands() {
+    if (!m_currentScene || !m_isSceneReady || !m_bSceneGraphicsReady) {
+        return;
+    }
+
+    if (m_spriteRenderer) {
+        m_spriteRenderer->BeginFrame();
+    }
+
+    EnterCriticalSection(&m_cs);
+    if (m_currentScene) {
+        m_currentScene->Render();
+    }
+    LeaveCriticalSection(&m_cs);
+
+    if (m_spriteRenderer) {
+        m_spriteRenderer->FinalizeFrameCommands();
+    }
+
+    OutputDebugStringA("[SceneManager] SubmitRenderCommands() done\n");
+}
 
 } // namespace Scene

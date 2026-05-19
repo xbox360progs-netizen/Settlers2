@@ -14,6 +14,11 @@
 #pragma comment(lib, "d3d9.lib")
 #pragma comment(lib, "d3dx9.lib")
 
+using Graphics::Material;
+using Graphics::MaterialManager;
+using Graphics::MATERIAL_FLAG_TRANSPARENT;
+using Graphics::MATERIAL_FLAG_NORMALMAP;
+
 #ifndef DISABLE_RENDER_LOGS
 #define OutputDebugStringA(...) do { } while(0)
 #endif
@@ -868,6 +873,10 @@ void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float
     Begin(shaderID, pTexture, depth, 0, false); // Default: Single, world-space
 }
 
+void SpriteRenderer::Begin(ShaderID shaderID, float depth) {
+    Begin(shaderID, static_cast<LPDIRECT3DTEXTURE9>(NULL), depth, 0, false);
+}
+
 void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float depth, int renderType, bool isUI) {
     char dbg[256];
     sprintf(dbg, "[SR::Begin] ENTRY - this=%p, shaderID=%d, texture=%p\n", this, shaderID, pTexture);
@@ -955,14 +964,14 @@ void SpriteRenderer::BeginWorldObject(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTex
 void SpriteRenderer::Begin(int materialID) {
     if (!m_pMaterialManager) {
         OutputDebugStringA("[SR::Begin] WARNING: MaterialManager not set, using default shader!\n");
-        Begin(SHADER_SPRITE, NULL, 1.0f, 0, false);
+        Begin(static_cast<ShaderID>(SHADER_SPRITE), static_cast<LPDIRECT3DTEXTURE9>(NULL), 1.0f, 0, false);
         return;
     }
 
     Material* mat = m_pMaterialManager->GetMaterial(materialID);
     if (!mat) {
         OutputDebugStringA("[SR::Begin] WARNING: Invalid material ID, using default!\n");
-        Begin(SHADER_SPRITE, NULL, 1.0f, 0, false);
+        Begin(static_cast<ShaderID>(SHADER_SPRITE), static_cast<LPDIRECT3DTEXTURE9>(NULL), 1.0f, 0, false);
         return;
     }
 
@@ -980,13 +989,13 @@ void SpriteRenderer::Begin(int materialID) {
 
 void SpriteRenderer::Begin(int materialID, float depth) {
     if (!m_pMaterialManager) {
-        Begin(SHADER_SPRITE, NULL, depth, 0, false);
+        Begin(static_cast<ShaderID>(SHADER_SPRITE), static_cast<LPDIRECT3DTEXTURE9>(NULL), depth, 0, false);
         return;
     }
 
     Material* mat = m_pMaterialManager->GetMaterial(materialID);
     if (!mat) {
-        Begin(SHADER_SPRITE, NULL, depth, 0, false);
+        Begin(static_cast<ShaderID>(SHADER_SPRITE), static_cast<LPDIRECT3DTEXTURE9>(NULL), depth, 0, false);
         return;
     }
 
@@ -1006,13 +1015,13 @@ void SpriteRenderer::Begin(int materialID, float depth, int renderType) {
 
 void SpriteRenderer::Begin(int materialID, float depth, int renderType, bool isUI) {
     if (!m_pMaterialManager) {
-        Begin(SHADER_SPRITE, NULL, depth, renderType, isUI);
+        Begin(static_cast<ShaderID>(SHADER_SPRITE), static_cast<LPDIRECT3DTEXTURE9>(NULL), depth, renderType, isUI);
         return;
     }
 
     Material* mat = m_pMaterialManager->GetMaterial(materialID);
     if (!mat) {
-        Begin(SHADER_SPRITE, NULL, depth, renderType, isUI);
+        Begin(static_cast<ShaderID>(SHADER_SPRITE), static_cast<LPDIRECT3DTEXTURE9>(NULL), depth, renderType, isUI);
         return;
     }
 

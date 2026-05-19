@@ -36,50 +36,40 @@ RenderFrame::~RenderFrame() {
 
 void RenderFrame::Initialize(LPDIRECT3DDEVICE9 pDevice) {
     if (m_initialized) return;
-    
+
     m_pDevice = pDevice;
-    if (!m_pDevice) return;
 
     D3DSURFACE_DESC desc;
     m_pDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &m_pBackBuffer);
     m_pBackBuffer->GetDesc(&desc);
 
-    HRESULT hr;
-    
-    hr = m_pDevice->CreateRenderTarget(
-        desc.Width, desc.Height,
-        D3DFMT_A32B32G32R32F,
-        D3DMULTISAMPLE_NONE, 0, TRUE,
-        &m_pGBufferPos, NULL);
-    if (FAILED(hr)) { OutputDebugStringA("[RenderFrame] ERROR: Create GBufferPos failed!\n"); return; }
+    HRESULT hr = m_pDevice->CreateRenderTarget(
+        desc.Width, desc.Height, D3DFMT_A32B32G32R32F,
+        D3DMULTISAMPLE_NONE, 0, TRUE, &m_pGBufferPos, NULL);
+    if (FAILED(hr)) { OutputDebugStringA("[RF] ERROR: Create GBufferPos failed!\n"); }
 
     hr = m_pDevice->CreateRenderTarget(
-        desc.Width, desc.Height,
-        D3DFMT_A16B16G16R16F,
-        D3DMULTISAMPLE_NONE, 0, TRUE,
-        &m_pGBufferNormal, NULL);
-    if (FAILED(hr)) { OutputDebugStringA("[RenderFrame] ERROR: Create GBufferNormal failed!\n"); return; }
+        desc.Width, desc.Height, D3DFMT_A16B16G16R16F,
+        D3DMULTISAMPLE_NONE, 0, TRUE, &m_pGBufferNormal, NULL);
+    if (FAILED(hr)) { OutputDebugStringA("[RF] ERROR: Create GBufferNormal failed!\n"); }
 
     hr = m_pDevice->CreateRenderTarget(
-        desc.Width, desc.Height,
-        D3DFMT_A8R8G8B8,
-        D3DMULTISAMPLE_NONE, 0, TRUE,
-        &m_pGBufferAlbedo, NULL);
-    if (FAILED(hr)) { OutputDebugStringA("[RenderFrame] ERROR: Create GBufferAlbedo failed!\n"); return; }
+        desc.Width, desc.Height, D3DFMT_A8R8G8B8,
+        D3DMULTISAMPLE_NONE, 0, TRUE, &m_pGBufferAlbedo, NULL);
+    if (FAILED(hr)) { OutputDebugStringA("[RF] ERROR: Create GBufferAlbedo failed!\n"); }
 
     hr = m_pDevice->CreateRenderTarget(
-        desc.Width, desc.Height,
-        D3DFMT_A8R8G8B8,
-        D3DMULTISAMPLE_NONE, 0, TRUE,
-        &m_pGBufferSpec, NULL);
-    if (FAILED(hr)) { OutputDebugStringA("[RenderFrame] ERROR: Create GBufferSpec failed!\n"); return; }
+        desc.Width, desc.Height, D3DFMT_A8R8G8B8,
+        D3DMULTISAMPLE_NONE, 0, TRUE, &m_pGBufferSpec, NULL);
+    if (FAILED(hr)) { OutputDebugStringA("[RF] ERROR: Create GBufferSpec failed!\n"); }
 
     hr = m_pDevice->CreateDepthStencilSurface(
-        desc.Width, desc.Height,
-        D3DFMT_D24S8,
-        D3DMULTISAMPLE_NONE, 0, TRUE,
-        &m_pGBufferDepth, NULL);
-    if (FAILED(hr)) { OutputDebugStringA("[RenderFrame] ERROR: Create GBufferDepth failed!\n"); return; }
+        desc.Width, desc.Height, D3DFMT_D24S8,
+        D3DMULTISAMPLE_NONE, 0, TRUE, &m_pGBufferDepth, NULL);
+    if (FAILED(hr)) { OutputDebugStringA("[RF] ERROR: Create GBufferDepth failed!\n"); }
+
+    m_debugOverlay = nullptr;
+    m_rtManager = nullptr;
 
     m_initialized = true;
     OutputDebugStringA("[RenderFrame] Initialized\n");
@@ -98,7 +88,7 @@ void RenderFrame::Shutdown() {
     m_initialized = false;
 }
 
-void RenderFrame::SetDependencies(ShaderManager* shaderMgr, SpriteRenderer* spriteRenderer, MaterialManager* materialMgr) {
+void RenderFrame::SetDependencies(ShaderManager* shaderMgr, ::SpriteRenderer* spriteRenderer, MaterialManager* materialMgr) {
     m_shaderManager = shaderMgr;
     m_spriteRenderer = spriteRenderer;
     m_materialManager = materialMgr;
@@ -147,6 +137,19 @@ void RenderFrame::AddUICommand(const UICommand& cmd) {
 
 void RenderFrame::AddPostFXCommand(const PostFXCommand& cmd) {
     m_postFXQueue.Add(cmd);
+}
+
+void RenderFrame::AddPostFXPass(PostFXCommand::PostFXType type, float intensity, const float* params) {
+    PostFXCommand cmd;
+    cmd.type = type;
+    cmd.intensity = intensity;
+    if (params) {
+        for (int i = 0; i < 4; i++) cmd.params[i] = params[i];
+    } else {
+        for (int i = 0; i < 4; i++) cmd.params[i] = 0.0f;
+    }
+    m_postFXQueue.Add(cmd);
+    OutputDebugStringA("[RenderFrame] Added PostFX pass to chain\n");
 }
 
 void RenderFrame::SetPassDependency(RenderPassType dependent, RenderPassType dependency, bool required) {
@@ -344,13 +347,18 @@ void RenderFrame::Execute() {
     }
     
     ValidateResources();
-    
+
     ExecuteGeometryPass();
     ExecuteLightingPass();
     ExecuteAlphaTestPass();
     ExecuteTransparentPass();
     ExecuteUIPass();
     ExecutePostFXPass();
+
+    if (m_debugOverlay) {
+        const RenderStats& stats = m_debugOverlay->GetStats();
+        (void)stats;
+    }
 }
 
 void RenderFrame::ValidateResources() {

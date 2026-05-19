@@ -4,78 +4,109 @@
 namespace Graphics {
 
 Material::Material() 
-    : m_pDiffuseTex(NULL), m_pNormalTex(NULL), m_pMaterialTex(NULL),
-      m_shaderFlags(0), m_tileID(-1) {
+    : pDiffuseMap(NULL), pNormalMap(NULL), pMaterialMap(NULL),
+      Flags(MATERIAL_FLAG_NONE), Roughness(0.5f), Metallic(0.0f),
+      EmissiveIntensity(0.0f), AmbientOcclusion(1.0f),
+      m_name(""), m_shaderFlags(0), m_tileID(-1) {
 }
 
 Material::Material(const char* name) 
-    : m_name(name ? name : ""),
-      m_pDiffuseTex(NULL), m_pNormalTex(NULL), m_pMaterialTex(NULL),
-      m_shaderFlags(0), m_tileID(-1) {
+    : pDiffuseMap(NULL), pNormalMap(NULL), pMaterialMap(NULL),
+      Flags(MATERIAL_FLAG_NONE), Roughness(0.5f), Metallic(0.0f),
+      EmissiveIntensity(0.0f), AmbientOcclusion(1.0f),
+      m_name(name ? name : ""), m_shaderFlags(0), m_tileID(-1) {
 }
 
 Material::~Material() {
 }
 
 bool Material::IsValid() const {
-    return m_pDiffuseTex != NULL;
+    return pDiffuseMap != NULL;
 }
 
-MaterialManager::MaterialManager() : m_pDefaultMaterial(NULL) {
-    m_pDefaultMaterial = new Material("__default");
-    MaterialProps defaultProps(0.2f, 0.5f, 1.0f, 0.0f);
-    m_pDefaultMaterial->SetProperties(defaultProps);
+MaterialManager::MaterialManager() : m_pDevice(nullptr), m_nextID(1) {
 }
 
 MaterialManager::~MaterialManager() {
-    RemoveAll();
-    if (m_pDefaultMaterial) {
-        delete m_pDefaultMaterial;
-        m_pDefaultMaterial = NULL;
-    }
+    Shutdown();
 }
 
-Material* MaterialManager::CreateMaterial(const char* name) {
-    Material* mat = new Material(name);
-    m_materials.push_back(mat);
-    return mat;
+void MaterialManager::Initialize(IDirect3DDevice9* pDevice) {
+    m_pDevice = pDevice;
 }
 
-Material* MaterialManager::GetMaterial(const char* name) {
+void MaterialManager::Shutdown() {
     for (size_t i = 0; i < m_materials.size(); i++) {
-        if (m_materials[i]->GetName() == std::string(name)) {
-            return m_materials[i];
-        }
-    }
-    return m_pDefaultMaterial;
-}
-
-Material* MaterialManager::GetMaterial(int index) {
-    if (index >= 0 && index < (int)m_materials.size()) {
-        return m_materials[index];
-    }
-    return m_pDefaultMaterial;
-}
-
-void MaterialManager::RemoveMaterial(const char* name) {
-    for (size_t i = 0; i < m_materials.size(); i++) {
-        if (m_materials[i]->GetName() == std::string(name)) {
-            delete m_materials[i];
-            m_materials.erase(m_materials.begin() + i);
-            return;
-        }
-    }
-}
-
-void MaterialManager::RemoveAll() {
-    for (size_t i = 0; i < m_materials.size(); i++) {
-        delete m_materials[i];
+        delete m_materials[i].material;
     }
     m_materials.clear();
+    m_nextID = 1;
 }
 
-Material* MaterialManager::GetDefaultMaterial() {
-    return m_pDefaultMaterial;
+int MaterialManager::CreateMaterial(const Material& material) {
+    Material* mat = new Material(material);
+    m_materials.push_back(mat);
+    return m_nextID++;
+}
+
+Material* MaterialManager::GetMaterial(int id) {
+    if (id > 0 && id <= (int)m_materials.size()) {
+        return m_materials[id - 1];
+    }
+    return nullptr;
+}
+
+void MaterialManager::SetMaterial(int id, const Material& material) {
+    if (id > 0 && id <= (int)m_materials.size()) {
+        *m_materials[id - 1] = material;
+    }
+}
+
+void MaterialManager::RemoveMaterial(int id) {
+    if (id > 0 && id <= (int)m_materials.size()) {
+        delete m_materials[id - 1];
+        m_materials.erase(m_materials.begin() + (id - 1));
+    }
+}
+
+void MaterialManager::BindMaterial(int id) {
+    Material* mat = GetMaterial(id);
+    if (!mat) return;
+
+    if (m_pDevice && mat->pDiffuseMap) {
+        m_pDevice->SetTexture(0, mat->pDiffuseMap);
+    }
+}
+
+MaterialManager::ShaderVariant MaterialManager::ResolveShaderVariant(int materialID) const {
+    Material* mat = const_cast<MaterialManager*>(this)->GetMaterial(materialID);
+    if (!mat) return SHADER_VARIANT_OPAQUE;
+
+    if (mat->Flags & MATERIAL_FLAG_TRANSPARENT) {
+        return SHADER_VARIANT_TRANSPARENT;
+    }
+    if (mat->Flags & MATERIAL_FLAG_ALPHATEST) {
+        return SHADER_VARIANT_ALPHATEST;
+    }
+    if (mat->Flags & MATERIAL_FLAG_NORMALMAP) {
+        return SHADER_VARIANT_NORMALMAP;
+    }
+    if (mat->Flags & MATERIAL_FLAG_EMISSIVE) {
+        return SHADER_VARIANT_EMISSIVE;
+    }
+    return SHADER_VARIANT_OPAQUE;
+}
+
+ShaderID MaterialManager::ResolveShader(int materialID) const {
+    ShaderVariant variant = ResolveShaderVariant(materialID);
+    switch (variant) {
+        case SHADER_VARIANT_TRANSPARENT: return SHADER_SPRITE;
+        case SHADER_VARIANT_ALPHATEST: return SHADER_SPRITE_ALPHATEST;
+        case SHADER_VARIANT_NORMALMAP: return SHADER_SPRITE_GBUFFER;
+        case SHADER_VARIANT_EMISSIVE: return SHADER_SPRITE_EMISSIVE;
+        case SHADER_VARIANT_PBR: return SHADER_SPRITE_PBR;
+        default: return SHADER_SPRITE;
+    }
 }
 
 }

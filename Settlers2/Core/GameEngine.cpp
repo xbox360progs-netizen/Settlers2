@@ -4,6 +4,7 @@
 #include "../Graphics/TextureLoader.h"
 #include "../Graphics/TextureRegistry.h"
 #include "../Graphics/Renderer.h"
+#include "../Graphics/RenderFrame.h"
 #include "../Graphics/SpriteRenderer.h"
 #include "../Graphics/ShaderManager.h"
 #include "../Graphics/BitmapFont.h"
@@ -186,6 +187,7 @@ bool GameEngine::Initialize()
     m_sceneManager->SetShaderManager(m_renderer->GetShaderManager());
     m_sceneManager->SetSpriteRenderer(m_spriteRenderer);
     m_sceneManager->SetRenderer(m_renderer);
+    m_sceneManager->SetRenderFrame(m_renderer->GetRenderFrame());
 
     CreateScenes();
 
@@ -353,7 +355,13 @@ void GameEngine::Render()
         return;
     }
 
-    m_sceneManager->Render();
+    RenderFrame* renderFrame = m_renderer->GetRenderFrame();
+    if (renderFrame) {
+        m_sceneManager->SubmitRenderCommands();
+        renderFrame->Execute();
+    } else {
+        m_sceneManager->Render();
+    }
 }
 
 void GameEngine::Run()
