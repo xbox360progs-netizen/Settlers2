@@ -23,6 +23,7 @@ public:
     // Получить устройства
     Gamepad* GetGamepad() { return m_gamepad; }
 
+    
 
     // Очистка состояния
     void Clear();

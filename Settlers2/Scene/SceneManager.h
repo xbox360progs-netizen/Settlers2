@@ -5,9 +5,10 @@
 #include <string>
 #include <xtl.h>
 
-// Forward declaration
+// Forward declarations
 class ShaderManager;
 class SpriteRenderer;
+class Renderer;
 
 // Xbox 360 async command buffer forward declarations
 #ifdef _XBOX
@@ -49,7 +50,9 @@ public:
     // Queue-based rendering support
     void SetShaderManager(ShaderManager* shaderManager) { m_shaderManager = shaderManager; }
     void SetSpriteRenderer(SpriteRenderer* spriteRenderer) { m_spriteRenderer = spriteRenderer; }
+    void SetRenderer(Renderer* renderer) { m_renderer = renderer; }
     SpriteRenderer* GetSpriteRenderer() const { return m_spriteRenderer; }
+    Renderer* GetRenderer() const { return m_renderer; }
 
     // Xbox 360 async command buffer support
 #ifdef _XBOX
@@ -80,6 +83,7 @@ private:
     Scene* volatile m_currentScene;  // volatile for Xenon cache coherency
     ShaderManager* m_shaderManager;
     SpriteRenderer* m_spriteRenderer;
+    Renderer* m_renderer;
 
 #ifdef _XBOX
     IDirect3DAsyncCommandBufferCall9* m_pAsyncCall;

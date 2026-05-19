@@ -68,6 +68,9 @@ float3 lightColor : register(c3) = float3(1.0f, 0.95f, 0.9f);
 // Ambient light
 float3 ambientColor : register(c4) = float3(0.1f, 0.1f, 0.15f);
 
+// Debug mode: 0=normal, 1=albedo, 2=normal, 3=depth, 4=specular, 5=lighting
+int debugMode : register(c5) = 0;
+
 struct VS_INPUT {
     float3 Pos : POSITION;
     float2 Tex : TEXCOORD0;
@@ -94,6 +97,21 @@ float4 RenderScenePS(VS_OUTPUT In) : COLOR0 {
     float4 specData = tex2D(GBufferSpecSampler, uv);
     float depth = tex2D(GBufferDepthSampler, uv).r;
 
+    // DEBUG VIEWS
+    if (debugMode == 1) {
+        return float4(albedo.rgb, 1.0f);
+    }
+    if (debugMode == 2) {
+        float3 n = normalData.rgb * 0.5f + 0.5f;
+        return float4(n, 1.0f);
+    }
+    if (debugMode == 3) {
+        return float4(depth, depth, depth, 1.0f);
+    }
+    if (debugMode == 4) {
+        return float4(specData.rgb, 1.0f);
+    }
+
     if (depth > 0.9999f) {
         return float4(ambientColor * 0.5f + 0.2f, 1.0f);
     }
@@ -116,6 +134,11 @@ float4 RenderScenePS(VS_OUTPUT In) : COLOR0 {
     float specular = pow(NdotH, specPower) * specStrength;
 
     float3 finalColor = ambientColor + diffuse + specular * lightColor;
+
+    // debugMode == 5 shows lighting only (no albedo)
+    if (debugMode == 5) {
+        return float4(ambientColor + diffuse + specular * lightColor, 1.0f);
+    }
 
     return float4(finalColor, 1.0f);
 }

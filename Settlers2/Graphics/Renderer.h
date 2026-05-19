@@ -63,7 +63,15 @@ public:
     void BindGBuffer();
     void UnbindGBuffer();
     void ClearGBuffers();
-    void ApplyDeferredLighting();
+    void ApplyDeferredLighting(int debugView = 0);
+
+    // Debug view modes: 0=normal, 1=albedo, 2=normal, 3=depth, 4=specular, 5=lighting
+    static const int DEBUG_NONE = 0;
+    static const int DEBUG_ALBEDO = 1;
+    static const int DEBUG_NORMAL = 2;
+    static const int DEBUG_DEPTH = 3;
+    static const int DEBUG_SPECULAR = 4;
+    static const int DEBUG_LIGHTING = 5;
 
 private:
     void SetProjectionMatrix(float width, float height);
@@ -88,4 +96,10 @@ private:
     LPDIRECT3DSURFACE9 m_pGBufferAlbedo; // Albedo (A8R8G8B8)
     LPDIRECT3DSURFACE9 m_pGBufferSpec;   // Specular + gloss (A8R8G8B8)
     LPDIRECT3DSURFACE9 m_pGBufferDepth;  // Depth (D24S8 or D32)
+
+public:
+    int m_debugViewMode;
+    void ToggleDebugView() {
+        m_debugViewMode = (m_debugViewMode + 1) % 6;
+    }
 };

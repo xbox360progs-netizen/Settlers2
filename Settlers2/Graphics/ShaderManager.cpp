@@ -204,6 +204,12 @@ bool ShaderManager::LoadBaseShaders() {
         allSuccess = false;
     }
 
+    // Load SpriteGBuffer.fx (for sprite geometry pass in deferred rendering)
+    if (FAILED(LoadShader(SHADER_SPRITE_GBUFFER, "game:\\Media\\Shaders\\SpriteGBuffer.fx", "SpriteGBufferTech"))) {
+        OutputDebugStringA("[ShaderManager] ERROR: Failed to load SHADER_SPRITE_GBUFFER (SpriteGBuffer.fx)\n");
+        allSuccess = false;
+    }
+
     if (allSuccess) {
     } else {
         OutputDebugStringA("[ShaderManager] WARNING: Some base shaders failed to load\n");

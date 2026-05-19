@@ -5,10 +5,11 @@
 #include <stdio.h>
 #include <d3dx9.h>
 
-Renderer::Renderer()  
+Renderer::Renderer()
     : m_pD3D(NULL), m_pDevice(NULL), m_pBackBuffer(NULL),
       m_pVertexDecl(NULL), m_pVertexShader(NULL), m_pPixelShader(NULL),
-      m_pShaderManager(NULL), m_pSpriteRenderer(NULL) {
+      m_pShaderManager(NULL), m_pSpriteRenderer(NULL),
+      m_debugViewMode(0) {
     ZeroMemory(&m_d3dpp, sizeof(m_d3dpp));
     ZeroMemory(m_projMatrix, sizeof(m_projMatrix));
 }
@@ -513,7 +514,7 @@ void Renderer::ClearGBuffers()
     m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0,0,0), 1.0f, 0);
 }
 
-void Renderer::ApplyDeferredLighting()
+void Renderer::ApplyDeferredLighting(int debugView)
 {
     if (!m_pDevice) return;
 
@@ -524,7 +525,62 @@ void Renderer::ApplyDeferredLighting()
 
     m_pDevice->SetDepthStencilSurface(NULL);
 
-    m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0,0,0), 1.0f, 0);
+    m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0,0,0), 1.0f, 0);
+
+    if (!m_pShaderManager) {
+        OutputDebugStringA("[Renderer::ApplyDeferredLighting] ERROR: m_pShaderManager is NULL\n");
+        return;
+    }
+
+    ShaderManager::Shader* pShader = m_pShaderManager->GetShader(SHADER_DEFERRED_LIGHTING);
+    if (!pShader || !pShader->pEffect) {
+        OutputDebugStringA("[Renderer::ApplyDeferredLighting] ERROR: DeferredLighting shader not loaded\n");
+        return;
+    }
+
+    OutputDebugStringA("[Renderer::ApplyDeferredLighting] Applying deferred lighting...\n");
+
+    m_pShaderManager->SetActiveShader(SHADER_DEFERRED_LIGHTING);
+    m_pShaderManager->BeginShader();
+    m_pShaderManager->BeginPass(0);
+
+    D3DXHANDLE hPosTex = pShader->pEffect->GetParameterByName(NULL, "g_gBufferPos");
+    D3DXHANDLE hNormalTex = pShader->pEffect->GetParameterByName(NULL, "g_gBufferNormal");
+    D3DXHANDLE hAlbedoTex = pShader->pEffect->GetParameterByName(NULL, "g_gBufferAlbedo");
+    D3DXHANDLE hSpecTex = pShader->pEffect->GetParameterByName(NULL, "g_gBufferSpec");
+    D3DXHANDLE hDepthTex = pShader->pEffect->GetParameterByName(NULL, "g_gBufferDepth");
+
+    if (hPosTex) pShader->pEffect->SetTexture(hPosTex, (LPDIRECT3DBASETEXTURE9)m_pGBufferPos);
+    if (hNormalTex) pShader->pEffect->SetTexture(hNormalTex, (LPDIRECT3DBASETEXTURE9)m_pGBufferNormal);
+    if (hAlbedoTex) pShader->pEffect->SetTexture(hAlbedoTex, (LPDIRECT3DBASETEXTURE9)m_pGBufferAlbedo);
+    if (hSpecTex) pShader->pEffect->SetTexture(hSpecTex, (LPDIRECT3DBASETEXTURE9)m_pGBufferSpec);
+    if (hDepthTex) pShader->pEffect->SetTexture(hDepthTex, (LPDIRECT3DBASETEXTURE9)m_pGBufferDepth);
+
+    D3DXHANDLE hDebugMode = pShader->pEffect->GetParameterByName(NULL, "debugMode");
+    if (hDebugMode) {
+        pShader->pEffect->SetInt(hDebugMode, debugView);
+    }
+
+    D3DXHANDLE hLightDir = pShader->pEffect->GetParameterByName(NULL, "lightDir");
+    D3DXHANDLE hLightColor = pShader->pEffect->GetParameterByName(NULL, "lightColor");
+    D3DXHANDLE hAmbient = pShader->pEffect->GetParameterByName(NULL, "ambientColor");
+
+    D3DXVECTOR4 lightDirVec(0.5f, 1.0f, 0.5f, 0.0f);
+    D3DXVECTOR4 lightColorVec(1.0f, 0.95f, 0.9f, 1.0f);
+    D3DXVECTOR4 ambientVec(0.2f, 0.2f, 0.25f, 1.0f);
+
+    if (hLightDir) pShader->pEffect->SetVector(hLightDir, &lightDirVec);
+    if (hLightColor) pShader->pEffect->SetVector(hLightColor, &lightColorVec);
+    if (hAmbient) pShader->pEffect->SetVector(hAmbient, &ambientVec);
+
+    pShader->pEffect->CommitChanges();
+
+    DrawFullscreenQuad();
+
+    m_pShaderManager->EndPass();
+    m_pShaderManager->EndShader();
+
+    OutputDebugStringA("[Renderer::ApplyDeferredLighting] Done\n");
 }
 
 
