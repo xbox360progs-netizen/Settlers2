@@ -1007,20 +1007,18 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     m_pDevice->SetIndices(pIB);
 
     m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-    m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
-    m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
     m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE); // Disable backface culling
 
-    const D3DXMATRIX* matrixToUse = pViewProj ? pViewProj : &ortho;
-    SetFrameViewProj(matrixToUse);
+    // === КРИТИЧЕСКИЙ ФИКС: НЕ ЗАТИРАТЬ m_frameViewProj ===
+    // m_frameViewProj устанавливается заранее через UpdateGlobalMatrices() в EditorScene::Update()
+    // pViewProj передается для совместимости, но не используется - матрица уже правильная
 
     // Set vertex declaration and stream source once for entire frame
     m_pDevice->SetVertexDeclaration(pDecl);
     m_pDevice->SetStreamSource(0, pVB, 0, sizeof(SpriteVertex));
     m_pDevice->SetIndices(pIB);
 
-    // Disable Z-buffer for 2D UI rendering
-    m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+    // Default: disable Z-buffer for UI (will be enabled per-shader)
     m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
     m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
 
@@ -1072,6 +1070,19 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                     EndPass();
                     EndCurrent();
                 }
+
+                // === КРИТИЧЕСКИЙ ФИКС Z-БУФЕРА ===
+                // Включаем Z-тест для world-space шейдеров (карта), выключаем для UI
+                if (static_cast<ShaderID>(cmd.shaderID) == SHADER_WORLD) {
+                    m_pDevice->SetRenderState(D3DRS_ZENABLE, TRUE);       // Включаем Z-тест для карты
+                    m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, TRUE);   // Разрешаем запись в Z-буфер
+                    OutputDebugStringA("[SMgr::ExecuteQueue] Z-buffer ENABLED for SHADER_WORLD\n");
+                } else {
+                    m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);      // Выключаем для UI/текста
+                    m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+                    OutputDebugStringA("[SMgr::ExecuteQueue] Z-buffer DISABLED for UI/text\n");
+                }
+                // ==================================
 
                 const D3DXMATRIX* activeMatrix = cmd.isUI ? &localOrtho : &m_frameViewProj;
 

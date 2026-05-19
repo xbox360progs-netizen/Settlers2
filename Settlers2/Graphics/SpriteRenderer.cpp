@@ -904,7 +904,14 @@ void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float
     // === ШАГ 3: НАСТРОЙКА СОСТОЯНИЙ DIRECT3D (RENDER STATES) ===
     OutputDebugStringA("[SR::Begin] Setting render states...\n");
     
-    m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+    // Z-буфер: включаем для карты (isUI=false), выключаем для UI
+    if (isUI) {
+        m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+        m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+    } else {
+        m_pDevice->SetRenderState(D3DRS_ZENABLE, TRUE);
+        m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, TRUE);
+    }
     m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
     m_pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
     m_pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
