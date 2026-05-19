@@ -1,85 +1,82 @@
 #pragma once
 #include <d3d9.h>
-#include <d3dx9.h>
-#include <string>
 
 namespace Graphics {
 
-struct MaterialProps {
-    float specularStrength;
-    float roughness;
-    float ambientOcclusion;
-    float emissive;
-
-    MaterialProps() 
-        : specularStrength(0.3f), roughness(0.5f), 
-          ambientOcclusion(1.0f), emissive(0.0f) {}
-
-    MaterialProps(float spec, float rough, float ao = 1.0f, float emv = 0.0f)
-        : specularStrength(spec), roughness(rough),
-          ambientOcclusion(ao), emissive(emv) {}
+enum MaterialFlags {
+    MATERIAL_FLAG_NONE = 0,
+    MATERIAL_FLAG_ALPHATEST = 1 << 0,
+    MATERIAL_FLAG_TRANSPARENT = 1 << 1,
+    MATERIAL_FLAG_EMISSIVE = 1 << 2,
+    MATERIAL_FLAG_NORMALMAP = 1 << 3,
+    MATERIAL_FLAG_SPECULAR = 1 << 4,
+    MATERIAL_FLAG_AMBIENT_OCCLUSION = 1 << 5,
+    MATERIAL_FLAG_CAST_SHADOWS = 1 << 6,
+    MATERIAL_FLAG_RECEIVE_SHADOWS = 1 << 7
 };
 
-class Material {
-public:
-    Material();
-    Material(const char* name);
-    ~Material();
-
-    void SetDiffuseTexture(LPDIRECT3DTEXTURE9 tex) { m_pDiffuseTex = tex; }
-    void SetNormalTexture(LPDIRECT3DTEXTURE9 tex) { m_pNormalTex = tex; }
-    void SetMaterialTexture(LPDIRECT3DTEXTURE9 tex) { m_pMaterialTex = tex; }
-
-    LPDIRECT3DTEXTURE9 GetDiffuseTexture() const { return m_pDiffuseTex; }
-    LPDIRECT3DTEXTURE9 GetNormalTexture() const { return m_pNormalTex; }
-    LPDIRECT3DTEXTURE9 GetMaterialTexture() const { return m_pMaterialTex; }
-
-    void SetName(const char* name) { m_name = name ? name : ""; }
-    const char* GetName() const { return m_name.c_str(); }
-
-    void SetProperties(const MaterialProps& props) { m_props = props; }
-    MaterialProps GetProperties() const { return m_props; }
-
-    bool HasNormalMap() const { return m_pNormalTex != NULL; }
-    bool HasMaterialMap() const { return m_pMaterialTex != NULL; }
-
-    void SetShaderFlags(DWORD flags) { m_shaderFlags = flags; }
-    DWORD GetShaderFlags() const { return m_shaderFlags; }
-
-    void SetTileID(int id) { m_tileID = id; }
-    int GetTileID() const { return m_tileID; }
-
-    bool IsValid() const;
-
-private:
-    std::string m_name;
-    LPDIRECT3DTEXTURE9 m_pDiffuseTex;
-    LPDIRECT3DTEXTURE9 m_pNormalTex;
-    LPDIRECT3DTEXTURE9 m_pMaterialTex;
-    MaterialProps m_props;
-    DWORD m_shaderFlags;
-    int m_tileID;
+struct Material {
+    IDirect3DTexture9* pDiffuseMap;
+    IDirect3DTexture9* pNormalMap;
+    IDirect3DTexture9* pMaterialMap;
+    
+    uint32_t Flags;
+    
+    float Roughness;
+    float Metallic;
+    float EmissiveIntensity;
+    float AmbientOcclusion;
+    
+    Material()
+        : pDiffuseMap(NULL)
+        , pNormalMap(NULL)
+        , pMaterialMap(NULL)
+        , Flags(MATERIAL_FLAG_NONE)
+        , Roughness(0.5f)
+        , Metallic(0.0f)
+        , EmissiveIntensity(0.0f)
+        , AmbientOcclusion(1.0f)
+    {}
 };
+
+inline uint32_t PackMaterialMap(float roughness, float ao, float emissive, float metallic) {
+    uint8_t r = (uint8_t)(metallic * 255.0f);
+    uint8_t g = (uint8_t)(roughness * 255.0f);
+    uint8_t b = (uint8_t)(ao * 255.0f);
+    uint8_t a = (uint8_t)(emissive * 255.0f);
+    return (a << 24) | (b << 16) | (g << 8) | r;
+}
+
+inline void UnpackMaterialMap(uint32_t packed, float& roughness, float& ao, float& emissive, float& metallic) {
+    metallic = ((packed >> 0) & 0xFF) / 255.0f;
+    roughness = ((packed >> 8) & 0xFF) / 255.0f;
+    ao = ((packed >> 16) & 0xFF) / 255.0f;
+    emissive = ((packed >> 24) & 0xFF) / 255.0f;
+}
 
 class MaterialManager {
 public:
     MaterialManager();
     ~MaterialManager();
 
-    Material* CreateMaterial(const char* name);
-    Material* GetMaterial(const char* name);
-    Material* GetMaterial(int index);
+    void Initialize(IDirect3DDevice9* pDevice);
+    void Shutdown();
 
-    void RemoveMaterial(const char* name);
-    void RemoveAll();
+    int CreateMaterial(const Material& material);
+    Material* GetMaterial(int id);
+    void SetMaterial(int id, const Material& material);
+    void RemoveMaterial(int id);
 
-    int GetMaterialCount() const { return (int)m_materials.size(); }
-
-    Material* GetDefaultMaterial();
+    void BindMaterial(int id);
 
 private:
-    std::vector<Material*> m_materials;
-    Material* m_pDefaultMaterial;
+    IDirect3DDevice9* m_pDevice;
+    struct MaterialEntry {
+        Material material;
+        int refCount;
+    };
+    std::vector<MaterialEntry> m_materials;
+    int m_nextID;
 };
 
 }
