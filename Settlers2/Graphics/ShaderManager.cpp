@@ -1139,6 +1139,11 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
 
     Unlock();
 
+    ShaderID currentShaderID = SHADER_INVALID;
+    LPDIRECT3DTEXTURE9 lastTexture = nullptr;
+    bool passActive = false;
+    bool hasAnyWorkBeenDone = false;
+
     // ==========================================
     // ФАЗА 1: Отрисовка только 3D-мира (Ландшафт + Мировые спрайты)
     // ==========================================
@@ -1154,11 +1159,12 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
     passActive = false;
     lastTexture = nullptr;
 
-    for (int i = 0; i < UI_COMMAND_START; ++i) {
+    for (int i = 0; i < MAX_GLOBAL_COMMANDS; ++i) {
         RenderCommand& cmd = m_commandQueue[i];
-
+        
         if (cmd.status != 1) continue;
         if (cmd.isUI) continue;
+        if (cmd.shaderID == SHADER_SPRITE || cmd.shaderID == SHADER_UI) continue;
 
         InterlockedExchange(&cmd.status, 2);
 
@@ -1184,15 +1190,14 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                 m_pActiveEffect->Begin(&m_numPasses, 0);
                 BeginPass(0);
                 passActive = true;
-
-                if (cmd.hasViewProjMatrix) {
-                    SetMatrix("gViewProj", (const float*)&cmd.viewProjMatrix);
-                    SetMatrix("WorldViewProjection", (const float*)&cmd.viewProjMatrix);
-                    Commit();
-                }
+                
+                SetMatrix("gViewProj", (const float*)&m_shaderMatrices[SHADER_TERRAIN]);
+                SetMatrix("WVP", (const float*)&m_shaderMatrices[SHADER_TERRAIN]);
+                SetMatrix("WorldViewProjection", (const float*)&m_shaderMatrices[SHADER_TERRAIN]);
+                Commit();
 
                 char dbg[256];
-                sprintf(dbg, "[PHASE1] Shader %d activated with matrix, slot %d\n", currentShaderID, i);
+                sprintf(dbg, "[PHASE1] Shader %d activated with world matrix from SHADER_TERRAIN slot\n", currentShaderID);
                 OutputDebugStringA(dbg);
             }
         }
@@ -1223,25 +1228,29 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
         EndPass();
         EndCurrent();
         passActive = false;
+        currentShaderID = SHADER_INVALID;
+        lastTexture = nullptr;
     }
 
-    currentShaderID = SHADER_INVALID;
+    // ==========================================
+    // ЕДИНСТВЕННОЕ ТЯЖЕЛОЕ ПЕРЕКЛЮЧЕНИЕ СТЭЙТОВ
+    // ==========================================
+    m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+    m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+    m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+    m_pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+    m_pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
 
     // ==========================================
     // ФАЗА 2: Отрисовка только UI и Текста
     // ==========================================
-    m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
-    m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
-
     OutputDebugStringA("[SMgr::ExecuteQueue] === PHASE 2: UI/Text Rendering ===\n");
 
-    lastTexture = nullptr;
-
-    for (int i = UI_COMMAND_START; i < MAX_GLOBAL_COMMANDS; ++i) {
+    for (int i = 0; i < MAX_GLOBAL_COMMANDS; ++i) {
         RenderCommand& cmd = m_commandQueue[i];
-
+        
         if (cmd.status != 1) continue;
-        if (!cmd.isUI) continue;
+        if (!cmd.isUI && cmd.shaderID != SHADER_SPRITE && cmd.shaderID != SHADER_UI) continue;
 
         InterlockedExchange(&cmd.status, 2);
 
@@ -1266,20 +1275,23 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                 m_pActiveEffect->Begin(&m_numPasses, 0);
                 BeginPass(0);
                 passActive = true;
-
+                
                 SetMatrix("gViewProj", (const float*)&localOrtho);
+                SetMatrix("WVP", (const float*)&localOrtho);
                 SetMatrix("WorldViewProjection", (const float*)&localOrtho);
                 SetMatrix("matOrtho", (const float*)&localOrtho);
                 Commit();
 
                 char dbg[256];
-                sprintf(dbg, "[PHASE2] Shader %d activated with ortho, slot %d\n", currentShaderID, i);
+                sprintf(dbg, "[PHASE2] Shader %d activated with ortho matrix, slot %d\n", currentShaderID, i);
                 OutputDebugStringA(dbg);
             }
         }
 
         if (cmd.pTexture != lastTexture && m_pActiveEffect) {
             SetTexture("g_texture", cmd.pTexture);
+            SetMatrix("WVP", (const float*)&localOrtho);
+            SetMatrix("WorldViewProjection", (const float*)&localOrtho);
             m_pActiveEffect->CommitChanges();
             lastTexture = cmd.pTexture;
         }
