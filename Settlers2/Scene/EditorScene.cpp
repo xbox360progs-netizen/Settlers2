@@ -4,9 +4,9 @@
 #include "../Logic/CoordinateSystem.h"
 #include "../Logic/MapConstants.h"
 #include "../World/TileLayer.h"
-#include "../Graphics/RadialMenu.h"
+#include "../UI/RadialMenu.h"
 #include "../Graphics/TextManager.h"
-#include "../Graphics/GridMenu.h"
+#include "../UI/GridMenu.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/Renderer.h"
 #include "../Graphics/SpriteRenderer.h"
@@ -526,29 +526,8 @@ void EditorScene::Update(float deltaTime) {
 }
 
 void EditorScene::Render() {
-    if (!m_renderer) {
-        OutputDebugStringA("[EditorScene::Render] m_renderer is NULL!\n");
-        return;
-    }
+    if (!m_renderer || !m_shaderManager || !m_spriteRenderer) return;
     
-    if (!m_renderer->GetDevice()) {
-        OutputDebugStringA("[EditorScene::Render] m_renderer->GetDevice() is NULL!\n");
-        return;
-    }
-
-    if (!m_shaderManager) {
-        OutputDebugStringA("[EditorScene::Render] m_shaderManager is NULL!\n");
-        return;
-    }
-
-    if (!m_spriteRenderer) {
-        OutputDebugStringA("[EditorScene::Render] m_spriteRenderer is NULL!\n");
-        return;
-    }
-
-    OutputDebugStringA("[EditorScene::Render] Starting custom pipeline\n");
-
-    m_renderer->GetDevice()->Clear(0, NULL, D3DCLEAR_TARGET, 0xFF000000, 1.0f, 0);
     m_renderer->Clear(D3DCOLOR_XRGB(50, 50, 50));
 
     if (m_camera) {
@@ -556,86 +535,20 @@ void EditorScene::Render() {
         m_shaderManager->UpdateGlobalMatrices(&m_camera->GetViewMatrix(), &m_camera->GetProjectionMatrix());
     }
 
-    OutputDebugStringA("[EditorScene::Render] GEOMETRY PASS\n");
-
-    LPDIRECT3DVERTEXBUFFER9 pVB = m_spriteRenderer->GetVertexBuffer();
-    LPDIRECT3DINDEXBUFFER9 pIB = m_spriteRenderer->GetIndexBuffer();
-    LPDIRECT3DVERTEXDECLARATION9 pDecl = m_spriteRenderer->GetVertexDeclaration();
-    const D3DXMATRIX& viewProj = m_shaderManager->GetFrameViewProj();
-
-    if (!pVB || !pIB || !pDecl) {
-        OutputDebugStringA("[EditorScene::Render] ERROR: NULL buffers! VB=");
-        char buf[64];
-        sprintf(buf, "%p, IB=%p, Decl=%p\n", pVB, pIB, pDecl);
-        OutputDebugStringA(buf);
-        return;
-    }
-
-    m_renderer->BindGBuffer();
-    m_renderer->Clear(D3DCOLOR_XRGB(0, 0, 0));
-
     if (m_mapEditor) {
-        OutputDebugStringA("[EditorScene::Render] Calling RenderGeometry...\n");
         m_mapEditor->RenderGeometry();
-    } else {
-        OutputDebugStringA("[EditorScene::Render] m_mapEditor is NULL!\n");
-    }
-
-    OutputDebugStringA("[EditorScene::Render] Flushing sprite renderer...\n");
-    m_spriteRenderer->Flush(m_shaderManager);
-
-    OutputDebugStringA("[EditorScene::Render] Executing geometry queue...\n");
-    m_shaderManager->ExecuteQueue(pVB, pIB, pDecl, 32, &viewProj, m_spriteRenderer);
-    m_shaderManager->ClearQueue();
-
-    OutputDebugStringA("[EditorScene::Render] LIGHTING PASS\n");
-
-    m_renderer->UnbindGBuffer();
-
-    if (!m_shaderManager->SetActiveShader(SHADER_DEFERRED_LIGHTING)) {
-        OutputDebugStringA("[EditorScene::Render] ERROR: SetActiveShader(SHADER_DEFERRED_LIGHTING) failed!\n");
-        m_renderer->EndFrame();
-        return;
-    }
-    m_shaderManager->BeginShader();
-    m_shaderManager->BeginPass(0);
-
-    m_renderer->DrawFullscreenQuad();
-
-    m_shaderManager->EndPass();
-    m_shaderManager->EndShader();
-
-    OutputDebugStringA("[EditorScene::Render] UI PASS\n");
-
-    if (m_radialMenu && m_radialMenu->IsVisible()) {
-        m_radialMenu->Render();
-        m_radialMenu->RenderIcons(m_spriteRenderer);
-    }
-    
-    if (m_gridMenu && m_gridMenu->IsVisible()) {
-        m_gridMenu->Render(m_spriteRenderer);
+        m_mapEditor->RenderUI();
     }
 
     if (m_textManager) {
         m_textManager->BeginTextBatch(FONT_MENU, 0.0f);
-
         char fpsText[64];
         sprintf(fpsText, "FPS: %d", m_fps);
         m_textManager->DrawTextToScreen(fpsText, 10.0f, 10.0f, 0xFF00FF00, 0.25f);
-
-        const char* layerNames[] = { "Roads", "Nodes", "Placement", "Resources" , "Ground", "Objects", "Overlay"};
-        int layerIdx = static_cast<int>(m_currentLayer);
-        if (layerIdx >= 0 && layerIdx < 7) {
-            m_textManager->DrawTextToScreen("Layer:", 10.0f, m_renderer->GetScreenHeight() - 40.0f, 0xFFAAAAAA, 0.25f, FONT_MENU, FONT_STYLE_NORMAL);
-            m_textManager->DrawTextToScreen(layerNames[layerIdx], 100.0f, m_renderer->GetScreenHeight() - 40.0f, 0xFFFFFFFF, 0.25f, FONT_MENU, FONT_STYLE_NORMAL);
-        }
-
         m_textManager->EndTextBatch();
     }
     
-    OutputDebugStringA("[EditorScene::Render] Calling EndFrame...\n");
     m_renderer->EndFrame();
-    OutputDebugStringA("[EditorScene::Render] Done\n");
 }
 
 void EditorScene::OnEnter() {

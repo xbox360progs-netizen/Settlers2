@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "RadialMenu.h"
-#include "Quad.h"
-#include "TextureRegistry.h"
+#include "../Graphics/Quad.h"
+#include "../Graphics/TextureRegistry.h"
 #include <map>
 
 namespace

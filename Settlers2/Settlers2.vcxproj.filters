@@ -209,13 +209,7 @@
     <ClInclude Include="Core\GameEngine.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\RadialMenu.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\Quad.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\GridMenu.h">
       <Filter>Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\TextureRegistry.h">
@@ -253,6 +247,15 @@
     </ClInclude>
     <ClInclude Include="Graphics\RenderTypes.h">
       <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\Resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\RadialMenu.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\GridMenu.h">
+      <Filter>UI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -406,13 +409,7 @@
     <ClCompile Include="Core\GameEngine.cpp">
       <Filter>Core</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\RadialMenu.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
     <ClCompile Include="Graphics\Quad.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\GridMenu.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\TextureRegistry.cpp">
@@ -438,6 +435,15 @@
     </ClCompile>
     <ClCompile Include="UI\WeightMenu.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\ThreadSync.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\RadialMenu.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\GridMenu.cpp">
+      <Filter>UI</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

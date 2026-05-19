@@ -3,10 +3,10 @@
 #include <d3dx9.h>
 #include <vector>
 #include <string>
-#include "ShaderManager.h"
-#include "SpriteRenderer.h"
-#include "SpriteAtlas.h"
-#include "BinFileManager.h"
+#include "../Graphics/ShaderManager.h"
+#include "../Graphics/SpriteRenderer.h"
+#include "../Graphics/SpriteAtlas.h"
+#include "../Graphics/BinFileManager.h"
 #include "../Input/Gamepad.h"
 
 class Quad;

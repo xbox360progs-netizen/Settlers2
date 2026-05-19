@@ -201,10 +201,10 @@ void MapEditor::RenderGeometry() {
 
 void MapEditor::RenderUI() {
 
-    RenderCursor();
-    RenderTilePreview();
-    RenderActiveTile();
-	m_spriteRenderer->End();
+//    RenderCursor();
+//    RenderTilePreview();
+//    RenderActiveTile();
+//	m_spriteRenderer->End();
 }
 void MapEditor::HandleInput() {
     if (!m_inputManager) return;

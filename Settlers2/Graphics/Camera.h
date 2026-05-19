@@ -30,6 +30,16 @@ public:
     const D3DXMATRIX& GetViewMatrix() const { return m_view; }
     const D3DXMATRIX& GetProjectionMatrix() const { return m_proj; }
 
+    D3DXMATRIX GetUIMatrix() const {
+        D3DXMATRIX view;
+        D3DXMatrixIdentity(&view);
+        return view * m_proj;
+    }
+
+    D3DXMATRIX GetWorldMatrix() const {
+        return m_view * m_proj;
+    }
+
 private:
 
     float m_screenWidth;

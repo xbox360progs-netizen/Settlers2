@@ -245,10 +245,8 @@
     <ClInclude Include="Graphics\BitmapText.h" />
     <ClInclude Include="Graphics\Camera.h" />
     <ClInclude Include="Graphics\Font.h" />
-    <ClInclude Include="Graphics\GridMenu.h" />
     <ClInclude Include="Graphics\OverlayFPS.h" />
     <ClInclude Include="Graphics\Quad.h" />
-    <ClInclude Include="Graphics\RadialMenu.h" />
     <ClInclude Include="Graphics\Renderer.h" />
     <ClInclude Include="Graphics\RenderTypes.h" />
     <ClInclude Include="Graphics\ShaderManager.h" />
@@ -279,8 +277,10 @@
     <ClInclude Include="UI\BuildMenu.h" />
     <ClInclude Include="UI\Button.h" />
     <ClInclude Include="UI\EditorUI.h" />
+    <ClInclude Include="UI\GridMenu.h" />
     <ClInclude Include="UI\Minimap.h" />
     <ClInclude Include="UI\Panel.h" />
+    <ClInclude Include="UI\RadialMenu.h" />
     <ClInclude Include="UI\ResourceBar.h" />
     <ClInclude Include="UI\UIManager.h" />
     <ClInclude Include="UI\TilePalette.h" />
@@ -317,10 +317,8 @@
     <ClCompile Include="Graphics\BitmapFont.cpp" />
     <ClCompile Include="Graphics\BitmapText.cpp" />
     <ClCompile Include="Graphics\Camera.cpp" />
-    <ClCompile Include="Graphics\GridMenu.cpp" />
     <ClCompile Include="Graphics\OverlayFPS.cpp" />
     <ClCompile Include="Graphics\Quad.cpp" />
-    <ClCompile Include="Graphics\RadialMenu.cpp" />
     <ClCompile Include="Graphics\Renderer.cpp" />
     <ClCompile Include="Graphics\ShaderManager.cpp" />
     <ClCompile Include="Graphics\SpriteAtlas.cpp" />
@@ -355,8 +353,10 @@
     <ClCompile Include="UI\BuildMenu.cpp" />
     <ClCompile Include="UI\Button.cpp" />
     <ClCompile Include="UI\EditorUI.cpp" />
+    <ClCompile Include="UI\GridMenu.cpp" />
     <ClCompile Include="UI\Minimap.cpp" />
     <ClCompile Include="UI\Panel.cpp" />
+    <ClCompile Include="UI\RadialMenu.cpp" />
     <ClCompile Include="UI\ResourceBar.cpp" />
     <ClCompile Include="UI\UIManager.cpp" />
     <ClCompile Include="UI\Widget.cpp" />
