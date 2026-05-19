@@ -127,15 +127,10 @@ void EditorScene::Load() {
     // Initialize Camera for world-space rendering
     m_camera = new Camera();
     if (m_camera) {
-        m_camera->Initialize(1280.0f, 720.0f);
+        m_camera->Initialize(1280.0f, 720.0f, m_shaderManager);
         m_camera->SetPosition(0.0f, 0.0f);
         m_camera->Update();
-        OutputDebugStringA("[EditorScene] Camera initialized\n");
-    }
-
-    // Sync camera to ShaderManager
-    if (m_shaderManager) {
-        m_shaderManager->UpdateGlobalMatrices(&m_camera->GetViewMatrix(), &m_camera->GetProjectionMatrix());
+        OutputDebugStringA("[EditorScene] Camera initialized and bound to ShaderManager\n");
     }
 
     // Initialize InputController for world coordinate translation
@@ -231,6 +226,7 @@ void EditorScene::Load() {
         World::Map* map = new World::Map(Editor::MapEditor::GRID_WIDTH, Editor::MapEditor::GRID_HEIGHT,Editor::MapEditor::GRID_WIDTH * 2, Editor::MapEditor::GRID_HEIGHT * 2);
         m_mapEditor->Initialize(map, m_renderer, m_inputManager, m_renderer->GetDevice());
         m_mapEditor->SetSpriteRenderer(m_spriteRenderer);
+        m_mapEditor->SetCamera(m_camera);
         OutputDebugStringA("[EditorScene] MapEditor initialized\n");
     }
 

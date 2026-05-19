@@ -44,8 +44,9 @@ MapEditor::MapEditor()
     , m_placingTile(false)
 	, m_showObjects(true)
     , m_showOverlay(true)
-    , m_showNodes(true)
-	, m_currentObjectAtlasName("icon_tree")
+, m_showNodes(true)
+ 	, m_currentObjectAtlasName("icon_tree")
+    , m_pCamera(nullptr)
 {
 }
 
@@ -172,6 +173,9 @@ void MapEditor::Update(float deltaTime) {
 }
 
 void MapEditor::RenderGeometry() {
+    if (m_pCamera) {
+        m_pCamera->Update();
+    }
 
     if (m_pDevice) {
         m_pDevice->SetVertexShader(NULL);
@@ -200,6 +204,9 @@ void MapEditor::RenderGeometry() {
 }
 
 void MapEditor::RenderUI() {
+    if (m_pCamera) {
+        m_pCamera->UpdateUI();
+    }
 
 //    RenderCursor();
 //    RenderTilePreview();

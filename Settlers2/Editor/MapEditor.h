@@ -11,6 +11,7 @@
 #include "../UI/TilePalette.h"
 #include "../UI/Panel.h"
 #include <vector>
+#include "../Graphics/Camera.h"
 
 class Renderer;
 
@@ -51,6 +52,7 @@ public:
     void SetTileByIndex(int index);
     void SetLayer(World::LayerType layer) { m_currentLayer = layer; m_placingTile = false; }
     void SetSpriteRenderer(SpriteRenderer* sr) { m_spriteRenderer = sr; }
+    void SetCamera(Camera* pCamera) { m_pCamera = pCamera; }
     void SetObjectAtlas(const char* name);
     World::LayerType GetLayer() const { return m_currentLayer; }
 
@@ -98,6 +100,7 @@ World::Map* m_map;
     World::LayerType m_currentLayer;
     Logic::WeightMap* m_weightMap;
     SpriteRenderer* m_spriteRenderer;
+    Camera* m_pCamera;
 
     UI::TilePalette* m_tilePalette;
     UI::Panel* m_toolbarPanel;

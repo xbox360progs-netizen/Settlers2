@@ -2,13 +2,15 @@
 #pragma once
 #include <d3dx9.h>
 
+class ShaderManager;
+
 class Camera
 {
 public:
 
     Camera();
 
-    void Initialize(float screenWidth, float screenHeight);
+    void Initialize(float screenWidth, float screenHeight, ShaderManager* pShaderManager = nullptr);
 
     void Update();     // world camera
     void UpdateUI();   // ui camera
@@ -41,6 +43,8 @@ public:
     }
 
 private:
+
+    ShaderManager* m_pShaderManager;
 
     float m_screenWidth;
     float m_screenHeight;

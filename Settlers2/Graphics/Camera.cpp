@@ -3,7 +3,8 @@
 #include "Camera.h"
 
 Camera::Camera()
-: m_screenWidth(0)
+: m_pShaderManager(nullptr)
+, m_screenWidth(0)
 , m_screenHeight(0)
 , m_posX(0)
 , m_posY(0)
@@ -13,10 +14,11 @@ Camera::Camera()
     D3DXMatrixIdentity(&m_proj);
 }
 
-void Camera::Initialize(float screenWidth,float screenHeight)
+void Camera::Initialize(float screenWidth, float screenHeight, ShaderManager* pShaderManager)
 {
     m_screenWidth  = screenWidth;
     m_screenHeight = screenHeight;
+    m_pShaderManager = pShaderManager;
 
     Reset();
     Update();
@@ -46,15 +48,22 @@ void Camera::Update()
     // VIEW matrix
     m_view = translate * center * scale * uncenter;
 
-    // projection фиксированная
+    // projection следует за позицией камеры
+    float viewHalfW = halfW / m_zoom;
+    float viewHalfH = halfH / m_zoom;
+
     D3DXMatrixOrthoOffCenterLH(
         &m_proj,
-        0.0f,
-        m_screenWidth,
-        m_screenHeight,
-        0.0f,
+        m_posX - viewHalfW,
+        m_posX + viewHalfW,
+        m_posY + viewHalfH,
+        m_posY - viewHalfH,
         -1.0f,
         1.0f);
+
+    if (m_pShaderManager) {
+        m_pShaderManager->UpdateGlobalMatrices(&m_view, &m_proj);
+    }
 }
 
 //
@@ -72,6 +81,10 @@ void Camera::UpdateUI()
         0.0f,
         -1.0f,
         1.0f);
+
+    if (m_pShaderManager) {
+        m_pShaderManager->UpdateGlobalMatrices(&m_view, &m_proj);
+    }
 }
 
 void Camera::SetPosition(float x,float y)
