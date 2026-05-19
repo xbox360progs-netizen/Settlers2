@@ -1,4 +1,4 @@
-﻿Построение начато 19.05.2026 12:54:07.
+﻿Построение начато 19.05.2026 13:55:40.
      1>Проект "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" в узле 2 (целевые объекты build).
      1>InitializeBuildStatus:
          Создание "Release\Settlers2.unsuccessfulbuild", так как было задано "AlwaysCreate".
@@ -19,6 +19,35 @@
          Quad.cpp
          Renderer.cpp
          ShaderManager.cpp
+     1>Graphics\ShaderManager.cpp(1153): error C2065: 'currentShaderID' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1154): error C2065: 'passActive' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1155): error C2065: 'lastTexture' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1171): error C2065: 'hasAnyWorkBeenDone' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1173): error C2065: 'currentShaderID' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1174): error C2065: 'passActive' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1177): error C2065: 'passActive' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1181): error C2065: 'currentShaderID' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1186): error C2065: 'passActive' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1195): error C2065: 'currentShaderID' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1200): error C2065: 'lastTexture' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1203): error C2065: 'lastTexture' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1206): error C2065: 'passActive' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1222): error C2065: 'passActive' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1225): error C2065: 'passActive' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1228): error C2065: 'currentShaderID' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1238): error C2065: 'lastTexture' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1253): error C2065: 'hasAnyWorkBeenDone' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1255): error C2065: 'currentShaderID' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1256): error C2065: 'passActive' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1259): error C2065: 'passActive' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1263): error C2065: 'currentShaderID' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1268): error C2065: 'passActive' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1276): error C2065: 'currentShaderID' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1281): error C2065: 'lastTexture' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1284): error C2065: 'lastTexture' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1287): error C2065: 'passActive' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1303): error C2065: 'passActive' : undeclared identifier
+     1>Graphics\ShaderManager.cpp(1306): error C2065: 'passActive' : undeclared identifier
          SpriteAtlas.cpp
          SpriteBatch.cpp
          SpriteRenderer.cpp
@@ -100,79 +129,8 @@
          Compiling...
          TileLayer.cpp
          Generating Code...
-       Link:
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\link.exe /ERRORREPORT:PROMPT /OUT:"D:\development\Settlers2\Settlers2\Release\Settlers2.exe" /INCREMENTAL:NO /NOLOGO xapilib.lib d3d9.lib d3dx9.lib xgraphics.lib xboxkrnl.lib xnet.lib xaudio2.lib xact3.lib x3daudio.lib xmcore.lib vcomp.lib /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"D:\development\Settlers2\Settlers2\Release\Settlers2.pdb" /STACK:"262144","262144" /OPT:REF /OPT:ICF /TLBID:1 /RELEASE /IMPLIB:"D:\development\Settlers2\Settlers2\Release\Settlers2.lib" Release\GameEngine.obj
-         Release\ThreadSync.obj
-         Release\BinFileManager.obj
-         Release\BitmapFont.obj
-         Release\BitmapText.obj
-         Release\Camera.obj
-         Release\OverlayFPS.obj
-         Release\Quad.obj
-         Release\Renderer.obj
-         Release\ShaderManager.obj
-         Release\SpriteAtlas.obj
-         Release\SpriteBatch.obj
-         Release\SpriteRenderer.obj
-         Release\TextManager.obj
-         Release\TextureLoader.obj
-         Release\TextureRegistry.obj
-         Release\TileRenderer.obj
-         Release\Gamepad.obj
-         Release\InputContext.obj
-         Release\InputController.obj
-         Release\InputManager.obj
-         Release\ScreenKeyboard.obj
-         Release\IsoGrid.obj
-         Release\WeightMap.obj
-         Release\EditorScene.obj
-         Release\GameScene.obj
-         Release\LoadingScene.obj
-         Release\MenuScene.obj
-         Release\Scene.obj
-         Release\SceneManager.obj
-         Release\Settlers2.obj
-         Release\stdafx.obj
-         Release\BuildMenu.obj
-         Release\Button.obj
-         Release\EditorUI.obj
-         Release\GridMenu.obj
-         Release\Minimap.obj
-         Release\Panel.obj
-         Release\RadialMenu.obj
-         Release\ResourceBar.obj
-         Release\UIManager.obj
-         Release\Widget.obj
-         Release\WeightMenu.obj
-         Release\Building.obj
-         Release\Collider.obj
-         Release\Model.obj
-         Release\Resource.obj
-         Release\Sprite.obj
-         Release\Transform.obj
-         Release\Unit.obj
-         Release\Entity.obj
-         Release\EntityManager.obj
-         Release\Map.obj
-         Release\MapSerializer.obj
-         Release\AISystem.obj
-         Release\EconomySystem.obj
-         Release\PathfindingSystem.obj
-         Release\PhysicsSystem.obj
-         Release\RenderSystem.obj
-         Release\TileLayer.obj
-         Release\MapEditor.obj
-         Release\TilePalette.obj /XEX:NO
-       ImageXex:
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\imagexex.exe /out:"D:\development\Settlers2\Settlers2\Release\Settlers2.xex" "D:\development\Settlers2\Settlers2\Release\Settlers2.exe" 
-         Microsoft(R) Xbox 360 Image File Builder Version 2.0.21256.0
-         (c)2012 Microsoft Corporation. All rights reserved.
-         
-       FinalizeBuildStatus:
-         Файл "Release\Settlers2.unsuccessfulbuild" удаляется.
-         Обращение к "Release\Settlers2.lastbuildstate".
-     1>Построение проекта "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" завершено (целевые объекты build).
+     1>Построение проекта "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" завершено (целевые объекты build) с ошибкой.
 
-Построение успешно завершено.
+СБОЙ построения.
 
-Затраченное время: 00:00:38.46
+Затраченное время: 00:00:24.54

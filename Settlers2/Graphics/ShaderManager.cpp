@@ -591,15 +591,8 @@ void ShaderManager::Submit(const RenderCommand& cmd) {
     // REMOVED: s_currentVertexOffset tracking - offsets already calculated in SpriteRenderer
     // Double offset tracking is the source of the double offset bug
 
-    // For lock-free ring buffer, use atomic operations instead of push_back
-    // Find free slot and atomically capture it
-    int targetSlot = -1;
-    for (int i = 0; i < MAX_GLOBAL_COMMANDS; ++i) {
-        if (InterlockedCompareExchange(&m_commandQueue[i].status, 2, 0) == 0) {
-            targetSlot = i;
-            break;
-        }
-    }
+    // For lock-free ring buffer, use atomic operations with partitioning
+    int targetSlot = FindFreeSlot(cmd.isUI);
 
     if (targetSlot != -1) {
         m_commandQueue[targetSlot] = cmdWithOffset;
@@ -615,12 +608,25 @@ void ShaderManager::Submit(const RenderCommand& cmd) {
         InterlockedExchange(&m_commandQueue[targetSlot].status, 1);
         
         char debugBuf[256];
-        sprintf(debugBuf, "[ShaderManager::Submit] Submitting command %d: baseVert=%d, verts=%d, texture=%p\n",
-                targetSlot, cmdWithOffset.baseVertex, cmd.vertexCount, cmd.pTexture);
+        sprintf(debugBuf, "[ShaderManager::Submit] Slot %d: baseVert=%d, verts=%d, texture=%p, isUI=%d\n",
+                targetSlot, cmdWithOffset.baseVertex, cmd.vertexCount, cmd.pTexture, cmd.isUI);
         OutputDebugStringA(debugBuf);
     } else {
         OutputDebugStringA("[ShaderManager::Submit] CRITICAL: Command Ring Buffer Overflow!\n");
     }
+}
+
+// Helper function for partitioned command submission (Thread-safe lock-free)
+int ShaderManager::FindFreeSlot(bool isUI) {
+    int start = isUI ? UI_COMMAND_START : 0;
+    int end = isUI ? MAX_GLOBAL_COMMANDS : UI_COMMAND_START;
+    
+    for (int i = start; i < end; ++i) {
+        if (InterlockedCompareExchange(&m_commandQueue[i].status, 2, 0) == 0) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 // Add command to render queue (alias for Submit)
@@ -630,30 +636,9 @@ void ShaderManager::PushCommand(const RenderCommand& cmd) {
 
 // Push command for Xbox 360 ring buffer architecture
 void ShaderManager::PushXbox360Command(const RenderCommand& newCmd) {
-    int targetSlot = -1;
-    int attempts = 0;
-    const int MAX_ATTEMPTS = 1000; // Protection against infinite loop
-
-    // Ищем свободную ячейку в циклическом кольцевом буфере команд кадра
-    while (attempts < MAX_ATTEMPTS) {
-        for (int i = 0; i < MAX_GLOBAL_COMMANDS; ++i) {
-            // Статус 0 означает, что ячейка свободна.
-            // Атомарно переводим её в статус 2 (блокировка под запись Потоком Логики)
-            if (InterlockedCompareExchange(&m_commandQueue[i].status, 2, 0) == 0) {
-                targetSlot = i;
-                break;
-            }
-        }
-        
-        if (targetSlot != -1) break;
-        
-        // Если нет свободных слотов, ждем немного
-        attempts++;
-        Sleep(1);
-    }
-
+    int targetSlot = FindFreeSlot(newCmd.isUI);
+    
     if (targetSlot != -1) {
-        // Копируем параметры команды из структуры RenderTypes.h
         RenderCommand& queuedCmd = m_commandQueue[targetSlot];
         queuedCmd.shaderID = newCmd.shaderID;
         queuedCmd.pTexture = newCmd.pTexture;
@@ -672,10 +657,9 @@ void ShaderManager::PushXbox360Command(const RenderCommand& newCmd) {
             queuedCmd.hasViewProjMatrix = false;
         }
 
-        // Атомарно выставляем статус 1: "Пачка полностью готова к рендеру"
         InterlockedExchange(&queuedCmd.status, 1);
     } else {
-        OutputDebugStringA("[ShaderManager] CRITICAL: Command queue overflow after retries!\n");
+        OutputDebugStringA("[ShaderManager] CRITICAL: Command queue overflow!\n");
     }
 }
 
@@ -820,9 +804,36 @@ void ShaderManager::SetGlobalUniforms(const D3DXMATRIX* pViewProj) {
             m[12], m[13], m[14], m[15]);
     OutputDebugStringA(matBuf);
 
-    // Set both parameter names for compatibility with different shaders
-    SetMatrix("WVP", (const float*)pViewProj);
-    SetMatrix("WorldViewProjection", (const float*)pViewProj);
+    // ОБРАБОТКА ТЕКСТА И ИНТЕРФЕЙСА (Шейдер ID 0)
+    if (m_currentShaderID == 0) {
+        // 1. Отключаем тест и запись глубины, чтобы текст не перекрывался 3D-миром
+        m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+        m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+
+        // 2. Включаем альфа-блендинг для прозрачного фона букв
+        m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+        m_pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+        m_pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+
+        // 3. Строим правильную 2D-матрицу ортографии (1280x720 пикселей)
+        D3DXMATRIX matOrtho;
+        D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
+
+        // Передаем ортографическую матрицу во все возможные имена параметров 2D-шейдера
+        SetMatrix("WVP", (const float*)&matOrtho);
+        SetMatrix("WorldViewProjection", (const float*)&matOrtho);
+        SetMatrix("matOrtho", (const float*)&matOrtho);
+    }
+    else {
+        // ДЛЯ ВСЕХ ОСТАЛЬНЫХ 3D ШЕЙДЕРОВ (Ландшафт, Объекты)
+        // Возвращаем стандартные 3D-настройки рендера
+        m_pDevice->SetRenderState(D3DRS_ZENABLE, TRUE);
+        m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, TRUE);
+
+        SetMatrix("WVP", (const float*)pViewProj);
+        SetMatrix("WorldViewProjection", (const float*)pViewProj);
+    }
+
     Commit();
 }
 
@@ -918,19 +929,32 @@ switch (id) {
         }
             
         // 4. ИНТЕРФЕЙС (Плоская 2D-ортография)
-        case SHADER_UI:
+         case SHADER_UI:
         {
             if (cmd.pTexture) {
                 SetTexture("g_texture", cmd.pTexture);
             }
-            m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
-            m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
             
+            // 1. Принудительно отключаем Z-буфер, чтобы текст не перезаписывался миром
+            m_pDevice->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
+            m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+            
+            // 2. Включаем альфа-смешивание (чтобы у букв был прозрачный фон)
+            m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+            m_pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+            m_pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+
+            // 3. Строим правильную 2D-матрицу проекции вместо единичной
             D3DXMATRIX matOrtho;
             D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
+            
+            // Передаем ее во все возможные параметры шейдера шрифта
             SetMatrix("matOrtho", (const float*)&matOrtho);
+            SetMatrix("WVP", (const float*)&matOrtho);
+            SetMatrix("WorldViewProjection", (const float*)&matOrtho);
             break;
         }
+
 
         // 5. РАДИАЛЬНОЕ МЕНЮ РЕДАКТОРА
         case SHADER_RADIALMENU:
@@ -1115,148 +1139,181 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
 
     Unlock();
 
-    ShaderID currentShaderID = SHADER_INVALID;
-    LPDIRECT3DTEXTURE9 lastTexture = nullptr;
-    bool passActive = false;
-    bool hasAnyWorkBeenDone = false;
+    // ==========================================
+    // ФАЗА 1: Отрисовка только 3D-мира (Ландшафт + Мировые спрайты)
+    // ==========================================
+    m_pDevice->SetRenderState(D3DRS_ZENABLE, TRUE);
+    m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, TRUE);
+    m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+    m_pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+    m_pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
 
-    int commandCount = 0;
-    for (int i = 0; i < MAX_GLOBAL_COMMANDS; ++i) {
+    OutputDebugStringA("[SMgr::ExecuteQueue] === PHASE 1: 3D World Rendering ===\n");
+
+    currentShaderID = SHADER_INVALID;
+    passActive = false;
+    lastTexture = nullptr;
+
+    for (int i = 0; i < UI_COMMAND_START; ++i) {
         RenderCommand& cmd = m_commandQueue[i];
-        if (cmd.status == 1) {
-            commandCount++;
-            char dbg[256];
-            sprintf(dbg, "[ExecuteQueue] Command %d: baseVert=%d, verts=%d, texture=%p\n",
-                    i, cmd.baseVertex, cmd.vertexCount, cmd.pTexture);
-            OutputDebugStringA(dbg);
+
+        if (cmd.status != 1) continue;
+        if (cmd.isUI) continue;
+
+        InterlockedExchange(&cmd.status, 2);
+
+        if (!cmd.pTexture) {
+            OutputDebugStringA("[SMgr::ExecuteQueue] WARNING: cmd.pTexture is NULL!\n");
+            InterlockedExchange(&cmd.status, 0);
+            continue;
         }
-    }
 
-    char cmdBuf[256];
-    sprintf(cmdBuf, "[SMgr::ExecuteQueue] Found %d commands to execute\n", commandCount);
-    OutputDebugStringA(cmdBuf);
+        hasAnyWorkBeenDone = true;
 
-    for (int i = 0; i < MAX_GLOBAL_COMMANDS; ++i) {
-        RenderCommand& cmd = m_commandQueue[i];
-
-        if (cmd.status == 1) {
-
-            InterlockedExchange(&cmd.status, 2);
-
-            if (!cmd.pTexture) {
-                OutputDebugStringA("[SMgr::ExecuteQueue] WARNING: cmd.pTexture is NULL!\n");
-                InterlockedExchange(&cmd.status, 0);
-                continue;
-            }
-
-            hasAnyWorkBeenDone = true;
-
-            char dbg[256];
-            sprintf(dbg, "[SMgr::ExecuteQueue] cmd: shaderID=%d, texture=%p\n", cmd.shaderID, cmd.pTexture);
-            OutputDebugStringA(dbg);
-
-            if (cmd.shaderID != currentShaderID) {
-                OutputDebugStringA("[SMgr::ExecuteQueue] Switching shader...\n");
-                if (passActive) {
-                    EndPass();
-                    EndCurrent();
-                }
-
-                // === КРИТИЧЕСКИЙ ФИКС Z-БУФЕРА ===
-                // Включаем Z-тест для world-space шейдеров (карта), выключаем для UI
-                ShaderID sid = static_cast<ShaderID>(cmd.shaderID);
-                bool isWorldShader = (sid == SHADER_WORLD || sid == SHADER_SPRITE_CONSTANT_INSTANCED || sid == SHADER_SPRITE || sid == SHADER_TERRAIN || sid == SHADER_ENTITY);
-                if (isWorldShader) {
-                    m_pDevice->SetRenderState(D3DRS_ZENABLE, TRUE);       // Включаем Z-тест для карты
-                    m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, TRUE);   // Разрешаем запись в Z-буфер
-                    OutputDebugStringA("[SMgr::ExecuteQueue] Z-buffer ENABLED for world shader\n");
-                } else {
-                    m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);      // Выключаем для UI/текста
-                    m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
-                    OutputDebugStringA("[SMgr::ExecuteQueue] Z-buffer DISABLED for UI/text\n");
-                }
-                // ==================================
-
-                Prepare(static_cast<ShaderID>(cmd.shaderID), nullptr);
-                currentShaderID = static_cast<ShaderID>(cmd.shaderID);
-
-                if (m_pActiveEffect) {
-                    m_pActiveEffect->Begin(&m_numPasses, 0);
-                    BeginPass(0);
-                    passActive = true;
-                    OutputDebugStringA("[SMgr::ExecuteQueue] Shader activated\n");
-                    
-                    if (cmd.hasViewProjMatrix && !cmd.isUI) {
-                        SetMatrix("gViewProj", (const float*)&cmd.viewProjMatrix);
-                        SetMatrix("WorldViewProjection", (const float*)&cmd.viewProjMatrix);
-                        Commit();
-                    }
-                } else {
-                    OutputDebugStringA("[SMgr::ExecuteQueue] WARNING: m_pActiveEffect is NULL!\n");
-                }
-            }
-
-            if (cmd.pTexture != lastTexture) {
-                m_pDevice->SetTexture(0, cmd.pTexture);
-                // Also set texture as shader parameter for the shader to use
-                if (m_pActiveEffect) {
-                    SetTexture("g_texture", cmd.pTexture);
-                    m_pActiveEffect->CommitChanges();
-                }
-                lastTexture = cmd.pTexture;
-            }
-
+        if (cmd.shaderID != currentShaderID) {
             if (passActive) {
-                if (m_pActiveEffect) {
-                    m_pActiveEffect->CommitChanges();
+                EndPass();
+                EndCurrent();
+                passActive = false;
+            }
+
+            Prepare(static_cast<ShaderID>(cmd.shaderID), nullptr);
+            currentShaderID = static_cast<ShaderID>(cmd.shaderID);
+
+            if (m_pActiveEffect) {
+                m_pActiveEffect->Begin(&m_numPasses, 0);
+                BeginPass(0);
+                passActive = true;
+
+                if (cmd.hasViewProjMatrix) {
+                    SetMatrix("gViewProj", (const float*)&cmd.viewProjMatrix);
+                    SetMatrix("WorldViewProjection", (const float*)&cmd.viewProjMatrix);
+                    Commit();
                 }
 
-                DWORD actualVertexCount = cmd.vertexCount;
-                DWORD actualPrimCount = cmd.primitiveCount;
-                DWORD actualIndexStart = cmd.vertexStart;
-
-                char renderMsg[512];
-                sprintf(renderMsg, "[SMgr::ExecuteQueue] Draw: depth=%.2f, baseVert=%d, startIdx=%d, verts=%d, prims=%d\n",
-                        cmd.depth, cmd.baseVertex, actualIndexStart, actualVertexCount, actualPrimCount);
-                OutputDebugStringA(renderMsg);
-
-                // BaseVertexIndex is fixed at 0 because the index buffer stores absolute indices.
-                // vertexStart selects the first index for this batch.
-                // For ABSOLUTE indices: indices contain actual vertex positions, 
-                // BaseVertexIndex adds to each index to get final vertex position
-                m_pDevice->DrawIndexedPrimitive(
-                    D3DPT_TRIANGLELIST,
-                    0,
-                    0,
-                    actualVertexCount,
-                    actualIndexStart,
-                    actualPrimCount
-                );
-
-                InterlockedExchange(&cmd.status, 0);
+                char dbg[256];
+                sprintf(dbg, "[PHASE1] Shader %d activated with matrix, slot %d\n", currentShaderID, i);
+                OutputDebugStringA(dbg);
             }
         }
+
+        if (cmd.pTexture != lastTexture && m_pActiveEffect) {
+            SetTexture("g_texture", cmd.pTexture);
+            m_pActiveEffect->CommitChanges();
+            lastTexture = cmd.pTexture;
+        }
+
+        if (passActive) {
+            m_pDevice->SetTexture(0, cmd.pTexture);
+            m_pActiveEffect->CommitChanges();
+
+            m_pDevice->DrawIndexedPrimitive(
+                D3DPT_TRIANGLELIST,
+                0, 0,
+                cmd.vertexCount,
+                cmd.vertexStart,
+                cmd.primitiveCount
+            );
+        }
+
+        InterlockedExchange(&cmd.status, 0);
     }
-    
 
     if (passActive) {
         EndPass();
         EndCurrent();
+        passActive = false;
+    }
+
+    currentShaderID = SHADER_INVALID;
+
+    // ==========================================
+    // ФАЗА 2: Отрисовка только UI и Текста
+    // ==========================================
+    m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+    m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+
+    OutputDebugStringA("[SMgr::ExecuteQueue] === PHASE 2: UI/Text Rendering ===\n");
+
+    lastTexture = nullptr;
+
+    for (int i = UI_COMMAND_START; i < MAX_GLOBAL_COMMANDS; ++i) {
+        RenderCommand& cmd = m_commandQueue[i];
+
+        if (cmd.status != 1) continue;
+        if (!cmd.isUI) continue;
+
+        InterlockedExchange(&cmd.status, 2);
+
+        if (!cmd.pTexture) {
+            InterlockedExchange(&cmd.status, 0);
+            continue;
+        }
+
+        hasAnyWorkBeenDone = true;
+
+        if (cmd.shaderID != currentShaderID) {
+            if (passActive) {
+                EndPass();
+                EndCurrent();
+                passActive = false;
+            }
+
+            Prepare(static_cast<ShaderID>(cmd.shaderID), nullptr);
+            currentShaderID = static_cast<ShaderID>(cmd.shaderID);
+
+            if (m_pActiveEffect) {
+                m_pActiveEffect->Begin(&m_numPasses, 0);
+                BeginPass(0);
+                passActive = true;
+
+                SetMatrix("gViewProj", (const float*)&localOrtho);
+                SetMatrix("WorldViewProjection", (const float*)&localOrtho);
+                SetMatrix("matOrtho", (const float*)&localOrtho);
+                Commit();
+
+                char dbg[256];
+                sprintf(dbg, "[PHASE2] Shader %d activated with ortho, slot %d\n", currentShaderID, i);
+                OutputDebugStringA(dbg);
+            }
+        }
+
+        if (cmd.pTexture != lastTexture && m_pActiveEffect) {
+            SetTexture("g_texture", cmd.pTexture);
+            m_pActiveEffect->CommitChanges();
+            lastTexture = cmd.pTexture;
+        }
+
+        if (passActive) {
+            m_pDevice->SetTexture(0, cmd.pTexture);
+            m_pActiveEffect->CommitChanges();
+
+            m_pDevice->DrawIndexedPrimitive(
+                D3DPT_TRIANGLELIST,
+                0, 0,
+                cmd.vertexCount,
+                cmd.vertexStart,
+                cmd.primitiveCount
+            );
+        }
+
+        InterlockedExchange(&cmd.status, 0);
+    }
+
+    if (passActive) {
+        EndPass();
+        EndCurrent();
+        passActive = false;
     }
 
     // Disable culling to ensure triangles are rendered
     m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
 
-    // Unlock();
-
+    // Cleanup texture slots
     m_pDevice->SetTexture(0, NULL);
     m_pDevice->SetTexture(1, NULL);
     m_pDevice->SetTexture(2, NULL);
     m_pDevice->SetTexture(3, NULL);
-
-    // REMOVED: This should be done in ResetBatchState(), not here
-    // s_currentVertexOffset = 0;
-    // s_batchIndex = 0;
 
 }
 

@@ -540,14 +540,9 @@ void EditorScene::Update(float deltaTime) {
 void EditorScene::Render() {
     if (!m_mapEditor) return;
 
-    // ОБЯЗАТЕЛЬНО: Обновляем матрицу камеры в ShaderManager перед отрисовкой карты
-    // Без этого SpriteRenderer::Begin (isUI=false) получит дефолтную 2D-орто матрицу
-    // и мировые координаты тайлов превратятся в пиксели в углу экрана
     if (m_camera && m_shaderManager) {
-        // 1. Обновляем камеру, чтобы она пересчитала матрицы на основе текущих m_posX, m_posY, m_zoom
         m_camera->Update();
 
-        // 2. Умножаем View * Projection (прямой порядок DirectX)
         D3DXMATRIX viewProj = m_camera->GetViewMatrix() * m_camera->GetProjectionMatrix();
         
         m_shaderManager->SetFrameViewProj(&viewProj);

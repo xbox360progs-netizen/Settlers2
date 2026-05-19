@@ -705,7 +705,6 @@ bool MapEditor::CanPlaceObject(int x, int y, World::TileType objectType) {
 }
 
 World::TileType MapEditor::GetObjectTypeByIndex(int index) {
-    // ���������� ��� �� ����� ������
     if (strcmp(m_currentObjectAtlasName, "icon_tree") == 0) {
         return World::Tree;
     } else if (strcmp(m_currentObjectAtlasName, "icon_mountain") == 0) {
@@ -719,7 +718,7 @@ World::TileType MapEditor::GetObjectTypeByIndex(int index) {
     } else if (strcmp(m_currentObjectAtlasName, "icon_water_mountain") == 0) {
         return World::MountainOnWater;
     }
-    return World::Tree; // �� ���������
+    return World::Tree;
 }
 
 
