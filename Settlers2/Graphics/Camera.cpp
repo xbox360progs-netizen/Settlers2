@@ -78,12 +78,14 @@ void Camera::SetPosition(float x,float y)
 {
     m_posX = x;
     m_posY = y;
+    Update();
 }
 
 void Camera::Move(float dx,float dy)
 {
     m_posX += dx / m_zoom;
     m_posY += dy / m_zoom;
+    Update();
 }
 
 void Camera::Zoom(float dz)
@@ -111,6 +113,8 @@ void Camera::Zoom(float dz)
     // Корректируем позицию камеры
     m_posX += worldX - newWorldX;
     m_posY += worldY - newWorldY;
+    
+    Update();
 }
 
 void Camera::Zoom(float dz, float centerScreenX, float centerScreenY)
@@ -138,6 +142,8 @@ void Camera::Zoom(float dz, float centerScreenX, float centerScreenY)
     // Корректируем позицию камеры
     m_posX += worldX - newWorldX;
     m_posY += worldY - newWorldY;
+    
+    Update();
 }
 
 void Camera::Reset()
@@ -145,6 +151,7 @@ void Camera::Reset()
     m_posX = 0;
     m_posY = 0;
     m_zoom = 1.0f;
+    Update();
 }
 
 //
