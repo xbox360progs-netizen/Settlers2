@@ -8,9 +8,11 @@ namespace Graphics {
 enum RenderPassType {
     PASS_GEOMETRY,
     PASS_LIGHTING,
+    PASS_SHADOW,
     PASS_TRANSPARENT,
     PASS_UI,
     PASS_POSTFX,
+    PASS_RESOLVE,
     PASS_COUNT
 };
 

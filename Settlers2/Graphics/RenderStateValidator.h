@@ -2,6 +2,8 @@
 #include <d3d9.h>
 #include <string>
 
+IDirect3DDevice9* GetDirect3DDevice9();
+
 namespace Graphics {
 
 class RenderStateValidator {

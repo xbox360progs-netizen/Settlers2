@@ -78,7 +78,7 @@ int GPUTimer::StartTimer(const char* name) {
 
     TimerData timer;
     timer.name = name;
-    timer.started = false;
+    timer.started = true;
     timer.ended = false;
     timer.startData = 0;
     timer.endData = 0;
@@ -94,10 +94,10 @@ int GPUTimer::StartTimer(const char* name) {
         return -1;
     }
 
+    timer.pStartQuery->Issue(D3DISSUE_END);
+
     int index = (int)m_timers.size();
     m_timers.push_back(timer);
-
-    m_pDevice->CreateQuery(D3DQUERYTYPE_TIMESTAMP, NULL);
 
     return index;
 }
@@ -105,6 +105,9 @@ int GPUTimer::StartTimer(const char* name) {
 void GPUTimer::EndTimer(int timerIndex) {
     if (!m_ready || timerIndex < 0 || timerIndex >= (int)m_timers.size()) return;
 
+    if (m_timers[timerIndex].pEndQuery) {
+        m_timers[timerIndex].pEndQuery->Issue(D3DISSUE_END);
+    }
     m_timers[timerIndex].ended = true;
 }
 
@@ -124,8 +127,6 @@ void GPUTimer::EndFrame() {
 void GPUTimer::ResolveQueries() {
     if (!m_ready) return;
 
-    m_pDevice->CreateQuery(D3DQUERYTYPE_TIMESTAMP, NULL);
-
     for (size_t i = 0; i < m_timers.size(); i++) {
         TimerData& timer = m_timers[i];
 
@@ -140,11 +141,21 @@ void GPUTimer::ResolveQueries() {
         }
 
         if (timer.startData > 0 && timer.endData > 0) {
+            float startMs = (float)(timer.startData / 10000.0);
+            float endMs = (float)(timer.endData / 10000.0);
+            float durationMs = endMs - startMs;
+
+            if (durationMs > 2.0f) {
+                char buf[256];
+                sprintf(buf, "[GPUTimer] SPIKE: %s took %.2fms (>2ms threshold)\n", timer.name, durationMs);
+                OutputDebugStringA(buf);
+            }
+
             GPUTimerResult result;
             result.name = timer.name;
-            result.startMs = (float)(timer.startData / 10000.0);
-            result.endMs = (float)(timer.endData / 10000.0);
-            result.durationMs = result.endMs - result.startMs;
+            result.startMs = startMs;
+            result.endMs = endMs;
+            result.durationMs = durationMs;
             result.frameIndex = m_currentFrame;
             m_results.push_back(result);
 
