@@ -297,8 +297,8 @@ public:
     // Push command for Xbox 360 ring buffer architecture
     void PushXbox360Command(const RenderCommand& cmd);
     
-    // Helper for partitioned command allocation
-    int FindFreeSlot(bool isUI);
+    // Helper for sequential command allocation
+    int FindFreeSlot();
     
     // Get draw batch count
     size_t GetDrawBatchCount() const { return m_drawBatches.size(); }
@@ -348,8 +348,8 @@ private:
     // Render command queue for Master Loop rendering (Lock-Free Ring Buffer for Xbox 360)
 public:
     static const int MAX_GLOBAL_COMMANDS = 256;
-    static const int UI_COMMAND_START = MAX_GLOBAL_COMMANDS / 2; // First UI slot (128)
     RenderCommand m_commandQueue[MAX_GLOBAL_COMMANDS];
+    volatile LONG m_commandCounter; // Counter for sequential command allocation
 private:
     
     // Draw batch queue for material-based sorting (State Sorting)

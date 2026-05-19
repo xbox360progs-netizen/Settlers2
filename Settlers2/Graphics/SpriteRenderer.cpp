@@ -618,7 +618,7 @@ void SpriteRenderer::FlushBatchesAsync() {
 
     // Draw indexed primitives
     OutputDebugStringA("[Flush] Step 9: DrawIndexedPrimitive...\n");
-    m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, vertexOffset, 0, vertexCount, indexOffset, primitiveCount);
+    m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, vertexOffset, 0, vertexCount, 0, primitiveCount);
     OutputDebugStringA("[Flush] Step 10: Draw done!\n");
 
     // End shader pass
@@ -958,22 +958,7 @@ void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, float
     m_currentIsUI = isUI;
     
     m_isBatching = true;  // Включаем батчинг заново для нового компонента
-    m_spriteCount = 0;    // СБРАСЫВАЕМ В НАЧАЛЕ - чтобы пинок не затирался!
-    
-    // XBOX 360 GPU PRIMER: Detect texture change and add invisible first quad
-    static LPDIRECT3DTEXTURE9 s_lastBeginTexture = nullptr;
-
-    LPDIRECT3DTEXTURE9 previousTexture = m_currentTexture;
-    m_currentTexture = pTexture;
-
-    if (pTexture != previousTexture && s_lastBeginTexture != nullptr && s_lastBeginTexture != pTexture) {
-        // Texture changed from previous batch - insert GPU primer (invisible quad)
-        OutputDebugStringA("[SR::Begin] GPU PRIMER: inserting invisible first quad\n");
-        // CreateQuad увеличит m_spriteCount до 1, и никто его не затрёт
-        CreateQuad(-4.0f, -4.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0x00000000);
-    }
-
-    s_lastBeginTexture = pTexture;
+    m_spriteCount = 0;
 }
 
 void SpriteRenderer::Begin(ShaderID shaderID, LPDIRECT3DTEXTURE9 pTexture, int layer, float yPosition) {
@@ -1132,9 +1117,8 @@ void SpriteRenderer::End() {
     OutputDebugStringA("[SR::End] Flush() returned\n");
 
     m_isBatching = false;
-
-    
-    m_spriteCount = 0;
+    // NOTE: m_spriteCount and ring buffer offsets are reset in ResetBatchState()
+    // called by SceneManager after ExecuteQueue completes
     OutputDebugStringA("[SR::End] EXIT\n");
 }
 
