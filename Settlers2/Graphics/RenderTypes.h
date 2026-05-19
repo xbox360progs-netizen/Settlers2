@@ -1,5 +1,6 @@
 #pragma once
 #include <d3d9.h>
+#include <d3dx9.h>
 
 // Forward declarations
 class ShaderManager;
@@ -68,6 +69,10 @@ struct RenderCommand {
     // Screen position for UI rendering (if isUI)
     float screenX, screenY, screenW, screenH;
     
+    // ViewProjection matrix captured at command creation time (eliminates global state corruption)
+    D3DXMATRIX viewProjMatrix;
+    bool hasViewProjMatrix;
+    
     // Color tint for the render command
     DWORD color;
     
@@ -79,7 +84,8 @@ struct RenderCommand {
         primitiveCount(0), batchType(0), depth(1.0f), layer(0), isUI(false), batchIndex(0), status(0),
         worldX(0), worldY(0), u0(0), v0(0), u1(1), v1(1),
         screenX(0), screenY(0), screenW(0), screenH(0), color(0xFFFFFFFF),
-        customDraw(NULL), customUserData(NULL) {
+        customDraw(NULL), customUserData(NULL), hasViewProjMatrix(false) {
+        D3DXMatrixIdentity(&viewProjMatrix);
         // Initialize vertices to zero
         memset(vertices, 0, sizeof(vertices));
     }

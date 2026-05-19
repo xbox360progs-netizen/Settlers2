@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <string>
 #include <algorithm>
+#include <math.h>
 
 // StateCache Implementation
 ShaderManager::StateCache::StateCache() 
@@ -602,6 +603,15 @@ void ShaderManager::Submit(const RenderCommand& cmd) {
 
     if (targetSlot != -1) {
         m_commandQueue[targetSlot] = cmdWithOffset;
+        
+        if (m_currentShaderID >= 0 && m_currentShaderID < SHADER_COUNT) {
+            m_commandQueue[targetSlot].viewProjMatrix = m_shaderMatrices[m_currentShaderID];
+            m_commandQueue[targetSlot].hasViewProjMatrix = m_hasFrameViewProj;
+        } else {
+            D3DXMatrixIdentity(&m_commandQueue[targetSlot].viewProjMatrix);
+            m_commandQueue[targetSlot].hasViewProjMatrix = false;
+        }
+        
         InterlockedExchange(&m_commandQueue[targetSlot].status, 1);
         
         char debugBuf[256];
@@ -653,6 +663,14 @@ void ShaderManager::PushXbox360Command(const RenderCommand& newCmd) {
         queuedCmd.baseVertex = newCmd.baseVertex;
         queuedCmd.vertexStart = newCmd.vertexStart;
         queuedCmd.isUI = newCmd.isUI;
+
+        if (m_currentShaderID >= 0 && m_currentShaderID < SHADER_COUNT) {
+            queuedCmd.viewProjMatrix = m_shaderMatrices[m_currentShaderID];
+            queuedCmd.hasViewProjMatrix = m_hasFrameViewProj;
+        } else {
+            D3DXMatrixIdentity(&queuedCmd.viewProjMatrix);
+            queuedCmd.hasViewProjMatrix = false;
+        }
 
         // Атомарно выставляем статус 1: "Пачка полностью готова к рендеру"
         InterlockedExchange(&queuedCmd.status, 1);
@@ -854,17 +872,17 @@ void ShaderManager::SetShaderParameters(const RenderCommand& cmd) {
     
     ShaderID id = static_cast<ShaderID>(cmd.shaderID);
     
-    switch (id) {
+switch (id) {
         // 1. ИГРОВОЙ МИР И ЛАНДШАФТ (Берут ViewProj из камеры)
         case SHADER_TERRAIN:
         case SHADER_WORLD:
         {
             if (cmd.pTexture) {                
-                SetTexture("g_Texture", cmd.pTexture);
+                SetTexture("g_texture", cmd.pTexture);
                 SetTexture("Texture", cmd.pTexture); 
             }
-            if (m_hasFrameViewProj) {
-                SetMatrix("gViewProj", (const float*)&m_shaderMatrices[id]);
+            if (cmd.hasViewProjMatrix) {
+                SetMatrix("gViewProj", (const float*)&cmd.viewProjMatrix);
             }
             break;
         }
@@ -876,10 +894,9 @@ void ShaderManager::SetShaderParameters(const RenderCommand& cmd) {
             if (cmd.pTexture) {
                 SetTexture("g_texture", cmd.pTexture);
             }
-            if (m_hasFrameViewProj) {
-                // В SpriteConstantInstanced.fx и Entity шейдерах обычно используется WVP или gViewProj
-                SetMatrix("gViewProj", (const float*)&m_shaderMatrices[id]);
-                SetMatrix("WorldViewProjection", (const float*)&m_shaderMatrices[id]);
+            if (cmd.hasViewProjMatrix) {
+                SetMatrix("gViewProj", (const float*)&cmd.viewProjMatrix);
+                SetMatrix("WorldViewProjection", (const float*)&cmd.viewProjMatrix);
             }
             break;
         }
@@ -894,8 +911,8 @@ void ShaderManager::SetShaderParameters(const RenderCommand& cmd) {
                 D3DXMATRIX matOrtho;
                 D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
                 SetMatrix("matOrtho", (const float*)&matOrtho);
-            } else if (m_hasFrameViewProj) {
-                SetMatrix("matOrtho", (const float*)&m_shaderMatrices[id]);
+            } else if (cmd.hasViewProjMatrix) {
+                SetMatrix("matOrtho", (const float*)&cmd.viewProjMatrix);
             }
             break;
         }
@@ -925,8 +942,8 @@ void ShaderManager::SetShaderParameters(const RenderCommand& cmd) {
                 D3DXMATRIX matOrtho;
                 D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
                 SetMatrix("WorldViewProjection", (const float*)&matOrtho);
-            } else if (m_hasFrameViewProj) {
-                SetMatrix("WorldViewProjection", (const float*)&m_shaderMatrices[id]);
+            } else if (cmd.hasViewProjMatrix) {
+                SetMatrix("WorldViewProjection", (const float*)&cmd.viewProjMatrix);
             }
             break;
         }
@@ -935,9 +952,8 @@ void ShaderManager::SetShaderParameters(const RenderCommand& cmd) {
         case SHADER_DEFERRED_LIGHTING:
         {
             if (cmd.pTexture) {
-                SetTexture("g_texture", cmd.pTexture); // Например, G-Buffer Color/Normal
+                SetTexture("g_texture", cmd.pTexture);
             }
-            // Сюда можно будет дописать передачу позиции солнца/источников света
             break;
         }
             
@@ -950,20 +966,44 @@ void ShaderManager::SetShaderParameters(const RenderCommand& cmd) {
 
 // Set frame-wide ViewProjection matrix (Global Constant Buffer)
 void ShaderManager::SetFrameViewProj(const D3DXMATRIX* pViewProj) {
-    if (!pViewProj) return; // Полностью игнорируем пустые вызовы
+    if (!pViewProj) return;
     
-    if (m_currentShaderID >= 0 && m_currentShaderID < SHADER_COUNT) {
-        
-        // Проверяем, является ли пришедшая матрица плоским UI-окном [-1, 1]
-        const float* m = (const float*)pViewProj;
-        bool isUiMatrix = (m[12] == -1.0f && m[13] == 1.0f);
-        
-        if (isUiMatrix && (m_currentShaderID == SHADER_TERRAIN || m_currentShaderID == SHADER_WORLD)) {
-            return; 
+    const float* m = (const float*)pViewProj;
+    
+    // Detect UI matrix by flat values (UI matrices have translation in -1, 1 range)
+    bool isUiMatrix = (fabs(m[12]) <= 1.0f && fabs(m[13]) <= 1.0f && 
+                       fabs(m[14]) <= 1.0f && m[15] == 1.0f);
+    
+    // Additional check: UI matrices typically have identity rotation/scale
+    bool isOrthographic = (m[0] == 1.0f && m[5] == 1.0f && m[10] == 1.0f);
+    bool likelyUiMatrix = isUiMatrix && isOrthographic;
+    
+    if (likelyUiMatrix) {
+        // UI matrices should NOT overwrite world shader matrices
+        // World shaders are: TERRAIN, WORLD, ENTITY, SPRITE_CONSTANT_INSTANCED
+        if (m_currentShaderID == SHADER_TERRAIN || 
+            m_currentShaderID == SHADER_WORLD ||
+            m_currentShaderID == SHADER_ENTITY ||
+            m_currentShaderID == SHADER_SPRITE_CONSTANT_INSTANCED) {
+            char buf[256];
+            sprintf(buf, "[SM::SetFrameViewProj] BLOCKED: UI matrix overwriting world shader ID %d\n", m_currentShaderID);
+            OutputDebugStringA(buf);
+            return;
         }
-        
-        // В остальных случаях безопасно сохраняем матрицу в массив по ID шейдера
+    }
+    
+    // Safe to update - this is either a world matrix or UI shader
+    if (m_currentShaderID >= 0 && m_currentShaderID < SHADER_COUNT) {
         m_shaderMatrices[m_currentShaderID] = *pViewProj;
+        
+        // Update hasFrameViewProj only for world shaders
+        if (!likelyUiMatrix && 
+            (m_currentShaderID == SHADER_TERRAIN || 
+             m_currentShaderID == SHADER_WORLD ||
+             m_currentShaderID == SHADER_ENTITY ||
+             m_currentShaderID == SHADER_SPRITE_CONSTANT_INSTANCED)) {
+            m_hasFrameViewProj = true;
+        }
     }
 }
 
@@ -1145,7 +1185,12 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                     BeginPass(0);
                     passActive = true;
                     OutputDebugStringA("[SMgr::ExecuteQueue] Shader activated\n");
-                    // CRITICAL: Matrix already set in Prepare() via nullptr -> m_shaderMatrices
+                    
+                    if (cmd.hasViewProjMatrix && !cmd.isUI) {
+                        SetMatrix("gViewProj", (const float*)&cmd.viewProjMatrix);
+                        SetMatrix("WorldViewProjection", (const float*)&cmd.viewProjMatrix);
+                        Commit();
+                    }
                 } else {
                     OutputDebugStringA("[SMgr::ExecuteQueue] WARNING: m_pActiveEffect is NULL!\n");
                 }
