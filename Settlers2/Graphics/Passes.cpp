@@ -12,8 +12,7 @@ void GeometryPass::Execute() {
         timerIdx = m_gpuTimer->StartTimer("GeometryPass");
     }
 
-    IDirect3DDevice9* device = NULL;
-    m_spriteRenderer->GetDevice()->QueryInterface(IID_IDirect3DDevice9, (void**)&device);
+    IDirect3DDevice9* device = m_spriteRenderer->GetDevice();
     if (!device) return;
 
     device->SetRenderTarget(0, m_gBufferPos);
@@ -27,7 +26,7 @@ void GeometryPass::Execute() {
     m_shaderManager->SetActiveShader(SHADER_SPRITE_GBUFFER);
 
     LPDIRECT3DVERTEXBUFFER9 pVB = m_spriteRenderer->GetVertexBuffer();
-    LPDIRECT3DVERTEXBUFFER9 pIB = m_spriteRenderer->GetIndexBuffer();
+    LPDIRECT3DINDEXBUFFER9 pIB = m_spriteRenderer->GetIndexBuffer();
     LPDIRECT3DVERTEXDECLARATION9 pDecl = m_spriteRenderer->GetVertexDeclaration();
 
     if (pVB && pIB && pDecl) {
@@ -35,7 +34,6 @@ void GeometryPass::Execute() {
         m_shaderManager->ExecuteQueue(pVB, pIB, pDecl, 32, &viewProj, m_spriteRenderer);
     }
 
-    device->Release();
 
     if (m_gpuTimer && timerIdx >= 0) {
         m_gpuTimer->EndTimer(timerIdx);
@@ -50,8 +48,7 @@ void LightingPass::Execute() {
         timerIdx = m_gpuTimer->StartTimer("LightingPass");
     }
 
-    IDirect3DDevice9* device = NULL;
-    m_shaderManager->GetDevice()->QueryInterface(IID_IDirect3DDevice9, (void**)&device);
+    IDirect3DDevice9* device = m_shaderManager->GetDevice();
     if (!device) return;
 
     device->SetRenderTarget(0, m_backBuffer);
@@ -73,7 +70,6 @@ void LightingPass::Execute() {
     m_shaderManager->EndPass();
     m_shaderManager->EndShader();
 
-    device->Release();
 
     if (m_gpuTimer && timerIdx >= 0) {
         m_gpuTimer->EndTimer(timerIdx);
@@ -88,8 +84,7 @@ void AlphaTestPass::Execute() {
         timerIdx = m_gpuTimer->StartTimer("AlphaTestPass");
     }
 
-    IDirect3DDevice9* device = NULL;
-    m_shaderManager->GetDevice()->QueryInterface(IID_IDirect3DDevice9, (void**)&device);
+    IDirect3DDevice9* device = m_shaderManager->GetDevice();
     if (!device) return;
 
     m_shaderManager->SetActiveShader(SHADER_SPRITE);
@@ -106,7 +101,6 @@ void AlphaTestPass::Execute() {
     m_shaderManager->EndPass();
     m_shaderManager->EndShader();
 
-    device->Release();
 
     if (m_gpuTimer && timerIdx >= 0) {
         m_gpuTimer->EndTimer(timerIdx);
@@ -121,8 +115,7 @@ void TransparentPass::Execute() {
         timerIdx = m_gpuTimer->StartTimer("TransparentPass");
     }
 
-    IDirect3DDevice9* device = NULL;
-    m_shaderManager->GetDevice()->QueryInterface(IID_IDirect3DDevice9, (void**)&device);
+    IDirect3DDevice9* device = m_shaderManager->GetDevice();
     if (!device) return;
 
     m_shaderManager->SetActiveShader(SHADER_SPRITE);
@@ -139,7 +132,6 @@ void TransparentPass::Execute() {
     m_shaderManager->EndPass();
     m_shaderManager->EndShader();
 
-    device->Release();
 
     if (m_gpuTimer && timerIdx >= 0) {
         m_gpuTimer->EndTimer(timerIdx);
@@ -154,8 +146,7 @@ void UIPass::Execute() {
         timerIdx = m_gpuTimer->StartTimer("UIPass");
     }
 
-    IDirect3DDevice9* device = NULL;
-    m_shaderManager->GetDevice()->QueryInterface(IID_IDirect3DDevice9, (void**)&device);
+    IDirect3DDevice9* device = m_shaderManager->GetDevice();
     if (!device) return;
 
     m_shaderManager->SetActiveShader(SHADER_SPRITE);
@@ -172,7 +163,6 @@ void UIPass::Execute() {
     m_shaderManager->EndPass();
     m_shaderManager->EndShader();
 
-    device->Release();
 
     if (m_gpuTimer && timerIdx >= 0) {
         m_gpuTimer->EndTimer(timerIdx);

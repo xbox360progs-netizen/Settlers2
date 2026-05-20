@@ -31,7 +31,7 @@ int GPUMemoryAuditor::CalculateBytesPerPixel(D3DFORMAT format) {
     case D3DFMT_A32B32G32R32F: return 16;
     case D3DFMT_A16B16G16R16F: return 8;
     case D3DFMT_A8R8G8B8:      return 4;
-    case D3DFMT_R8G8B8:        return 3;
+    case D3DFMT_X8R8G8B8:      return 4;
     case D3DFMT_R5G6B5:        return 2;
     case D3DFMT_D24S8:         return 4;
     case D3DFMT_D32:           return 4;
@@ -50,7 +50,7 @@ const char* GPUMemoryAuditor::GetFormatName(D3DFORMAT format) {
     case D3DFMT_A32B32G32R32F: return "A32B32G32R32F (128bpp)";
     case D3DFMT_A16B16G16R16F: return "A16B16G16R16F (64bpp)";
     case D3DFMT_A8R8G8B8:      return "A8R8G8B8 (32bpp)";
-    case D3DFMT_R8G8B8:        return "R8G8B8 (24bpp)";
+    case D3DFMT_X8R8G8B8:      return "X8R8G8B8 (32bpp)";
     case D3DFMT_R5G6B5:        return "R5G6B5 (16bpp)";
     case D3DFMT_D24S8:         return "D24S8 (32bpp)";
     case D3DFMT_D32:           return "D32 (32bpp)";

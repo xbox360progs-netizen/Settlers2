@@ -314,6 +314,7 @@ void GPUProfiler::PrintResults() {
         OutputDebugStringA(buf);
     }
 
+    char buf[256];
     sprintf(buf, "  TOTAL: %.2f ms\n", totalTime);
     OutputDebugStringA(buf);
 

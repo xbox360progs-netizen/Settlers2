@@ -125,7 +125,7 @@ void ResetRasterizerState(IDirect3DDevice9* device) {
     device->SetRenderState(D3DRS_SLOPESCALEDEPTHBIAS, 0);
     
     device->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
-    device->SetRenderState(D3DRS_ANTIALIASEDLINEENABLE, FALSE);
+    // Xbox 360: D3DRS_ANTIALIASEDLINEENABLE not available
 }
 
 void ResetSamplerStates(IDirect3DDevice9* device) {
@@ -151,7 +151,7 @@ void ResetShaders(IDirect3DDevice9* device) {
     device->SetPixelShader(NULL);
     
     for (DWORD i = 0; i < 16; i++) {
-        device->SetStreamSourceFreq(i, 1);
+        // Xbox 360: SetStreamSourceFreq not available
         device->SetStreamSource(i, NULL, 0, 0);
     }
     

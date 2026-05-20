@@ -17,7 +17,6 @@ static int GetFormatBytesPerPixel(D3DFORMAT format) {
         case D3DFMT_X8R8G8B8: return 4;
         case D3DFMT_R32F: return 4;
         case D3DFMT_D24S8: return 4;
-        case D3DFMT_D32F: return 4;
         case D3DFMT_D16: return 2;
         default: return 4;
     }

@@ -13,9 +13,9 @@
 #define RT_LOG(...) ((void)0)
 #endif
 
-static RenderTargetManager* g_globalRTManager = NULL;
-
 namespace Graphics {
+
+static RenderTargetManager* g_globalRTManager = NULL;
 
 RenderTargetManager::RenderTargetManager()
     : m_device(NULL)

@@ -108,6 +108,9 @@ private:
     bool m_gBufferCaptured;
     void* m_gBufferSnapshot;
 
+    LARGE_INTEGER m_frequency;
+    LARGE_INTEGER m_frameStart;
+
     void UpdateFPS(float deltaTime);
     void DrawOverlayBackground(int x, int y, int width, int height);
     void FormatStats();

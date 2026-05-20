@@ -310,13 +310,10 @@ void WaterReflectionSystem::RenderReflection() {
 }
 
 void WaterReflectionSystem::ApplyReflection(IDirect3DTexture9* input, IDirect3DSurface9* output) {
+    (void)input;
+    (void)output;
     if (!m_reflectionEnabled || !m_pDevice || !input) return;
-
-    if (output) {
-        m_pDevice->StretchRect(input, NULL, output, NULL, D3DTEXF_LINEAR);
-    }
-
-    OutputDebugStringA("[WaterReflection] Applied\n");
+    OutputDebugStringA("[WaterReflection] ApplyReflection not supported on Xbox 360\n");
 }
 
 }

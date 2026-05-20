@@ -74,7 +74,7 @@ void RenderDocManager::Shutdown() {
 
 void RenderDocManager::BeginFrame() {
     if (m_integration.GetAutoCapture()) {
-        m_integration.BeginFrame();
+        m_integration.StartFrameCapture();
     }
 }
 

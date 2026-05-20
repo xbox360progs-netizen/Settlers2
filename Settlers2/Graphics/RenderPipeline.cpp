@@ -13,9 +13,9 @@
 #define PIPELINE_LOG(...) ((void)0)
 #endif
 
-static RenderPipeline* g_pipeline = NULL;
-
 namespace Graphics {
+
+static RenderPipeline* g_pipeline = NULL;
 
 RenderPipeline::RenderPipeline()
     : m_device(NULL)
@@ -62,7 +62,6 @@ void RenderPipeline::Shutdown() {
     
     SetGlobalRTManager(NULL);
     SetGlobalQueueManager(NULL);
-    SetGlobalValidator(NULL);
     
     m_device = NULL;
     m_initialized = false;

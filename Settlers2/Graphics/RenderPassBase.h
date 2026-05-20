@@ -10,7 +10,7 @@ enum PassResourceAccess {
     PASS_READ,
     PASS_WRITE,
     PASS_READ_WRITE,
-    PASS_RESOLVE
+    PASS_RESOURCE_RESOLVE
 };
 
 struct RenderTargetDesc {
@@ -92,5 +92,7 @@ void ValidateRenderTargetBindings(IDirect3DDevice9* device, const char* passName
 void ValidateDepthState(const char* passName);
 void ValidateBlendState(const char* passName);
 void ValidateRasterizerState(const char* passName);
+
+void SetGlobalValidator(class RenderStateValidator* validator);
 
 }

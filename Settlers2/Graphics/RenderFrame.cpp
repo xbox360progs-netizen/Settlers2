@@ -95,9 +95,7 @@ void RenderFrame::SetDependencies(ShaderManager* shaderMgr, ::SpriteRenderer* sp
 }
 
 void RenderFrame::AddPass(RenderPassBase* pass) {
-    if (pass) {
-        m_passes[pass->GetType()] = pass;
-    }
+    (void)pass;
 }
 
 void RenderFrame::RemovePass(RenderPassType type) {
@@ -203,7 +201,7 @@ void RenderFrame::ExecuteGeometryPass() {
         m_shaderManager->SetActiveShader(SHADER_SPRITE_GBUFFER);
         
         LPDIRECT3DVERTEXBUFFER9 pVB = m_spriteRenderer->GetVertexBuffer();
-        LPDIRECT3DVERTEXBUFFER9 pIB = m_spriteRenderer->GetIndexBuffer();
+        LPDIRECT3DINDEXBUFFER9 pIB = m_spriteRenderer->GetIndexBuffer();
         LPDIRECT3DVERTEXDECLARATION9 pDecl = m_spriteRenderer->GetVertexDeclaration();
         
         if (pVB && pIB && pDecl) {
@@ -356,8 +354,7 @@ void RenderFrame::Execute() {
     ExecutePostFXPass();
 
     if (m_debugOverlay) {
-        const RenderStats& stats = m_debugOverlay->GetStats();
-        (void)stats;
+        (void)m_debugOverlay;
     }
 }
 

@@ -148,8 +148,11 @@ void PostProcessingSystem::Render(IDirect3DTexture9* inputTexture, IDirect3DSurf
         ApplyFog(m_pTempTexture, m_pTempTexture);
     }
 
+    // Xbox 360: StretchRect not available, use quad render instead
     if (outputSurface) {
-        m_pDevice->StretchRect(inputTexture, NULL, outputSurface, NULL, D3DTEXF_LINEAR);
+        // TODO: Implement quad-based texture copy for Xbox 360
+        // For now, just set the render target
+        m_pDevice->SetRenderTarget(0, outputSurface);
     }
 
     if (pOrigRT) { pOrigRT->Release(); }
@@ -199,7 +202,9 @@ void PostProcessingSystem::ApplyToneMapping(IDirect3DTexture9* input, IDirect3DT
         LPDIRECT3DSURFACE9 pSurf = NULL;
         output->GetSurfaceLevel(0, &pSurf);
         if (pSurf) {
-            m_pDevice->StretchRect(input, NULL, pSurf, NULL, D3DTEXF_LINEAR);
+            // Xbox 360: StretchRect not available, use quad render instead
+            // TODO: Implement quad-based texture copy for Xbox 360
+            m_pDevice->SetRenderTarget(0, pSurf);
             pSurf->Release();
         }
     }
@@ -212,7 +217,9 @@ void PostProcessingSystem::ApplyColorGrading(IDirect3DTexture9* input, IDirect3D
         LPDIRECT3DSURFACE9 pSurf = NULL;
         output->GetSurfaceLevel(0, &pSurf);
         if (pSurf) {
-            m_pDevice->StretchRect(input, NULL, pSurf, NULL, D3DTEXF_LINEAR);
+            // Xbox 360: StretchRect not available, use quad render instead
+            // TODO: Implement quad-based texture copy for Xbox 360
+            m_pDevice->SetRenderTarget(0, pSurf);
             pSurf->Release();
         }
     }
@@ -225,7 +232,9 @@ void PostProcessingSystem::ApplyFog(IDirect3DTexture9* input, IDirect3DTexture9*
         LPDIRECT3DSURFACE9 pSurf = NULL;
         output->GetSurfaceLevel(0, &pSurf);
         if (pSurf) {
-            m_pDevice->StretchRect(input, NULL, pSurf, NULL, D3DTEXF_LINEAR);
+            // Xbox 360: StretchRect not available, use quad render instead
+            // TODO: Implement quad-based texture copy for Xbox 360
+            m_pDevice->SetRenderTarget(0, pSurf);
             pSurf->Release();
         }
     }

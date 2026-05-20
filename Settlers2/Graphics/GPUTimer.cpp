@@ -85,10 +85,10 @@ int GPUTimer::StartTimer(const char* name) {
     timer.startMs = 0.0f;
     timer.endMs = 0.0f;
 
-    HRESULT hr = m_pDevice->CreateQuery(D3DQUERYTYPE_TIMESTAMP, &timer.pStartQuery);
+    HRESULT hr = m_pDevice->CreateQuery(D3DQUERYTYPE_EVENT, &timer.pStartQuery);
     if (FAILED(hr)) return -1;
 
-    hr = m_pDevice->CreateQuery(D3DQUERYTYPE_TIMESTAMP, &timer.pEndQuery);
+    hr = m_pDevice->CreateQuery(D3DQUERYTYPE_EVENT, &timer.pEndQuery);
     if (FAILED(hr)) {
         timer.pStartQuery->Release();
         return -1;

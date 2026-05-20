@@ -15,9 +15,9 @@
 #define CMD_LOG(...) ((void)0)
 #endif
 
-static CommandQueueManager* g_queueManager = NULL;
-
 namespace Graphics {
+
+static CommandQueueManager* g_queueManager = NULL;
 
 FrameAllocator::FrameAllocator()
     : m_buffer(NULL)
@@ -130,7 +130,7 @@ void CommandQueue::SortByMaterial() {
     if (m_isImmutable) return;
     
     std::sort(m_commands.begin(), m_commands.end(), 
-        [](const RenderCommand& a, const RenderCommand& b) {
+        [](const RenderCommand& a, const RenderCommand& b) -> bool {
             if (a.materialID != b.materialID) return a.materialID < b.materialID;
             return a.shaderID < b.shaderID;
         });
@@ -149,7 +149,7 @@ void CommandQueue::SortDeterministic() {
     if (m_isImmutable) return;
     
     std::sort(m_commands.begin(), m_commands.end(),
-        [](const RenderCommand& a, const RenderCommand& b) {
+        [](const RenderCommand& a, const RenderCommand& b) -> bool {
             if (a.materialID != b.materialID) return a.materialID < b.materialID;
             if (a.shaderID != b.shaderID) return a.shaderID < b.shaderID;
             if (a.depth != b.depth) return a.depth < b.depth;
@@ -174,23 +174,16 @@ void CommandQueue::ExecuteInternal(LPDIRECT3DDEVICE9 device, const std::vector<R
     for (size_t i = 0; i < cmds.size(); i++) {
         const RenderCommand& cmd = cmds[i];
         
-        if (cmd.vertexBuffer) {
-            device->SetStreamSource(0, cmd.vertexBuffer, 0, cmd.vertexStride);
-        }
-        
-        if (cmd.indexBuffer) {
-            device->SetIndices(cmd.indexBuffer);
+        if (cmd.pVertexBuffer) {
+            device->SetStreamSource(0, cmd.pVertexBuffer, 0, SPRITE_VERTEX_STRIDE);
         }
         
         if (cmd.shaderID >= 0) {
         }
         
-        if (cmd.indexBuffer) {
-            device->DrawIndexedPrimitive(cmd.primType, cmd.baseVertex, 
-                cmd.minIndex, cmd.numVertices, cmd.startIndex, cmd.primitiveCount);
-        } else {
-            device->DrawPrimitive(cmd.primType, cmd.startIndex, cmd.primitiveCount);
-        }
+        // For now, just use DrawPrimitive with vertex count
+        // TODO: Add index buffer support to RenderCommand if needed
+        device->DrawPrimitive((D3DPRIMITIVETYPE)cmd.primType, cmd.vertexStart, cmd.primitiveCount);
     }
 }
 

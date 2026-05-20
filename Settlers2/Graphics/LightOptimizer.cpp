@@ -297,12 +297,7 @@ void LightOptimizer::DrawLightVolumeSphere(const D3DXVECTOR3& pos, float radius)
     }
 
     if (m_sphereMesh.vb && m_sphereMesh.ib) {
-        D3DXMATRIX world, scale, translate;
-        D3DXMatrixScaling(&scale, radius, radius, radius);
-        D3DXMatrixTranslation(&translate, pos.x, pos.y, pos.z);
-        world = scale * translate;
-
-        m_pDevice->SetTransform(D3DTS_WORLD, &world);
+        // Xbox 360: SetTransform not available, transforms done via shaders
         m_pDevice->SetStreamSource(0, m_sphereMesh.vb, 0, sizeof(float) * 3);
         m_pDevice->SetIndices(m_sphereMesh.ib);
         m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, m_sphereMesh.vertexCount, 0, m_sphereMesh.indexCount / 3);
@@ -317,18 +312,14 @@ void LightOptimizer::DrawLightVolumeCone(const D3DXVECTOR3& pos, const D3DXVECTO
     }
 
     if (m_coneMesh.vb && m_coneMesh.ib) {
-        D3DXMATRIX world, scale, rotate, translate;
-        D3DXMatrixScaling(&scale, length, length, length);
-
+        // Xbox 360: SetTransform not available, transforms done via shaders
         D3DXVECTOR3 up(0, 1, 0);
-        D3DXVECTOR3 axis = D3DXVec3Cross(&axis, &up, &dir);
+        D3DXVECTOR3 axis;
+        D3DXVec3Cross(&axis, &up, &dir);
         float angle2 = acosf(D3DXVec3Dot(&up, &dir));
+        D3DXMATRIX rotate;
         D3DXMatrixRotationAxis(&rotate, &axis, angle2);
 
-        D3DXMatrixTranslation(&translate, pos.x, pos.y, pos.z);
-        world = scale * rotate * translate;
-
-        m_pDevice->SetTransform(D3DTS_WORLD, &world);
         m_pDevice->SetStreamSource(0, m_coneMesh.vb, 0, sizeof(float) * 3);
         m_pDevice->SetIndices(m_coneMesh.ib);
         m_pDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, m_coneMesh.vertexCount, 0, m_coneMesh.indexCount / 3);

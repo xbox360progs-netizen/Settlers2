@@ -3,27 +3,6 @@
 
 namespace Graphics {
 
-Material::Material() 
-    : pDiffuseMap(NULL), pNormalMap(NULL), pMaterialMap(NULL),
-      Flags(MATERIAL_FLAG_NONE), Roughness(0.5f), Metallic(0.0f),
-      EmissiveIntensity(0.0f), AmbientOcclusion(1.0f),
-      m_name(""), m_shaderFlags(0), m_tileID(-1) {
-}
-
-Material::Material(const char* name) 
-    : pDiffuseMap(NULL), pNormalMap(NULL), pMaterialMap(NULL),
-      Flags(MATERIAL_FLAG_NONE), Roughness(0.5f), Metallic(0.0f),
-      EmissiveIntensity(0.0f), AmbientOcclusion(1.0f),
-      m_name(name ? name : ""), m_shaderFlags(0), m_tileID(-1) {
-}
-
-Material::~Material() {
-}
-
-bool Material::IsValid() const {
-    return pDiffuseMap != NULL;
-}
-
 MaterialManager::MaterialManager() : m_pDevice(nullptr), m_nextID(1) {
 }
 
@@ -37,7 +16,7 @@ void MaterialManager::Initialize(IDirect3DDevice9* pDevice) {
 
 void MaterialManager::Shutdown() {
     for (size_t i = 0; i < m_materials.size(); i++) {
-        delete m_materials[i].material;
+        delete m_materials[i];
     }
     m_materials.clear();
     m_nextID = 1;

@@ -42,6 +42,7 @@ struct RenderCommand {
     LPDIRECT3DTEXTURE9 pTexture;
     LPDIRECT3DVERTEXBUFFER9 pVertexBuffer; // GPU buffer containing geometry for this command (ping-pong)
     int shaderID;   // Shader handle (ShaderHandle enum) instead of raw pointer
+    int materialID; // Material ID for material-based sorting
     int vertexStart; // Start index in index buffer
     int baseVertex;  // Base vertex offset in vertex buffer (for DrawIndexedPrimitive)
     int vertexCount;
@@ -65,6 +66,11 @@ struct RenderCommand {
     
     // UV coordinates for partial texture rendering (text, sprites)
     float u0, v0, u1, v1; // Texture region to sample
+
+    // Sorting and rendering
+    int sortKey;   // For material/shader sorting
+    int startIndex; // Index buffer start
+    int primType;  // D3DPT enumeration
     
     // Screen position for UI rendering (if isUI)
     float screenX, screenY, screenW, screenH;

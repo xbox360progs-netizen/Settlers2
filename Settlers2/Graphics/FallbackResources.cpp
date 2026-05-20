@@ -12,9 +12,9 @@
 #define FALLBACK_LOG(...) ((void)0)
 #endif
 
-static FallbackResources* g_fallbackResources = NULL;
-
 namespace Graphics {
+
+static FallbackResources* g_fallbackResources = NULL;
 
 FallbackResources::FallbackResources()
     : m_device(NULL)
@@ -107,11 +107,11 @@ Texture* FallbackResources::GetFallbackTexture(FallbackType type) {
 
 IDirect3DTexture9* FallbackResources::GetFallbackD3DTexture(FallbackType type) {
     switch (type) {
-        case FallbackType::WHITE: return m_whiteTexture;
-        case FallbackType::FLAT_NORMAL: return m_flatNormalTexture;
-        case FallbackType::BLACK_AO: return m_blackAOTexture;
-        case FallbackType::ERROR_RED: return m_errorRedTexture;
-        case FallbackType::ERROR_PINK: return m_errorPinkTexture;
+        case FALLBACK_WHITE: return m_whiteTexture;
+        case FALLBACK_FLAT_NORMAL: return m_flatNormalTexture;
+        case FALLBACK_BLACK_AO: return m_blackAOTexture;
+        case FALLBACK_ERROR_RED: return m_errorRedTexture;
+        case FALLBACK_ERROR_PINK: return m_errorPinkTexture;
     }
     return m_errorPinkTexture;
 }

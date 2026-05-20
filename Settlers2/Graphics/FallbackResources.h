@@ -4,12 +4,12 @@
 
 namespace Graphics {
 
-enum class FallbackType {
-    WHITE,
-    FLAT_NORMAL,
-    BLACK_AO,
-    ERROR_RED,
-    ERROR_PINK
+enum FallbackType {
+    FALLBACK_WHITE,
+    FALLBACK_FLAT_NORMAL,
+    FALLBACK_BLACK_AO,
+    FALLBACK_ERROR_RED,
+    FALLBACK_ERROR_PINK
 };
 
 class FallbackResources {

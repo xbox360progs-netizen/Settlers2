@@ -11,7 +11,7 @@ DebugOverlay::DebugOverlay()
     , m_textY(10.0f)
 {
     ZeroMemory(&m_stats, sizeof(m_stats));
-    ZeroMemory(m_pass_stats, sizeof(m_pass_stats));
+    ZeroMemory(m_passStats, sizeof(m_passStats));
 }
 
 DebugOverlay::~DebugOverlay() {
@@ -33,7 +33,7 @@ void DebugOverlay::SetRenderStats(const DebugRenderStats& stats) {
 
 void DebugOverlay::SetPassStats(RenderPassType pass, const PassStats& stats) {
     if (pass >= 0 && pass < PASS_COUNT) {
-        m_pass_stats[pass] = stats;
+        m_passStats[pass] = stats;
     }
 }
 
@@ -101,7 +101,7 @@ void DebugOverlay::Render() {
 
     for (int i = 0; i < PASS_COUNT; i++) {
         sprintf_s(buffer, "%s: %d draws, %.2f ms",
-            passNames[i], m_pass_stats[i].drawCalls, m_pass_stats[i].gpuTimeMs);
+            passNames[i], m_passStats[i].drawCalls, m_passStats[i].gpuTimeMs);
         RenderText(10, y, buffer); y += 15;
     }
 }

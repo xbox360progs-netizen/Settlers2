@@ -4,6 +4,7 @@
 #include <d3dx9.h>
 #include <stdio.h>
 #include <math.h>
+#include <float.h>
 
 namespace Graphics {
 
@@ -217,7 +218,7 @@ bool GBufferValidator::ValidateNormalData(IDirect3DSurface9* surface) {
             float ny = ((pixels[offset + 1] / 65535.0f) - 0.5f) * 2.0f;
             float nz = ((pixels[offset + 2] / 65535.0f) - 0.5f) * 2.0f;
 
-            if (isnan(nx) || isnan(ny) || isnan(nz)) {
+            if (_isnan(nx) || _isnan(ny) || _isnan(nz)) {
                 nanCount++;
             }
 
@@ -274,7 +275,7 @@ bool GBufferValidator::ValidateDepthData(IDirect3DSurface9* surface) {
         for (int x = 0; x < width; x += sampleStep) {
             float depth = depths[y * stride + x];
 
-            if (isnan(depth) || isinf(depth)) {
+            if (_isnan(depth) || (!_finite(depth) && !_isnan(depth))) {
                 nanCount++;
             } else {
                 minDepth = (depth < minDepth) ? depth : minDepth;

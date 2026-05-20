@@ -45,6 +45,7 @@ private:
     std::vector<DecalDesc> m_decals;
     int m_maxDecals;
     bool m_debugDraw;
+    bool m_enabled;
 
     LPDIRECT3DVERTEXBUFFER9 m_pQuadVB;
     LPDIRECT3DINDEXBUFFER9 m_pQuadIB;

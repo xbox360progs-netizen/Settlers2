@@ -55,11 +55,11 @@ public:
     GPUTimer* GetGPUTimer() { return &m_gpuTimer; }
     RenderStateValidator* GetValidator() { return &m_validator; }
     
-    const std::vector<PassTiming>& GetPassTimings() const { return m_timings; }
+    const std::vector<PassTiming>& GetPassTimings() const;
     void ClearTimings();
     
-    void SetValidationEnabled(bool enabled) { m_validationEnabled = enabled; }
-    void SetGPUTimingEnabled(bool enabled) { m_gpuTimingEnabled = enabled; }
+    void SetValidationEnabled(bool enabled);
+    void SetGPUTimingEnabled(bool enabled);
     
     void OnResize(int width, int height);
     

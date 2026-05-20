@@ -27,7 +27,7 @@ void GPUDrivenRenderer::Initialize(LPDIRECT3DDEVICE9 pDevice) {
     if (m_pInstanceBuffer) m_pInstanceBuffer->Release();
     int bufferSize = m_maxInstancesPerBatch * sizeof(SpriteInstanceData);
     HRESULT hr = m_pDevice->CreateVertexBuffer(
-        bufferSize, D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY,
+        bufferSize, D3DUSAGE_WRITEONLY,
         0, D3DPOOL_DEFAULT, &m_pInstanceBuffer, NULL
     );
 
@@ -176,7 +176,7 @@ void GPUDrivenRenderer::UploadInstanceData() {
     if (!m_pInstanceBuffer || m_instanceBuffer.empty()) return;
 
     void* pData;
-    HRESULT hr = m_pInstanceBuffer->Lock(0, 0, &pData, D3DLOCK_DISCARD);
+    HRESULT hr = m_pInstanceBuffer->Lock(0, 0, &pData, 0);
 
     if (SUCCEEDED(hr)) {
         memcpy(pData, m_instanceBuffer.data(), m_instanceBuffer.size() * sizeof(SpriteInstanceData));

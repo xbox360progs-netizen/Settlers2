@@ -1,48 +1,59 @@
-﻿Построение начато 19.05.2026 19:42:51.
+﻿Построение начато 20.05.2026 10:30:07.
      1>Проект "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" в узле 2 (целевые объекты build).
      1>InitializeBuildStatus:
          Обращение к "Release\Settlers2.unsuccessfulbuild".
        ClCompile:
          Для всех выходных данных обновления не требуется.
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Core\GameEngine.cpp Graphics\BitmapFont.cpp Graphics\BitmapText.cpp Graphics\OverlayFPS.cpp Graphics\Renderer.cpp Graphics\ShaderManager.cpp Graphics\SpriteBatch.cpp Graphics\SpriteRenderer.cpp Graphics\TextManager.cpp Graphics\TileRenderer.cpp Scene\EditorScene.cpp Scene\LoadingScene.cpp Scene\MenuScene.cpp Scene\Scene.cpp Scene\SceneManager.cpp UI\GridMenu.cpp UI\RadialMenu.cpp UI\WeightMenu.cpp Editor\MapEditor.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
-         GameEngine.cpp
-         BitmapFont.cpp
-         BitmapText.cpp
-         OverlayFPS.cpp
-         Renderer.cpp
-         ShaderManager.cpp
-         SpriteBatch.cpp
-         SpriteRenderer.cpp
-         TextManager.cpp
-         TileRenderer.cpp
-         EditorScene.cpp
-         LoadingScene.cpp
-         MenuScene.cpp
-         Scene.cpp
-         SceneManager.cpp
-         GridMenu.cpp
-         RadialMenu.cpp
-         WeightMenu.cpp
-         MapEditor.cpp
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Graphics\Passes.cpp Graphics\RenderPassBase.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
+         Passes.cpp
+         RenderPassBase.cpp
          Generating Code...
        Link:
          C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\link.exe /ERRORREPORT:PROMPT /OUT:"D:\development\Settlers2\Settlers2\Release\Settlers2.exe" /INCREMENTAL:NO /NOLOGO xapilib.lib d3d9.lib d3dx9.lib xgraphics.lib xboxkrnl.lib xnet.lib xaudio2.lib xact3.lib x3daudio.lib xmcore.lib vcomp.lib /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"D:\development\Settlers2\Settlers2\Release\Settlers2.pdb" /STACK:"262144","262144" /OPT:REF /OPT:ICF /TLBID:1 /RELEASE /IMPLIB:"D:\development\Settlers2\Settlers2\Release\Settlers2.lib" Release\GameEngine.obj
          Release\ThreadSync.obj
+         Release\AdvancedEffects.obj
          Release\BinFileManager.obj
          Release\BitmapFont.obj
          Release\BitmapText.obj
          Release\Camera.obj
+         Release\CommandAllocator.obj
+         Release\CommandQueueManager.obj
+         Release\DebugOverlay.obj
+         Release\FallbackResources.obj
+         Release\GBufferValidator.obj
+         Release\GPUDebug.obj
+         Release\GPUDrivenRenderer.obj
+         Release\GPUMemoryAuditor.obj
+         Release\Light.obj
+         Release\LightOptimizer.obj
          Release\OverlayFPS.obj
+         Release\GPUTimer.obj
+         Release\Material.obj
+         Release\Passes.obj
+         Release\PostFX.obj
+         Release\PostProcessing.obj
          Release\Quad.obj
+         Release\RenderDebugOverlay.obj
+         Release\RenderDocTool.obj
+         Release\RenderFrame.obj
          Release\Renderer.obj
+         Release\RenderGraph.obj
+         Release\RenderPassBase.obj
+         Release\RenderPipeline.obj
+         Release\RenderQueue.obj
+         Release\RenderStateValidator.obj
+         Release\RenderTargetManager.obj
          Release\ShaderManager.obj
+         Release\ShadowSystem.obj
          Release\SpriteAtlas.obj
          Release\SpriteBatch.obj
          Release\SpriteRenderer.obj
+         Release\SSAO.obj
          Release\TextManager.obj
          Release\TextureLoader.obj
          Release\TextureRegistry.obj
          Release\TileRenderer.obj
+         Release\Xbox360EDRAM.obj
          Release\Gamepad.obj
          Release\InputContext.obj
          Release\InputController.obj
@@ -88,20 +99,16 @@
          Release\TileLayer.obj
          Release\MapEditor.obj
          Release\TilePalette.obj /XEX:NO
-     1>GameEngine.obj : error LNK2019: unresolved external symbol "public: void __cdecl Graphics::RenderFrame::Execute(void)" (?Execute@RenderFrame@Graphics@@QAAXXZ) referenced in function "private: void __cdecl GameEngine::Render(void)" (?Render@GameEngine@@AAAXXZ)
-     1>Renderer.obj : error LNK2019: unresolved external symbol "public: void __cdecl Graphics::RenderFrame::SetDependencies(class ShaderManager *,class SpriteRenderer *,class Graphics::MaterialManager *)" (?SetDependencies@RenderFrame@Graphics@@QAAXPAVShaderManager@@PAVSpriteRenderer@@PAVMaterialManager@2@@Z) referenced in function "public: long __cdecl Renderer::Initialize(void)" (?Initialize@Renderer@@QAAJXZ)
-     1>Renderer.obj : error LNK2019: unresolved external symbol "public: void __cdecl Graphics::RenderFrame::Initialize(struct D3DDevice *)" (?Initialize@RenderFrame@Graphics@@QAAXPAUD3DDevice@@@Z) referenced in function "public: long __cdecl Renderer::Initialize(void)" (?Initialize@Renderer@@QAAJXZ)
-     1>Renderer.obj : error LNK2019: unresolved external symbol "public: __cdecl Graphics::RenderFrame::RenderFrame(void)" (??0RenderFrame@Graphics@@QAA@XZ) referenced in function "public: long __cdecl Renderer::Initialize(void)" (?Initialize@Renderer@@QAAJXZ)
-     1>Renderer.obj : error LNK2019: unresolved external symbol "public: void __cdecl Graphics::GPUTimer::Initialize(struct D3DDevice *)" (?Initialize@GPUTimer@Graphics@@QAAXPAUD3DDevice@@@Z) referenced in function "public: long __cdecl Renderer::Initialize(void)" (?Initialize@Renderer@@QAAJXZ)
-     1>Renderer.obj : error LNK2019: unresolved external symbol "public: __cdecl Graphics::GPUTimer::GPUTimer(void)" (??0GPUTimer@Graphics@@QAA@XZ) referenced in function "public: long __cdecl Renderer::Initialize(void)" (?Initialize@Renderer@@QAAJXZ)
-     1>Renderer.obj : error LNK2019: unresolved external symbol "public: void __cdecl Graphics::GPUTimer::Shutdown(void)" (?Shutdown@GPUTimer@Graphics@@QAAXXZ) referenced in function "public: void __cdecl Renderer::Shutdown(void)" (?Shutdown@Renderer@@QAAXXZ)
-     1>Renderer.obj : error LNK2019: unresolved external symbol "public: void __cdecl Graphics::RenderFrame::Shutdown(void)" (?Shutdown@RenderFrame@Graphics@@QAAXXZ) referenced in function "public: void __cdecl Renderer::Shutdown(void)" (?Shutdown@Renderer@@QAAXXZ)
-     1>Renderer.obj : error LNK2019: unresolved external symbol "public: __cdecl Graphics::RenderFrame::~RenderFrame(void)" (??1RenderFrame@Graphics@@QAA@XZ) referenced in function "public: void * __cdecl Graphics::RenderFrame::`scalar deleting destructor'(unsigned int)" (??_GRenderFrame@Graphics@@QAAPAXI@Z)
-     1>Renderer.obj : error LNK2019: unresolved external symbol "public: __cdecl Graphics::GPUTimer::~GPUTimer(void)" (??1GPUTimer@Graphics@@QAA@XZ) referenced in function "public: void * __cdecl Graphics::GPUTimer::`scalar deleting destructor'(unsigned int)" (??_GGPUTimer@Graphics@@QAAPAXI@Z)
-     1>SpriteRenderer.obj : error LNK2019: unresolved external symbol "public: class Graphics::Material * __cdecl Graphics::MaterialManager::GetMaterial(int)" (?GetMaterial@MaterialManager@Graphics@@QAAPAVMaterial@2@H@Z) referenced in function "public: void __cdecl SpriteRenderer::Begin(int)" (?Begin@SpriteRenderer@@QAAXH@Z)
-     1>D:\development\Settlers2\Settlers2\Release\Settlers2.exe : fatal error LNK1120: 11 unresolved externals
-     1>Построение проекта "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" завершено (целевые объекты build) с ошибкой.
+       ImageXex:
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\imagexex.exe /out:"D:\development\Settlers2\Settlers2\Release\Settlers2.xex" "D:\development\Settlers2\Settlers2\Release\Settlers2.exe" 
+         Microsoft(R) Xbox 360 Image File Builder Version 2.0.21256.0
+         (c)2012 Microsoft Corporation. All rights reserved.
+         
+       FinalizeBuildStatus:
+         Файл "Release\Settlers2.unsuccessfulbuild" удаляется.
+         Обращение к "Release\Settlers2.lastbuildstate".
+     1>Построение проекта "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" завершено (целевые объекты build).
 
-СБОЙ построения.
+Построение успешно завершено.
 
-Затраченное время: 00:00:15.50
+Затраченное время: 00:00:17.62

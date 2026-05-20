@@ -75,7 +75,7 @@ void RenderQueue::Sort(RenderQueueSortMode mode) {
         break;
     case SORT_BY_DEPTH_THEN_SHADER_THEN_TEXTURE:
         std::sort(m_commands.begin(), m_commands.end(),
-                 [](const RenderCommand& a, const RenderCommand& b) {
+                 [](const RenderCommand& a, const RenderCommand& b) -> bool {
                      if (a.depth != b.depth) return a.depth > b.depth;
                      if (a.shaderID != b.shaderID) return a.shaderID < b.shaderID;
                      return a.pTexture < b.pTexture;
