@@ -180,7 +180,7 @@ if (m_pGPUTimer) {
 m_pRenderFrame = new RenderFrame();
 if (m_pRenderFrame) {
     m_pRenderFrame->Initialize(m_pDevice);
-    m_pRenderFrame->SetDependencies(m_pShaderManager, m_pSpriteRenderer, nullptr);
+    m_pRenderFrame->SetDependencies(m_pShaderManager, m_pSpriteRenderer);
     m_pRenderFrame->SetGPUTimer(m_pGPUTimer);
     OutputDebugStringA("[Renderer] RenderFrame initialized\n");
 }

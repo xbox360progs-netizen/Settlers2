@@ -5,6 +5,7 @@
 #include "../Graphics/Renderer.h"
 #include "../Graphics/RenderFrame.h"
 #include "../Graphics/RenderTypes.h"
+#include "../Graphics/RenderQueue.h"
 #include "../Scene/MenuScene.h"
 #include <iostream>
 #include <assert.h>
@@ -24,6 +25,7 @@ SceneManager::SceneManager()
     , m_spriteRenderer(NULL)
     , m_renderer(NULL)
     , m_renderFrame(NULL)
+    , m_renderQueue(NULL)
 #ifdef _XBOX
     , m_pAsyncCall(NULL)
     , m_pCommandBuffer(NULL)
@@ -274,11 +276,7 @@ sprintf(dbg, "[SM::Render] ENTRY - m_currentScene=0x%08X\n", m_currentScene);
         return;
     }
     
-    bool hasCustomPipeline = m_currentScene->HasCustomRenderPipeline();
-    sprintf(dbg, "[SM::Render] Custom pipeline=%d\n", hasCustomPipeline);
-    OutputDebugStringA(dbg);
-    
-    m_currentScene->Render();
+    m_currentScene->Render(m_renderQueue);
     LeaveCriticalSection(&m_cs);
 
     // Step 2.5: FINALIZE - Seal the batch, disable Submit(), freeze offsets
@@ -467,7 +465,7 @@ void SceneManager::SubmitRenderCommands() {
 
     EnterCriticalSection(&m_cs);
     if (m_currentScene) {
-        m_currentScene->Render();
+        m_currentScene->Render(m_renderQueue);
     }
     LeaveCriticalSection(&m_cs);
 

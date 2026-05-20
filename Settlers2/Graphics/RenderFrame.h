@@ -4,8 +4,6 @@
 #include <map>
 #include "RenderTypes.h"
 #include "GPUTimer.h"
-#include "Material.h"
-#include "Passes\IRenderPass.h"
 
 namespace Graphics {
 
@@ -14,8 +12,6 @@ class RenderTargetManager;
 class RenderDebugOverlay;
 class ShaderManager;
 class SpriteRenderer;
-class MaterialManager;
-class RenderContext;
 
 using ::ShaderManager;
 
@@ -27,17 +23,12 @@ public:
     void Initialize(LPDIRECT3DDEVICE9 pDevice);
     void Shutdown();
 
-    void SetDependencies(ShaderManager* shaderMgr, ::SpriteRenderer* spriteRenderer, MaterialManager* materialMgr);
-    void SetRenderContext(RenderContext* ctx) { m_renderContext = ctx; }
-    RenderContext* GetRenderContext() const { return m_renderContext; }
+    void SetDependencies(ShaderManager* shaderMgr, ::SpriteRenderer* spriteRenderer);
 
     void SetGPUTimer(GPUTimer* timer) { m_gpuTimer = timer; }
     void SetRenderTargetManager(RenderTargetManager* mgr) { m_rtManager = mgr; }
     void SetDebugOverlay(RenderDebugOverlay* overlay) { m_debugOverlay = overlay; }
     RenderDebugOverlay* GetDebugOverlay() const { return m_debugOverlay; }
-
-    void CreateDefaultPasses();
-    void DestroyPasses();
 
     void SetRenderQueue(RenderQueue* queue);
     RenderQueue* GetRenderQueue() const { return m_renderQueue; }
@@ -79,8 +70,6 @@ private:
     LPDIRECT3DDEVICE9 m_pDevice;
     ShaderManager* m_shaderManager;
     ::SpriteRenderer* m_spriteRenderer;
-    MaterialManager* m_materialManager;
-    RenderContext* m_renderContext;
     RenderQueue* m_renderQueue;
     GPUTimer* m_gpuTimer;
     RenderTargetManager* m_rtManager;
@@ -95,8 +84,6 @@ private:
 
     int m_debugViewMode;
     bool m_initialized;
-
-    std::map<RenderPassType, IRenderPass*> m_passes;
 };
 
 }

@@ -451,9 +451,9 @@ void LoadingScene::Update(float deltaTime)
     }
 }
 
-void LoadingScene::Render()
+void LoadingScene::Render(RenderQueue* renderQueue)
 {
-	// Update screen size
+	(void)renderQueue;
 	if (m_renderer && m_renderer->GetDevice()) {
 		D3DVIEWPORT9 vp;
 		if (SUCCEEDED(m_renderer->GetDevice()->GetViewport(&vp))) {

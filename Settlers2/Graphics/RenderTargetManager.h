@@ -1,5 +1,5 @@
 #pragma once
-#include "RenderPassBase.h"
+#include <d3d9.h>
 #include <map>
 #include <vector>
 #include <string>

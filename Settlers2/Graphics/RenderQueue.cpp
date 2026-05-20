@@ -1,6 +1,5 @@
 #include "stdafx.h"
 #include "RenderQueue.h"
-#include "Material.h"
 
 namespace Graphics {
 

@@ -2,8 +2,6 @@
 #include "RenderFrame.h"
 #include "ShaderManager.h"
 #include "SpriteRenderer.h"
-#include "Material.h"
-#include "RenderContext.h"
 
 namespace Graphics {
 
@@ -77,8 +75,6 @@ void RenderFrame::InitializeGBuffer(int width, int height) {
 }
 
 void RenderFrame::Shutdown() {
-    DestroyPasses();
-
     if (m_pGBufferPos) { m_pGBufferPos->Release(); m_pGBufferPos = NULL; }
     if (m_pGBufferNormal) { m_pGBufferNormal->Release(); m_pGBufferNormal = NULL; }
     if (m_pGBufferAlbedo) { m_pGBufferAlbedo->Release(); m_pGBufferAlbedo = NULL; }
@@ -89,39 +85,9 @@ void RenderFrame::Shutdown() {
     m_initialized = false;
 }
 
-void RenderFrame::SetDependencies(ShaderManager* shaderMgr, ::SpriteRenderer* spriteRenderer, MaterialManager* materialMgr) {
+void RenderFrame::SetDependencies(ShaderManager* shaderMgr, ::SpriteRenderer* spriteRenderer) {
     m_shaderManager = shaderMgr;
     m_spriteRenderer = spriteRenderer;
-    m_materialManager = materialMgr;
-}
-
-void RenderFrame::CreateDefaultPasses() {
-    if (!m_shaderManager || !m_spriteRenderer) return;
-
-    GeometryPass* geometryPass = new GeometryPass(m_shaderManager, m_spriteRenderer, m_gpuTimer);
-    geometryPass->SetRenderFrame(this);
-    m_passes[PASS_GEOMETRY] = geometryPass;
-
-    LightingPass* lightingPass = new LightingPass(m_shaderManager, m_gpuTimer);
-    lightingPass->SetRenderFrame(this);
-    m_passes[PASS_LIGHTING] = lightingPass;
-
-    TransparentPass* transparentPass = new TransparentPass(m_shaderManager, m_gpuTimer);
-    transparentPass->SetRenderFrame(this);
-    m_passes[PASS_TRANSPARENT] = transparentPass;
-
-    UIPass* uiPass = new UIPass(m_shaderManager, m_gpuTimer);
-    uiPass->SetRenderFrame(this);
-    m_passes[PASS_UI] = uiPass;
-
-    OutputDebugStringA("[RenderFrame] Default passes created\n");
-}
-
-void RenderFrame::DestroyPasses() {
-    for (auto& pair : m_passes) {
-        delete pair.second;
-    }
-    m_passes.clear();
 }
 
 void RenderFrame::SetRenderQueue(RenderQueue* queue) {

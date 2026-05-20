@@ -5,10 +5,11 @@
 
 // Forward declarations
 class SpriteRenderer;
+class RenderQueue;
 
 namespace Scene {
 
-class SceneManager;  // Forward declare inside Scene namespace
+class SceneManager;
 
 class Scene
 {
@@ -19,37 +20,28 @@ public:
     const std::string& GetName() const { return m_name; }
     bool IsLoaded() const { return m_loaded; }
 
-    // Жизненный цикл сцены
     virtual void Load() = 0;
     virtual void Unload() = 0;
 
-    // Обновление и рендер
     virtual void Update(float deltaTime) = 0;
-    virtual void Render() = 0;
+    virtual void Render(class RenderQueue* renderQueue) = 0;
 
-    // Сцена стала активной / неактивной
     virtual void OnEnter();
     virtual void OnExit();
 
-    // Запрос на переключение сцены
     void RequestSceneSwitch(const std::string& sceneName);
     bool HasPendingSceneSwitch() const { return m_hasPendingSwitch; }
     const std::string& GetPendingSceneName() const { return m_pendingSceneName; }
     void ClearPendingSceneSwitch() { m_hasPendingSwitch = false; m_pendingSceneName.clear(); }
 
-    // Запрос на выход из приложения
     void RequestExit() { m_exitRequested = true; }
     bool IsExitRequested() const { return m_exitRequested; }
     void ClearExitRequest() { m_exitRequested = false; }
 
-    // Инициализация с устройством (вызвать перед использованием)
     virtual void Initialize(LPDIRECT3DDEVICE9 device, class SpriteRenderer* spriteRenderer);
 
-    // SceneManager access
     SceneManager* GetSceneManager() const;
     void SetSceneManager(SceneManager* manager);
-
-    virtual bool HasCustomRenderPipeline() const { return false; }
 
 protected:
     std::string m_name;
@@ -60,4 +52,4 @@ protected:
     SceneManager* m_sceneManager;
 };
 
-} // namespace Scene
+}

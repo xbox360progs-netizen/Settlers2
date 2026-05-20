@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Scene.h"
+#include "../Graphics/RenderQueue.h"
 
 namespace Scene {
 
@@ -13,7 +14,7 @@ public:
     virtual void Load();
     virtual void Unload();
     virtual void Update(float deltaTime);
-    virtual void Render();
+    virtual void Render(class RenderQueue* renderQueue) override;
 };
 
 } // namespace Scene

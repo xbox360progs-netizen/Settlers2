@@ -3,7 +3,6 @@
 #include <d3dx9.h>
 #include <vector>
 #include "RenderTypes.h"
-#include "Material.h"
 
 class ShaderManager;
 
@@ -14,9 +13,6 @@ public:
 
     HRESULT Initialize(LPDIRECT3DDEVICE9 device, ShaderManager* shaderManager, int maxSprites = 4096);
     void Shutdown();
-
-    void SetMaterialManager(MaterialManager* manager) { m_pMaterialManager = manager; }
-    MaterialManager* GetMaterialManager() const { return m_pMaterialManager; }
 
     void OnLostDevice();
     void OnResetDevice();
@@ -57,7 +53,6 @@ private:
 
     LPDIRECT3DDEVICE9 m_pDevice;
     ShaderManager* m_pShaderManager;
-    MaterialManager* m_pMaterialManager;
 
     LPDIRECT3DVERTEXBUFFER9 m_pVB[2];
     LPDIRECT3DVERTEXBUFFER9 m_pGpuBufferA;

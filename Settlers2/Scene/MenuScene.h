@@ -10,6 +10,7 @@
 #include "../Graphics/BinFileManager.h"
 #include "../Input/Gamepad.h"
 #include "../Graphics/Texture.h"
+#include "../Graphics/RenderQueue.h"
 
 // Menu constants
 static const int MAX_MENU_ITEMS = 4;
@@ -28,7 +29,7 @@ public:
   virtual void Load();
   virtual void Unload();
   virtual void Update(float deltaTime);
-  virtual void Render();
+  virtual void Render(class RenderQueue* renderQueue) override;
   virtual void OnEnter();
   virtual void OnExit();
 

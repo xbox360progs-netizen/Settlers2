@@ -17,6 +17,7 @@
 #include "../Input/InputManager.h"
 #include "../Input/InputController.h"
 #include "../UI/WeightMenu.h"
+#include "../Graphics/RenderQueue.h"
 
 namespace Scene {
 
@@ -44,7 +45,7 @@ EditorScene();
     virtual void Load();
     virtual void Unload();
     virtual void Update(float deltaTime);
-    virtual void Render();
+    virtual void Render(class RenderQueue* renderQueue) override;
     virtual void OnEnter();
     virtual void OnExit();
 

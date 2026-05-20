@@ -216,7 +216,8 @@ void MenuScene::Update(float deltaTime) {
   ProcessInput(deltaTime);
 }
 
-void MenuScene::Render() {
+void MenuScene::Render(RenderQueue* renderQueue) {
+    (void)renderQueue;
     OutputDebugStringA("[MenuScene::Render] ENTRY\n");
     
     // Simple nullptr check only - vtable check is unreliable on Xbox 360

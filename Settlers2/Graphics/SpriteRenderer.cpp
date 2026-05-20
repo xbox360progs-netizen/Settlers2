@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "SpriteRenderer_slim.h"
 #include "ShaderManager.h"
-#include "Material.h"
 
 static void OutputDebugStringA(const char* msg) {
 #ifdef _DEBUG
@@ -12,7 +11,6 @@ static void OutputDebugStringA(const char* msg) {
 SpriteRenderer::SpriteRenderer()
     : m_pDevice(NULL)
     , m_pShaderManager(NULL)
-    , m_pMaterialManager(NULL)
     , m_pIndexBuffer(NULL)
     , m_pVertexDecl(NULL)
     , m_pStagingBuffer(NULL)

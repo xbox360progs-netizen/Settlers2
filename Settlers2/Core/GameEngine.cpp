@@ -9,6 +9,7 @@
 #include "../Graphics/ShaderManager.h"
 #include "../Graphics/BitmapFont.h"
 #include "../Graphics/TextManager.h"
+#include "../Graphics/RenderQueue.h"
 #include "../Scene/SceneManager.h"
 #include "../Scene/MenuScene.h"
 #include "../Scene/LoadingScene.h"
@@ -188,6 +189,10 @@ bool GameEngine::Initialize()
     m_sceneManager->SetSpriteRenderer(m_spriteRenderer);
     m_sceneManager->SetRenderer(m_renderer);
     m_sceneManager->SetRenderFrame(m_renderer->GetRenderFrame());
+
+    Graphics::RenderQueue* renderQueue = new Graphics::RenderQueue();
+    renderQueue->Initialize(m_renderer->GetDevice());
+    m_sceneManager->SetRenderQueue(renderQueue);
 
     CreateScenes();
 

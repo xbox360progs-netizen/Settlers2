@@ -6,10 +6,10 @@
 #include "../Graphics/SpriteRenderer.h"
 #include "../Graphics/BinFileManager.h"
 #include "../Graphics/Texture.h"
+#include "../Graphics/RenderQueue.h"
 #include <vector>
 #include <functional>
 
-// Xbox 360 SDK header for threading
 #include <xtl.h>
 
 namespace Scene {
@@ -23,7 +23,7 @@ public:
     virtual void Load();
     virtual void Unload();
     virtual void Update(float deltaTime);
-    virtual void Render();
+    virtual void Render(class RenderQueue* renderQueue) override;
 
     void SetTargetScene(const std::string& sceneName);
     void SetTextureLoader(TextureLoader* loader) { m_textureLoader = loader; }

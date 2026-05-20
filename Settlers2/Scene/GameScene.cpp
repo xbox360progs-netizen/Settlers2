@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "GameScene.h"
+#include "../Graphics/RenderQueue.h"
 
 namespace Scene {
 
@@ -27,9 +28,9 @@ void GameScene::Update(float deltaTime)
     // TODO: Игровая логика
 }
 
-void GameScene::Render()
+void GameScene::Render(RenderQueue* renderQueue)
 {
-    // TODO: Рендеринг игрового мира
+    (void)renderQueue;
 }
 
 } // namespace Scene

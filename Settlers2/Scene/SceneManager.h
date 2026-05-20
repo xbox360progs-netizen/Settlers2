@@ -10,6 +10,7 @@
 class ShaderManager;
 class SpriteRenderer;
 class Renderer;
+class RenderQueue;
 using Graphics::RenderFrame;
 
 // Xbox 360 async command buffer forward declarations
@@ -57,6 +58,8 @@ public:
     Renderer* GetRenderer() const { return m_renderer; }
     void SetRenderFrame(RenderFrame* frame) { m_renderFrame = frame; }
     RenderFrame* GetRenderFrame() const { return m_renderFrame; }
+    void SetRenderQueue(RenderQueue* queue) { m_renderQueue = queue; }
+    RenderQueue* GetRenderQueue() const { return m_renderQueue; }
     void SubmitRenderCommands();
 
     // Xbox 360 async command buffer support
@@ -90,6 +93,7 @@ private:
     SpriteRenderer* m_spriteRenderer;
     Renderer* m_renderer;
     RenderFrame* m_renderFrame;
+    RenderQueue* m_renderQueue;
 
 #ifdef _XBOX
     IDirect3DAsyncCommandBufferCall9* m_pAsyncCall;

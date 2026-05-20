@@ -4,7 +4,6 @@
 #include <vector>
 #include <map>
 #include "RenderTypes.h"
-#include "Material.h"
 
 namespace Graphics {
 
@@ -24,7 +23,7 @@ enum RenderLayer {
 };
 
 struct SpriteCommand {
-    MaterialHandle material;
+    int shaderID;
     float x, y;
     float width, height;
     float u0, v0, u1, v1;
@@ -34,7 +33,7 @@ struct SpriteCommand {
     bool isUI;
 
     SpriteCommand()
-        : material(0), x(0), y(0), width(0), height(0),
+        : shaderID(0), x(0), y(0), width(0), height(0),
           u0(0), v0(0), u1(1), v1(1), color(0xFFFFFFFF),
           depth(1.0f), layer(LAYER_OPAQUE), isUI(false) {}
 };
@@ -42,14 +41,11 @@ struct SpriteCommand {
 struct BatchKey {
     int shaderID;
     void* texture;
-    int materialID;
 
     bool operator<(const BatchKey& other) const {
         if (shaderID != other.shaderID)
             return shaderID < other.shaderID;
-        if (texture != other.texture)
-            return texture < other.texture;
-        return materialID < other.materialID;
+        return texture < other.texture;
     }
 };
 
@@ -60,9 +56,7 @@ struct DrawBatch {
     float minDepth;
     float maxDepth;
 
-    DrawBatch() : shaderID(0), texture(NULL), materialID(0), startIndex(0), commandCount(0), minDepth(0), maxDepth(0) {}
-
-    int shaderID;
+    DrawBatch() : startIndex(0), commandCount(0), minDepth(0), maxDepth(0) {}
 };
 
 class RenderQueue {
@@ -99,14 +93,11 @@ public:
     const std::vector<RenderCommand>& GetTransparentQueue() const { return m_transparentQueue; }
     const std::vector<RenderCommand>& GetUIQueue() const { return m_uiQueue; }
 
-    void SetMaterialManager(MaterialManager* mgr) { m_materialManager = mgr; }
-
 private:
     void SortQueue(std::vector<RenderCommand>& queue, RenderQueueSortMode mode);
     void CreateBatches(std::vector<RenderCommand>& queue);
 
     LPDIRECT3DDEVICE9 m_pDevice;
-    MaterialManager* m_materialManager;
 
     std::vector<RenderCommand> m_opaqueQueue;
     std::vector<RenderCommand> m_transparentQueue;

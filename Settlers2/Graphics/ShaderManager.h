@@ -53,7 +53,7 @@ public:
         DWORD vertexOffset;  // Offset in vertex buffer
         DWORD indexCount;    // Number of indices to draw
         float depth;       // Z-layer: 1.0=far, 0.1=near
-        std::string shaderName;
+        ShaderID shaderID; // Используем enum вместо string
         int renderType;      // 0 = Single Sprite, 1 = Instanced
         
         // Sorting operator: by texture first (expensive switch), then shader, then depth
@@ -62,8 +62,8 @@ public:
             if (pTexture != other.pTexture)
                 return pTexture < other.pTexture;
             // Shader switch is second most expensive
-            if (shaderName != other.shaderName)
-                return shaderName < other.shaderName;
+            if (shaderID != other.shaderID)
+                return shaderID < other.shaderID;
             // Depth is least expensive (back-to-front for alpha)
             return depth > other.depth;
         }
