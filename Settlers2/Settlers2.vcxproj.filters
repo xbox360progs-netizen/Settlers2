@@ -39,6 +39,15 @@
     <Filter Include="World\Components\Systems">
       <UniqueIdentifier>{c0149c66-3688-46bb-8013-f3f649340e6d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Graphics\Debug">
+      <UniqueIdentifier>{90ae412e-2648-482e-80d4-bff043607545}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Passes">
+      <UniqueIdentifier>{f194e7f1-c28d-4f84-953f-afd90f4a7dff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\PostFX">
+      <UniqueIdentifier>{19f87679-09e7-4ee5-aaea-6410c7eb8ee3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="ReadMe.txt" />
@@ -71,13 +80,7 @@
     <ClInclude Include="Graphics\SpriteAtlas.h">
       <Filter>Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\SpriteBatch.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\TextManager.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\SpriteRenderer.h">
       <Filter>Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\BinFileManager.h">
@@ -218,9 +221,6 @@
     <ClInclude Include="Graphics\Texture.h">
       <Filter>Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="UI\TilePalette.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Logic\WeightMap.h">
       <Filter>Logic</Filter>
     </ClInclude>
@@ -236,13 +236,7 @@
     <ClInclude Include="Input\InputController.h">
       <Filter>Input</Filter>
     </ClInclude>
-    <ClInclude Include="UI\WeightMenu.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="World\Components\Resource.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="World\ResourceNode.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\RenderTypes.h">
@@ -256,15 +250,6 @@
     </ClInclude>
     <ClInclude Include="UI\GridMenu.h">
       <Filter>UI</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\GPUTimer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Material.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\RenderFrame.h">
-      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="World\Components\Resource.h">
       <Filter>Header Files</Filter>
@@ -356,6 +341,57 @@
     <ClInclude Include="Graphics\Xbox360EDRAM.h">
       <Filter>Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="World\Components\Resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Debug\DebugOverlay.h">
+      <Filter>Graphics\Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Passes\GeometryPass.h">
+      <Filter>Graphics\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Passes\IRenderPass.h">
+      <Filter>Graphics\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Passes\LightingPass.h">
+      <Filter>Graphics\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Passes\TransparentPass.h">
+      <Filter>Graphics\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Passes\UIPass.h">
+      <Filter>Graphics\Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\SpriteRenderer.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="World\ResourceNode.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\WeightMenu.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\TilePalette.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\GPUTimer.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\RenderFrame.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Material.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\RenderContext.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\PostFX\PostFXChain.h">
+      <Filter>Graphics\PostFX</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\PostFX\PostFXPasses.h">
+      <Filter>Graphics\PostFX</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -383,12 +419,6 @@
       <Filter>Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\SpriteAtlas.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\SpriteBatch.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\SpriteRenderer.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\TextManager.cpp">
@@ -514,9 +544,6 @@
     <ClCompile Include="Graphics\TextureRegistry.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="UI\TilePalette.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Logic\WeightMap.cpp">
       <Filter>Logic</Filter>
     </ClCompile>
@@ -532,26 +559,11 @@
     <ClCompile Include="Input\InputController.cpp">
       <Filter>Input</Filter>
     </ClCompile>
-    <ClCompile Include="UI\WeightMenu.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\ThreadSync.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="UI\RadialMenu.cpp">
       <Filter>UI</Filter>
     </ClCompile>
     <ClCompile Include="UI\GridMenu.cpp">
       <Filter>UI</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\GPUTimer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Material.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\RenderFrame.cpp">
-      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\AdvancedEffects.cpp">
       <Filter>Graphics</Filter>
@@ -627,6 +639,51 @@
     </ClCompile>
     <ClCompile Include="Graphics\Xbox360EDRAM.cpp">
       <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Debug\DebugOverlay.cpp">
+      <Filter>Graphics\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Passes\GeometryPass.cpp">
+      <Filter>Graphics\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Passes\LightingPass.cpp">
+      <Filter>Graphics\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Passes\TransparentPass.cpp">
+      <Filter>Graphics\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Passes\UIPass.cpp">
+      <Filter>Graphics\Passes</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\SpriteRenderer.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\GPUTimer.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\RenderFrame.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Material.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\RenderContext.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\ThreadSync.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\WeightMenu.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\TilePalette.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\PostFX\PostFXChain.cpp">
+      <Filter>Graphics\PostFX</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\PostFX\PostFXPasses.cpp">
+      <Filter>Graphics\PostFX</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -7,6 +7,8 @@
 
 namespace Graphics {
 
+typedef int MaterialHandle;
+
 enum MaterialFlags {
     MATERIAL_FLAG_NONE = 0,
     MATERIAL_FLAG_ALPHATEST = 1 << 0,

@@ -1,8 +1,10 @@
 #pragma once
 #include <d3d9.h>
+#include <d3dx9.h>
 #include <vector>
-#include <algorithm>
+#include <map>
 #include "RenderTypes.h"
+#include "Material.h"
 
 namespace Graphics {
 
@@ -12,6 +14,55 @@ enum RenderQueueSortMode {
     SORT_BY_SHADER,
     SORT_BY_TEXTURE,
     SORT_BY_DEPTH_THEN_SHADER_THEN_TEXTURE
+};
+
+enum RenderLayer {
+    LAYER_OPAQUE,
+    LAYER_TRANSPARENT,
+    LAYER_UI,
+    LAYER_COUNT
+};
+
+struct SpriteCommand {
+    MaterialHandle material;
+    float x, y;
+    float width, height;
+    float u0, v0, u1, v1;
+    DWORD color;
+    float depth;
+    RenderLayer layer;
+    bool isUI;
+
+    SpriteCommand()
+        : material(0), x(0), y(0), width(0), height(0),
+          u0(0), v0(0), u1(1), v1(1), color(0xFFFFFFFF),
+          depth(1.0f), layer(LAYER_OPAQUE), isUI(false) {}
+};
+
+struct BatchKey {
+    int shaderID;
+    void* texture;
+    int materialID;
+
+    bool operator<(const BatchKey& other) const {
+        if (shaderID != other.shaderID)
+            return shaderID < other.shaderID;
+        if (texture != other.texture)
+            return texture < other.texture;
+        return materialID < other.materialID;
+    }
+};
+
+struct DrawBatch {
+    BatchKey key;
+    int startIndex;
+    int commandCount;
+    float minDepth;
+    float maxDepth;
+
+    DrawBatch() : shaderID(0), texture(NULL), materialID(0), startIndex(0), commandCount(0), minDepth(0), maxDepth(0) {}
+
+    int shaderID;
 };
 
 class RenderQueue {
@@ -25,62 +76,47 @@ public:
     void BeginFrame();
     void EndFrame();
 
-    void AddCommand(const RenderCommand& cmd);
-    void AddCommands(const RenderCommand* cmds, int count);
+    void Submit(const SpriteCommand& cmd);
+    void SubmitBatch(const RenderCommand& cmd);
+
+    int GetCommandCount(RenderLayer layer) const;
+    int GetTotalCommandCount() const;
 
     void Sort(RenderQueueSortMode mode = SORT_BY_DEPTH_THEN_SHADER_THEN_TEXTURE);
+    void Batch();
 
     void Clear();
 
-    int GetCommandCount() const { return (int)m_commands.size(); }
-    const RenderCommand* GetCommands() const { return m_commands.data(); }
-
-    void Execute(LPDIRECT3DDEVICE9 pDevice);
-
-    void SetMaxCommands(int max) { m_maxCommands = max; }
-    int GetMaxCommands() const { return m_maxCommands; }
-
-    void EnableBatching(bool enable) { m_batchingEnabled = enable; }
-    bool IsBatchingEnabled() const { return m_batchingEnabled; }
-
-    void SetDebugDraw(bool debug) { m_debugDraw = debug; }
-    bool IsDebugDrawEnabled() const { return m_debugDraw; }
+    void DispatchOpaque(void* backend);
+    void DispatchTransparent(void* backend);
+    void DispatchUI(void* backend);
+    void DispatchAll(void* backend);
 
     int GetBatchCount() const { return m_batchCount; }
     int GetDrawCallCount() const { return m_drawCallCount; }
 
+    const std::vector<RenderCommand>& GetOpaqueQueue() const { return m_opaqueQueue; }
+    const std::vector<RenderCommand>& GetTransparentQueue() const { return m_transparentQueue; }
+    const std::vector<RenderCommand>& GetUIQueue() const { return m_uiQueue; }
+
+    void SetMaterialManager(MaterialManager* mgr) { m_materialManager = mgr; }
+
 private:
+    void SortQueue(std::vector<RenderCommand>& queue, RenderQueueSortMode mode);
+    void CreateBatches(std::vector<RenderCommand>& queue);
+
     LPDIRECT3DDEVICE9 m_pDevice;
-    std::vector<RenderCommand> m_commands;
-    int m_maxCommands;
-    bool m_batchingEnabled;
-    bool m_debugDraw;
+    MaterialManager* m_materialManager;
+
+    std::vector<RenderCommand> m_opaqueQueue;
+    std::vector<RenderCommand> m_transparentQueue;
+    std::vector<RenderCommand> m_uiQueue;
+
+    std::vector<DrawBatch> m_batches;
 
     int m_batchCount;
     int m_drawCallCount;
-
-    struct BatchedGroup {
-        int shaderID;
-        void* texture;
-        int startIndex;
-        int commandCount;
-        float minDepth;
-        float maxDepth;
-    };
-
-    std::vector<BatchedGroup> m_batchedGroups;
-
-    void BatchByShader();
-    void BatchByTexture();
-    void BatchByDepthAndShader();
-    void OptimizeBatches();
-
-    void SortByDepth(std::vector<RenderCommand>& cmds);
-    void SortByShader(std::vector<RenderCommand>& cmds);
-    void SortByTexture(std::vector<RenderCommand>& cmds);
-
-    bool CanMergeCommands(const RenderCommand& a, const RenderCommand& b);
-    void MergeCommands(RenderCommand& out, const RenderCommand& a, const RenderCommand& b);
+    int m_maxCommands;
 };
 
 }
