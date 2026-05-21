@@ -230,7 +230,11 @@ void SpriteRenderer::SetTexture(WORD textureID) {
 
 void SpriteRenderer::SetShader(WORD shaderID) {
     if (!m_pShaderManager) return;
-    m_pShaderManager->SetActiveShader((ShaderID)shaderID);
+    if (m_pShaderManager->GetCurrentShaderID() != SHADER_INVALID) {
+        m_pShaderManager->EndPass();
+        m_pShaderManager->EndShader();
+    }
+    if (!m_pShaderManager->SetActiveShader((ShaderID)shaderID)) return;
     m_pShaderManager->SetMatrix("WVP", m_projMatrix);
     m_pShaderManager->BeginShader();
     m_pShaderManager->BeginPass(0);

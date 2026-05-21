@@ -248,6 +248,37 @@ HRESULT ShaderManager::LoadAll() {
         OutputDebugStringA("[ShaderManager] WARNING: RADIALMENU shader not loaded, continuing\n");
     }
 
+    hr = LoadShader(SHADER_UI, SHADER_ROOT "UI.fx", "UITech");
+    if (FAILED(hr)) {
+        OutputDebugStringA("[ShaderManager] WARNING: UI shader not loaded, continuing\n");
+    }
+
+    hr = LoadShader(SHADER_WORLD, SHADER_ROOT "World.fx", "WorldTech");
+    if (FAILED(hr)) {
+        OutputDebugStringA("[ShaderManager] WARNING: WORLD shader not loaded, continuing\n");
+    } else {
+        ID3DXEffect* pWorldFx = GetEffect(SHADER_WORLD);
+        if (pWorldFx) {
+            m_effects[SHADER_TERRAIN] = pWorldFx;
+            pWorldFx->AddRef();
+            Shader shader;
+            shader.pEffect = pWorldFx;
+            shader.hTechnique = pWorldFx->GetTechniqueByName("WorldTech");
+            shader.hMatOrtho = pWorldFx->GetParameterByName(NULL, "matOrtho");
+            shader.hTexture = pWorldFx->GetParameterByName(NULL, "g_texture");
+            D3DXEFFECT_DESC desc;
+            pWorldFx->GetDesc(&desc);
+            for (UINT i = 0; i < desc.Parameters; i++) {
+                D3DXHANDLE hParam = pWorldFx->GetParameter(NULL, i);
+                D3DXPARAMETER_DESC paramDesc;
+                pWorldFx->GetParameterDesc(hParam, &paramDesc);
+                shader.hParams[paramDesc.Name] = hParam;
+            }
+            m_shaders[SHADER_TERRAIN] = shader;
+            OutputDebugStringA("[ShaderManager] Shared World.fx effect for TERRAIN shader\n");
+        }
+    }
+
     return S_OK;
 }
 
