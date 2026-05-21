@@ -7,14 +7,15 @@
 #include <string>
 #include <algorithm>
 #include <math.h>
+#include <errno.h>
+
+#ifdef _XBOX
+#define SHADER_ROOT "game:\\Media\\Shaders\\"
+#else
+#define SHADER_ROOT "Shaders/"
+#endif
 
 namespace Graphics {
-
-static void OutputDebugStringA(const char* msg) {
-#ifdef _DEBUG
-    ::OutputDebugStringA(msg);
-#endif
-}
 
 ShaderManager::ShaderManager()
     : m_pDevice(NULL), m_pActiveShader(NULL), m_pActiveEffect(NULL), m_numPasses(0), m_currentShaderID(SHADER_INVALID), m_hasFrameViewProj(false)
@@ -59,6 +60,20 @@ HRESULT ShaderManager::LoadInternal(ShaderID id, const char* path, const char* t
         return S_OK;
     }
 
+    char logBuf[512];
+    sprintf(logBuf, "[ShaderManager] Loading shader %d from: %s\n", id, path);
+    OutputDebugStringA(logBuf);
+
+    FILE* fTest = fopen(path, "rb");
+    if (fTest) {
+        OutputDebugStringA("[ShaderManager] fopen SUCCESS - file exists\n");
+        fclose(fTest);
+    } else {
+        char ferr[256];
+        sprintf(ferr, "[ShaderManager] fopen FAILED errno=%d\n", errno);
+        OutputDebugStringA(ferr);
+    }
+
     ID3DXEffect* pEffect = NULL;
     ID3DXBuffer* pErrorBuffer = NULL;
 
@@ -75,11 +90,14 @@ HRESULT ShaderManager::LoadInternal(ShaderID id, const char* path, const char* t
         &pErrorBuffer);
 
     if (FAILED(hr)) {
+        char errMsg[512];
         if (pErrorBuffer) {
-            char errMsg[512];
             sprintf(errMsg, "[ShaderManager] ERROR loading %s: %s\n", path, (char*)pErrorBuffer->GetBufferPointer());
             OutputDebugStringA(errMsg);
             pErrorBuffer->Release();
+        } else {
+            sprintf(errMsg, "[ShaderManager] ERROR loading %s: NO ERROR BUFFER (file not found or access denied)\n", path);
+            OutputDebugStringA(errMsg);
         }
         return hr;
     }
@@ -215,22 +233,19 @@ bool ShaderManager::HasShader(ShaderID id) const {
 HRESULT ShaderManager::LoadAll() {
     HRESULT hr;
 
-    hr = LoadShader(SHADER_SPRITE, "Media/Shaders/Sprite.fx", "SpriteBatchTech");
+    hr = LoadShader(SHADER_SPRITE, SHADER_ROOT "SpriteShader.fx", "SpriteBatchTech");
     if (FAILED(hr)) {
-        OutputDebugStringA("[ShaderManager] FATAL: Failed to load SPRITE shader\n");
-        return hr;
+        OutputDebugStringA("[ShaderManager] WARNING: SPRITE shader not loaded, continuing\n");
     }
 
-    hr = LoadShader(SHADER_SPRITE_CONSTANT_INSTANCED, "Media/Shaders/SpriteConstantInstanced.fx", "SpriteBatchTech");
+    hr = LoadShader(SHADER_SPRITE_CONSTANT_INSTANCED, SHADER_ROOT "SpriteConstantInstanced.fx", "SpriteBatchTech");
     if (FAILED(hr)) {
-        OutputDebugStringA("[ShaderManager] FATAL: Failed to load SPRITE_CONSTANT_INSTANCED shader\n");
-        return hr;
+        OutputDebugStringA("[ShaderManager] WARNING: SPRITE_CONSTANT_INSTANCED shader not loaded, continuing\n");
     }
 
-    hr = LoadShader(SHADER_RADIALMENU, "Media/Shaders/RadialMenu.fx", "RadialMenuTech");
+    hr = LoadShader(SHADER_RADIALMENU, SHADER_ROOT "RadialMenu.fx", "RadialMenuTech");
     if (FAILED(hr)) {
-        OutputDebugStringA("[ShaderManager] FATAL: Failed to load RADIALMENU shader\n");
-        return hr;
+        OutputDebugStringA("[ShaderManager] WARNING: RADIALMENU shader not loaded, continuing\n");
     }
 
     return S_OK;

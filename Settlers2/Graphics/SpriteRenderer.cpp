@@ -2,12 +2,6 @@
 #include "SpriteRenderer.h"
 #include "ShaderManager.h"
 
-static void OutputDebugStringA(const char* msg) {
-#ifdef _DEBUG
-    ::OutputDebugStringA(msg);
-#endif
-}
-
 namespace Graphics {
 
 SpriteRenderer::SpriteRenderer()
@@ -104,39 +98,62 @@ void SpriteRenderer::EndFrame() {
 }
 
 int SpriteRenderer::Execute(const BatchBuilder& builder) {
-    ::OutputDebugStringA("[SpriteRenderer] ENTERED\n");
-    if (!m_pDevice) { ::OutputDebugStringA("[SpriteRenderer] NO DEVICE\n"); return -1; }
-    if (builder.GetBatchCount() == 0) { ::OutputDebugStringA("[SpriteRenderer] NO BATCHES\n"); return -2; }
+    ::OutputDebugStringA("A\n");
 
     uint32_t vertexCount = builder.GetVertexCount();
     uint32_t indexCount = builder.GetIndexCount();
 
+    char buf[256];
+    sprintf(buf, "[SR] SpriteVertex sizeof=%d pos=%d color=%d uv=%d stride=%d\n",
+        (int)sizeof(SpriteVertex),
+        (int)offsetof(SpriteVertex, x),
+        (int)offsetof(SpriteVertex, color),
+        (int)offsetof(SpriteVertex, u),
+        (int)sizeof(SpriteVertex));
+    ::OutputDebugStringA(buf);
+
+    ::OutputDebugStringA("B\n");
     void* pData = NULL;
     HRESULT hr = m_vertexBuffer->Lock(0, vertexCount * sizeof(SpriteVertex), &pData, 0);
+    sprintf(buf, "[SR] VB Lock hr=%08X pData=%p\n", hr, pData);
+    ::OutputDebugStringA(buf);
     if (SUCCEEDED(hr) && pData) {
         memcpy(pData, builder.GetVertices(), vertexCount * sizeof(SpriteVertex));
         m_vertexBuffer->Unlock();
+        ::OutputDebugStringA("[SR] VB unlocked\n");
     }
 
+    ::OutputDebugStringA("C\n");
     hr = m_indexBuffer->Lock(0, indexCount * sizeof(uint32_t), &pData, 0);
+    sprintf(buf, "[SR] IB Lock hr=%08X pData=%p\n", hr, pData);
+    ::OutputDebugStringA(buf);
     if (SUCCEEDED(hr) && pData) {
         memcpy(pData, builder.GetIndices(), indexCount * sizeof(uint32_t));
         m_indexBuffer->Unlock();
+        ::OutputDebugStringA("[SR] IB unlocked\n");
     }
 
-    m_pDevice->SetVertexDeclaration(m_vertexDecl);
-    m_pDevice->SetStreamSource(0, m_vertexBuffer, 0, sizeof(SpriteVertex));
-    m_pDevice->SetIndices(m_indexBuffer);
+    ::OutputDebugStringA("D\n");
+    hr = m_pDevice->SetVertexDeclaration(m_vertexDecl);
+    sprintf(buf, "[SR] SetVertexDecl hr=%08X\n", hr);
+    ::OutputDebugStringA(buf);
 
-    char dipBuf[256];
-    sprintf(dipBuf, "[SpriteRenderer] Execute: batches=%d vertexCount=%d indexCount=%d\n",
-            builder.GetBatchCount(), vertexCount, indexCount);
-    ::OutputDebugStringA(dipBuf);
+    ::OutputDebugStringA("E\n");
+    hr = m_pDevice->SetStreamSource(0, m_vertexBuffer, 0, sizeof(SpriteVertex));
+    sprintf(buf, "[SR] SetStreamSource hr=%08X stride=%d\n", hr, (int)sizeof(SpriteVertex));
+    ::OutputDebugStringA(buf);
 
+    ::OutputDebugStringA("F\n");
+    hr = m_pDevice->SetIndices(m_indexBuffer);
+    sprintf(buf, "[SR] SetIndices hr=%08X\n", hr);
+    ::OutputDebugStringA(buf);
+
+    ::OutputDebugStringA("G\n");
     for (uint32_t i = 0; i < builder.GetBatchCount(); i++) {
         const RenderBatch& batch = builder.GetBatches()[i];
 
         if (m_stateCache.BlendChanged(batch.blendMode)) {
+            ::OutputDebugStringA("[SR] Blending\n");
             if (batch.blendMode == 0) {
                 m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
             } else {
@@ -149,36 +166,45 @@ int SpriteRenderer::Execute(const BatchBuilder& builder) {
         }
 
         if (m_stateCache.ShaderChanged(batch.shaderID)) {
+            ::OutputDebugStringA("[SR] Shader\n");
             SetShader(batch.shaderID);
             m_stateCache.currentShader = batch.shaderID;
             m_shaderSwitches++;
         }
 
         if (m_stateCache.TextureChanged(batch.textureID)) {
+            ::OutputDebugStringA("[SR] Texture\n");
             SetTexture(batch.textureID);
+            m_pShaderManager->CommitChanges();
             m_stateCache.currentTexture = batch.textureID;
             m_textureSwitches++;
         }
 
         uint32_t primitiveCount = batch.indexCount / 3;
 
-        sprintf(dipBuf, "[SpriteRenderer] DIP batch=%d startIdx=%d idx=%d prim=%d tex=%d shader=%d\n",
+        sprintf(buf, "[SR] DIP batch=%d startIdx=%d idx=%d prim=%d tex=%d shader=%d\n",
                 i, batch.startIndex, batch.indexCount, primitiveCount, batch.textureID, batch.shaderID);
-        ::OutputDebugStringA(dipBuf);
+        ::OutputDebugStringA(buf);
 
-        m_pDevice->DrawIndexedPrimitive(
+        ::OutputDebugStringA("H\n");
+        hr = m_pDevice->DrawIndexedPrimitive(
             D3DPT_TRIANGLELIST,
             0,
             0,
             vertexCount,
             batch.startIndex,
             primitiveCount);
+        sprintf(buf, "[SR] DIP hr=%08X\n", hr);
+        ::OutputDebugStringA(buf);
 
         m_drawCalls++;
     }
 
+    ::OutputDebugStringA("I\n");
     m_pDevice->SetTexture(0, NULL);
-    return 42;
+
+    ::OutputDebugStringA("J\n");
+    return 0;
 }
 
 void SpriteRenderer::SetTextureSlot(WORD id, LPDIRECT3DTEXTURE9 tex) {
@@ -196,13 +222,16 @@ void SpriteRenderer::SetTexture(WORD textureID) {
     std::map<WORD, LPDIRECT3DTEXTURE9>::iterator it = m_textureMap.find(textureID);
     if (it != m_textureMap.end() && it->second) {
         m_pDevice->SetTexture(0, it->second);
+        if (m_pShaderManager) {
+            m_pShaderManager->SetLocalUniforms(it->second, 0.0f);
+        }
     }
 }
 
 void SpriteRenderer::SetShader(WORD shaderID) {
     if (!m_pShaderManager) return;
     m_pShaderManager->SetActiveShader((ShaderID)shaderID);
-    m_pShaderManager->SetMatrix("matOrtho", m_projMatrix);
+    m_pShaderManager->SetMatrix("WVP", m_projMatrix);
     m_pShaderManager->BeginShader();
     m_pShaderManager->BeginPass(0);
     m_pShaderManager->Commit();
