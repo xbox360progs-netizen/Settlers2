@@ -2,112 +2,65 @@
 #include <d3d9.h>
 #include <d3dx9.h>
 
-// Forward declarations
-class ShaderManager;
-class Renderer;
-
-// SpriteVertex structure (matches Renderer.h)
-// CRITICAL: Must be 32 bytes for Xbox 360 VMX alignment (D3DCOMMANDBUFFER_ALIGNMENT)
 #pragma pack(push, 1)
 struct SpriteVertex {
-    float x, y, z;        // POSITION - 12 bytes
-    float u, v;           // TEXCOORD0 - 8 bytes
-    DWORD color;          // COLOR0 - 4 bytes
-    float padding[2];    // Padding - 8 bytes (total = 32 bytes for alignment)
+    float x, y, z;
+    float u, v;
+    DWORD color;
+    float padding[2];
 };
 #pragma pack(pop)
 
-// Static assert to verify size at compile time
 #define SPRITE_VERTEX_STRIDE 32
 static_assert(sizeof(SpriteVertex) == SPRITE_VERTEX_STRIDE, "SpriteVertex must be 32 bytes for Xbox 360!");
 
-// Custom draw callback type for non-standard rendering (e.g. RadialMenu shader)
-typedef void (*CustomDrawFn)(LPDIRECT3DDEVICE9 pDevice, ShaderManager* pShaderMgr, void* pUserData);
+struct RenderCommand {
+    float x, y;
+    float width, height;
 
-// Render state block for batch rendering
+    float u0, v0;
+    float u1, v1;
+
+    DWORD color;
+
+    WORD textureID;
+    WORD shaderID;
+
+    BYTE blendMode;
+    BYTE layer;
+
+    WORD depth;
+
+    unsigned __int64 sortKey;
+
+    volatile long status;
+
+    RenderCommand()
+        : x(0), y(0), width(0), height(0),
+          u0(0), v0(0), u1(1), v1(1),
+          color(0xFFFFFFFF),
+          textureID(0), shaderID(0),
+          blendMode(0), layer(0),
+          depth(0), sortKey(0), status(0) {}
+};
+
+inline unsigned __int64 BuildSortKey(BYTE layer, BYTE blend, WORD shader, WORD texture, WORD depth) {
+    return ((unsigned __int64)layer << 56)
+         | ((unsigned __int64)blend << 48)
+         | ((unsigned __int64)shader << 32)
+         | ((unsigned __int64)texture << 16)
+         | ((unsigned __int64)depth);
+}
+
 struct RenderStateBlock {
     DWORD zEnable;
     DWORD alphaBlendEnable;
     DWORD srcBlend;
     DWORD destBlend;
     DWORD cullMode;
-    
-    RenderStateBlock() 
-        : zEnable(D3DZB_FALSE), alphaBlendEnable(FALSE), 
+
+    RenderStateBlock()
+        : zEnable(D3DZB_FALSE), alphaBlendEnable(FALSE),
           srcBlend(D3DBLEND_SRCALPHA), destBlend(D3DBLEND_INVSRCALPHA),
           cullMode(D3DCULL_NONE) {}
-};
-
-struct RenderCommand {
-    LPDIRECT3DTEXTURE9 pTexture;
-    LPDIRECT3DVERTEXBUFFER9 pVertexBuffer; // GPU buffer containing geometry for this command (ping-pong)
-    int shaderID;   // Shader handle (ShaderHandle enum) instead of raw pointer
-    int materialID; // Material ID for material-based sorting
-    int vertexStart; // Start index in index buffer
-    int baseVertex;  // Base vertex offset in vertex buffer (for DrawIndexedPrimitive)
-    int vertexCount;
-    int primitiveCount;
-    int batchType; // 0 - Standard (Single), 1 - Instanced, 2 - Custom callback
-    float depth;   // Z-layer: 1.0=far (ground), 0.5=mid (units), 0.1=near (UI)
-    int layer;     // Logical layer: 0=Terrain, 1=Objects, 2=UI (for composite depth)
-    bool isUI;     // Screen-space rendering (skip camera matrix)
-    RenderStateBlock states;
-    int batchIndex; // For tracking batch sequence (for vertex offset calculation)
-
-    // ДОБАВЛЕНО: Атомарный флаг состояния для Lock-Free обмена
-    // 0 = Свободно, 1 = Записано (Готово к GPU), 2 = Читается видеокартой
-    volatile long status;
-    
-    // DEFERRED RENDERING: Store vertices directly in command
-    SpriteVertex vertices[4]; // 4 vertices for a quad sprite
-    
-    // World position for camera transform (if not isUI)
-    float worldX, worldY;
-    
-    // UV coordinates for partial texture rendering (text, sprites)
-    float u0, v0, u1, v1; // Texture region to sample
-
-    // Sorting and rendering
-    int sortKey;   // For material/shader sorting
-    int startIndex; // Index buffer start
-    int primType;  // D3DPT enumeration
-    
-    // Screen position for UI rendering (if isUI)
-    float screenX, screenY, screenW, screenH;
-    
-    // ViewProjection matrix captured at command creation time (eliminates global state corruption)
-    D3DXMATRIX viewProjMatrix;
-    bool hasViewProjMatrix;
-    
-    // Color tint for the render command
-    DWORD color;
-    
-    // Custom draw callback (for batchType == 2)
-    CustomDrawFn customDraw;
-    void* customUserData;
-    
-    RenderCommand() : pTexture(NULL), pVertexBuffer(NULL), shaderID(-1), vertexStart(0), baseVertex(0), vertexCount(0),
-        primitiveCount(0), batchType(0), depth(1.0f), layer(0), isUI(false), batchIndex(0), status(0),
-        worldX(0), worldY(0), u0(0), v0(0), u1(1), v1(1),
-        screenX(0), screenY(0), screenW(0), screenH(0), color(0xFFFFFFFF),
-        customDraw(NULL), customUserData(NULL), hasViewProjMatrix(false) {
-        D3DXMatrixIdentity(&viewProjMatrix);
-        // Initialize vertices to zero
-        memset(vertices, 0, sizeof(vertices));
-    }
-    
-    // Sorting operator: depth-first for proper layer ordering
-    // Lower depth = rendered later (on top), Higher depth = rendered earlier (behind)
-    bool operator<(const RenderCommand& other) const {
-        // Primary sort: depth (back-to-front for proper alpha blending)
-        if (depth != other.depth)
-            return depth > other.depth; // Higher depth = render first
-        
-        // Secondary sort: shader (batch by shader for performance)
-        if (shaderID != other.shaderID)
-            return shaderID < other.shaderID;
-        
-        // Tertiary sort: texture (batch by texture for performance)
-        return pTexture < other.pTexture;
-    }
 };

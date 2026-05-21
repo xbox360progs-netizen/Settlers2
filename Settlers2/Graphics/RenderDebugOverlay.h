@@ -24,6 +24,9 @@ struct RenderStats {
     int batchCount;
     int instancedDraws;
 
+    int spriteCount;
+    int vbFlushes;
+
     void Reset() {
         drawCalls = 0;
         triangles = 0;
@@ -39,6 +42,8 @@ struct RenderStats {
         shadowMapCount = 0;
         batchCount = 0;
         instancedDraws = 0;
+        spriteCount = 0;
+        vbFlushes = 0;
     }
 };
 
@@ -61,6 +66,8 @@ public:
     void RecordLightCount(int count);
     void RecordShadowMapCount(int count);
     void RecordBatch(int vertexCount, bool instanced);
+    void RecordSpriteCount(int count) { m_stats.spriteCount = count; }
+    void RecordVBFlush() { m_stats.vbFlushes++; }
 
     void SetFrameTime(float ms) { m_stats.frameTime = ms; }
     void SetGPUTime(float ms) { m_stats.gpuTime = ms; }

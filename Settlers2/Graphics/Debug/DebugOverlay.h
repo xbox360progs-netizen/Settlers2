@@ -4,19 +4,8 @@
 #include <vector>
 #include <string>
 #include "GPUTimer.h"
-#include "RenderFrame.h"
 
 namespace Graphics {
-
-enum DebugViewMode {
-    DEBUG_VIEW_NONE,
-    DEBUG_VIEW_ALBEDO,
-    DEBUG_VIEW_NORMAL,
-    DEBUG_VIEW_DEPTH,
-    DEBUG_VIEW_SPECULAR,
-    DEBUG_VIEW_LIGHTING,
-    DEBUG_VIEW_COUNT
-};
 
 struct FrameStats {
     int drawCalls;
@@ -53,39 +42,21 @@ public:
     void SetFrameStats(const FrameStats& stats) { m_frameStats = stats; }
     void SetGPUTimerResults(const std::vector<GPUTimerResult>& results);
 
-    void SetDebugViewMode(DebugViewMode mode) { m_debugView = mode; }
-    DebugViewMode GetDebugViewMode() const { return m_debugView; }
-    void CycleDebugView() { m_debugView = (DebugViewMode)((m_debugView + 1) % DEBUG_VIEW_COUNT); }
-
     void SetPassTimings(const PassTiming* timings, int count);
-    void SetGBufferTextures(
-        IDirect3DTexture9* pos,
-        IDirect3DTexture9* normal,
-        IDirect3DTexture9* albedo,
-        IDirect3DTexture9* spec,
-        IDirect3DTexture9* depth);
 
     void Render();
 
 private:
     void RenderStats();
     void RenderPassTimings();
-    void RenderMRTPreview();
 
     IDirect3DDevice9* m_device;
     bool m_visible;
-    DebugViewMode m_debugView;
 
     FrameStats m_frameStats;
     std::vector<GPUTimerResult> m_gpuResults;
 
     std::vector<PassTiming> m_passTimings;
-
-    IDirect3DTexture9* m_gBufferPos;
-    IDirect3DTexture9* m_gBufferNormal;
-    IDirect3DTexture9* m_gBufferAlbedo;
-    IDirect3DTexture9* m_gBufferSpec;
-    IDirect3DTexture9* m_gBufferDepth;
 };
 
 }

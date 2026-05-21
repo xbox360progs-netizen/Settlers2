@@ -38,7 +38,6 @@ RadialMenu::RadialMenu(LPDIRECT3DDEVICE9 device, ShaderManager* shaderManager, B
     : m_device(device)
     , m_shaderManager(shaderManager)
     , m_binFileManager(binFileManager)
-    , m_renderer(nullptr)
     , m_quad(nullptr)
     , m_selectedIndex(-1)
     , m_numSectors(8)
@@ -91,11 +90,6 @@ void RadialMenu::Shutdown()
     }
 
     m_items.clear();
-}
-
-void RadialMenu::SetRenderer(Renderer* renderer)
-{
-    m_renderer = renderer;
 }
 
 void RadialMenu::Show(float screenX, float screenY)
@@ -245,38 +239,6 @@ void RadialMenu::Render()
         return;
     }
 
-    // Submit custom draw command to the queue instead of rendering directly
-    // This ensures RadialMenu respects the depth-based sorting system
-    ShaderManager::RenderCommand cmd;
-    cmd.batchType = 2; // Custom callback
-    cmd.depth = 0.0f; // Minimal depth - always on top (UI layer)
-    cmd.layer = 2;     // UI layer
-    cmd.isUI = true;   // Screen-space rendering (skip camera matrix)
-    cmd.shaderID = SHADER_RADIALMENU; // Use shader handle instead of name
-    cmd.customDraw = &RadialMenu::StaticDrawCallback;
-    cmd.customUserData = this;
-    
-    // Set render states for alpha-blended UI
-    cmd.states.zEnable = D3DZB_FALSE;
-    cmd.states.alphaBlendEnable = TRUE;
-    cmd.states.srcBlend = D3DBLEND_SRCALPHA;
-    cmd.states.destBlend = D3DBLEND_INVSRCALPHA;
-    cmd.states.cullMode = D3DCULL_NONE;
-    
-    m_shaderManager->Submit(cmd);
-}
-
-// Static callback for queue-based rendering
-void RadialMenu::StaticDrawCallback(LPDIRECT3DDEVICE9 pDevice, ShaderManager* pShaderMgr, void* pUserData)
-{
-    RadialMenu* self = static_cast<RadialMenu*>(pUserData);
-    if (!self) return;
-    self->DrawRing(pDevice, pShaderMgr);
-}
-
-// Actual draw logic (called from queue via callback)
-void RadialMenu::DrawRing(LPDIRECT3DDEVICE9 pDevice, ShaderManager* pShaderMgr)
-{
     D3DVIEWPORT9 viewport;
     float screenWidth = 1280.0f;
     float screenHeight = 720.0f;
@@ -293,156 +255,110 @@ void RadialMenu::DrawRing(LPDIRECT3DDEVICE9 pDevice, ShaderManager* pShaderMgr)
     D3DXMatrixOrthoOffCenterLH(&projection, 0, screenWidth, screenHeight, 0, 0, 1);
     matWVP = world * projection;
 
-    SetupRenderStates();
+    m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+    m_pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+    m_pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+    m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+    m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+    m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
 
-    // Set shader parameters only (ShaderManager handles Begin/End pass)
-    pShaderMgr->SetMatrix("WorldViewProjection", (float*)&matWVP);
+    m_shaderManager->SetActiveShader(SHADER_RADIALMENU);
+    m_shaderManager->BeginShader();
+    m_shaderManager->BeginPass(0);
+
+    m_shaderManager->SetMatrix("WorldViewProjection", (float*)&matWVP);
 
     D3DXVECTOR4 menuParams((float)m_numSectors, (float)m_selectedIndex, m_innerRadius, m_outerRadius);
     D3DXVECTOR4 centerParams(m_centerRadius, 0.018f, 0.040f, 0.060f);
 
-    pShaderMgr->SetVector("MenuParams", (float*)&menuParams);
-    pShaderMgr->SetVector("CenterParams", (float*)&centerParams);
-    pShaderMgr->SetVector("InnerColor", (float*)&m_innerColor);
-    pShaderMgr->SetVector("OuterColor", (float*)&m_outerColor);
-    pShaderMgr->SetVector("HighlightColor", (float*)&m_highlightColor);
-    pShaderMgr->SetVector("LineColor", (float*)&m_lineColor);
-    pShaderMgr->SetVector("CenterInnerColor", (float*)&m_centerInnerColor);
-    pShaderMgr->SetVector("CenterOuterColor", (float*)&m_centerOuterColor);
+    m_shaderManager->SetVector("MenuParams", (float*)&menuParams);
+    m_shaderManager->SetVector("CenterParams", (float*)&centerParams);
+    m_shaderManager->SetVector("InnerColor", (float*)&m_innerColor);
+    m_shaderManager->SetVector("OuterColor", (float*)&m_outerColor);
+    m_shaderManager->SetVector("HighlightColor", (float*)&m_highlightColor);
+    m_shaderManager->SetVector("LineColor", (float*)&m_lineColor);
+    m_shaderManager->SetVector("CenterInnerColor", (float*)&m_centerInnerColor);
+    m_shaderManager->SetVector("CenterOuterColor", (float*)&m_centerOuterColor);
 
-    pShaderMgr->CommitChanges();
+    m_shaderManager->CommitChanges();
 
     m_quad->Render();
 
-    // StateCache will handle state restoration automatically
-    ShaderManager::StateCache* stateCache = pShaderMgr->GetStateCache();
-    if (stateCache) stateCache->MarkDirty();
+    m_shaderManager->EndPass();
+    m_shaderManager->EndShader();
+
+    m_pDevice->SetTexture(0, NULL);
 }
 
-void RadialMenu::SetupRenderStates()
+void RadialMenu::RenderIcons(Graphics::RenderQueue* renderQueue)
 {
-    if (!m_device || !m_shaderManager) {
-        return;
-    }
-
-    // Use StateCache for centralized state management
-    ShaderManager::StateCache* stateCache = m_shaderManager->GetStateCache();
-    
-    // Set render states through StateCache (tracks changes automatically)
-    if (stateCache) {
-        stateCache->SetRenderState(m_device, D3DRS_ALPHABLENDENABLE, TRUE);
-        stateCache->SetRenderState(m_device, D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
-        stateCache->SetRenderState(m_device, D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
-        stateCache->SetRenderState(m_device, D3DRS_ZENABLE, FALSE);
-        stateCache->SetRenderState(m_device, D3DRS_ZWRITEENABLE, FALSE);
-        stateCache->SetRenderState(m_device, D3DRS_CULLMODE, D3DCULL_NONE);
-    }
-}
-
-void RadialMenu::RestoreRenderStates()
-{
-    if (!m_device || !m_shaderManager) {
-        return;
-    }
-
-    // StateCache will automatically reset states when needed
-    // No manual restore needed - the queue system handles this
-    ShaderManager::StateCache* stateCache = m_shaderManager->GetStateCache();
-    stateCache->MarkDirty(); // Mark states as dirty for next batch
-}
-
-void RadialMenu::RenderIcons(SpriteRenderer* spriteRenderer)
-{
-	char debugMsg[128];
-    if (!spriteRenderer) {
-        OutputDebugStringA("[RadialMenu] RenderIcons: spriteRenderer is NULL!\n");
+    if (!renderQueue) {
+        OutputDebugStringA("[RadialMenu] RenderIcons: renderQueue is NULL!\n");
         return;
     }
 
     const float ringRadius = ((m_innerRadius + m_outerRadius) * 0.5f) * (kMenuSize * 0.5f) * 1.0f;
 
-    // Group icons by atlas to minimize texture switches
-    std::map<std::string, std::vector<int>> atlasToIndices;
-    for (int i = 0; i < (int)m_items.size(); ++i) {
-        atlasToIndices[m_items[i].atlasName].push_back(i);
+    for (int i = 0; i < (int)m_items.size(); i++) {
+        const float angle = GetShaderSectorCenterAngle(i, m_numSectors);
+        float centerX = m_screenX + cosf(angle) * ringRadius;
+        float centerY = m_screenY - sinf(angle) * ringRadius;
+
+        std::tr1::shared_ptr<SpriteAtlas> atlas = TextureRegistry::instance().getAtlas(m_items[i].atlasName);
+        if (!atlas) continue;
+
+        uint32_t spriteIndex = m_items[i].spriteIndex;
+        const SpriteRegion* region = atlas->GetRegion(spriteIndex);
+        if (!region) continue;
+
+        const float drawX = centerX - (region->width * 0.5f);
+        const float drawY = centerY - (region->height * 0.5f);
+
+        Graphics::SpriteCommand cmd;
+        cmd.shaderID = SHADER_UI;
+        cmd.x = drawX;
+        cmd.y = drawY;
+        cmd.width = (float)region->width;
+        cmd.height = (float)region->height;
+        cmd.u0 = region->u0;
+        cmd.v0 = region->v0;
+        cmd.u1 = region->u1;
+        cmd.v1 = region->v1;
+        cmd.color = 0xFFFFFFFF;
+        cmd.depth = 100;
+        cmd.layer = 900;
+        cmd.blendMode = 1;
+        cmd.textureID = 0;
+        renderQueue->Submit(cmd);
     }
 
-    // Render each atlas group
-    std::map<std::string, std::vector<int>>::iterator it;
-    for (it = atlasToIndices.begin(); it != atlasToIndices.end(); ++it) {
-        const std::string& atlasName = it->first;
-        std::vector<int>& indices = it->second;
-
-
-        std::tr1::shared_ptr<SpriteAtlas> atlas = TextureRegistry::instance().getAtlas(atlasName);
-        if (!atlas) {
-            sprintf(debugMsg, "[RadialMenu] Atlas not found: %s\n", atlasName.c_str());
-            OutputDebugStringA(debugMsg);
-            continue;
-        }
-
-        LPDIRECT3DTEXTURE9 texture = atlas->GetTexture();
-        if (!texture) {
-            sprintf(debugMsg, "[RadialMenu] Texture not found for atlas: %s\n", atlasName.c_str());
-            OutputDebugStringA(debugMsg);
-            continue;
-        }
-
-
-        // Validate texture surface
-        D3DSURFACE_DESC desc;
-        if (FAILED(texture->GetLevelDesc(0, &desc))) {
-            OutputDebugStringA("[RadialMenu] ERROR: Texture surface is invalid!\n");
-            continue;
-        }
-
-        // Use SHADER_UI for screen-space UI rendering
-        spriteRenderer->Begin(SHADER_UI, texture, 0.1f, 0, true);
-
-        // Draw all icons from this atlas
-        for (size_t j = 0; j < indices.size(); ++j) {
-            int i = indices[j];
-            const float angle = GetShaderSectorCenterAngle(i, m_numSectors);
-            float centerX = m_screenX + cosf(angle) * ringRadius;
-            float centerY = m_screenY - sinf(angle) * ringRadius;
-
-            uint32_t spriteIndex = m_items[i].spriteIndex;
-            const SpriteRegion* region = atlas->GetRegion(spriteIndex);
-            if (!region) continue;
-
-            const float drawX = centerX - (region->width * 0.5f);
-            const float drawY = centerY - (region->height * 0.5f);
-            spriteRenderer->Draw(drawX, drawY, (float)region->width, (float)region->height,
-                                region->u0, region->v0, region->u1, region->v1, 0xFFFFFFFF);
-        }
-
-        spriteRenderer->End();
-    }
-
-    // Render center icon
     const MenuItem* centerItem = GetCenterItem();
     if (centerItem) {
         std::tr1::shared_ptr<SpriteAtlas> centerAtlas = TextureRegistry::instance().getAtlas(centerItem->atlasName);
         if (centerAtlas) {
-            LPDIRECT3DTEXTURE9 centerTexture = centerAtlas->GetTexture();
-            if (centerTexture) {
-                spriteRenderer->Begin(SHADER_UI, centerTexture, 0.05f, 0, true); // Center icon: closest to viewer
-                uint32_t centerSpriteIndex = centerItem->spriteIndex;
-                const SpriteRegion* centerRegion = centerAtlas->GetRegion(centerSpriteIndex);
-                if (centerRegion) {
-                    const float centerDrawX = m_screenX - (centerRegion->width * 0.5f);
-                    const float centerDrawY = m_screenY - (centerRegion->height * 0.5f);
-                    spriteRenderer->Draw(centerDrawX, centerDrawY, (float)centerRegion->width, (float)centerRegion->height,
-                                        centerRegion->u0, centerRegion->v0, centerRegion->u1, centerRegion->v1, 0xFFF6EBDD);
-                }
-                spriteRenderer->End();
+            uint32_t centerSpriteIndex = centerItem->spriteIndex;
+            const SpriteRegion* centerRegion = centerAtlas->GetRegion(centerSpriteIndex);
+            if (centerRegion) {
+                const float centerDrawX = m_screenX - (centerRegion->width * 0.5f);
+                const float centerDrawY = m_screenY - (centerRegion->height * 0.5f);
+
+                Graphics::SpriteCommand cmd;
+                cmd.shaderID = SHADER_UI;
+                cmd.x = centerDrawX;
+                cmd.y = centerDrawY;
+                cmd.width = (float)centerRegion->width;
+                cmd.height = (float)centerRegion->height;
+                cmd.u0 = centerRegion->u0;
+                cmd.v0 = centerRegion->v0;
+                cmd.u1 = centerRegion->u1;
+                cmd.v1 = centerRegion->v1;
+                cmd.color = 0xFFF6EBDD;
+                cmd.depth = 50;
+                cmd.layer = 900;
+                cmd.blendMode = 1;
+                cmd.textureID = 0;
+                renderQueue->Submit(cmd);
             }
         }
     }
-
-    // Restore GPU state after UI rendering (fixes sprite flickering on map)
-    if (m_renderer) {
-        m_renderer->RestoreFromUI();
-    }
-
 }

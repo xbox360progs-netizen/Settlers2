@@ -304,43 +304,6 @@ void GameEngine::Update(float deltaTime)
         m_inputManager->Update();
     }
 
-    // Debug: D-pad + A/B buttons toggle GBuffer visualization on Xbox 360
-    if (m_renderer && m_inputManager) {
-        Input::Gamepad* gamepad = m_inputManager->GetGamepad();
-        if (gamepad) {
-            // D-pad Up: Albedo
-            if (gamepad->IsButtonPressed(Input::GP_DPadUp)) {
-                m_renderer->m_debugViewMode = Renderer::DEBUG_ALBEDO;
-                OutputDebugStringA("[GameEngine] Debug View: ALBEDO\n");
-            }
-            // D-pad Down: Normal
-            if (gamepad->IsButtonPressed(Input::GP_DPadDown)) {
-                m_renderer->m_debugViewMode = Renderer::DEBUG_NORMAL;
-                OutputDebugStringA("[GameEngine] Debug View: NORMAL\n");
-            }
-            // D-pad Left: Depth
-            if (gamepad->IsButtonPressed(Input::GP_DPadLeft)) {
-                m_renderer->m_debugViewMode = Renderer::DEBUG_DEPTH;
-                OutputDebugStringA("[GameEngine] Debug View: DEPTH\n");
-            }
-            // D-pad Right: Specular
-            if (gamepad->IsButtonPressed(Input::GP_DPadRight)) {
-                m_renderer->m_debugViewMode = Renderer::DEBUG_SPECULAR;
-                OutputDebugStringA("[GameEngine] Debug View: SPECULAR\n");
-            }
-            // Start button: Toggle lighting
-            if (gamepad->IsButtonPressed(Input::GP_Start)) {
-                m_renderer->m_debugViewMode = Renderer::DEBUG_LIGHTING;
-                OutputDebugStringA("[GameEngine] Debug View: LIGHTING\n");
-            }
-            // Back button: Exit debug view
-            if (gamepad->IsButtonPressed(Input::GP_Back)) {
-                m_renderer->m_debugViewMode = Renderer::DEBUG_NONE;
-                OutputDebugStringA("[GameEngine] Debug View: NONE\n");
-            }
-        }
-    }
-
     if (m_sceneManager)
     {
         m_sceneManager->Update(deltaTime);

@@ -123,6 +123,24 @@ void RenderDebugOverlay::FormatStats() {
     if (m_showDrawCalls) {
         sprintf(buf, "Draw Calls: %d", m_stats.drawCalls);
         m_overlayLines.push_back(buf);
+
+        sprintf(buf, "Batches: %d", m_stats.batchCount);
+        m_overlayLines.push_back(buf);
+
+        sprintf(buf, "Sprites: %d", m_stats.spriteCount);
+        m_overlayLines.push_back(buf);
+
+        sprintf(buf, "VB Flushes: %d", m_stats.vbFlushes);
+        m_overlayLines.push_back(buf);
+
+        sprintf(buf, "Texture Switches: %d", m_stats.textureSwitches);
+        m_overlayLines.push_back(buf);
+
+        sprintf(buf, "Shader Switches: %d", m_stats.shaderSwitches);
+        m_overlayLines.push_back(buf);
+
+        sprintf(buf, "State Changes: %d", m_stats.stateChanges);
+        m_overlayLines.push_back(buf);
     }
 
     if (m_showTriangles) {
@@ -132,20 +150,6 @@ void RenderDebugOverlay::FormatStats() {
 
     if (m_showLightCount) {
         sprintf(buf, "Lights: %d (Shadows: %d)", m_stats.lightCount, m_stats.shadowMapCount);
-        m_overlayLines.push_back(buf);
-    }
-
-    if (m_showDrawCalls) {
-        sprintf(buf, "Texture Switches: %d", m_stats.textureSwitches);
-        m_overlayLines.push_back(buf);
-
-        sprintf(buf, "Shader Switches: %d", m_stats.shaderSwitches);
-        m_overlayLines.push_back(buf);
-
-        sprintf(buf, "State Changes: %d", m_stats.stateChanges);
-        m_overlayLines.push_back(buf);
-
-        sprintf(buf, "RT Switches: %d", m_stats.rtSwitches);
         m_overlayLines.push_back(buf);
     }
 
@@ -162,8 +166,8 @@ void RenderDebugOverlay::FormatStats() {
         m_overlayLines.push_back(buf);
     }
 
-    if (m_stats.batchCount > 0) {
-        sprintf(buf, "Batches: %d (Instanced: %d)", m_stats.batchCount, m_stats.instancedDraws);
+    if (m_stats.instancedDraws > 0) {
+        sprintf(buf, "Instanced: %d", m_stats.instancedDraws);
         m_overlayLines.push_back(buf);
     }
 }

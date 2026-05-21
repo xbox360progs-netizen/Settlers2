@@ -22,10 +22,9 @@ public:
     void Shutdown();
     void BeginFrame();
     void EndFrame();
-    void EndSceneOnly(); // Xbox 360: End scene without presenting (Present is in render thread)
+    void EndSceneOnly();
     void Clear(D3DCOLOR color);
 
-    // Xbox 360 device loss handling
     void OnLostDevice();
     void OnResetDevice();
 
@@ -36,11 +35,9 @@ public:
     float* GetProjectionMatrix() { return m_projMatrix; }
     LPDIRECT3DVERTEXDECLARATION9 GetVertexDecl() const { return m_pVertexDecl; }
 
-    // Shader management
     ShaderManager* GetShaderManager() { return m_pShaderManager; }
     void SetShaderManager(ShaderManager* pShaderManager) { m_pShaderManager = pShaderManager; }
-    
-    // SpriteRenderer access
+
     SpriteRenderer* GetSpriteRenderer() { return m_pSpriteRenderer; }
     void SetSpriteRenderer(SpriteRenderer* pSpriteRenderer);
     RenderFrame* GetRenderFrame() { return m_pRenderFrame; }
@@ -48,36 +45,13 @@ public:
     HRESULT LoadShader(ShaderID id, const char* filepath, const char* techniqueName = "SpriteBatchTech");
     bool SetShader(ShaderID id);
     void ResetToDefaultShader();
-    // Prepare render states for UI rendering
+
     void PrepareForUI();
-
-    // Restore render states after UI rendering (for map rendering)
-    void RestoreFromUI();
-
-    // Setup 2D render states (preset to prevent 3D world states from breaking UI)
     void Setup2DRenderStates();
 
-    // Simple sprite rendering (for testing/diagnostics - no batching)
     void DrawSingleSprite(Texture* texture, float x, float y, float width, float height, D3DCOLOR color = 0xFFFFFFFF);
     void DrawSingleSprite(Texture* texture, float x, float y, float width, float height,
                           float u0, float v0, float u1, float v1, D3DCOLOR color = 0xFFFFFFFF);
-
-    // Fullscreen quad for deferred lighting pass
-    void DrawFullscreenQuad();
-
-    // G-Buffer management for deferred rendering
-    void BindGBuffer();
-    void UnbindGBuffer();
-    void ClearGBuffers();
-    void ApplyDeferredLighting(int debugView = 0);
-
-    // Debug view modes: 0=normal, 1=albedo, 2=normal, 3=depth, 4=specular, 5=lighting
-    static const int DEBUG_NONE = 0;
-    static const int DEBUG_ALBEDO = 1;
-    static const int DEBUG_NORMAL = 2;
-    static const int DEBUG_DEPTH = 3;
-    static const int DEBUG_SPECULAR = 4;
-    static const int DEBUG_LIGHTING = 5;
 
 private:
     void SetProjectionMatrix(float width, float height);
@@ -97,17 +71,4 @@ private:
 
     float m_projMatrix[16];
     LPDIRECT3DVERTEXDECLARATION9 m_pVertexDecl;
-
-    // G-buffers for deferred rendering
-    LPDIRECT3DSURFACE9 m_pGBufferPos;   // Position (R32G32B32A32_FLOAT)
-    LPDIRECT3DSURFACE9 m_pGBufferNormal; // Normal (A16B16G16R16F or similar)
-    LPDIRECT3DSURFACE9 m_pGBufferAlbedo; // Albedo (A8R8G8B8)
-    LPDIRECT3DSURFACE9 m_pGBufferSpec;   // Specular + gloss (A8R8G8B8)
-    LPDIRECT3DSURFACE9 m_pGBufferDepth;  // Depth (D24S8 or D32)
-
-public:
-    int m_debugViewMode;
-    void ToggleDebugView() {
-        m_debugViewMode = (m_debugViewMode + 1) % 6;
-    }
 };

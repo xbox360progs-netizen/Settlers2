@@ -10,8 +10,7 @@
 Renderer::Renderer()
     : m_pD3D(NULL), m_pDevice(NULL), m_pBackBuffer(NULL),
       m_pVertexDecl(NULL), m_pVertexShader(NULL), m_pPixelShader(NULL),
-      m_pShaderManager(NULL), m_pSpriteRenderer(NULL), m_pRenderFrame(NULL), m_pGPUTimer(NULL),
-      m_debugViewMode(0) {
+      m_pShaderManager(NULL), m_pSpriteRenderer(NULL), m_pRenderFrame(NULL), m_pGPUTimer(NULL) {
     ZeroMemory(&m_d3dpp, sizeof(m_d3dpp));
     ZeroMemory(m_projMatrix, sizeof(m_projMatrix));
 }
@@ -31,31 +30,19 @@ HRESULT Renderer::Initialize() {
     m_d3dpp.MultiSampleType = D3DMULTISAMPLE_NONE;
     m_d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
     m_d3dpp.EnableAutoDepthStencil = FALSE;
-    OutputDebugStringA("[R] Setting IMMEDIATE mode\n");
-    
-    m_d3dpp.BackBufferWidth = 1280;
-    m_d3dpp.BackBufferHeight = 720;
-    m_d3dpp.BackBufferFormat = D3DFMT_A8R8G8B8;
-    m_d3dpp.BackBufferCount = 1;
-    m_d3dpp.MultiSampleType = D3DMULTISAMPLE_NONE;
-    m_d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
-    m_d3dpp.EnableAutoDepthStencil = FALSE;
     m_d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
-    
+
     DWORD flags = D3DCREATE_HARDWARE_VERTEXPROCESSING;
 
     HRESULT hr = m_pD3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, NULL, flags, &m_d3dpp, &m_pDevice);
     if (FAILED(hr)) { OutputDebugStringA("Device Create Failed!\n"); return hr; }
-    
+
     m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
 
-    // ShaderManager is now set externally via SetShaderManager()
     if (!m_pShaderManager) {
         OutputDebugStringA("[Renderer] WARNING: m_pShaderManager is NULL - call SetShaderManager() before Initialize()\n");
     }
 
-    // Shaders are now loaded by GameEngine, not here
-    
     D3DVERTEXELEMENT9 decl[] = {
         { 0,  0, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0 },
         { 0, 12, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 0 },
@@ -73,124 +60,44 @@ HRESULT Renderer::Initialize() {
         OutputDebugStringA("Vertex declaration created OK\n");
     }
 
-    // Shaders are now loaded by ShaderManager::Init() - no duplicate loading here
-
     SetProjectionMatrix(1280.0f, 720.0f);
 
-    // Get the back buffer surface for dimensions
     hr = m_pDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &m_pBackBuffer);
     if (FAILED(hr)) {
         OutputDebugStringA("[Renderer] ERROR: GetBackBuffer failed!\n");
         return hr;
     }
 
-    D3DSURFACE_DESC desc;
-    m_pBackBuffer->GetDesc(&desc);
+    m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+    m_pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+    m_pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+    m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+    m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
 
-    // Position buffer (R32G32B32A32_FLOAT)
-    hr = m_pDevice->CreateRenderTarget(
-        desc.Width, desc.Height,
-        D3DFMT_A32B32G32R32F, // Xbox 360: A32B32G32R32F ��� �������
-        D3DMULTISAMPLE_NONE,
-        0,
-        TRUE,
-        &m_pGBufferPos,
-        NULL
-    );
-    if (FAILED(hr)) { OutputDebugStringA("[Renderer] ERROR: CreateRenderTarget for Pos failed!\n"); goto cleanup; }
+    m_pDevice->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
+    m_pDevice->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
+    m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+    m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 
-    // Normal buffer (A16B16G16R16F)
-    hr = m_pDevice->CreateRenderTarget(
-        desc.Width, desc.Height,
-        D3DFMT_A16B16G16R16F,
-        D3DMULTISAMPLE_NONE,
-        0,
-        TRUE,
-        &m_pGBufferNormal,
-        NULL
-    );
-    if (FAILED(hr)) { OutputDebugStringA("[Renderer] ERROR: CreateRenderTarget for Normal failed!\n"); goto cleanup; }
-
-    // Albedo buffer (A8R8G8B8)
-    hr = m_pDevice->CreateRenderTarget(
-        desc.Width, desc.Height,
-        D3DFMT_A8R8G8B8,
-        D3DMULTISAMPLE_NONE,
-        0,
-        TRUE,
-        &m_pGBufferAlbedo,
-        NULL
-    );
-    if (FAILED(hr)) { OutputDebugStringA("[Renderer] ERROR: CreateRenderTarget for Albedo failed!\n"); goto cleanup; }
-
-    // Specular buffer (A8R8G8B8) - A = gloss, RGB = specular color
-    hr = m_pDevice->CreateRenderTarget(
-        desc.Width, desc.Height,
-        D3DFMT_A8R8G8B8,
-        D3DMULTISAMPLE_NONE,
-        0,
-        TRUE,
-        &m_pGBufferSpec,
-        NULL
-    );
-    if (FAILED(hr)) { OutputDebugStringA("[Renderer] ERROR: CreateRenderTarget for Specular failed!\n"); goto cleanup; }
-
-    // Depth buffer (D24S8)
-    hr = m_pDevice->CreateDepthStencilSurface(
-        desc.Width, desc.Height,
-        D3DFMT_D24S8,
-        D3DMULTISAMPLE_NONE,
-        0,
-        TRUE,
-        &m_pGBufferDepth,
-        NULL
-    );
-    if (FAILED(hr)) { OutputDebugStringA("[Renderer] ERROR: CreateDepthStencilSurface failed!\n"); goto cleanup; }
-
-    // If we got here, all succeeded
-    hr = S_OK;
-
-    cleanup:
-    if (FAILED(hr)) {
-        // Clean up any successfully created resources
-        if (m_pGBufferPos) { m_pGBufferPos->Release(); m_pGBufferPos = NULL; }
-        if (m_pGBufferNormal) { m_pGBufferNormal->Release(); m_pGBufferNormal = NULL; }
-        if (m_pGBufferAlbedo) { m_pGBufferAlbedo->Release(); m_pGBufferAlbedo = NULL; }
-        if (m_pGBufferSpec) { m_pGBufferSpec->Release(); m_pGBufferSpec = NULL; }
-        if (m_pGBufferDepth) { m_pGBufferDepth->Release(); m_pGBufferDepth = NULL; }
-        if (m_pBackBuffer) { m_pBackBuffer->Release(); m_pBackBuffer = NULL; }
+    m_pGPUTimer = new GPUTimer();
+    if (m_pGPUTimer) {
+        m_pGPUTimer->Initialize(m_pDevice);
     }
 
-m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-m_pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
-m_pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
-m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
-m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+    m_pRenderFrame = new RenderFrame();
+    if (m_pRenderFrame) {
+        m_pRenderFrame->Initialize(m_pDevice);
+        m_pRenderFrame->SetSpriteRenderer(m_pSpriteRenderer);
+        m_pRenderFrame->SetGPUTimer(m_pGPUTimer);
+        OutputDebugStringA("[Renderer] RenderFrame initialized\n");
+    }
 
-m_pDevice->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
-m_pDevice->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
-m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
-m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
-
-m_pGPUTimer = new GPUTimer();
-if (m_pGPUTimer) {
-    m_pGPUTimer->Initialize(m_pDevice);
-}
-
-m_pRenderFrame = new RenderFrame();
-if (m_pRenderFrame) {
-    m_pRenderFrame->Initialize(m_pDevice);
-    m_pRenderFrame->SetDependencies(m_pShaderManager, m_pSpriteRenderer);
-    m_pRenderFrame->SetGPUTimer(m_pGPUTimer);
-    OutputDebugStringA("[Renderer] RenderFrame initialized\n");
-}
-
-return S_OK;
+    return S_OK;
 }
 
 void Renderer::SetSpriteRenderer(SpriteRenderer* pSpriteRenderer) {
     m_pSpriteRenderer = pSpriteRenderer;
-	char buf[256];
+    char buf[256];
     sprintf(buf, "[Renderer] SetSpriteRenderer: %p\n", pSpriteRenderer);
     OutputDebugStringA(buf);
 }
@@ -231,19 +138,7 @@ void Renderer::PrepareForUI() {
     m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 }
 
-void Renderer::RestoreFromUI() {
-    if (!m_pDevice) return;
-
-    m_pDevice->SetRenderState(D3DRS_ZENABLE, TRUE);
-    m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
-
-    m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_WRAP);
-    m_pDevice->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_WRAP);
-}
-
 void Renderer::Shutdown() {
-    // ShaderManager is now owned by GameEngine, don't shut it down here
-    
     if (m_pRenderFrame) {
         m_pRenderFrame->Shutdown();
         delete m_pRenderFrame;
@@ -258,11 +153,6 @@ void Renderer::Shutdown() {
     if (m_pVertexShader) { m_pVertexShader->Release(); m_pVertexShader = NULL; }
     if (m_pPixelShader) { m_pPixelShader->Release(); m_pPixelShader = NULL; }
     if (m_pVertexDecl) { m_pVertexDecl->Release(); m_pVertexDecl = NULL; }
-    if (m_pGBufferPos) { m_pGBufferPos->Release(); m_pGBufferPos = NULL; }
-    if (m_pGBufferNormal) { m_pGBufferNormal->Release(); m_pGBufferNormal = NULL; }
-    if (m_pGBufferAlbedo) { m_pGBufferAlbedo->Release(); m_pGBufferAlbedo = NULL; }
-    if (m_pGBufferSpec) { m_pGBufferSpec->Release(); m_pGBufferSpec = NULL; }
-    if (m_pGBufferDepth) { m_pGBufferDepth->Release(); m_pGBufferDepth = NULL; }
     if (m_pBackBuffer) { m_pBackBuffer->Release(); m_pBackBuffer = NULL; }
     if (m_pDevice) { m_pDevice->Release(); m_pDevice = NULL; }
     if (m_pD3D) { m_pD3D->Release(); m_pD3D = NULL; }
@@ -276,9 +166,7 @@ void Renderer::BeginFrame() {
 
 void Renderer::EndSceneOnly() {
     if (!m_pDevice) return;
-
     m_pDevice->EndScene();
-    // Xbox 360: Present() is called in render thread, not here
 }
 
 void Renderer::EndFrame() {
@@ -287,10 +175,7 @@ void Renderer::EndFrame() {
     OutputDebugStringA("[Renderer::EndFrame] Calling Present...\n");
     m_pDevice->Present(NULL, NULL, NULL, NULL);
     OutputDebugStringA("[Renderer::EndFrame] Present done\n");
-    // REMOVED: ResetVertexCount() is already called in ResetBatchState() inside SceneManager::Render()
-    // Double reset causes issues with frame timing
 }
-        
 
 void Renderer::Clear(D3DCOLOR color) {
     if (m_pDevice) m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, color, 1.0f, 0);
@@ -319,91 +204,12 @@ void Renderer::OnResetDevice() {
 
     SetProjectionMatrix(1280.0f, 720.0f);
 
-        HRESULT hr;
-
-        // Get the back buffer surface for dimensions
-        hr = m_pDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &m_pBackBuffer);
-        if (FAILED(hr)) {
-            OutputDebugStringA("[Renderer] ERROR: GetBackBuffer failed!\n");
-            return;
-        }
-
-        D3DSURFACE_DESC desc;
-        m_pBackBuffer->GetDesc(&desc);
-
-        // Position buffer (R32G32B32A32_FLOAT)
-        hr = m_pDevice->CreateRenderTarget(
-            desc.Width, desc.Height,
-            D3DFMT_A32B32G32R32F, // Xbox 360: A32B32G32R32F ��� �������
-            D3DMULTISAMPLE_NONE,
-            0,
-            TRUE,
-            &m_pGBufferPos,
-            NULL
-        );
-        if (FAILED(hr)) { OutputDebugStringA("[Renderer] ERROR: CreateRenderTarget for Pos failed!\n"); goto cleanup; }
-
-        // Normal buffer (A16B16G16R16F)
-        hr = m_pDevice->CreateRenderTarget(
-            desc.Width, desc.Height,
-            D3DFMT_A16B16G16R16F,
-            D3DMULTISAMPLE_NONE,
-            0,
-            TRUE,
-            &m_pGBufferNormal,
-            NULL
-        );
-        if (FAILED(hr)) { OutputDebugStringA("[Renderer] ERROR: CreateRenderTarget for Normal failed!\n"); goto cleanup; }
-
-        // Albedo buffer (A8R8G8B8)
-        hr = m_pDevice->CreateRenderTarget(
-            desc.Width, desc.Height,
-            D3DFMT_A8R8G8B8,
-            D3DMULTISAMPLE_NONE,
-            0,
-            TRUE,
-            &m_pGBufferAlbedo,
-            NULL
-        );
-        if (FAILED(hr)) { OutputDebugStringA("[Renderer] ERROR: CreateRenderTarget for Albedo failed!\n"); goto cleanup; }
-
-        // Specular buffer (A8R8G8B8) - A = gloss, RGB = specular color
-        hr = m_pDevice->CreateRenderTarget(
-            desc.Width, desc.Height,
-            D3DFMT_A8R8G8B8,
-            D3DMULTISAMPLE_NONE,
-            0,
-            TRUE,
-            &m_pGBufferSpec,
-            NULL
-        );
-        if (FAILED(hr)) { OutputDebugStringA("[Renderer] ERROR: CreateRenderTarget for Specular failed!\n"); goto cleanup; }
-
-        // Depth buffer (D24S8)
-        hr = m_pDevice->CreateDepthStencilSurface(
-            desc.Width, desc.Height,
-            D3DFMT_D24S8,
-            D3DMULTISAMPLE_NONE,
-            0,
-            TRUE,
-            &m_pGBufferDepth,
-            NULL
-        );
-        if (FAILED(hr)) { OutputDebugStringA("[Renderer] ERROR: CreateDepthStencilSurface failed!\n"); goto cleanup; }
-
-        // If we got here, all succeeded
-        hr = S_OK;
-
-        cleanup:
-        if (FAILED(hr)) {
-            // Clean up any successfully created resources
-            if (m_pGBufferPos) { m_pGBufferPos->Release(); m_pGBufferPos = NULL; }
-            if (m_pGBufferNormal) { m_pGBufferNormal->Release(); m_pGBufferNormal = NULL; }
-            if (m_pGBufferAlbedo) { m_pGBufferAlbedo->Release(); m_pGBufferAlbedo = NULL; }
-            if (m_pGBufferSpec) { m_pGBufferSpec->Release(); m_pGBufferSpec = NULL; }
-            if (m_pGBufferDepth) { m_pGBufferDepth->Release(); m_pGBufferDepth = NULL; }
-            if (m_pBackBuffer) { m_pBackBuffer->Release(); m_pBackBuffer = NULL; }
-        }
+    HRESULT hr;
+    hr = m_pDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &m_pBackBuffer);
+    if (FAILED(hr)) {
+        OutputDebugStringA("[Renderer] ERROR: GetBackBuffer failed!\n");
+        return;
+    }
 }
 
 void Renderer::SetProjectionMatrix(float width, float height) {
@@ -463,15 +269,14 @@ void Renderer::DrawSingleSprite(Texture* texture, float x, float y, float width,
     m_pShaderManager->BeginShader();
     m_pShaderManager->BeginPass(0);
 
-    // Set WVP matrix
     D3DXMATRIX ortho;
     D3DXMatrixOrthoOffCenterLH(&ortho, 0, 1280, 720, 0, 0, 1);
-    
+
     D3DXHANDLE hWVP = pShader->pEffect->GetParameterByName(NULL, "WVP");
     if (hWVP) {
         pShader->pEffect->SetMatrix(hWVP, &ortho);
     }
-    
+
     D3DXHANDLE hMatOrtho = pShader->pEffect->GetParameterByName(NULL, "matOrtho");
     if (hMatOrtho) {
         pShader->pEffect->SetMatrix(hMatOrtho, &ortho);
@@ -486,127 +291,3 @@ void Renderer::DrawSingleSprite(Texture* texture, float x, float y, float width,
     m_pShaderManager->EndPass();
     m_pShaderManager->EndShader();
 }
-
-void Renderer::DrawFullscreenQuad() {
-    if (!m_pDevice || !m_pVertexDecl) {
-        OutputDebugStringA("[Renderer] DrawFullscreenQuad: Device or VertexDecl is NULL\n");
-        return;
-    }
-
-    struct QuadVertex {
-        float x, y, z;
-        float u, v;
-    };
-
-    QuadVertex vertices[4] = {
-        { -1.0f, -1.0f, 0.0f, 0.0f, 0.0f },
-        {  1.0f, -1.0f, 0.0f, 1.0f, 0.0f },
-        {  1.0f,  1.0f, 0.0f, 1.0f, 1.0f },
-        { -1.0f,  1.0f, 0.0f, 0.0f, 1.0f }
-    };
-
-    m_pDevice->SetVertexDeclaration(m_pVertexDecl);
-    m_pDevice->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 2, vertices, sizeof(QuadVertex));
-}
-
-void Renderer::BindGBuffer()
-{
-    if (!m_pDevice) return;
-
-    m_pDevice->SetRenderTarget(0, m_pGBufferPos);
-    m_pDevice->SetRenderTarget(1, m_pGBufferNormal);
-    m_pDevice->SetRenderTarget(2, m_pGBufferAlbedo);
-    m_pDevice->SetRenderTarget(3, m_pGBufferSpec);
-
-    m_pDevice->SetDepthStencilSurface(m_pGBufferDepth);
-}
-
-void Renderer::UnbindGBuffer()
-{
-    if (!m_pDevice) return;
-
-    m_pDevice->SetRenderTarget(0, NULL);
-    m_pDevice->SetRenderTarget(1, NULL);
-    m_pDevice->SetRenderTarget(2, NULL);
-    m_pDevice->SetRenderTarget(3, NULL);
-
-    m_pDevice->SetDepthStencilSurface(NULL);
-}
-
-void Renderer::ClearGBuffers()
-{
-    if (!m_pDevice) return;
-
-    m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0,0,0), 1.0f, 0);
-}
-
-void Renderer::ApplyDeferredLighting(int debugView)
-{
-    if (!m_pDevice) return;
-
-    m_pDevice->SetRenderTarget(0, m_pBackBuffer);
-    m_pDevice->SetRenderTarget(1, NULL);
-    m_pDevice->SetRenderTarget(2, NULL);
-    m_pDevice->SetRenderTarget(3, NULL);
-
-    m_pDevice->SetDepthStencilSurface(NULL);
-
-    m_pDevice->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0,0,0), 1.0f, 0);
-
-    if (!m_pShaderManager) {
-        OutputDebugStringA("[Renderer::ApplyDeferredLighting] ERROR: m_pShaderManager is NULL\n");
-        return;
-    }
-
-    ShaderManager::Shader* pShader = m_pShaderManager->GetShader(SHADER_DEFERRED_LIGHTING);
-    if (!pShader || !pShader->pEffect) {
-        OutputDebugStringA("[Renderer::ApplyDeferredLighting] ERROR: DeferredLighting shader not loaded\n");
-        return;
-    }
-
-    OutputDebugStringA("[Renderer::ApplyDeferredLighting] Applying deferred lighting...\n");
-
-    m_pShaderManager->SetActiveShader(SHADER_DEFERRED_LIGHTING);
-    m_pShaderManager->BeginShader();
-    m_pShaderManager->BeginPass(0);
-
-    D3DXHANDLE hPosTex = pShader->pEffect->GetParameterByName(NULL, "g_gBufferPos");
-    D3DXHANDLE hNormalTex = pShader->pEffect->GetParameterByName(NULL, "g_gBufferNormal");
-    D3DXHANDLE hAlbedoTex = pShader->pEffect->GetParameterByName(NULL, "g_gBufferAlbedo");
-    D3DXHANDLE hSpecTex = pShader->pEffect->GetParameterByName(NULL, "g_gBufferSpec");
-    D3DXHANDLE hDepthTex = pShader->pEffect->GetParameterByName(NULL, "g_gBufferDepth");
-
-    if (hPosTex) pShader->pEffect->SetTexture(hPosTex, (LPDIRECT3DBASETEXTURE9)m_pGBufferPos);
-    if (hNormalTex) pShader->pEffect->SetTexture(hNormalTex, (LPDIRECT3DBASETEXTURE9)m_pGBufferNormal);
-    if (hAlbedoTex) pShader->pEffect->SetTexture(hAlbedoTex, (LPDIRECT3DBASETEXTURE9)m_pGBufferAlbedo);
-    if (hSpecTex) pShader->pEffect->SetTexture(hSpecTex, (LPDIRECT3DBASETEXTURE9)m_pGBufferSpec);
-    if (hDepthTex) pShader->pEffect->SetTexture(hDepthTex, (LPDIRECT3DBASETEXTURE9)m_pGBufferDepth);
-
-    D3DXHANDLE hDebugMode = pShader->pEffect->GetParameterByName(NULL, "debugMode");
-    if (hDebugMode) {
-        pShader->pEffect->SetInt(hDebugMode, debugView);
-    }
-
-    D3DXHANDLE hLightDir = pShader->pEffect->GetParameterByName(NULL, "lightDir");
-    D3DXHANDLE hLightColor = pShader->pEffect->GetParameterByName(NULL, "lightColor");
-    D3DXHANDLE hAmbient = pShader->pEffect->GetParameterByName(NULL, "ambientColor");
-
-    D3DXVECTOR4 lightDirVec(0.5f, 1.0f, 0.5f, 0.0f);
-    D3DXVECTOR4 lightColorVec(1.0f, 0.95f, 0.9f, 1.0f);
-    D3DXVECTOR4 ambientVec(0.2f, 0.2f, 0.25f, 1.0f);
-
-    if (hLightDir) pShader->pEffect->SetVector(hLightDir, &lightDirVec);
-    if (hLightColor) pShader->pEffect->SetVector(hLightColor, &lightColorVec);
-    if (hAmbient) pShader->pEffect->SetVector(hAmbient, &ambientVec);
-
-    pShader->pEffect->CommitChanges();
-
-    DrawFullscreenQuad();
-
-    m_pShaderManager->EndPass();
-    m_pShaderManager->EndShader();
-
-    OutputDebugStringA("[Renderer::ApplyDeferredLighting] Done\n");
-}
-
-

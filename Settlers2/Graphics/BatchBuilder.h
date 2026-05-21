@@ -3,28 +3,20 @@
 #include <d3dx9.h>
 #include <vector>
 #include "RenderTypes.h"
-#include "ShaderManager.h"
 
 namespace Graphics {
 
 struct RenderBatch {
-    ShaderID shaderID;
-    LPDIRECT3DTEXTURE9 texture;
-    int startVertex;
-    int vertexCount;
-    int primitiveCount;
-    float minDepth;
-    float maxDepth;
+    WORD textureID;
+    WORD shaderID;
+    BYTE blendMode;
 
-    RenderBatch() 
-        : shaderID(SHADER_INVALID)
-        , texture(NULL)
-        , startVertex(0)
-        , vertexCount(0)
-        , primitiveCount(0)
-        , minDepth(1.0f)
-        , maxDepth(0.0f) 
-    {}
+    DWORD vertexOffset;
+    DWORD vertexCount;
+
+    RenderBatch()
+        : textureID(0), shaderID(0), blendMode(0),
+          vertexOffset(0), vertexCount(0) {}
 };
 
 class BatchBuilder {
@@ -48,9 +40,7 @@ public:
     void Clear();
 
 private:
-    void CreateBatch(const RenderCommand& cmd);
-    void FlushCurrentBatch();
-    void BuildVertexData();
+    void FlushVertexStream();
 
     LPDIRECT3DDEVICE9 m_device;
 
@@ -60,9 +50,9 @@ private:
     LPDIRECT3DVERTEXBUFFER9 m_vertexBuffer;
     int m_maxVertices;
 
-    ShaderID m_currentShader;
-    LPDIRECT3DTEXTURE9 m_currentTexture;
-    int m_batchStartVertex;
+    WORD m_currentTexture;
+    WORD m_currentShader;
+    BYTE m_currentBlend;
 };
 
 }

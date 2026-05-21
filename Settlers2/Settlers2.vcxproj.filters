@@ -42,12 +42,6 @@
     <Filter Include="Graphics\Debug">
       <UniqueIdentifier>{90ae412e-2648-482e-80d4-bff043607545}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Graphics\Passes">
-      <UniqueIdentifier>{f194e7f1-c28d-4f84-953f-afd90f4a7dff}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Graphics\PostFX">
-      <UniqueIdentifier>{19f87679-09e7-4ee5-aaea-6410c7eb8ee3}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="ReadMe.txt" />
@@ -254,15 +248,6 @@
     <ClInclude Include="World\Components\Resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\AdvancedEffects.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\CommandAllocator.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\CommandQueueManager.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\CommonVertex.h">
       <Filter>Graphics</Filter>
     </ClInclude>
@@ -272,16 +257,7 @@
     <ClInclude Include="Graphics\FallbackResources.h">
       <Filter>Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\GBufferValidator.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\GPUDebug.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\GPUDrivenRenderer.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\GPUMemoryAuditor.h">
       <Filter>Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\Light.h">
@@ -293,9 +269,6 @@
     <ClInclude Include="Graphics\Passes.h">
       <Filter>Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\PipelineFreeze.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\PostFX.h">
       <Filter>Graphics</Filter>
     </ClInclude>
@@ -305,19 +278,7 @@
     <ClInclude Include="Graphics\RenderDebugOverlay.h">
       <Filter>Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\RenderDocTool.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\RenderGraph.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\RenderLayers.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\RenderPassBase.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\RenderPipeline.h">
       <Filter>Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\RenderQueue.h">
@@ -335,9 +296,6 @@
     <ClInclude Include="Graphics\SpriteShadow.h">
       <Filter>Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\SSAO.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\Xbox360EDRAM.h">
       <Filter>Graphics</Filter>
     </ClInclude>
@@ -346,21 +304,6 @@
     </ClInclude>
     <ClInclude Include="Graphics\Debug\DebugOverlay.h">
       <Filter>Graphics\Debug</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Passes\GeometryPass.h">
-      <Filter>Graphics\Passes</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Passes\IRenderPass.h">
-      <Filter>Graphics\Passes</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Passes\LightingPass.h">
-      <Filter>Graphics\Passes</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Passes\TransparentPass.h">
-      <Filter>Graphics\Passes</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Passes\UIPass.h">
-      <Filter>Graphics\Passes</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\SpriteRenderer.h">
       <Filter>Graphics</Filter>
@@ -380,17 +323,8 @@
     <ClInclude Include="Graphics\RenderFrame.h">
       <Filter>Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Material.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\RenderContext.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\PostFX\PostFXChain.h">
-      <Filter>Graphics\PostFX</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\PostFX\PostFXPasses.h">
-      <Filter>Graphics\PostFX</Filter>
+    <ClInclude Include="World\Components\Resource.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -565,31 +499,13 @@
     <ClCompile Include="UI\GridMenu.cpp">
       <Filter>UI</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\AdvancedEffects.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\CommandAllocator.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\CommandQueueManager.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
     <ClCompile Include="Graphics\DebugOverlay.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\FallbackResources.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\GBufferValidator.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
     <ClCompile Include="Graphics\GPUDebug.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\GPUDrivenRenderer.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\GPUMemoryAuditor.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\Light.cpp">
@@ -610,18 +526,6 @@
     <ClCompile Include="Graphics\RenderDebugOverlay.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\RenderDocTool.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\RenderGraph.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\RenderPassBase.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\RenderPipeline.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
     <ClCompile Include="Graphics\RenderQueue.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
@@ -634,26 +538,11 @@
     <ClCompile Include="Graphics\ShadowSystem.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\SSAO.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
     <ClCompile Include="Graphics\Xbox360EDRAM.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\Debug\DebugOverlay.cpp">
       <Filter>Graphics\Debug</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Passes\GeometryPass.cpp">
-      <Filter>Graphics\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Passes\LightingPass.cpp">
-      <Filter>Graphics\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Passes\TransparentPass.cpp">
-      <Filter>Graphics\Passes</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Passes\UIPass.cpp">
-      <Filter>Graphics\Passes</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\SpriteRenderer.cpp">
       <Filter>Graphics</Filter>
@@ -664,12 +553,6 @@
     <ClCompile Include="Graphics\RenderFrame.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\Material.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\RenderContext.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
     <ClCompile Include="Core\ThreadSync.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
@@ -678,12 +561,6 @@
     </ClCompile>
     <ClCompile Include="UI\TilePalette.cpp">
       <Filter>UI</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\PostFX\PostFXChain.cpp">
-      <Filter>Graphics\PostFX</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\PostFX\PostFXPasses.cpp">
-      <Filter>Graphics\PostFX</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

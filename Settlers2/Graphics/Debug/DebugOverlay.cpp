@@ -12,12 +12,6 @@ static void OutputDebugStringA(const char* msg) {
 DebugOverlay::DebugOverlay()
     : m_device(NULL)
     , m_visible(false)
-    , m_debugView(DEBUG_VIEW_NONE)
-    , m_gBufferPos(NULL)
-    , m_gBufferNormal(NULL)
-    , m_gBufferAlbedo(NULL)
-    , m_gBufferSpec(NULL)
-    , m_gBufferDepth(NULL)
 {
 }
 
@@ -34,11 +28,6 @@ void DebugOverlay::Shutdown() {
     m_device = NULL;
     m_gpuResults.clear();
     m_passTimings.clear();
-    m_gBufferPos = NULL;
-    m_gBufferNormal = NULL;
-    m_gBufferAlbedo = NULL;
-    m_gBufferSpec = NULL;
-    m_gBufferDepth = NULL;
 }
 
 void DebugOverlay::SetGPUTimerResults(const std::vector<GPUTimerResult>& results) {
@@ -52,26 +41,11 @@ void DebugOverlay::SetPassTimings(const PassTiming* timings, int count) {
     }
 }
 
-void DebugOverlay::SetGBufferTextures(
-    IDirect3DTexture9* pos,
-    IDirect3DTexture9* normal,
-    IDirect3DTexture9* albedo,
-    IDirect3DTexture9* spec,
-    IDirect3DTexture9* depth)
-{
-    m_gBufferPos = pos;
-    m_gBufferNormal = normal;
-    m_gBufferAlbedo = albedo;
-    m_gBufferSpec = spec;
-    m_gBufferDepth = depth;
-}
-
 void DebugOverlay::Render() {
     if (!m_visible) return;
 
     RenderStats();
     RenderPassTimings();
-    RenderMRTPreview();
 }
 
 void DebugOverlay::RenderStats() {
@@ -130,19 +104,6 @@ void DebugOverlay::RenderPassTimings() {
             OutputDebugStringA(buffer);
         }
     }
-}
-
-void DebugOverlay::RenderMRTPreview() {
-    if (!m_device) return;
-    if (m_debugView == DEBUG_VIEW_NONE) return;
-
-    const char* viewNames[DEBUG_VIEW_COUNT] = {
-        "None", "Albedo", "Normal", "Depth", "Specular", "Lighting"
-    };
-
-    char buffer[128];
-    sprintf_s(buffer, "Debug View: %s", viewNames[m_debugView]);
-    OutputDebugStringA(buffer);
 }
 
 }

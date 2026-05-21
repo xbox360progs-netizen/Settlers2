@@ -11,10 +11,9 @@ static void OutputDebugStringA(const char* msg) {
 
 RenderQueue::RenderQueue()
     : m_pDevice(NULL)
-    , m_materialManager(NULL)
     , m_batchCount(0)
     , m_drawCallCount(0)
-    , m_maxCommands(8192)
+    , m_maxCommands(16384)
 {
 }
 
@@ -25,41 +24,37 @@ RenderQueue::~RenderQueue() {
 void RenderQueue::Initialize(LPDIRECT3DDEVICE9 pDevice) {
     m_pDevice = pDevice;
 
-    m_opaqueQueue.reserve(m_maxCommands);
-    m_transparentQueue.reserve(m_maxCommands);
-    m_uiQueue.reserve(m_maxCommands);
+    m_commands.reserve(m_maxCommands);
+
+    m_batchBuilder.Initialize(pDevice);
 
     char buf[256];
-    sprintf(buf, "[RenderQueue] Initialized with max %d commands per layer\n", m_maxCommands);
+    sprintf(buf, "[RenderQueue] Initialized with max %d commands\n", m_maxCommands);
     OutputDebugStringA(buf);
 }
 
 void RenderQueue::Shutdown() {
     Clear();
+    m_batchBuilder.Shutdown();
     m_pDevice = NULL;
-    m_materialManager = NULL;
 }
 
 void RenderQueue::BeginFrame() {
-    m_opaqueQueue.clear();
-    m_transparentQueue.clear();
-    m_uiQueue.clear();
-    m_batches.clear();
+    m_commands.clear();
     m_batchCount = 0;
     m_drawCallCount = 0;
+    m_batchBuilder.BeginFrame();
 }
 
 void RenderQueue::EndFrame() {
     char buf[256];
-    sprintf(buf, "[RenderQueue] Frame: opaque=%d, transparent=%d, ui=%d, batches=%d\n",
-            (int)m_opaqueQueue.size(), (int)m_transparentQueue.size(),
-            (int)m_uiQueue.size(), m_batchCount);
+    sprintf(buf, "[RenderQueue] Frame: commands=%d, batches=%d\n",
+            (int)m_commands.size(), m_batchCount);
     OutputDebugStringA(buf);
 }
 
 void RenderQueue::Submit(const SpriteCommand& cmd) {
     RenderCommand renderCmd;
-    renderCmd.materialID = cmd.material;
     renderCmd.x = cmd.x;
     renderCmd.y = cmd.y;
     renderCmd.width = cmd.width;
@@ -69,154 +64,41 @@ void RenderQueue::Submit(const SpriteCommand& cmd) {
     renderCmd.u1 = cmd.u1;
     renderCmd.v1 = cmd.v1;
     renderCmd.color = cmd.color;
+    renderCmd.textureID = cmd.textureID;
+    renderCmd.shaderID = cmd.shaderID;
+    renderCmd.blendMode = cmd.blendMode;
+    renderCmd.layer = cmd.layer;
     renderCmd.depth = cmd.depth;
-    renderCmd.isUI = cmd.isUI;
+    renderCmd.sortKey = BuildSortKey(cmd.layer, cmd.blendMode, cmd.shaderID, cmd.textureID, cmd.depth);
 
-    SubmitBatch(renderCmd);
-}
-
-void RenderQueue::SubmitBatch(const RenderCommand& cmd) {
-    if (cmd.isUI) {
-        if ((int)m_uiQueue.size() < m_maxCommands) {
-            m_uiQueue.push_back(cmd);
-        }
-    } else if (cmd.depth > 0.5f) {
-        if ((int)m_opaqueQueue.size() < m_maxCommands) {
-            m_opaqueQueue.push_back(cmd);
-        }
-    } else {
-        if ((int)m_transparentQueue.size() < m_maxCommands) {
-            m_transparentQueue.push_back(cmd);
-        }
+    if ((int)m_commands.size() < m_maxCommands) {
+        m_commands.push_back(renderCmd);
     }
 }
 
-int RenderQueue::GetCommandCount(RenderLayer layer) const {
-    switch (layer) {
-    case LAYER_OPAQUE: return (int)m_opaqueQueue.size();
-    case LAYER_TRANSPARENT: return (int)m_transparentQueue.size();
-    case LAYER_UI: return (int)m_uiQueue.size();
-    default: return 0;
-    }
+int RenderQueue::GetCommandCount() const {
+    return (int)m_commands.size();
 }
 
-int RenderQueue::GetTotalCommandCount() const {
-    return (int)m_opaqueQueue.size() + (int)m_transparentQueue.size() + (int)m_uiQueue.size();
-}
-
-void RenderQueue::Sort(RenderQueueSortMode mode) {
-    SortQueue(m_opaqueQueue, mode);
-    SortQueue(m_transparentQueue, mode);
-    SortQueue(m_uiQueue, mode);
-}
-
-void RenderQueue::SortQueue(std::vector<RenderCommand>& queue, RenderQueueSortMode mode) {
-    switch (mode) {
-    case SORT_BY_DEPTH:
-        std::sort(queue.begin(), queue.end(),
-                  [](const RenderCommand& a, const RenderCommand& b) {
-                      return a.depth > b.depth;
-                  });
-        break;
-    case SORT_BY_SHADER:
-        std::sort(queue.begin(), queue.end(),
-                  [](const RenderCommand& a, const RenderCommand& b) {
-                      return a.shaderID < b.shaderID;
-                  });
-        break;
-    case SORT_BY_TEXTURE:
-        std::sort(queue.begin(), queue.end(),
-                  [](const RenderCommand& a, const RenderCommand& b) {
-                      return a.pTexture < b.pTexture;
-                  });
-        break;
-    case SORT_BY_DEPTH_THEN_SHADER_THEN_TEXTURE:
-        std::sort(queue.begin(), queue.end(),
-                  [](const RenderCommand& a, const RenderCommand& b) {
-                      if (a.depth != b.depth) return a.depth > b.depth;
-                      if (a.shaderID != b.shaderID) return a.shaderID < b.shaderID;
-                      return a.pTexture < b.pTexture;
-                  });
-        break;
-    default:
-        break;
-    }
+void RenderQueue::Sort() {
+    std::sort(m_commands.begin(), m_commands.end(),
+              [](const RenderCommand& a, const RenderCommand& b) {
+                  return a.sortKey < b.sortKey;
+              });
 }
 
 void RenderQueue::Batch() {
-    m_batches.clear();
     m_batchCount = 0;
+    m_drawCallCount = 0;
 
-    CreateBatches(m_opaqueQueue);
-    CreateBatches(m_transparentQueue);
-    CreateBatches(m_uiQueue);
-}
+    m_batchBuilder.BuildBatches(m_commands);
 
-void RenderQueue::CreateBatches(std::vector<RenderCommand>& queue) {
-    if (queue.empty()) return;
-
-    int startIndex = 0;
-    int currentShader = queue[0].shaderID;
-    void* currentTexture = queue[0].pTexture;
-
-    for (size_t i = 1; i <= queue.size(); i++) {
-        bool endOfBatch = (i == queue.size()) ||
-                          (queue[i].shaderID != currentShader) ||
-                          (queue[i].pTexture != currentTexture);
-
-        if (endOfBatch) {
-            DrawBatch batch;
-            batch.shaderID = currentShader;
-            batch.texture = currentTexture;
-            batch.startIndex = startIndex;
-            batch.commandCount = (int)(i - startIndex);
-            batch.minDepth = queue[startIndex].depth;
-            batch.maxDepth = queue[startIndex].depth;
-
-            for (int j = startIndex; j < (int)i; j++) {
-                if (queue[j].depth < batch.minDepth) batch.minDepth = queue[j].depth;
-                if (queue[j].depth > batch.maxDepth) batch.maxDepth = queue[j].depth;
-            }
-
-            m_batches.push_back(batch);
-            m_batchCount++;
-            m_drawCallCount++;
-
-            if (i < queue.size()) {
-                startIndex = (int)i;
-                currentShader = queue[i].shaderID;
-                currentTexture = queue[i].pTexture;
-            }
-        }
-    }
+    m_batchCount = m_batchBuilder.GetBatchCount();
+    m_drawCallCount = m_batchCount;
 }
 
 void RenderQueue::Clear() {
-    m_opaqueQueue.clear();
-    m_transparentQueue.clear();
-    m_uiQueue.clear();
-    m_batches.clear();
-}
-
-void RenderQueue::DispatchOpaque(void* backend) {
-    if (!backend) return;
-    m_drawCallCount += (int)m_opaqueQueue.size();
-}
-
-void RenderQueue::DispatchTransparent(void* backend) {
-    if (!backend) return;
-    m_drawCallCount += (int)m_transparentQueue.size();
-}
-
-void RenderQueue::DispatchUI(void* backend) {
-    if (!backend) return;
-    m_drawCallCount += (int)m_uiQueue.size();
-}
-
-void RenderQueue::DispatchAll(void* backend) {
-    DispatchOpaque(backend);
-    DispatchTransparent(backend);
-    DispatchUI(backend);
+    m_commands.clear();
 }
 
 }

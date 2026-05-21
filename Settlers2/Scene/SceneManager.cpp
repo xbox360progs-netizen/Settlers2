@@ -293,27 +293,9 @@ sprintf(dbg, "[SM::Render] ENTRY - m_currentScene=0x%08X\n", m_currentScene);
     }
     OutputDebugStringA("[SceneManager::Render] SortQueue() returned\n");
 
-    // Step 4: GEOMETRY PASS - Render opaque geometry to GBuffer
-    // This MUST be in the same thread as BeginScene/EndScene/Present on Xbox 360 D3D9
-    // Skip for custom pipeline scenes - they handle ExecuteQueue themselves
+    // Step 4: EXECUTE - Render sorted/batched commands
     if (!hasCustomPipeline)
     {
-        // === DEFERRED PIPELINE START ===
-        // Bind GBuffer (MRT) - sprites will write to Pos, Normal, Albedo, Spec
-        if (m_renderer)
-        {
-            m_renderer->BindGBuffer();
-            m_renderer->ClearGBuffers();
-            OutputDebugStringA("[SceneManager::Render] GBuffer bound for Geometry Pass\n");
-        }
-
-        // Switch to GBuffer shader for geometry pass
-        if (m_shaderManager)
-        {
-            m_shaderManager->SetActiveShader(SHADER_SPRITE_GBUFFER);
-            OutputDebugStringA("[SceneManager::Render] Using GBuffer shader for geometry pass\n");
-        }
-
         OutputDebugStringA("[SceneManager::Render] About to Execute Queue...\n");
         if (m_shaderManager && m_spriteRenderer)
         {
@@ -331,50 +313,6 @@ sprintf(dbg, "[SM::Render] ENTRY - m_currentScene=0x%08X\n", m_currentScene);
             else
             {
                 OutputDebugStringA("[SceneManager::Render] ERROR: NULL buffers!\n");
-            }
-        }
-
-        // Unbind GBuffer - back to single target
-        if (m_renderer)
-        {
-            m_renderer->UnbindGBuffer();
-            OutputDebugStringA("[SceneManager::Render] GBuffer unbound\n");
-        }
-        // === DEFERRED PIPELINE END ===
-
-        // Step 4.5: LIGHTING PASS - Apply deferred lighting
-        if (m_renderer)
-        {
-            m_renderer->ApplyDeferredLighting(m_renderer->m_debugViewMode);
-            OutputDebugStringA("[SceneManager::Render] Deferred Lighting applied\n");
-        }
-
-        // Step 4.6: TRANSPARENT PASS - Render alpha sprites (UI, particles) with forward rendering
-        // This happens AFTER lighting so transparent objects composite correctly
-        OutputDebugStringA("[SceneManager::Render] Transparent Pass (forward render)...\n");
-        if (m_shaderManager && m_spriteRenderer && m_renderer)
-        {
-            LPDIRECT3DDEVICE9 pDevice = m_renderer->GetDevice();
-            if (pDevice)
-            {
-                // Switch to regular sprite shader for transparent objects
-                m_shaderManager->SetActiveShader(SHADER_SPRITE);
-                m_shaderManager->BeginShader();
-                m_shaderManager->BeginPass(0);
-
-                // Enable alpha blending for transparent pass
-                pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-                pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
-                pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
-                pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
-                pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
-
-                // UI/Transparent rendering happens here via scene's RenderUI()
-
-                m_shaderManager->EndPass();
-                m_shaderManager->EndShader();
-
-                OutputDebugStringA("[SceneManager::Render] Transparent Pass done\n");
             }
         }
     }

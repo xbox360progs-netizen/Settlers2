@@ -393,50 +393,55 @@ void GridMenu::Render(SpriteRenderer* spriteRenderer)
             m_menuWidth, m_menuHeight, menuLeft, menuTop, cellSpacing, totalSprites);
     OutputDebugStringA(debugMsg);
 
-    // 1. Background (menu_bd) - full menu area (depth=0.15, behind cells, UI screen-space)
+    // 1. Background (menu_bd) - full menu area (depth=150, behind cells, UI layer)
     if (m_backgroundTexture) {
         OutputDebugStringA("[GridMenu::Render] Submitting background command to queue\n");
-        ShaderManager::RenderCommand cmd;
-        cmd.pTexture = m_backgroundTexture;
+        RenderCommand cmd;
+        cmd.x = menuLeft;
+        cmd.y = menuTop;
+        cmd.width = m_menuWidth;
+        cmd.height = m_menuHeight;
+        cmd.u0 = 0.0f; cmd.v0 = 0.0f;
+        cmd.u1 = 1.0f; cmd.v1 = 1.0f;
+        cmd.color = 0xFFFFFFFF;
         cmd.shaderID = SHADER_UI;
-        cmd.vertexStart = 0;
-        cmd.vertexCount = 4;
-        cmd.primitiveCount = 2;
-        cmd.batchType = 0;
-        cmd.depth = 0.15f;
-        cmd.layer = 2; // UI layer
-        cmd.isUI = true;
-        cmd.customDraw = NULL;
-        cmd.customUserData = NULL;
-        
-        // Store position for actual rendering (would need vertex buffer update in full implementation)
-        // For now, this demonstrates the queue submission pattern
+        cmd.textureID = 0;
+        cmd.blendMode = 1;
+        cmd.layer = 900;
+        cmd.depth = 150;
+        cmd.sortKey = BuildSortKey(900, 1, SHADER_UI, 0, 150);
+
         shaderManager->Submit(cmd);
     } else {
         OutputDebugStringA("[GridMenu::Render] WARNING: Background texture is NULL, skipping background render\n");
     }
 
-    // 2. Cell backgrounds (menu_cell) - 4x4 grid (depth=0.12, behind icons, UI screen-space)
+    // 2. Cell backgrounds (menu_cell) - 4x4 grid (depth=120, behind icons, UI layer)
     if (m_cellBackgroundTexture) {
         OutputDebugStringA("[GridMenu::Render] Submitting cell background commands to queue\n");
         for (int row = 0; row < kGridRows; ++row) {
             for (int col = 0; col < kGridCols; ++col) {
                 int localIndex = row * kGridCols + col;
                 if (localIndex >= totalSprites) continue;
-                
-                ShaderManager::RenderCommand cmd;
-                cmd.pTexture = m_cellBackgroundTexture;
+
+                float cellX = menuLeft + 16.0f + (col * cellSpacing);
+                float cellY = menuTop + 32.0f + (row * cellSpacing);
+
+                RenderCommand cmd;
+                cmd.x = cellX;
+                cmd.y = cellY;
+                cmd.width = cellSpacing - 8.0f;
+                cmd.height = cellSpacing - 8.0f;
+                cmd.u0 = 0.0f; cmd.v0 = 0.0f;
+                cmd.u1 = 1.0f; cmd.v1 = 1.0f;
+                cmd.color = 0xFFFFFFFF;
                 cmd.shaderID = SHADER_UI;
-                cmd.vertexStart = 0;
-                cmd.vertexCount = 4;
-                cmd.primitiveCount = 2;
-                cmd.batchType = 0;
-                cmd.depth = 0.12f;
-                cmd.layer = 2;
-                cmd.isUI = true;
-                cmd.customDraw = NULL;
-                cmd.customUserData = NULL;
-                
+                cmd.textureID = 0;
+                cmd.blendMode = 1;
+                cmd.layer = 900;
+                cmd.depth = 120;
+                cmd.sortKey = BuildSortKey(900, 1, SHADER_UI, 0, 120);
+
                 shaderManager->Submit(cmd);
             }
         }
@@ -444,30 +449,32 @@ void GridMenu::Render(SpriteRenderer* spriteRenderer)
         OutputDebugStringA("[GridMenu::Render] WARNING: Cell background texture is NULL, skipping cell backgrounds\n");
     }
 
-    // 3. Icons from atlas (visible window) (depth=0.1, UI layer, UI screen-space)
+    // 3. Icons from atlas (visible window) (depth=100, UI layer)
     if (m_atlasTexture && !m_tileUVs.empty()) {
-        sprintf(debugMsg, "[GridMenu::Render] Submitting %d icon commands to queue (texture=%p)\n", totalSprites, m_atlasTexture);
+        sprintf(debugMsg, "[GridMenu::Render] Submitting %d icon commands to queue\n", totalSprites);
         OutputDebugStringA(debugMsg);
-        for (int i = 0; i < totalSprites; ++i) {
+        for (int i = 0; i < totalSprites; i++) {
             int row = i / kGridCols;
             int col = i % kGridCols;
             const TileUV& tileUV = m_tileUVs[i];
             float cellX = menuLeft + 16.0f + (col * cellSpacing);
             float cellY = menuTop + 32.0f + (row * cellSpacing);
-            
-            ShaderManager::RenderCommand cmd;
-            cmd.pTexture = m_atlasTexture;
+
+            RenderCommand cmd;
+            cmd.x = cellX;
+            cmd.y = cellY;
+            cmd.width = cellSpacing - 8.0f;
+            cmd.height = cellSpacing - 8.0f;
+            cmd.u0 = tileUV.u0; cmd.v0 = tileUV.v0;
+            cmd.u1 = tileUV.u1; cmd.v1 = tileUV.v1;
+            cmd.color = 0xFFFFFFFF;
             cmd.shaderID = SHADER_UI;
-            cmd.vertexStart = 0;
-            cmd.vertexCount = 4;
-            cmd.primitiveCount = 2;
-            cmd.batchType = 0;
-            cmd.depth = 0.1f;
-            cmd.layer = 2;
-            cmd.isUI = true;
-            cmd.customDraw = NULL;
-            cmd.customUserData = NULL;
-            
+            cmd.textureID = 0;
+            cmd.blendMode = 1;
+            cmd.layer = 900;
+            cmd.depth = 100;
+            cmd.sortKey = BuildSortKey(900, 1, SHADER_UI, 0, 100);
+
             shaderManager->Submit(cmd);
         }
     } else {

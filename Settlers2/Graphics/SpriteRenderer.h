@@ -3,8 +3,28 @@
 #include <d3dx9.h>
 #include <vector>
 #include "RenderTypes.h"
+#include "BatchBuilder.h"
 
 class ShaderManager;
+
+struct RenderStateCache {
+    WORD currentTexture;
+    WORD currentShader;
+    BYTE currentBlend;
+
+    RenderStateCache()
+        : currentTexture(0xFFFF), currentShader(0xFFFF), currentBlend(0xFF) {}
+
+    bool TextureChanged(WORD tex) const { return currentTexture != tex; }
+    bool ShaderChanged(WORD sh) const { return currentShader != sh; }
+    bool BlendChanged(BYTE blend) const { return currentBlend != blend; }
+
+    void Update(WORD tex, WORD sh, BYTE blend) {
+        currentTexture = tex;
+        currentShader = sh;
+        currentBlend = blend;
+    }
+};
 
 class SpriteRenderer {
 public:
@@ -19,62 +39,37 @@ public:
 
     void BeginFrame();
     void EndFrame();
-    void ResetBatchState();
 
-    void SubmitSprite(const RenderCommand& cmd);
-
-    void Flush(ShaderManager* pShader);
-    void Flush();
+    void Execute(const RenderBatch* batches, int batchCount);
 
     LPDIRECT3DDEVICE9 GetDevice() const { return m_pDevice; }
-    LPDIRECT3DVERTEXBUFFER9 GetVertexBuffer() const { return m_pVertexBuffer; }
-    LPDIRECT3DINDEXBUFFER9 GetIndexBuffer() const { return m_pIndexBuffer; }
-    LPDIRECT3DVERTEXDECLARATION9 GetVertexDeclaration() const { return m_pVertexDecl; }
+    LPDIRECT3DVERTEXBUFFER9 GetVertexBuffer() const { return m_vertexBuffer; }
+    LPDIRECT3DINDEXBUFFER9 GetIndexBuffer() const { return m_indexBuffer; }
+    LPDIRECT3DVERTEXDECLARATION9 GetVertexDeclaration() const { return m_vertexDecl; }
 
-    int GetSpriteCount() const { return m_spriteCount; }
-    int GetTotalVertexCount() const { return m_totalVertexCount; }
-    void IncrementTotalVertexCount(int count) { m_totalVertexCount += count; }
-
-    void PushCommand(const RenderCommand& cmd);
-
-#ifdef _XBOX
-    void SetAsyncCommandBuffer(IDirect3DCommandBuffer9* pBuffer, IDirect3DAsyncCommandBufferCall9* pAsyncCall);
-    void FlushBatchesAsync();
-#endif
+    int GetDrawCalls() const { return m_drawCalls; }
+    int GetTextureSwitches() const { return m_textureSwitches; }
+    int GetShaderSwitches() const { return m_shaderSwitches; }
+    int GetStateChanges() const { return m_stateChanges; }
 
 private:
-    void CreateQuad(float x, float y, float width, float height,
-                    float u0, float v0, float u1, float v1,
-                    DWORD color);
-
-    void InternalDraw(const RenderCommand& cmd);
-
-    static const int MAX_BUFFER_VERTICES = 65536;
+    void SetTexture(WORD textureID);
+    void SetShader(WORD shaderID);
+    void SetBlendMode(BYTE blendMode);
 
     LPDIRECT3DDEVICE9 m_pDevice;
     ShaderManager* m_pShaderManager;
 
-    LPDIRECT3DVERTEXBUFFER9 m_pVB[2];
-    LPDIRECT3DVERTEXBUFFER9 m_pGpuBufferA;
-    LPDIRECT3DVERTEXBUFFER9 m_pGpuBufferB;
-    LPDIRECT3DVERTEXBUFFER9 m_pVertexBuffer;
-    int m_activeBuffer;
+    LPDIRECT3DVERTEXBUFFER9 m_vertexBuffer;
+    LPDIRECT3DINDEXBUFFER9 m_indexBuffer;
+    LPDIRECT3DVERTEXDECLARATION9 m_vertexDecl;
 
-    LPDIRECT3DINDEXBUFFER9 m_pIndexBuffer;
-    LPDIRECT3DVERTEXDECLARATION9 m_pVertexDecl;
-
-    __declspec(align(16)) SpriteVertex* m_pStagingBuffer;
-    std::vector<RenderCommand> m_commands;
-
-    DWORD m_totalVertexCount;
-    DWORD m_totalIndexCount;
     int m_maxSprites;
-    int m_spriteCount;
 
-#ifdef _XBOX
-    IDirect3DCommandBuffer9* m_pAsyncCommandBuffer;
-    IDirect3DAsyncCommandBufferCall9* m_pAsyncCall;
-    IDirect3DQuery9* m_pGpuFence;
-    bool m_isFirstFlush;
-#endif
+    RenderStateCache m_stateCache;
+
+    int m_drawCalls;
+    int m_textureSwitches;
+    int m_shaderSwitches;
+    int m_stateChanges;
 };

@@ -3,6 +3,8 @@
 #include "../Graphics/TextureRegistry.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/ShaderManager.h"
+#include "../Graphics/RenderLayers.h"
+#include "../Graphics/RenderQueue.h"
 #include <functional>
 #include <cstdio>
 #include <iostream>
@@ -453,7 +455,8 @@ void LoadingScene::Update(float deltaTime)
 
 void LoadingScene::Render(RenderQueue* renderQueue)
 {
-	(void)renderQueue;
+	if (!renderQueue) return;
+
 	if (m_renderer && m_renderer->GetDevice()) {
 		D3DVIEWPORT9 vp;
 		if (SUCCEEDED(m_renderer->GetDevice()->GetViewport(&vp))) {
@@ -462,59 +465,46 @@ void LoadingScene::Render(RenderQueue* renderQueue)
 		}
 	}
 
-	if (!m_spriteRenderer || !m_renderer) {
-		return;
-	}
-
-	LPDIRECT3DTEXTURE9 pBackgroundTex = TextureRegistry::instance().getTexture("loading_background");
-	if (pBackgroundTex && m_backgroundTexture.GetTexture() != pBackgroundTex) {
-		m_backgroundTexture.SetTexture(pBackgroundTex);
-	}
-
+	// Background
 	if (m_backgroundTexture.GetTexture()) {
-		m_spriteRenderer->Begin(SHADER_SPRITE, m_backgroundTexture.GetTexture(), 0.95f, 0, true);
-		m_spriteRenderer->Draw(0.0f, 0.0f, m_screenW, m_screenH, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
-		m_spriteRenderer->End();
+		Graphics::SpriteCommand bgCmd;
+		bgCmd.shaderID = SHADER_SPRITE;
+		bgCmd.x = 0.0f;
+		bgCmd.y = 0.0f;
+		bgCmd.width = m_screenW;
+		bgCmd.height = m_screenH;
+		bgCmd.u0 = 0.0f; bgCmd.v0 = 0.0f;
+		bgCmd.u1 = 1.0f; bgCmd.v1 = 1.0f;
+		bgCmd.color = 0xFFFFFFFF;
+		bgCmd.depth = 950;
+		bgCmd.layer = 900;
+		bgCmd.textureID = 0;
+		renderQueue->Submit(bgCmd);
 	}
 
-// 3. Параметры геометрии прогресс-бара
-	float barWidth = 400.0f;
-	float barHeight = 20.0f;
-	float barX = (m_screenW - barWidth) * 0.5f;
-	float barY = m_screenH - 80.0f;
+	// Progress bar
+	if (m_currentRenderProgress > 0.0f) {
+		float barWidth = 400.0f;
+		float barHeight = 20.0f;
+		float barX = (m_screenW - barWidth) * 0.5f;
+		float barY = m_screenH - 80.0f;
+		float fillWidth = barWidth * m_currentRenderProgress;
 
-	// Рассчитываем текущую физическую ширину на экране на основе сглаженного прогресса
-	float fillWidth = barWidth * m_currentRenderProgress;
-
-	// Защита от нулевого/отрицательного квада для видеокарты Xbox 360
-	// 4. Отрисовка полосы через отложенный рендерер UI (Deferred SpriteRenderer)
-	{
-
-		// Получаем указатель на текстуру из кэша (лог подтвердил, что она успешно находится в кэше)
-		LPDIRECT3DTEXTURE9 pProgressBarTex = TextureRegistry::instance().getTexture("progressBarBackground");
-		if (!pProgressBarTex) {
-			return;
-		}
-
-		// Открываем пакет отложенных команд рендерера
-		m_spriteRenderer->Begin(SHADER_SPRITE, pProgressBarTex, 0.0f, 0, true);
-		// Передаем точные UV-координаты. Поскольку текстура одиночная:
-		// Левый край: U0 = 0.0f
-		// Правый край плавно сдвигается: U1 = m_currentRenderProgress
-		if (m_currentRenderProgress > 0.0f && fillWidth > 0.0f) {
-			m_spriteRenderer->Draw(
-			barX, barY,                    // Позиция на экране
-			fillWidth, barHeight,          // Динамическая ширина и фиксированная высота
-			0.0f, 0.0f,                    // UV старт (Top-Left)
-			m_currentRenderProgress, 1.0f, // UV конец (Bottom-Right, U растет вместе с % загрузки!)
-			0xFFFFFFFF                     // Цвет (Белый)
-			);
-		}
-
-		// Закрываем пакет. Теперь m_pendingCommands гарантированно равен 1
-		m_spriteRenderer->End();
-
-		// 5. КРИТИЧЕСКИЙ ВЫЗОВ СБРОСА ОЧЕРЕДИ
+		Graphics::SpriteCommand barCmd;
+		barCmd.shaderID = SHADER_SPRITE;
+		barCmd.x = barX;
+		barCmd.y = barY;
+		barCmd.width = fillWidth;
+		barCmd.height = barHeight;
+		barCmd.u0 = 0.0f;
+		barCmd.v0 = 0.0f;
+		barCmd.u1 = m_currentRenderProgress;
+		barCmd.v1 = 1.0f;
+		barCmd.color = 0xFFFFFFFF;
+		barCmd.depth = 0;
+		barCmd.layer = 900;
+		barCmd.textureID = 0;
+		renderQueue->Submit(barCmd);
 	}
 }
 }

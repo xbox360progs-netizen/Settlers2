@@ -574,7 +574,6 @@ void ShaderManager::CopyTextVertices(const void* vertices, size_t vertexCount) {
 }
 
 void ShaderManager::Submit(const RenderCommand& cmd) {
-    // Lifecycle check: prevent Submit() after batch is sealed
     if (m_isSealed) {
         OutputDebugStringA("[ShaderManager::Submit] REJECTED: batch is sealed\n");
         return;
@@ -585,37 +584,16 @@ void ShaderManager::Submit(const RenderCommand& cmd) {
         return;
     }
 
-    RenderCommand cmdWithOffset = cmd;
-
-    // Use baseVertex and vertexStart as-is from SpriteRenderer
-    // SpriteRenderer already calculates cumulative offsets in Flush()
-    // cmd.baseVertex = vertex offset in VB (where to start reading vertices)
-    // cmd.vertexStart = index offset in IB (where to start reading indices)
-    cmdWithOffset.baseVertex = cmd.baseVertex;
-    cmdWithOffset.vertexStart = cmd.vertexStart;
-
-    // REMOVED: s_currentVertexOffset tracking - offsets already calculated in SpriteRenderer
-    // Double offset tracking is the source of the double offset bug
-
-    // For lock-free ring buffer, use atomic operations with sequential allocation
     int targetSlot = FindFreeSlot();
 
     if (targetSlot != -1) {
-        m_commandQueue[targetSlot] = cmdWithOffset;
-        
-        if (m_currentShaderID >= 0 && m_currentShaderID < SHADER_COUNT) {
-            m_commandQueue[targetSlot].viewProjMatrix = m_shaderMatrices[m_currentShaderID];
-            m_commandQueue[targetSlot].hasViewProjMatrix = m_hasFrameViewProj;
-        } else {
-            D3DXMatrixIdentity(&m_commandQueue[targetSlot].viewProjMatrix);
-            m_commandQueue[targetSlot].hasViewProjMatrix = false;
-        }
-        
+        m_commandQueue[targetSlot] = cmd;
+
         InterlockedExchange(&m_commandQueue[targetSlot].status, 1);
-        
+
         char debugBuf[256];
-        sprintf(debugBuf, "[ShaderManager::Submit] Slot %d: baseVert=%d, verts=%d, texture=%p, isUI=%d\n",
-                targetSlot, cmdWithOffset.baseVertex, cmd.vertexCount, cmd.pTexture, cmd.isUI);
+        sprintf(debugBuf, "[ShaderManager::Submit] Slot %d: shader=%d, tex=%d, blend=%d, layer=%d\n",
+                targetSlot, cmd.shaderID, cmd.textureID, cmd.blendMode, cmd.layer);
         OutputDebugStringA(debugBuf);
     } else {
         OutputDebugStringA("[ShaderManager::Submit] CRITICAL: Command Ring Buffer Overflow!\n");
@@ -639,30 +617,12 @@ void ShaderManager::PushCommand(const RenderCommand& cmd) {
     Submit(cmd);
 }
 
-// Push command for Xbox 360 ring buffer architecture
 void ShaderManager::PushXbox360Command(const RenderCommand& newCmd) {
     int targetSlot = FindFreeSlot();
-    
+
     if (targetSlot != -1) {
-        RenderCommand& queuedCmd = m_commandQueue[targetSlot];
-        queuedCmd.shaderID = newCmd.shaderID;
-        queuedCmd.pTexture = newCmd.pTexture;
-        queuedCmd.depth = newCmd.depth;
-        queuedCmd.vertexCount = newCmd.vertexCount;
-        queuedCmd.primitiveCount = newCmd.primitiveCount;
-        queuedCmd.baseVertex = newCmd.baseVertex;
-        queuedCmd.vertexStart = newCmd.vertexStart;
-        queuedCmd.isUI = newCmd.isUI;
-
-        if (m_currentShaderID >= 0 && m_currentShaderID < SHADER_COUNT) {
-            queuedCmd.viewProjMatrix = m_shaderMatrices[m_currentShaderID];
-            queuedCmd.hasViewProjMatrix = m_hasFrameViewProj;
-        } else {
-            D3DXMatrixIdentity(&queuedCmd.viewProjMatrix);
-            queuedCmd.hasViewProjMatrix = false;
-        }
-
-        InterlockedExchange(&queuedCmd.status, 1);
+        m_commandQueue[targetSlot] = newCmd;
+        InterlockedExchange(&m_commandQueue[targetSlot].status, 1);
     } else {
         OutputDebugStringA("[ShaderManager] CRITICAL: Command queue overflow!\n");
     }
@@ -879,115 +839,73 @@ void ShaderManager::CommitChanges() {
     }
 }
 
-// Set shader parameters from RenderCommand (centralized parameter dispatch)
-// Manager decides which .fx parameter gets which data based on shaderID
 void ShaderManager::SetShaderParameters(const RenderCommand& cmd) {
     if (!m_pActiveShader) return;
-    
+
     ShaderID id = static_cast<ShaderID>(cmd.shaderID);
-    
-switch (id) {
-        // 1. ИГРОВОЙ МИР И ЛАНДШАФТ (Берут ViewProj из камеры)
+
+    switch (id) {
         case SHADER_TERRAIN:
         case SHADER_WORLD:
-        {
-            if (cmd.pTexture) {                
-                SetTexture("g_texture", cmd.pTexture);
-                SetTexture("Texture", cmd.pTexture); 
-            }
-            if (cmd.hasViewProjMatrix) {
-                SetMatrix("gViewProj", (const float*)&cmd.viewProjMatrix);
-            }
-            break;
-        }
-
-        // 2. СТАНДАРТНЫЕ СПРАЙТЫ И СУЩНОСТИ (Деревья, юниты, домики в мире)
         case SHADER_SPRITE_CONSTANT_INSTANCED:
         case SHADER_ENTITY:
         {
-            if (cmd.pTexture) {
-                SetTexture("g_texture", cmd.pTexture);
-            }
-            if (cmd.hasViewProjMatrix) {
-                SetMatrix("gViewProj", (const float*)&cmd.viewProjMatrix);
-                SetMatrix("WorldViewProjection", (const float*)&cmd.viewProjMatrix);
+            if (m_hasFrameViewProj && id >= 0 && id < SHADER_COUNT) {
+                SetMatrix("gViewProj", (const float*)&m_shaderMatrices[id]);
+                SetMatrix("WorldViewProjection", (const float*)&m_shaderMatrices[id]);
             }
             break;
         }
 
-        // 3. СТАРЫЙ СПРАЙТОВЫЙ ШЕЙДЕР (Для совместимости UI / Мир)
         case SHADER_SPRITE:
         {
-            if (cmd.pTexture) {
-                SetTexture("g_texture", cmd.pTexture);
-            }
-            if (cmd.isUI) {
+            if (cmd.layer >= 900) {
                 D3DXMATRIX matOrtho;
                 D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
                 SetMatrix("matOrtho", (const float*)&matOrtho);
-            } else if (cmd.hasViewProjMatrix) {
-                SetMatrix("matOrtho", (const float*)&cmd.viewProjMatrix);
+            } else if (m_hasFrameViewProj && id >= 0 && id < SHADER_COUNT) {
+                SetMatrix("matOrtho", (const float*)&m_shaderMatrices[id]);
             }
             break;
         }
-            
-        // 4. ИНТЕРФЕЙС (Плоская 2D-ортография)
-         case SHADER_UI:
+
+        case SHADER_UI:
         {
-            if (cmd.pTexture) {
-                SetTexture("g_texture", cmd.pTexture);
-            }
-            
-            // 1. Принудительно отключаем Z-буфер, чтобы текст не перезаписывался миром
             m_pDevice->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
             m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
-            
-            // 2. Включаем альфа-смешивание (чтобы у букв был прозрачный фон)
             m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
             m_pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
             m_pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
 
-            // 3. Строим правильную 2D-матрицу проекции вместо единичной
             D3DXMATRIX matOrtho;
             D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
-            
-            // Передаем ее во все возможные параметры шейдера шрифта
             SetMatrix("matOrtho", (const float*)&matOrtho);
             SetMatrix("WVP", (const float*)&matOrtho);
             SetMatrix("WorldViewProjection", (const float*)&matOrtho);
             break;
         }
 
-
-        // 5. РАДИАЛЬНОЕ МЕНЮ РЕДАКТОРА
         case SHADER_RADIALMENU:
         {
-            if (cmd.pTexture) {
-                SetTexture("g_texture", cmd.pTexture);
-            }
-            if (cmd.isUI) {
+            if (cmd.layer >= 900) {
                 D3DXMATRIX matOrtho;
                 D3DXMatrixOrthoOffCenterLH(&matOrtho, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f);
                 SetMatrix("WorldViewProjection", (const float*)&matOrtho);
-            } else if (cmd.hasViewProjMatrix) {
-                SetMatrix("WorldViewProjection", (const float*)&cmd.viewProjMatrix);
+            } else if (m_hasFrameViewProj && id >= 0 && id < SHADER_COUNT) {
+                SetMatrix("WorldViewProjection", (const float*)&m_shaderMatrices[id]);
             }
             break;
         }
 
-        // 6. ОТЛОЖЕННОЕ ОСВЕЩЕНИЕ (Ждет пост-процессинг матрицы)
         case SHADER_DEFERRED_LIGHTING:
         {
-            if (cmd.pTexture) {
-                SetTexture("g_texture", cmd.pTexture);
-            }
             break;
         }
-            
+
         default:
             break;
     }
-    
+
     Commit();
 }
 
@@ -1092,70 +1010,52 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                                 LPDIRECT3DVERTEXDECLARATION9 pDecl, DWORD vertexStride,
                                 const D3DXMATRIX* pViewProj, SpriteRenderer* pSpriteRenderer) {
 
-    // КРИТИЧЕСКАЯ ПРОВЕРКА: Проверяем устройство перед началом работы
     if (!m_pDevice) {
         OutputDebugStringA("[SMgr::ExecuteQueue] ERROR: m_pDevice is NULL!\n");
         return;
     }
 
-    // Защита от пустых буферов
     if (!pVB || !pIB || !pDecl) {
         OutputDebugStringA("[SMgr::ExecuteQueue] ERROR: NULL buffers!\n");
         return;
     }
 
-    // Настраиваем потоки вершин один раз на весь кадр
     m_pDevice->SetVertexDeclaration(pDecl);
     m_pDevice->SetStreamSource(0, pVB, 0, vertexStride);
     m_pDevice->SetIndices(pIB);
 
-    // Базовые настройки рендера по умолчанию
     m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-    m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE); // Отключаем куллинг для спрайтов
-
-    // По умолчанию включаем Z-буфер (шейдеры интерфейса выключат его сами внутри Prepare)
+    m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
     m_pDevice->SetRenderState(D3DRS_ZENABLE, TRUE);
     m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, TRUE);
 
     ShaderID currentShaderID = SHADER_INVALID;
-    LPDIRECT3DTEXTURE9 lastTexture = nullptr;
+    WORD lastTexture = 0xFFFF;
     bool passActive = false;
 
-// Подсчет команд в очереди для отладки
     int activeCommands = m_commandCounter;
 
     char cmdBuf[256];
     sprintf(cmdBuf, "[SMgr::ExecuteQueue] Found %d commands to execute\n", activeCommands);
     OutputDebugStringA(cmdBuf);
 
-    // ПОСЛЕДОВАТЕЛЬНЫЙ ОБХОД КОЛЬЦЕВОГО БУФЕРА КОМАНД
     for (int i = 0; i < activeCommands; ++i) {
         RenderCommand& cmd = m_commandQueue[i];
 
         if (cmd.status == 1) {
-            // Атомарно блокируем команду для обработки движком
             InterlockedExchange(&cmd.status, 2);
 
-            if (!cmd.pTexture) {
-                OutputDebugStringA("[SMgr::ExecuteQueue] WARNING: cmd.pTexture is NULL!\n");
-                InterlockedExchange(&cmd.status, 0);
-                continue;
-            }
-
             char dbg[256];
-            sprintf(dbg, "[SMgr::ExecuteQueue] cmd: shaderID=%d, texture=%p\n", cmd.shaderID, cmd.pTexture);
+            sprintf(dbg, "[SMgr::ExecuteQueue] cmd: shader=%d, tex=%d, blend=%d, layer=%d\n",
+                    cmd.shaderID, cmd.textureID, cmd.blendMode, cmd.layer);
             OutputDebugStringA(dbg);
 
-            // 1. ПЕРЕКЛЮЧЕНИЕ ШЕЙДЕРА
-            if (cmd.shaderID != currentShaderID) {
-                OutputDebugStringA("[SMgr::ExecuteQueue] Switching shader...\n");
+            if ((ShaderID)cmd.shaderID != currentShaderID) {
                 if (passActive) {
                     EndPass();
                     EndCurrent();
                 }
 
-                // Вызываем оригинальный Prepare. Он сам решит, делать ленивое переключение или нет.
-                // Передаем nullptr, чтобы он подтянул матрицы из внутреннего кэша m_shaderMatrices
                 Prepare(static_cast<ShaderID>(cmd.shaderID), nullptr);
                 currentShaderID = static_cast<ShaderID>(cmd.shaderID);
 
@@ -1163,76 +1063,30 @@ void ShaderManager::ExecuteQueue(LPDIRECT3DVERTEXBUFFER9 pVB, LPDIRECT3DINDEXBUF
                     m_pActiveEffect->Begin(&m_numPasses, 0);
                     BeginPass(0);
                     passActive = true;
-                    OutputDebugStringA("[SMgr::ExecuteQueue] Shader activated\n");
-                } else {
-                    OutputDebugStringA("[SMgr::ExecuteQueue] WARNING: m_pActiveEffect is NULL!\n");
                 }
             }
 
-            // 2. ОБНОВЛЕНИЕ ТЕКСТУРЫ В ШЕЙДЕРЕ
-            if (cmd.pTexture != lastTexture) {
-                m_pDevice->SetTexture(0, cmd.pTexture);
-                if (m_pActiveEffect) {
-                    SetTexture("g_texture", cmd.pTexture);
-                    m_pActiveEffect->CommitChanges();
-                }
-                lastTexture = cmd.pTexture;
+            if (cmd.textureID != lastTexture) {
+                lastTexture = cmd.textureID;
             }
 
-// 3. ФИЗИЧЕСКИЙ ВЫЗОВ ОТРИСОВКИ НА GPU
-			if (passActive) {
-				// ДИНАМИЧЕСКОЕ ПЕРЕКЛЮЧЕНИЕ Z-БУФЕРА ДЛЯ ТЕКУЩЕЙ КОМАНДЫ
-				if (cmd.isUI) {
-					// Для UI (текст, интерфейс) выключаем Z-буфер
-					m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
-					m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
-				} else {
-					// Для мира (карта, сетка, ландшафт) Z-буфер ЖИЗНЕННО НЕОБХОДИМ!
-					m_pDevice->SetRenderState(D3DRS_ZENABLE, TRUE);
-					m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, TRUE);
-					m_pDevice->SetRenderState(D3DRS_ZFUNC, D3DCMP_LESSEQUAL);
-				}
+            if (cmd.layer >= 900) {
+                m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+                m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+            } else {
+                m_pDevice->SetRenderState(D3DRS_ZENABLE, TRUE);
+                m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, TRUE);
+            }
 
-				// === XBOX 360 GPU KICK: ПИНОК ДРАЙВЕРА ПОСЛЕ СМЕНЫ ТЕКСТУРЫ/ШЕЙДЕРА ===
-				// Отрисовываем 1 невидимый треугольник из самого начала буфера,
-				// чтобы заставить драйвер Xbox 360 применить измененные состояния (Commit/SetTexture)
-				m_pDevice->DrawIndexedPrimitive(
-					D3DPT_TRIANGLELIST,
-					0, // baseVertex
-					0, // MinVertexIndex
-					3, // vertexCount (минимально для 1 трио)
-					0, // StartIndex
-					1  // primitiveCount (1 треугольник-пинок)
-				);
-
-				char renderMsg[512];
-				sprintf(renderMsg, "[SMgr::ExecuteQueue] FIXED Draw: depth=%.2f, baseVert=%d, verts=%d, prims=%d, isUI=%d\n",
-					cmd.depth, cmd.baseVertex, cmd.vertexCount, cmd.primitiveCount, cmd.isUI);
-				OutputDebugStringA(renderMsg);
-
-				// КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ ДЛЯ КОЛЬЦЕВОГО БУФЕРА
-				m_pDevice->DrawIndexedPrimitive(
-					D3DPT_TRIANGLELIST,
-					cmd.baseVertex,   // ПЕРЕДАЕМ СМЕЩЕНИЕ ВЕРШИН (например, 1604). GPU сам прибавит его к индексам!
-					0,                // MinVertexIndex
-					cmd.vertexCount,  // Количество вершин в этом батче (например, 32)
-					0,                // СТРОГО 0! Читаем статический шаблонный IB с самого начала кадра
-					cmd.primitiveCount// Количество треугольников (например, 16)
-					);
-			}
-
-            // Освобождаем команду, возвращая статус в 0 для следующего кадра
             InterlockedExchange(&cmd.status, 0);
         }
     }
 
-    // Закрываем активный проход шейдера после завершения всей очереди кадра
     if (passActive) {
         EndPass();
         EndCurrent();
     }
 
-    // Сбрасываем текстурные слоты во избежание утечек памяти
     m_pDevice->SetTexture(0, NULL);
     OutputDebugStringA("[SM::Render] ExecuteQueue RETURNED!\n");
 }

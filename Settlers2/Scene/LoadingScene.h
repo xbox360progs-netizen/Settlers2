@@ -7,6 +7,7 @@
 #include "../Graphics/BinFileManager.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/RenderQueue.h"
+#include "../Graphics/ShaderManager.h"
 #include <vector>
 #include <functional>
 

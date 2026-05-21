@@ -4,13 +4,12 @@
 #include <vector>
 #include <string>
 #include "../Graphics/ShaderManager.h"
-#include "../Graphics/SpriteRenderer.h"
 #include "../Graphics/SpriteAtlas.h"
 #include "../Graphics/BinFileManager.h"
+#include "../Graphics/RenderQueue.h"
 #include "../Input/Gamepad.h"
 
 class Quad;
-class Renderer;
 
 class RadialMenu
 {
@@ -55,14 +54,8 @@ public:
     void UpdateFromStick(float stickX, float stickY);
 
     void Render();
-    void RenderIcons(SpriteRenderer* spriteRenderer);
-    void SetRenderer(Renderer* renderer);
-    
-    // Queue-based rendering: static callback and instance method
-    static void StaticDrawCallback(LPDIRECT3DDEVICE9 pDevice, ShaderManager* pShaderMgr, void* pUserData);
-    void DrawRing(LPDIRECT3DDEVICE9 pDevice, ShaderManager* pShaderMgr);
+    void RenderIcons(Graphics::RenderQueue* renderQueue);
 
-    // Color customization
     void SetInnerColor(float r, float g, float b, float a) { m_innerColor = D3DXVECTOR4(r, g, b, a); }
     void SetOuterColor(float r, float g, float b, float a) { m_outerColor = D3DXVECTOR4(r, g, b, a); }
     void SetHighlightColor(float r, float g, float b, float a) { m_highlightColor = D3DXVECTOR4(r, g, b, a); }
@@ -70,13 +63,10 @@ public:
 
 private:
     void CalculateSelectedSector(float stickX, float stickY);
-    void SetupRenderStates();
-    void RestoreRenderStates();
 
     LPDIRECT3DDEVICE9 m_device;
     ShaderManager* m_shaderManager;
     BinFileManager* m_binFileManager;
-    Renderer* m_renderer;
     Quad* m_quad;
 
     int m_selectedIndex;
@@ -100,13 +90,6 @@ private:
 
     float m_screenX;
     float m_screenY;
-
-    // Old state tracking removed - now using StateCache
-    // DWORD m_oldZEnable;
-    // DWORD m_oldAlphaBlend;
-    // DWORD m_oldSrcBlend;
-    // DWORD m_oldDestBlend;
-    // DWORD m_oldCullMode;
 
     std::vector<MenuItem> m_items;
 };

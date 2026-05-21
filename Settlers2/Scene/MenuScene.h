@@ -11,6 +11,7 @@
 #include "../Input/Gamepad.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/RenderQueue.h"
+#include "../Graphics/ShaderManager.h"
 
 // Menu constants
 static const int MAX_MENU_ITEMS = 4;

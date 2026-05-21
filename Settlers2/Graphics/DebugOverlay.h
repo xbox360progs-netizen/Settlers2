@@ -2,8 +2,22 @@
 #include <d3d9.h>
 #include <string>
 #include <vector>
-#include "RenderFrame.h"
 #include "GPUTimer.h"
+
+struct PassStats {
+    float durationMs;
+    float gpuTimeMs;
+    int drawCalls;
+    PassStats() : durationMs(0), gpuTimeMs(0), drawCalls(0) {}
+};
+
+enum RenderPassType {
+    PASS_GEOMETRY,
+    PASS_LIGHTING,
+    PASS_TRANSPARENT,
+    PASS_UI,
+    PASS_COUNT
+};
 
 namespace Graphics {
 

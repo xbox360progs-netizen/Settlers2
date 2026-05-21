@@ -7,6 +7,8 @@
 #include "../Graphics/Texture.h"
 #include "../Graphics/TextureRegistry.h"
 #include "../Graphics/RenderLayers.h"
+#include "../Graphics/ShaderManager.h"
+#include "../Graphics/RenderQueue.h"
 
 using namespace Scene;
 #include <d3dx9.h>
@@ -217,53 +219,27 @@ void MenuScene::Update(float deltaTime) {
 }
 
 void MenuScene::Render(RenderQueue* renderQueue) {
-    (void)renderQueue;
-    OutputDebugStringA("[MenuScene::Render] ENTRY\n");
-    
-    // Simple nullptr check only - vtable check is unreliable on Xbox 360
-    if (!m_spriteRenderer) {
-        OutputDebugStringA("[MenuScene::Render] m_spriteRenderer is NULL, trying SceneManager...\n");
-        SceneManager* sm = GetSceneManager();
-        if (sm) {
-            m_spriteRenderer = sm->GetSpriteRenderer();
-        }
-    }
-    
-    if (!m_spriteRenderer) {
-        OutputDebugStringA("[MenuScene::Render] ERROR: m_spriteRenderer is NULL!\n");
-        return;
-    }
-    
-    if (!m_backgroundTexture.GetTexture()) {
-        OutputDebugStringA("[MenuScene::Render] ERROR: Missing background texture!\n");
-        return;
-    }
+    if (!renderQueue) return;
 
-    LPDIRECT3DTEXTURE9 bgTex = m_backgroundTexture.GetTexture();
-    char buf[256];
-    sprintf(buf, "[MenuScene::Render] bgTex = %p\n", bgTex);
-    OutputDebugStringA(buf);
+    if (!m_backgroundTexture.GetTexture()) return;
 
-    // Бэкграунд
-    OutputDebugStringA("[MenuScene::Render] About to call Begin for background...\n");
-    m_spriteRenderer->Begin(SHADER_SPRITE, bgTex, 0.9f, 0, true);
-    sprintf(buf, "[MenuScene::Render] After Begin: current texture = %p\n", bgTex);
-    OutputDebugStringA(buf);
-    
-    OutputDebugStringA("[MenuScene::Render] About to call Draw...\n");
-    m_spriteRenderer->Draw(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
-    OutputDebugStringA("[MenuScene::Render] Draw returned\n");
-    
-    OutputDebugStringA("[MenuScene::Render] About to call End...\n");
-    m_spriteRenderer->End();
-    OutputDebugStringA("[MenuScene::Render] End returned\n");
+    // Background sprite
+    Graphics::SpriteCommand bgCmd;
+    bgCmd.shaderID = SHADER_SPRITE;
+    bgCmd.x = 0.0f;
+    bgCmd.y = 0.0f;
+    bgCmd.width = 1280.0f;
+    bgCmd.height = 720.0f;
+    bgCmd.u0 = 0.0f; bgCmd.v0 = 0.0f;
+    bgCmd.u1 = 1.0f; bgCmd.v1 = 1.0f;
+    bgCmd.color = 0xFFFFFFFF;
+    bgCmd.depth = 900;
+    bgCmd.layer = 900;
+    bgCmd.textureID = 0;
+    renderQueue->Submit(bgCmd);
 
-    // Текст
+    // Menu text - add text rendering commands
     if (m_textManager) {
-        OutputDebugStringA("[MenuScene::Render] About to call BeginTextBatch...\n");
-        m_textManager->BeginTextBatch(FONT_MENU, 0.1f);
-        OutputDebugStringA("[MenuScene::Render] BeginTextBatch returned\n");
-        
         float startY = 280.0f;
         float spacingY = 80.0f;
         for (int i = 0; i < m_menuCount; ++i) {
@@ -271,12 +247,7 @@ void MenuScene::Render(RenderQueue* renderQueue) {
             float itemX = (i == m_selectedIndex) ? 140.0f : 100.0f;
             m_textManager->DrawString(m_menuItems[i], itemX, startY + (i * spacingY), itemColor, 0.3f);
         }
-        
-        OutputDebugStringA("[MenuScene::Render] About to call EndTextBatch...\n");
-        m_textManager->EndTextBatch();
-        OutputDebugStringA("[MenuScene::Render] EndTextBatch returned\n");
     }
-    OutputDebugStringA("[MenuScene::Render] EXIT\n");
 }
 
 void MenuScene::SetBackground(const std::string& path) {

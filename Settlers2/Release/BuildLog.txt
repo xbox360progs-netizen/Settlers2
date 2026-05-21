@@ -1,1203 +1,237 @@
-﻿Построение начато 20.05.2026 11:42:22.
+﻿Построение начато 21.05.2026 8:20:26.
      1>Проект "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" в узле 2 (целевые объекты build).
      1>InitializeBuildStatus:
-         Создание "Release\Settlers2.unsuccessfulbuild", так как было задано "AlwaysCreate".
+         Обращение к "Release\Settlers2.unsuccessfulbuild".
        ClCompile:
          Для всех выходных данных обновления не требуется.
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Core\GameEngine.cpp Graphics\BitmapFont.cpp Graphics\BitmapText.cpp Graphics\CommandQueueManager.cpp Graphics\DebugOverlay.cpp Graphics\OverlayFPS.cpp Graphics\Material.cpp Graphics\Passes.cpp Graphics\RenderDocTool.cpp Graphics\RenderFrame.cpp Graphics\RenderContext.cpp Graphics\Renderer.cpp Graphics\Passes\GeometryPass.cpp Graphics\Passes\LightingPass.cpp Graphics\Passes\TransparentPass.cpp Graphics\Passes\UIPass.cpp Graphics\Debug\DebugOverlay.cpp Graphics\PostFX\PostFXChain.cpp Graphics\PostFX\PostFXPasses.cpp Graphics\RenderPassBase.cpp Graphics\RenderPipeline.cpp Graphics\RenderQueue.cpp Graphics\RenderTargetManager.cpp Graphics\ShaderManager.cpp Graphics\SpriteRenderer.cpp Graphics\TextManager.cpp Graphics\TileRenderer.cpp Scene\EditorScene.cpp Scene\LoadingScene.cpp Scene\MenuScene.cpp Scene\Scene.cpp Scene\SceneManager.cpp UI\GridMenu.cpp UI\RadialMenu.cpp UI\WeightMenu.cpp Editor\MapEditor.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Core\GameEngine.cpp Graphics\DebugOverlay.cpp Graphics\GPUDebug.cpp Graphics\Passes.cpp Graphics\RenderFrame.cpp Graphics\Renderer.cpp Graphics\Debug\DebugOverlay.cpp Graphics\RenderStateValidator.cpp Graphics\ShaderManager.cpp Graphics\SpriteRenderer.cpp Graphics\SpriteShadow.cpp Graphics\TextManager.cpp Scene\EditorScene.cpp Scene\LoadingScene.cpp Scene\MenuScene.cpp Scene\SceneManager.cpp UI\GridMenu.cpp UI\RadialMenu.cpp UI\WeightMenu.cpp World\Systems\RenderSystem.cpp Editor\MapEditor.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
          GameEngine.cpp
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(20): error C2874: using-declaration causes a multiple declaration of 'ShaderManager'
-                 d:\development\settlers2\settlers2\Graphics/ShaderManager.h(33) : see declaration of 'ShaderManager'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(42): error C2061: syntax error : identifier 'RenderQueue'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): warning C4183: 'GetRenderQueue': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2065: 'm_renderQueue' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(67): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(68): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(69): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(70): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(71): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(72): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\core\../Graphics/SpriteRenderer.h(18): error C2061: syntax error : identifier 'MaterialManager'
-     1>d:\development\settlers2\settlers2\core\../Graphics/SpriteRenderer.h(19): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\core\../Graphics/SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\core\../Graphics/SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\core\../Graphics/SpriteRenderer.h(19): warning C4183: 'GetMaterialManager': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\core\../Graphics/SpriteRenderer.h(60): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\core\../Graphics/SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\core\../Graphics/SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\core\../Graphics/SpriteRenderer.h(18): error C2065: 'm_pMaterialManager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\core\../Graphics/SpriteRenderer.h(18): error C2065: 'manager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\core\../Graphics/SpriteRenderer.h(19): error C2065: 'm_pMaterialManager' : undeclared identifier
-         BitmapFont.cpp
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(20): error C2874: using-declaration causes a multiple declaration of 'ShaderManager'
-                 d:\development\settlers2\settlers2\Graphics/ShaderManager.h(33) : see declaration of 'ShaderManager'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(42): error C2061: syntax error : identifier 'RenderQueue'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): warning C4183: 'GetRenderQueue': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2065: 'm_renderQueue' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(67): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(68): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(69): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(70): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(71): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(72): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-         BitmapText.cpp
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(20): error C2874: using-declaration causes a multiple declaration of 'ShaderManager'
-                 d:\development\settlers2\settlers2\Graphics/ShaderManager.h(33) : see declaration of 'ShaderManager'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(42): error C2061: syntax error : identifier 'RenderQueue'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): warning C4183: 'GetRenderQueue': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2065: 'm_renderQueue' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(67): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(68): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(69): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(70): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(71): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(72): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-         CommandQueueManager.cpp
-     1>d:\development\settlers2\settlers2\graphics\RenderQueue.h(63): error C2614: 'Graphics::DrawBatch' : illegal member initialization: 'materialID' is not a base or member
-     1>d:\development\settlers2\settlers2\graphics\RenderQueue.h(63): error C2614: 'Graphics::DrawBatch' : illegal member initialization: 'texture' is not a base or member
+     1>d:\development\settlers2\settlers2\core\../Graphics/SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
+     1>Core\GameEngine.cpp(195): error C2664: 'Scene::SceneManager::SetRenderQueue' : cannot convert parameter 1 from 'Graphics::RenderQueue *' to 'RenderQueue *'
+                 Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or function-style cast
          DebugOverlay.cpp
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(20): error C2874: using-declaration causes a multiple declaration of 'ShaderManager'
-                 d:\development\settlers2\settlers2\Graphics/ShaderManager.h(33) : see declaration of 'ShaderManager'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(42): error C2061: syntax error : identifier 'RenderQueue'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): warning C4183: 'GetRenderQueue': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2065: 'm_renderQueue' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(67): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(68): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(69): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(70): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(71): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(72): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\DebugOverlay.h(36): error C2143: syntax error : missing ',' before '&'
-     1>d:\development\settlers2\settlers2\graphics\DebugOverlay.h(62): error C2146: syntax error : missing ';' before identifier 'm_passStats'
-     1>d:\development\settlers2\settlers2\graphics\DebugOverlay.h(62): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\DebugOverlay.h(62): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>Graphics\DebugOverlay.cpp(14): error C2065: 'm_passStats' : undeclared identifier
-     1>Graphics\DebugOverlay.cpp(14): error C2065: 'm_passStats' : undeclared identifier
-     1>Graphics\DebugOverlay.cpp(14): error C2070: ''unknown-type'': illegal sizeof operand
-     1>Graphics\DebugOverlay.cpp(34): error C2143: syntax error : missing ',' before '&'
-     1>Graphics\DebugOverlay.cpp(36): error C2065: 'm_passStats' : undeclared identifier
-     1>Graphics\DebugOverlay.cpp(36): error C2065: 'stats' : undeclared identifier
      1>Graphics\DebugOverlay.cpp(99): error C2078: too many initializers
-     1>Graphics\DebugOverlay.cpp(104): error C2065: 'm_passStats' : undeclared identifier
-     1>Graphics\DebugOverlay.cpp(104): error C2228: left of '.drawCalls' must have class/struct/union
-     1>Graphics\DebugOverlay.cpp(104): error C2065: 'm_passStats' : undeclared identifier
-     1>Graphics\DebugOverlay.cpp(104): error C2228: left of '.gpuTimeMs' must have class/struct/union
-         OverlayFPS.cpp
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(20): error C2874: using-declaration causes a multiple declaration of 'ShaderManager'
-                 d:\development\settlers2\settlers2\Graphics/ShaderManager.h(33) : see declaration of 'ShaderManager'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(42): error C2061: syntax error : identifier 'RenderQueue'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): warning C4183: 'GetRenderQueue': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2065: 'm_renderQueue' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(67): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(68): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(69): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(70): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(71): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(72): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>c1xx : fatal error C1903: unable to recover from previous error(s); stopping compilation
-         Material.cpp
+         GPUDebug.cpp
+     1>c1xx : fatal error C1083: Cannot open source file: 'Graphics\GPUDebug.cpp': No such file or directory
          Passes.cpp
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(20): error C2874: using-declaration causes a multiple declaration of 'ShaderManager'
-                 d:\development\settlers2\settlers2\Graphics/ShaderManager.h(33) : see declaration of 'ShaderManager'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(42): error C2061: syntax error : identifier 'RenderQueue'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): warning C4183: 'GetRenderQueue': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2065: 'm_renderQueue' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(67): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(68): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(69): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(70): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(71): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(72): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(27): error C2011: 'Graphics::IRenderPass' : 'class' type redefinition
-                 d:\development\settlers2\settlers2\graphics\Passes\IRenderPass.h(20) : see declaration of 'Graphics::IRenderPass'
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(47): error C2504: 'Graphics::IRenderPass' : base class undefined
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(52): error C3668: 'Graphics::RenderPassBase::BeginPass' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(53): error C3668: 'Graphics::RenderPassBase::Execute' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(54): error C3668: 'Graphics::RenderPassBase::EndPass' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(56): error C3668: 'Graphics::RenderPassBase::GetName' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(57): error C3668: 'Graphics::RenderPassBase::GetType' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(58): error C3668: 'Graphics::RenderPassBase::GetPriority' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(59): error C3668: 'Graphics::RenderPassBase::IsEnabled' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(61): error C3668: 'Graphics::RenderPassBase::SetEnabled' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(62): error C3668: 'Graphics::RenderPassBase::SetResources' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(63): error C3668: 'Graphics::RenderPassBase::AddGPUEvent' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(64): error C3668: 'Graphics::RenderPassBase::ValidateState' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(18): error C2061: syntax error : identifier 'MaterialManager'
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(19): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(19): warning C4183: 'GetMaterialManager': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(60): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(18): error C2065: 'm_pMaterialManager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(18): error C2065: 'manager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(19): error C2065: 'm_pMaterialManager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\Passes.h(67): error C2065: 'PASS_ALPHATEST' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\Passes.h(118): error C2653: 'PostFXCommand' : is not a class or namespace name
-     1>d:\development\settlers2\settlers2\graphics\Passes.h(118): error C2061: syntax error : identifier 'PostFXType'
-     1>d:\development\settlers2\settlers2\graphics\Passes.h(122): error C2065: 'PostFXCommand' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\Passes.h(115): error C2512: 'std::vector' : no appropriate default constructor available
-     1>Graphics\Passes.cpp(15): error C2027: use of undefined type 'Graphics::SpriteRenderer'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(16) : see declaration of 'Graphics::SpriteRenderer'
-     1>Graphics\Passes.cpp(15): error C2227: left of '->GetDevice' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(26): error C2027: use of undefined type 'Graphics::ShaderManager'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(15) : see declaration of 'Graphics::ShaderManager'
-     1>Graphics\Passes.cpp(26): error C2227: left of '->SetActiveShader' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(28): error C2027: use of undefined type 'Graphics::SpriteRenderer'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(16) : see declaration of 'Graphics::SpriteRenderer'
-     1>Graphics\Passes.cpp(28): error C2227: left of '->GetVertexBuffer' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(29): error C2027: use of undefined type 'Graphics::SpriteRenderer'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(16) : see declaration of 'Graphics::SpriteRenderer'
-     1>Graphics\Passes.cpp(29): error C2227: left of '->GetIndexBuffer' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(30): error C2027: use of undefined type 'Graphics::SpriteRenderer'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(16) : see declaration of 'Graphics::SpriteRenderer'
-     1>Graphics\Passes.cpp(30): error C2227: left of '->GetVertexDeclaration' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(33): error C2027: use of undefined type 'Graphics::ShaderManager'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(15) : see declaration of 'Graphics::ShaderManager'
-     1>Graphics\Passes.cpp(33): error C2227: left of '->GetFrameViewProj' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(34): error C2027: use of undefined type 'Graphics::ShaderManager'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(15) : see declaration of 'Graphics::ShaderManager'
-     1>Graphics\Passes.cpp(34): error C2227: left of '->ExecuteQueue' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(51): error C2027: use of undefined type 'Graphics::ShaderManager'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(15) : see declaration of 'Graphics::ShaderManager'
-     1>Graphics\Passes.cpp(51): error C2227: left of '->GetDevice' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(62): error C2027: use of undefined type 'Graphics::ShaderManager'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(15) : see declaration of 'Graphics::ShaderManager'
-     1>Graphics\Passes.cpp(62): error C2227: left of '->SetActiveShader' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(63): error C2027: use of undefined type 'Graphics::ShaderManager'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(15) : see declaration of 'Graphics::ShaderManager'
-     1>Graphics\Passes.cpp(63): error C2227: left of '->BeginShader' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(64): error C2027: use of undefined type 'Graphics::ShaderManager'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(15) : see declaration of 'Graphics::ShaderManager'
-     1>Graphics\Passes.cpp(64): error C2227: left of '->BeginPass' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(70): error C2027: use of undefined type 'Graphics::ShaderManager'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(15) : see declaration of 'Graphics::ShaderManager'
-     1>Graphics\Passes.cpp(70): error C2227: left of '->EndPass' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(71): error C2027: use of undefined type 'Graphics::ShaderManager'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(15) : see declaration of 'Graphics::ShaderManager'
-     1>Graphics\Passes.cpp(71): error C2227: left of '->EndShader' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(87): error C2027: use of undefined type 'Graphics::ShaderManager'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(15) : see declaration of 'Graphics::ShaderManager'
-     1>Graphics\Passes.cpp(87): error C2227: left of '->GetDevice' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(90): error C2027: use of undefined type 'Graphics::ShaderManager'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(15) : see declaration of 'Graphics::ShaderManager'
-     1>Graphics\Passes.cpp(90): error C2227: left of '->SetActiveShader' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(91): error C2027: use of undefined type 'Graphics::ShaderManager'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(15) : see declaration of 'Graphics::ShaderManager'
-     1>Graphics\Passes.cpp(91): error C2227: left of '->BeginShader' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(92): error C2027: use of undefined type 'Graphics::ShaderManager'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(15) : see declaration of 'Graphics::ShaderManager'
-     1>Graphics\Passes.cpp(92): error C2227: left of '->BeginPass' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(101): error C2027: use of undefined type 'Graphics::ShaderManager'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(15) : see declaration of 'Graphics::ShaderManager'
-     1>Graphics\Passes.cpp(101): error C2227: left of '->EndPass' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(102): error C2027: use of undefined type 'Graphics::ShaderManager'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(15) : see declaration of 'Graphics::ShaderManager'
-     1>Graphics\Passes.cpp(102): error C2227: left of '->EndShader' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(118): error C2027: use of undefined type 'Graphics::ShaderManager'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(15) : see declaration of 'Graphics::ShaderManager'
-     1>Graphics\Passes.cpp(118): error C2227: left of '->GetDevice' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(121): error C2027: use of undefined type 'Graphics::ShaderManager'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(15) : see declaration of 'Graphics::ShaderManager'
-     1>Graphics\Passes.cpp(121): error C2227: left of '->SetActiveShader' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(122): error C2027: use of undefined type 'Graphics::ShaderManager'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(15) : see declaration of 'Graphics::ShaderManager'
-     1>Graphics\Passes.cpp(122): error C2227: left of '->BeginShader' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(123): error C2027: use of undefined type 'Graphics::ShaderManager'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(15) : see declaration of 'Graphics::ShaderManager'
-     1>Graphics\Passes.cpp(123): error C2227: left of '->BeginPass' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(132): error C2027: use of undefined type 'Graphics::ShaderManager'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(15) : see declaration of 'Graphics::ShaderManager'
-     1>Graphics\Passes.cpp(132): error C2227: left of '->EndPass' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(133): error C2027: use of undefined type 'Graphics::ShaderManager'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(15) : see declaration of 'Graphics::ShaderManager'
-     1>Graphics\Passes.cpp(133): error C2227: left of '->EndShader' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(149): error C2027: use of undefined type 'Graphics::ShaderManager'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(15) : see declaration of 'Graphics::ShaderManager'
-     1>Graphics\Passes.cpp(149): error C2227: left of '->GetDevice' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(152): error C2027: use of undefined type 'Graphics::ShaderManager'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(15) : see declaration of 'Graphics::ShaderManager'
-     1>Graphics\Passes.cpp(152): error C2227: left of '->SetActiveShader' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(153): error C2027: use of undefined type 'Graphics::ShaderManager'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(15) : see declaration of 'Graphics::ShaderManager'
-     1>Graphics\Passes.cpp(153): error C2227: left of '->BeginShader' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(154): error C2027: use of undefined type 'Graphics::ShaderManager'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(15) : see declaration of 'Graphics::ShaderManager'
-     1>Graphics\Passes.cpp(154): error C2227: left of '->BeginPass' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(163): error C2027: use of undefined type 'Graphics::ShaderManager'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(15) : see declaration of 'Graphics::ShaderManager'
-     1>Graphics\Passes.cpp(163): error C2227: left of '->EndPass' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(164): error C2027: use of undefined type 'Graphics::ShaderManager'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(15) : see declaration of 'Graphics::ShaderManager'
-     1>Graphics\Passes.cpp(164): error C2227: left of '->EndShader' must point to class/struct/union/generic type
-     1>Graphics\Passes.cpp(178): error C2662: 'std::vector<_Ty,_Ax>::size' : cannot convert 'this' pointer from 'std::vector' to 'const std::vector<_Ty,_Ax> &'
-                 Reason: cannot convert from 'std::vector' to 'const std::vector<_Ty,_Ax>'
-                 Conversion requires a second user-defined-conversion operator or constructor
-     1>Graphics\Passes.cpp(179): error C2143: syntax error : missing ';' before '&'
-     1>Graphics\Passes.cpp(179): error C2065: 'cmd' : undeclared identifier
-     1>Graphics\Passes.cpp(179): error C2678: binary '[' : no operator found which takes a left-hand operand of type 'std::vector' (or there is no acceptable conversion)
-     1>Graphics\Passes.cpp(179): fatal error C1003: error count exceeds 100; stopping compilation
-         RenderDocTool.cpp
+     1>c1xx : fatal error C1083: Cannot open source file: 'Graphics\Passes.cpp': No such file or directory
          RenderFrame.cpp
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(20): error C2874: using-declaration causes a multiple declaration of 'ShaderManager'
-                 d:\development\settlers2\settlers2\Graphics/ShaderManager.h(33) : see declaration of 'ShaderManager'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(42): error C2061: syntax error : identifier 'RenderQueue'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): warning C4183: 'GetRenderQueue': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2065: 'm_renderQueue' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(67): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(68): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(69): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(70): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(71): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(72): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(18): error C2061: syntax error : identifier 'MaterialManager'
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(19): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(19): warning C4183: 'GetMaterialManager': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(60): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(18): error C2065: 'm_pMaterialManager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(18): error C2065: 'manager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(19): error C2065: 'm_pMaterialManager' : undeclared identifier
-     1>Graphics\RenderFrame.cpp(28): error C2664: 'D3DSurface::D3DSurface(const D3DSurface &)' : cannot convert parameter 1 from 'int' to 'const D3DSurface &'
-                 Reason: cannot convert from 'int' to 'const D3DSurface'
-                 No constructor could take the source type, or constructor overload resolution was ambiguous
-     1>Graphics\RenderFrame.cpp(41): error C2664: 'D3DDevice::GetBackBuffer' : cannot convert parameter 4 from 'D3DSurface *' to 'D3DSurface **'
-                 Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or function-style cast
-     1>Graphics\RenderFrame.cpp(42): error C2819: type 'D3DSurface' does not have an overloaded member 'operator ->'
-                 C:\Program Files (x86)\Microsoft Xbox 360 SDK\include\xbox\d3d9.h(1354) : see declaration of 'D3DSurface'
-                 did you intend to use '.' instead?
-     1>Graphics\RenderFrame.cpp(42): error C2232: '->D3DSurface::GetDesc' : left operand has 'struct' type, use '.'
-     1>Graphics\RenderFrame.cpp(55): error C2664: 'D3DDevice::CreateRenderTarget' : cannot convert parameter 7 from 'D3DSurface *' to 'D3DSurface **'
-                 Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or function-style cast
-     1>Graphics\RenderFrame.cpp(60): error C2664: 'D3DDevice::CreateRenderTarget' : cannot convert parameter 7 from 'D3DSurface *' to 'D3DSurface **'
-                 Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or function-style cast
-     1>Graphics\RenderFrame.cpp(65): error C2664: 'D3DDevice::CreateRenderTarget' : cannot convert parameter 7 from 'D3DSurface *' to 'D3DSurface **'
-                 Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or function-style cast
-     1>Graphics\RenderFrame.cpp(70): error C2664: 'D3DDevice::CreateRenderTarget' : cannot convert parameter 7 from 'D3DSurface *' to 'D3DSurface **'
-                 Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or function-style cast
-     1>Graphics\RenderFrame.cpp(75): error C2664: 'D3DDevice::CreateDepthStencilSurface' : cannot convert parameter 7 from 'D3DSurface *' to 'D3DSurface **'
-                 Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or function-style cast
-     1>Graphics\RenderFrame.cpp(82): error C2451: conditional expression of type 'D3DSurface' is illegal
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>Graphics\RenderFrame.cpp(82): error C2819: type 'D3DSurface' does not have an overloaded member 'operator ->'
-                 C:\Program Files (x86)\Microsoft Xbox 360 SDK\include\xbox\d3d9.h(1354) : see declaration of 'D3DSurface'
-                 did you intend to use '.' instead?
-     1>Graphics\RenderFrame.cpp(82): error C2232: '->D3DResource::Release' : left operand has 'struct' type, use '.'
-     1>Graphics\RenderFrame.cpp(82): error C2679: binary '=' : no operator found which takes a right-hand operand of type 'int' (or there is no acceptable conversion)
-                 C:\Program Files (x86)\Microsoft Xbox 360 SDK\include\xbox\d3d9.h(1417): could be 'D3DSurface &D3DSurface::operator =(const D3DSurface &)'
-                 while trying to match the argument list '(D3DSurface, int)'
-     1>Graphics\RenderFrame.cpp(83): error C2451: conditional expression of type 'D3DSurface' is illegal
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>Graphics\RenderFrame.cpp(83): error C2819: type 'D3DSurface' does not have an overloaded member 'operator ->'
-                 C:\Program Files (x86)\Microsoft Xbox 360 SDK\include\xbox\d3d9.h(1354) : see declaration of 'D3DSurface'
-                 did you intend to use '.' instead?
-     1>Graphics\RenderFrame.cpp(83): error C2232: '->D3DResource::Release' : left operand has 'struct' type, use '.'
-     1>Graphics\RenderFrame.cpp(83): error C2679: binary '=' : no operator found which takes a right-hand operand of type 'int' (or there is no acceptable conversion)
-                 C:\Program Files (x86)\Microsoft Xbox 360 SDK\include\xbox\d3d9.h(1417): could be 'D3DSurface &D3DSurface::operator =(const D3DSurface &)'
-                 while trying to match the argument list '(D3DSurface, int)'
-     1>Graphics\RenderFrame.cpp(84): error C2451: conditional expression of type 'D3DSurface' is illegal
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>Graphics\RenderFrame.cpp(84): error C2819: type 'D3DSurface' does not have an overloaded member 'operator ->'
-                 C:\Program Files (x86)\Microsoft Xbox 360 SDK\include\xbox\d3d9.h(1354) : see declaration of 'D3DSurface'
-                 did you intend to use '.' instead?
-     1>Graphics\RenderFrame.cpp(84): error C2232: '->D3DResource::Release' : left operand has 'struct' type, use '.'
-     1>Graphics\RenderFrame.cpp(84): error C2679: binary '=' : no operator found which takes a right-hand operand of type 'int' (or there is no acceptable conversion)
-                 C:\Program Files (x86)\Microsoft Xbox 360 SDK\include\xbox\d3d9.h(1417): could be 'D3DSurface &D3DSurface::operator =(const D3DSurface &)'
-                 while trying to match the argument list '(D3DSurface, int)'
-     1>Graphics\RenderFrame.cpp(85): error C2451: conditional expression of type 'D3DSurface' is illegal
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>Graphics\RenderFrame.cpp(85): error C2819: type 'D3DSurface' does not have an overloaded member 'operator ->'
-                 C:\Program Files (x86)\Microsoft Xbox 360 SDK\include\xbox\d3d9.h(1354) : see declaration of 'D3DSurface'
-                 did you intend to use '.' instead?
-     1>Graphics\RenderFrame.cpp(85): error C2232: '->D3DResource::Release' : left operand has 'struct' type, use '.'
-     1>Graphics\RenderFrame.cpp(85): error C2679: binary '=' : no operator found which takes a right-hand operand of type 'int' (or there is no acceptable conversion)
-                 C:\Program Files (x86)\Microsoft Xbox 360 SDK\include\xbox\d3d9.h(1417): could be 'D3DSurface &D3DSurface::operator =(const D3DSurface &)'
-                 while trying to match the argument list '(D3DSurface, int)'
-     1>Graphics\RenderFrame.cpp(86): error C2451: conditional expression of type 'D3DSurface' is illegal
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>Graphics\RenderFrame.cpp(86): error C2819: type 'D3DSurface' does not have an overloaded member 'operator ->'
-                 C:\Program Files (x86)\Microsoft Xbox 360 SDK\include\xbox\d3d9.h(1354) : see declaration of 'D3DSurface'
-                 did you intend to use '.' instead?
-     1>Graphics\RenderFrame.cpp(86): error C2232: '->D3DResource::Release' : left operand has 'struct' type, use '.'
-     1>Graphics\RenderFrame.cpp(86): error C2679: binary '=' : no operator found which takes a right-hand operand of type 'int' (or there is no acceptable conversion)
-                 C:\Program Files (x86)\Microsoft Xbox 360 SDK\include\xbox\d3d9.h(1417): could be 'D3DSurface &D3DSurface::operator =(const D3DSurface &)'
-                 while trying to match the argument list '(D3DSurface, int)'
-     1>Graphics\RenderFrame.cpp(87): error C2451: conditional expression of type 'D3DSurface' is illegal
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>Graphics\RenderFrame.cpp(87): error C2819: type 'D3DSurface' does not have an overloaded member 'operator ->'
-                 C:\Program Files (x86)\Microsoft Xbox 360 SDK\include\xbox\d3d9.h(1354) : see declaration of 'D3DSurface'
-                 did you intend to use '.' instead?
-     1>Graphics\RenderFrame.cpp(87): error C2232: '->D3DResource::Release' : left operand has 'struct' type, use '.'
-     1>Graphics\RenderFrame.cpp(87): error C2679: binary '=' : no operator found which takes a right-hand operand of type 'int' (or there is no acceptable conversion)
-                 C:\Program Files (x86)\Microsoft Xbox 360 SDK\include\xbox\d3d9.h(1417): could be 'D3DSurface &D3DSurface::operator =(const D3DSurface &)'
-                 while trying to match the argument list '(D3DSurface, int)'
-     1>Graphics\RenderFrame.cpp(101): error C2065: 'GeometryPass' : undeclared identifier
-     1>Graphics\RenderFrame.cpp(101): error C2065: 'geometryPass' : undeclared identifier
-     1>Graphics\RenderFrame.cpp(101): error C2061: syntax error : identifier 'GeometryPass'
-     1>Graphics\RenderFrame.cpp(102): error C2065: 'geometryPass' : undeclared identifier
-     1>Graphics\RenderFrame.cpp(102): error C2227: left of '->SetRenderFrame' must point to class/struct/union/generic type
-                 type is ''unknown-type''
-     1>Graphics\RenderFrame.cpp(103): error C2065: 'geometryPass' : undeclared identifier
-     1>Graphics\RenderFrame.cpp(105): error C2065: 'LightingPass' : undeclared identifier
-     1>Graphics\RenderFrame.cpp(105): error C2065: 'lightingPass' : undeclared identifier
-     1>Graphics\RenderFrame.cpp(105): error C2061: syntax error : identifier 'LightingPass'
-     1>Graphics\RenderFrame.cpp(106): error C2065: 'lightingPass' : undeclared identifier
-     1>Graphics\RenderFrame.cpp(106): error C2227: left of '->SetRenderFrame' must point to class/struct/union/generic type
-                 type is ''unknown-type''
-     1>Graphics\RenderFrame.cpp(107): error C2065: 'lightingPass' : undeclared identifier
-     1>Graphics\RenderFrame.cpp(109): error C2065: 'TransparentPass' : undeclared identifier
-     1>Graphics\RenderFrame.cpp(109): error C2065: 'transparentPass' : undeclared identifier
-     1>Graphics\RenderFrame.cpp(109): error C2061: syntax error : identifier 'TransparentPass'
-     1>Graphics\RenderFrame.cpp(110): error C2065: 'transparentPass' : undeclared identifier
-     1>Graphics\RenderFrame.cpp(110): error C2227: left of '->SetRenderFrame' must point to class/struct/union/generic type
-                 type is ''unknown-type''
-     1>Graphics\RenderFrame.cpp(111): error C2065: 'transparentPass' : undeclared identifier
-     1>Graphics\RenderFrame.cpp(113): error C2065: 'UIPass' : undeclared identifier
-     1>Graphics\RenderFrame.cpp(113): error C2065: 'uiPass' : undeclared identifier
-     1>Graphics\RenderFrame.cpp(113): error C2061: syntax error : identifier 'UIPass'
-     1>Graphics\RenderFrame.cpp(114): error C2065: 'uiPass' : undeclared identifier
-     1>Graphics\RenderFrame.cpp(114): error C2227: left of '->SetRenderFrame' must point to class/struct/union/generic type
-                 type is ''unknown-type''
-     1>Graphics\RenderFrame.cpp(115): error C2065: 'uiPass' : undeclared identifier
-     1>Graphics\RenderFrame.cpp(121): error C2143: syntax error : missing ',' before ':'
-     1>Graphics\RenderFrame.cpp(121): error C2530: 'pair' : references must be initialized
-     1>Graphics\RenderFrame.cpp(121): error C3531: 'pair': a symbol whose type contains 'auto' must have an initializer
-     1>Graphics\RenderFrame.cpp(121): error C2143: syntax error : missing ';' before '{'
-     1>Graphics\RenderFrame.cpp(122): error C2228: left of '.second' must have class/struct/union
-                 type is 'int'
-     1>Graphics\RenderFrame.cpp(127): error C2065: 'RenderQueue' : undeclared identifier
-     1>Graphics\RenderFrame.cpp(127): error C2065: 'queue' : undeclared identifier
-     1>Graphics\RenderFrame.cpp(127): error C2448: 'Graphics::RenderFrame::SetRenderQueue' : function-style initializer appears to be a function definition
-     1>Graphics\RenderFrame.cpp(171): error C2065: 'm_renderQueue' : undeclared identifier
-     1>Graphics\RenderFrame.cpp(172): error C2065: 'm_renderQueue' : undeclared identifier
-     1>Graphics\RenderFrame.cpp(172): error C2227: left of '->Sort' must point to class/struct/union/generic type
-                 type is ''unknown-type''
-     1>Graphics\RenderFrame.cpp(172): error C2065: 'SORT_BY_DEPTH_THEN_SHADER_THEN_TEXTURE' : undeclared identifier
-     1>Graphics\RenderFrame.cpp(173): error C2065: 'm_renderQueue' : undeclared identifier
-     1>Graphics\RenderFrame.cpp(173): error C2227: left of '->Batch' must point to class/struct/union/generic type
-                 type is ''unknown-type''
-     1>Graphics\RenderFrame.cpp(209): error C2027: use of undefined type 'Graphics::RenderDebugOverlay'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(14) : see declaration of 'Graphics::RenderDebugOverlay'
-     1>Graphics\RenderFrame.cpp(209): error C2227: left of '->Render' must point to class/struct/union/generic type
-         RenderContext.cpp
+     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
+     1>Graphics\RenderFrame.cpp(61): error C2027: use of undefined type 'Graphics::SpriteRenderer'
+                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(8) : see declaration of 'Graphics::SpriteRenderer'
+     1>Graphics\RenderFrame.cpp(61): error C2227: left of '->Execute' must point to class/struct/union/generic type
+     1>Graphics\RenderFrame.cpp(67): error C2039: 'Render' : is not a member of 'Graphics::RenderDebugOverlay'
+                 d:\development\settlers2\settlers2\graphics\RenderDebugOverlay.h(50) : see declaration of 'Graphics::RenderDebugOverlay'
          Renderer.cpp
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(20): error C2874: using-declaration causes a multiple declaration of 'ShaderManager'
-                 d:\development\settlers2\settlers2\Graphics/ShaderManager.h(33) : see declaration of 'ShaderManager'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(42): error C2061: syntax error : identifier 'RenderQueue'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): warning C4183: 'GetRenderQueue': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2065: 'm_renderQueue' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(67): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(68): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(69): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(70): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(71): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(72): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(18): error C2061: syntax error : identifier 'MaterialManager'
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(19): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(19): warning C4183: 'GetMaterialManager': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(60): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(18): error C2065: 'm_pMaterialManager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(18): error C2065: 'manager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(19): error C2065: 'm_pMaterialManager' : undeclared identifier
-     1>Graphics\Renderer.cpp(183): error C2664: 'Graphics::RenderFrame::SetDependencies' : cannot convert parameter 1 from 'ShaderManager *' to 'Graphics::ShaderManager *'
+     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
+     1>Graphics\Renderer.cpp(90): error C2664: 'Graphics::RenderFrame::SetSpriteRenderer' : cannot convert parameter 1 from 'SpriteRenderer *' to 'Graphics::SpriteRenderer *'
                  Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or function-style cast
-         GeometryPass.cpp
-     1>Graphics\Passes\GeometryPass.cpp(3): fatal error C1083: Cannot open include file: 'ShaderManager.h': No such file or directory
-         LightingPass.cpp
-     1>Graphics\Passes\LightingPass.cpp(3): fatal error C1083: Cannot open include file: 'ShaderManager.h': No such file or directory
-         TransparentPass.cpp
-     1>Graphics\Passes\TransparentPass.cpp(3): fatal error C1083: Cannot open include file: 'ShaderManager.h': No such file or directory
-         UIPass.cpp
-     1>Graphics\Passes\UIPass.cpp(3): fatal error C1083: Cannot open include file: 'ShaderManager.h': No such file or directory
          DebugOverlay.cpp
      1>d:\development\settlers2\settlers2\graphics\debug\DebugOverlay.h(6): fatal error C1083: Cannot open include file: 'GPUTimer.h': No such file or directory
-         PostFXChain.cpp
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(12): error C2332: 'enum' : missing tag name
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(12): error C2236: unexpected 'class' 'Graphics::PostFXType'. Did you forget a ';'?
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(12): error C3381: 'Graphics::PostFXType' : assembly access specifiers are only available in code compiled with a /clr option
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(13): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(14): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(15): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(16): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(17): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(18): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(20): error C2143: syntax error : missing ';' before '}'
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(20): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(28): error C2039: 'BLOOM' : is not a member of 'Graphics::PostFXType'
-                 d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(12) : see declaration of 'Graphics::PostFXType'
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(28): error C2065: 'BLOOM' : undeclared identifier
-     1>Graphics\PostFX\PostFXChain.cpp(3): fatal error C1083: Cannot open include file: 'GPUTimer.h': No such file or directory
-         PostFXPasses.cpp
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(12): error C2332: 'enum' : missing tag name
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(12): error C2236: unexpected 'class' 'Graphics::PostFXType'. Did you forget a ';'?
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(12): error C3381: 'Graphics::PostFXType' : assembly access specifiers are only available in code compiled with a /clr option
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(13): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(14): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(15): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(16): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(17): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(18): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(20): error C2143: syntax error : missing ';' before '}'
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(20): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(28): error C2039: 'BLOOM' : is not a member of 'Graphics::PostFXType'
-                 d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(12) : see declaration of 'Graphics::PostFXType'
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(28): error C2065: 'BLOOM' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXPasses.h(13): error C2039: 'BLOOM' : is not a member of 'Graphics::PostFXType'
-                 d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(12) : see declaration of 'Graphics::PostFXType'
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXPasses.h(13): error C2065: 'BLOOM' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXPasses.h(52): error C2039: 'FOG' : is not a member of 'Graphics::PostFXType'
-                 d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(12) : see declaration of 'Graphics::PostFXType'
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXPasses.h(52): error C2065: 'FOG' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXPasses.h(94): error C2332: 'enum' : missing tag name
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXPasses.h(94): error C2236: unexpected 'class' 'Graphics::TonemapPass::TonemapOperator'. Did you forget a ';'?
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXPasses.h(94): error C3381: 'Graphics::TonemapPass::TonemapOperator' : assembly access specifiers are only available in code compiled with a /clr option
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXPasses.h(95): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXPasses.h(96): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXPasses.h(97): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXPasses.h(99): error C2143: syntax error : missing ';' before '}'
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXPasses.h(99): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXPasses.h(81): error C2039: 'TONEMAP' : is not a member of 'Graphics::PostFXType'
-                 d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(12) : see declaration of 'Graphics::PostFXType'
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXPasses.h(81): error C2065: 'TONEMAP' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXPasses.h(117): error C2039: 'VIGNETTE' : is not a member of 'Graphics::PostFXType'
-                 d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(12) : see declaration of 'Graphics::PostFXType'
-     1>d:\development\settlers2\settlers2\graphics\postfx\PostFXPasses.h(117): error C2065: 'VIGNETTE' : undeclared identifier
-     1>Graphics\PostFX\PostFXPasses.cpp(13): error C2039: 'BLOOM' : is not a member of 'Graphics::PostFXType'
-                 d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(12) : see declaration of 'Graphics::PostFXType'
-     1>Graphics\PostFX\PostFXPasses.cpp(13): error C2065: 'BLOOM' : undeclared identifier
-     1>Graphics\PostFX\PostFXPasses.cpp(38): error C2027: use of undefined type 'Graphics::D3DDevice'
-                 d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(9) : see declaration of 'Graphics::D3DDevice'
-     1>Graphics\PostFX\PostFXPasses.cpp(38): error C2227: left of '->CreateTexture' must point to class/struct/union/generic type
-     1>Graphics\PostFX\PostFXPasses.cpp(44): error C2027: use of undefined type 'Graphics::D3DDevice'
-                 d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(9) : see declaration of 'Graphics::D3DDevice'
-     1>Graphics\PostFX\PostFXPasses.cpp(44): error C2227: left of '->CreateTexture' must point to class/struct/union/generic type
-     1>Graphics\PostFX\PostFXPasses.cpp(50): error C2027: use of undefined type 'Graphics::D3DDevice'
-                 d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(9) : see declaration of 'Graphics::D3DDevice'
-     1>Graphics\PostFX\PostFXPasses.cpp(50): error C2227: left of '->CreateTexture' must point to class/struct/union/generic type
-     1>Graphics\PostFX\PostFXPasses.cpp(88): error C2027: use of undefined type 'Graphics::D3DDevice'
-                 d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(9) : see declaration of 'Graphics::D3DDevice'
-     1>Graphics\PostFX\PostFXPasses.cpp(88): error C2227: left of '->GetRenderTarget' must point to class/struct/union/generic type
-     1>Graphics\PostFX\PostFXPasses.cpp(90): error C2027: use of undefined type 'Graphics::D3DDevice'
-                 d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(9) : see declaration of 'Graphics::D3DDevice'
-     1>Graphics\PostFX\PostFXPasses.cpp(90): error C2227: left of '->SetRenderTarget' must point to class/struct/union/generic type
-     1>Graphics\PostFX\PostFXPasses.cpp(91): error C2027: use of undefined type 'Graphics::D3DDevice'
-                 d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(9) : see declaration of 'Graphics::D3DDevice'
-     1>Graphics\PostFX\PostFXPasses.cpp(91): error C2227: left of '->Clear' must point to class/struct/union/generic type
-     1>Graphics\PostFX\PostFXPasses.cpp(105): error C2039: 'FOG' : is not a member of 'Graphics::PostFXType'
-                 d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(12) : see declaration of 'Graphics::PostFXType'
-     1>Graphics\PostFX\PostFXPasses.cpp(105): error C2065: 'FOG' : undeclared identifier
-     1>Graphics\PostFX\PostFXPasses.cpp(139): error C2039: 'TONEMAP' : is not a member of 'Graphics::PostFXType'
-                 d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(12) : see declaration of 'Graphics::PostFXType'
-     1>Graphics\PostFX\PostFXPasses.cpp(139): error C2065: 'TONEMAP' : undeclared identifier
-     1>Graphics\PostFX\PostFXPasses.cpp(141): error C2039: 'REINHARD' : is not a member of 'Graphics::TonemapPass::TonemapOperator'
-                 d:\development\settlers2\settlers2\graphics\postfx\PostFXPasses.h(94) : see declaration of 'Graphics::TonemapPass::TonemapOperator'
-     1>Graphics\PostFX\PostFXPasses.cpp(141): error C2065: 'REINHARD' : undeclared identifier
-     1>Graphics\PostFX\PostFXPasses.cpp(172): error C2039: 'VIGNETTE' : is not a member of 'Graphics::PostFXType'
-                 d:\development\settlers2\settlers2\graphics\postfx\PostFXChain.h(12) : see declaration of 'Graphics::PostFXType'
-     1>Graphics\PostFX\PostFXPasses.cpp(172): error C2065: 'VIGNETTE' : undeclared identifier
-         RenderPassBase.cpp
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(20): error C2874: using-declaration causes a multiple declaration of 'ShaderManager'
-                 d:\development\settlers2\settlers2\Graphics/ShaderManager.h(33) : see declaration of 'ShaderManager'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(42): error C2061: syntax error : identifier 'RenderQueue'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): warning C4183: 'GetRenderQueue': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2065: 'm_renderQueue' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(67): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(68): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(69): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(70): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(71): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(72): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(27): error C2011: 'Graphics::IRenderPass' : 'class' type redefinition
-                 d:\development\settlers2\settlers2\graphics\Passes\IRenderPass.h(20) : see declaration of 'Graphics::IRenderPass'
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(47): error C2504: 'Graphics::IRenderPass' : base class undefined
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(52): error C3668: 'Graphics::RenderPassBase::BeginPass' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(53): error C3668: 'Graphics::RenderPassBase::Execute' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(54): error C3668: 'Graphics::RenderPassBase::EndPass' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(56): error C3668: 'Graphics::RenderPassBase::GetName' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(57): error C3668: 'Graphics::RenderPassBase::GetType' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(58): error C3668: 'Graphics::RenderPassBase::GetPriority' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(59): error C3668: 'Graphics::RenderPassBase::IsEnabled' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(61): error C3668: 'Graphics::RenderPassBase::SetEnabled' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(62): error C3668: 'Graphics::RenderPassBase::SetResources' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(63): error C3668: 'Graphics::RenderPassBase::AddGPUEvent' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(64): error C3668: 'Graphics::RenderPassBase::ValidateState' : method with override specifier 'override' did not override any base class methods
-         Generating Code...
-         Compiling...
-         RenderPipeline.cpp
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(20): error C2874: using-declaration causes a multiple declaration of 'ShaderManager'
-                 d:\development\settlers2\settlers2\Graphics/ShaderManager.h(33) : see declaration of 'ShaderManager'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(42): error C2061: syntax error : identifier 'RenderQueue'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): warning C4183: 'GetRenderQueue': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2065: 'm_renderQueue' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(67): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(68): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(69): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(70): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(71): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(72): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(27): error C2011: 'Graphics::IRenderPass' : 'class' type redefinition
-                 d:\development\settlers2\settlers2\graphics\Passes\IRenderPass.h(20) : see declaration of 'Graphics::IRenderPass'
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(47): error C2504: 'Graphics::IRenderPass' : base class undefined
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(52): error C3668: 'Graphics::RenderPassBase::BeginPass' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(53): error C3668: 'Graphics::RenderPassBase::Execute' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(54): error C3668: 'Graphics::RenderPassBase::EndPass' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(56): error C3668: 'Graphics::RenderPassBase::GetName' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(57): error C3668: 'Graphics::RenderPassBase::GetType' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(58): error C3668: 'Graphics::RenderPassBase::GetPriority' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(59): error C3668: 'Graphics::RenderPassBase::IsEnabled' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(61): error C3668: 'Graphics::RenderPassBase::SetEnabled' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(62): error C3668: 'Graphics::RenderPassBase::SetResources' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(63): error C3668: 'Graphics::RenderPassBase::AddGPUEvent' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(64): error C3668: 'Graphics::RenderPassBase::ValidateState' : method with override specifier 'override' did not override any base class methods
-         RenderQueue.cpp
-     1>d:\development\settlers2\settlers2\graphics\RenderQueue.h(63): error C2614: 'Graphics::DrawBatch' : illegal member initialization: 'materialID' is not a base or member
-     1>d:\development\settlers2\settlers2\graphics\RenderQueue.h(63): error C2614: 'Graphics::DrawBatch' : illegal member initialization: 'texture' is not a base or member
-     1>Graphics\RenderQueue.cpp(64): error C2039: 'x' : is not a member of 'RenderCommand'
-                 d:\development\settlers2\settlers2\graphics\RenderTypes.h(41) : see declaration of 'RenderCommand'
-     1>Graphics\RenderQueue.cpp(65): error C2039: 'y' : is not a member of 'RenderCommand'
-                 d:\development\settlers2\settlers2\graphics\RenderTypes.h(41) : see declaration of 'RenderCommand'
-     1>Graphics\RenderQueue.cpp(66): error C2039: 'width' : is not a member of 'RenderCommand'
-                 d:\development\settlers2\settlers2\graphics\RenderTypes.h(41) : see declaration of 'RenderCommand'
-     1>Graphics\RenderQueue.cpp(67): error C2039: 'height' : is not a member of 'RenderCommand'
-                 d:\development\settlers2\settlers2\graphics\RenderTypes.h(41) : see declaration of 'RenderCommand'
-     1>Graphics\RenderQueue.cpp(117): error C2039: 'sort' : is not a member of 'std'
-     1>Graphics\RenderQueue.cpp(117): error C3861: 'sort': identifier not found
-     1>Graphics\RenderQueue.cpp(123): error C2039: 'sort' : is not a member of 'std'
-     1>Graphics\RenderQueue.cpp(123): error C3861: 'sort': identifier not found
-     1>Graphics\RenderQueue.cpp(129): error C2039: 'sort' : is not a member of 'std'
-     1>Graphics\RenderQueue.cpp(129): error C3861: 'sort': identifier not found
-     1>Graphics\RenderQueue.cpp(135): error C2039: 'sort' : is not a member of 'std'
-     1>Graphics\RenderQueue.cpp(135): error C3861: 'sort': identifier not found
-     1>Graphics\RenderQueue.cpp(137): error C3499: a lambda that has been specified to have a void return type cannot return a value
-     1>Graphics\RenderQueue.cpp(138): error C3499: a lambda that has been specified to have a void return type cannot return a value
-     1>Graphics\RenderQueue.cpp(139): error C3499: a lambda that has been specified to have a void return type cannot return a value
-     1>Graphics\RenderQueue.cpp(171): error C2039: 'texture' : is not a member of 'Graphics::DrawBatch'
-                 d:\development\settlers2\settlers2\graphics\RenderQueue.h(56) : see declaration of 'Graphics::DrawBatch'
-         RenderTargetManager.cpp
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(20): error C2874: using-declaration causes a multiple declaration of 'ShaderManager'
-                 d:\development\settlers2\settlers2\Graphics/ShaderManager.h(33) : see declaration of 'ShaderManager'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(42): error C2061: syntax error : identifier 'RenderQueue'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): warning C4183: 'GetRenderQueue': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2065: 'm_renderQueue' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(67): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(68): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(69): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(70): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(71): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(72): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(27): error C2011: 'Graphics::IRenderPass' : 'class' type redefinition
-                 d:\development\settlers2\settlers2\graphics\Passes\IRenderPass.h(20) : see declaration of 'Graphics::IRenderPass'
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(47): error C2504: 'Graphics::IRenderPass' : base class undefined
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(52): error C3668: 'Graphics::RenderPassBase::BeginPass' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(53): error C3668: 'Graphics::RenderPassBase::Execute' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(54): error C3668: 'Graphics::RenderPassBase::EndPass' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(56): error C3668: 'Graphics::RenderPassBase::GetName' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(57): error C3668: 'Graphics::RenderPassBase::GetType' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(58): error C3668: 'Graphics::RenderPassBase::GetPriority' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(59): error C3668: 'Graphics::RenderPassBase::IsEnabled' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(61): error C3668: 'Graphics::RenderPassBase::SetEnabled' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(62): error C3668: 'Graphics::RenderPassBase::SetResources' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(63): error C3668: 'Graphics::RenderPassBase::AddGPUEvent' : method with override specifier 'override' did not override any base class methods
-     1>d:\development\settlers2\settlers2\graphics\RenderPassBase.h(64): error C3668: 'Graphics::RenderPassBase::ValidateState' : method with override specifier 'override' did not override any base class methods
+         RenderStateValidator.cpp
+     1>Graphics\RenderStateValidator.cpp(3): fatal error C1083: Cannot open include file: 'GPUDebug.h': No such file or directory
          ShaderManager.cpp
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(20): error C2874: using-declaration causes a multiple declaration of 'ShaderManager'
-                 d:\development\settlers2\settlers2\Graphics/ShaderManager.h(33) : see declaration of 'ShaderManager'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(42): error C2061: syntax error : identifier 'RenderQueue'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): warning C4183: 'GetRenderQueue': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2065: 'm_renderQueue' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(67): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(68): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(69): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(70): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(71): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(72): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(18): error C2061: syntax error : identifier 'MaterialManager'
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(19): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(19): warning C4183: 'GetMaterialManager': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(60): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(18): error C2065: 'm_pMaterialManager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(18): error C2065: 'manager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(19): error C2065: 'm_pMaterialManager' : undeclared identifier
+     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
          SpriteRenderer.cpp
-     1>Graphics\SpriteRenderer.cpp(2): fatal error C1083: Cannot open include file: 'SpriteRenderer_slim.h': No such file or directory
+     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
+     1>Graphics\SpriteRenderer.cpp(39): error C2065: 'D3DUSAGE_DYNAMIC' : undeclared identifier
+     1>Graphics\SpriteRenderer.cpp(113): error C2143: syntax error : missing ',' before '*'
+     1>Graphics\SpriteRenderer.cpp(114): error C2065: 'batchCount' : undeclared identifier
+     1>Graphics\SpriteRenderer.cpp(114): error C2065: 'batches' : undeclared identifier
+     1>Graphics\SpriteRenderer.cpp(120): error C2065: 'batchCount' : undeclared identifier
+     1>Graphics\SpriteRenderer.cpp(121): error C2143: syntax error : missing ';' before '&'
+     1>Graphics\SpriteRenderer.cpp(121): error C2065: 'batch' : undeclared identifier
+     1>Graphics\SpriteRenderer.cpp(121): error C2065: 'batches' : undeclared identifier
+     1>Graphics\SpriteRenderer.cpp(123): error C2065: 'batch' : undeclared identifier
+     1>Graphics\SpriteRenderer.cpp(123): error C2228: left of '.blendMode' must have class/struct/union
+                 type is ''unknown-type''
+     1>Graphics\SpriteRenderer.cpp(124): error C2065: 'batch' : undeclared identifier
+     1>Graphics\SpriteRenderer.cpp(124): error C2228: left of '.blendMode' must have class/struct/union
+                 type is ''unknown-type''
+     1>Graphics\SpriteRenderer.cpp(131): error C2065: 'batch' : undeclared identifier
+     1>Graphics\SpriteRenderer.cpp(131): error C2228: left of '.blendMode' must have class/struct/union
+                 type is ''unknown-type''
+     1>Graphics\SpriteRenderer.cpp(135): error C2065: 'batch' : undeclared identifier
+     1>Graphics\SpriteRenderer.cpp(135): error C2228: left of '.shaderID' must have class/struct/union
+                 type is ''unknown-type''
+     1>Graphics\SpriteRenderer.cpp(136): error C2065: 'batch' : undeclared identifier
+     1>Graphics\SpriteRenderer.cpp(136): error C2228: left of '.shaderID' must have class/struct/union
+                 type is ''unknown-type''
+     1>Graphics\SpriteRenderer.cpp(137): error C2065: 'batch' : undeclared identifier
+     1>Graphics\SpriteRenderer.cpp(137): error C2228: left of '.shaderID' must have class/struct/union
+                 type is ''unknown-type''
+     1>Graphics\SpriteRenderer.cpp(141): error C2065: 'batch' : undeclared identifier
+     1>Graphics\SpriteRenderer.cpp(141): error C2228: left of '.textureID' must have class/struct/union
+                 type is ''unknown-type''
+     1>Graphics\SpriteRenderer.cpp(142): error C2065: 'batch' : undeclared identifier
+     1>Graphics\SpriteRenderer.cpp(142): error C2228: left of '.textureID' must have class/struct/union
+                 type is ''unknown-type''
+     1>Graphics\SpriteRenderer.cpp(143): error C2065: 'batch' : undeclared identifier
+     1>Graphics\SpriteRenderer.cpp(143): error C2228: left of '.textureID' must have class/struct/union
+                 type is ''unknown-type''
+     1>Graphics\SpriteRenderer.cpp(147): error C2065: 'batch' : undeclared identifier
+     1>Graphics\SpriteRenderer.cpp(147): error C2228: left of '.vertexCount' must have class/struct/union
+                 type is ''unknown-type''
+     1>Graphics\SpriteRenderer.cpp(148): error C2065: 'batch' : undeclared identifier
+     1>Graphics\SpriteRenderer.cpp(148): error C2228: left of '.vertexOffset' must have class/struct/union
+                 type is ''unknown-type''
+     1>Graphics\SpriteRenderer.cpp(153): error C2065: 'batch' : undeclared identifier
+     1>Graphics\SpriteRenderer.cpp(153): error C2228: left of '.vertexOffset' must have class/struct/union
+                 type is ''unknown-type''
+     1>Graphics\SpriteRenderer.cpp(154): error C2065: 'batch' : undeclared identifier
+     1>Graphics\SpriteRenderer.cpp(154): error C2228: left of '.vertexCount' must have class/struct/union
+                 type is ''unknown-type''
+         SpriteShadow.cpp
          TextManager.cpp
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(20): error C2874: using-declaration causes a multiple declaration of 'ShaderManager'
-                 d:\development\settlers2\settlers2\Graphics/ShaderManager.h(33) : see declaration of 'ShaderManager'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(42): error C2061: syntax error : identifier 'RenderQueue'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): warning C4183: 'GetRenderQueue': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2065: 'm_renderQueue' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(67): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(68): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(69): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(70): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(71): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(72): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(18): error C2061: syntax error : identifier 'MaterialManager'
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(19): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(19): warning C4183: 'GetMaterialManager': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(60): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(18): error C2065: 'm_pMaterialManager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(18): error C2065: 'manager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(19): error C2065: 'm_pMaterialManager' : undeclared identifier
+     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
      1>Graphics\TextManager.cpp(201): error C2039: 'DrawWithTexture' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
      1>Graphics\TextManager.cpp(211): error C2039: 'DrawWithTexture' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
      1>Graphics\TextManager.cpp(261): error C2039: 'Begin' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
      1>Graphics\TextManager.cpp(283): error C2039: 'End' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
-         TileRenderer.cpp
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(20): error C2874: using-declaration causes a multiple declaration of 'ShaderManager'
-                 d:\development\settlers2\settlers2\Graphics/ShaderManager.h(33) : see declaration of 'ShaderManager'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(42): error C2061: syntax error : identifier 'RenderQueue'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): warning C4183: 'GetRenderQueue': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2065: 'm_renderQueue' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(67): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(68): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(69): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(70): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(71): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(72): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
+                 d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
+     1>Graphics\TextManager.cpp(384): error C2039: 'GetTotalVertexCount' : is not a member of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
+     1>Graphics\TextManager.cpp(397): error C2039: 'IncrementTotalVertexCount' : is not a member of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
          EditorScene.cpp
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(18): error C2061: syntax error : identifier 'MaterialManager'
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(19): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(19): warning C4183: 'GetMaterialManager': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(60): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(18): error C2065: 'm_pMaterialManager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(18): error C2065: 'manager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(19): error C2065: 'm_pMaterialManager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(20): error C2874: using-declaration causes a multiple declaration of 'ShaderManager'
-                 d:\development\settlers2\settlers2\Graphics/ShaderManager.h(33) : see declaration of 'ShaderManager'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(42): error C2061: syntax error : identifier 'RenderQueue'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): warning C4183: 'GetRenderQueue': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2065: 'm_renderQueue' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(67): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(68): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(69): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(70): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(71): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(72): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
+     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
      1>c1xx : fatal error C1903: unable to recover from previous error(s); stopping compilation
          LoadingScene.cpp
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(20): error C2874: using-declaration causes a multiple declaration of 'ShaderManager'
-                 d:\development\settlers2\settlers2\Graphics/ShaderManager.h(33) : see declaration of 'ShaderManager'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(42): error C2061: syntax error : identifier 'RenderQueue'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): warning C4183: 'GetRenderQueue': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2065: 'm_renderQueue' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(67): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(68): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(69): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(70): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(71): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(72): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(18): error C2061: syntax error : identifier 'MaterialManager'
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(19): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(19): warning C4183: 'GetMaterialManager': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(60): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(18): error C2065: 'm_pMaterialManager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(18): error C2065: 'manager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(19): error C2065: 'm_pMaterialManager' : undeclared identifier
-     1>Scene\LoadingScene.cpp(475): error C2039: 'Begin' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
-     1>Scene\LoadingScene.cpp(476): error C2039: 'Draw' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
-     1>Scene\LoadingScene.cpp(477): error C2039: 'End' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
-     1>Scene\LoadingScene.cpp(500): error C2039: 'Begin' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
-     1>Scene\LoadingScene.cpp(505): error C2039: 'Draw' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
-     1>Scene\LoadingScene.cpp(515): error C2039: 'End' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
+     1>Scene\LoadingScene.cpp(480): warning C4305: '=' : truncation from 'int' to 'BYTE'
+     1>Scene\LoadingScene.cpp(480): warning C4309: '=' : truncation of constant value
+     1>Scene\LoadingScene.cpp(482): error C2027: use of undefined type 'RenderQueue'
+                 d:\development\settlers2\settlers2\scene\Scene.h(8) : see declaration of 'RenderQueue'
+     1>Scene\LoadingScene.cpp(482): error C2227: left of '->Submit' must point to class/struct/union/generic type
+     1>Scene\LoadingScene.cpp(505): warning C4305: '=' : truncation from 'int' to 'BYTE'
+     1>Scene\LoadingScene.cpp(505): warning C4309: '=' : truncation of constant value
+     1>Scene\LoadingScene.cpp(507): error C2027: use of undefined type 'RenderQueue'
+                 d:\development\settlers2\settlers2\scene\Scene.h(8) : see declaration of 'RenderQueue'
+     1>Scene\LoadingScene.cpp(507): error C2227: left of '->Submit' must point to class/struct/union/generic type
          MenuScene.cpp
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(20): error C2874: using-declaration causes a multiple declaration of 'ShaderManager'
-                 d:\development\settlers2\settlers2\Graphics/ShaderManager.h(33) : see declaration of 'ShaderManager'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(42): error C2061: syntax error : identifier 'RenderQueue'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): warning C4183: 'GetRenderQueue': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2065: 'm_renderQueue' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(67): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(68): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(69): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(70): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(71): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(72): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(18): error C2061: syntax error : identifier 'MaterialManager'
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(19): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(19): warning C4183: 'GetMaterialManager': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(60): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(18): error C2065: 'm_pMaterialManager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(18): error C2065: 'manager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(19): error C2065: 'm_pMaterialManager' : undeclared identifier
-     1>Scene\MenuScene.cpp(248): error C2039: 'Begin' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
-     1>Scene\MenuScene.cpp(253): error C2039: 'Draw' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
-     1>Scene\MenuScene.cpp(257): error C2039: 'End' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
+     1>Scene\MenuScene.cpp(237): warning C4305: '=' : truncation from 'int' to 'BYTE'
+     1>Scene\MenuScene.cpp(237): warning C4309: '=' : truncation of constant value
+     1>Scene\MenuScene.cpp(239): error C2027: use of undefined type 'RenderQueue'
+                 d:\development\settlers2\settlers2\scene\Scene.h(8) : see declaration of 'RenderQueue'
+     1>Scene\MenuScene.cpp(239): error C2227: left of '->Submit' must point to class/struct/union/generic type
      1>c1xx : fatal error C1903: unable to recover from previous error(s); stopping compilation
-         Scene.cpp
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(20): error C2874: using-declaration causes a multiple declaration of 'ShaderManager'
-                 d:\development\settlers2\settlers2\Graphics/ShaderManager.h(33) : see declaration of 'ShaderManager'
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(42): error C2061: syntax error : identifier 'RenderQueue'
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(43): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(43): warning C4183: 'GetRenderQueue': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(84): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(43): error C2065: 'm_renderQueue' : undeclared identifier
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(67): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(68): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(69): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(70): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(71): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(72): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
          SceneManager.cpp
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(20): error C2874: using-declaration causes a multiple declaration of 'ShaderManager'
-                 d:\development\settlers2\settlers2\Graphics/ShaderManager.h(33) : see declaration of 'ShaderManager'
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(42): error C2061: syntax error : identifier 'RenderQueue'
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(43): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(43): warning C4183: 'GetRenderQueue': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(84): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(43): error C2065: 'm_renderQueue' : undeclared identifier
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(67): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(68): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(69): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(70): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(71): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\scene\../Graphics/RenderFrame.h(72): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(18): error C2061: syntax error : identifier 'MaterialManager'
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(19): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(19): warning C4183: 'GetMaterialManager': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(60): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(18): error C2065: 'm_pMaterialManager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(18): error C2065: 'manager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(19): error C2065: 'm_pMaterialManager' : undeclared identifier
-     1>Scene\SceneManager.cpp(287): error C2039: 'FinalizeFrameCommands' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
-     1>Scene\SceneManager.cpp(475): error C2039: 'FinalizeFrameCommands' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
+     1>Scene\SceneManager.cpp(285): error C2039: 'FinalizeFrameCommands' : is not a member of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
+     1>Scene\SceneManager.cpp(297): error C2065: 'hasCustomPipeline' : undeclared identifier
+     1>Scene\SceneManager.cpp(327): error C2039: 'ResetBatchState' : is not a member of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
+     1>Scene\SceneManager.cpp(411): error C2039: 'FinalizeFrameCommands' : is not a member of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
          GridMenu.cpp
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(18): error C2061: syntax error : identifier 'MaterialManager'
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(19): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(19): warning C4183: 'GetMaterialManager': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(60): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(18): error C2065: 'm_pMaterialManager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(18): error C2065: 'manager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(19): error C2065: 'm_pMaterialManager' : undeclared identifier
+     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
      1>UI\GridMenu.cpp(363): error C2027: use of undefined type 'Renderer'
-                 d:\development\settlers2\settlers2\graphics\RenderTypes.h(7) : see declaration of 'Renderer'
+                 d:\development\settlers2\settlers2\ui\GridMenu.h(9) : see declaration of 'Renderer'
      1>UI\GridMenu.cpp(363): error C2227: left of '->GetShaderManager' must point to class/struct/union/generic type
      1>UI\GridMenu.cpp(377): error C2027: use of undefined type 'Renderer'
-                 d:\development\settlers2\settlers2\graphics\RenderTypes.h(7) : see declaration of 'Renderer'
+                 d:\development\settlers2\settlers2\ui\GridMenu.h(9) : see declaration of 'Renderer'
      1>UI\GridMenu.cpp(377): error C2227: left of '->GetShaderManager' must point to class/struct/union/generic type
+     1>UI\GridMenu.cpp(410): warning C4305: '=' : truncation from 'int' to 'BYTE'
+     1>UI\GridMenu.cpp(410): warning C4309: '=' : truncation of constant value
+     1>UI\GridMenu.cpp(412): warning C4305: 'argument' : truncation from 'int' to 'BYTE'
+     1>UI\GridMenu.cpp(412): warning C4309: 'argument' : truncation of constant value
+     1>UI\GridMenu.cpp(441): warning C4305: '=' : truncation from 'int' to 'BYTE'
+     1>UI\GridMenu.cpp(441): warning C4309: '=' : truncation of constant value
+     1>UI\GridMenu.cpp(443): warning C4305: 'argument' : truncation from 'int' to 'BYTE'
+     1>UI\GridMenu.cpp(443): warning C4309: 'argument' : truncation of constant value
+     1>UI\GridMenu.cpp(474): warning C4305: '=' : truncation from 'int' to 'BYTE'
+     1>UI\GridMenu.cpp(474): warning C4309: '=' : truncation of constant value
+     1>UI\GridMenu.cpp(476): warning C4305: 'argument' : truncation from 'int' to 'BYTE'
+     1>UI\GridMenu.cpp(476): warning C4309: 'argument' : truncation of constant value
          RadialMenu.cpp
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(18): error C2061: syntax error : identifier 'MaterialManager'
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(19): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(19): warning C4183: 'GetMaterialManager': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(60): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(18): error C2065: 'm_pMaterialManager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(18): error C2065: 'manager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(19): error C2065: 'm_pMaterialManager' : undeclared identifier
-     1>UI\RadialMenu.cpp(400): error C2039: 'Begin' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
-     1>UI\RadialMenu.cpp(415): error C2039: 'Draw' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
-     1>UI\RadialMenu.cpp(419): error C2039: 'End' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
-     1>UI\RadialMenu.cpp(429): error C2039: 'Begin' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
-     1>UI\RadialMenu.cpp(435): error C2039: 'Draw' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
-     1>UI\RadialMenu.cpp(438): error C2039: 'End' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
-     1>UI\RadialMenu.cpp(445): error C2027: use of undefined type 'Renderer'
-                 d:\development\settlers2\settlers2\graphics\RenderTypes.h(7) : see declaration of 'Renderer'
-     1>UI\RadialMenu.cpp(445): error C2227: left of '->RestoreFromUI' must point to class/struct/union/generic type
+     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
+     1>UI\RadialMenu.cpp(259): warning C4305: '=' : truncation from 'int' to 'BYTE'
+     1>UI\RadialMenu.cpp(259): warning C4309: '=' : truncation of constant value
+     1>UI\RadialMenu.cpp(261): warning C4305: 'argument' : truncation from 'int' to 'BYTE'
+     1>UI\RadialMenu.cpp(261): warning C4309: 'argument' : truncation of constant value
+     1>UI\RadialMenu.cpp(397): error C2039: 'Begin' : is not a member of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
+     1>UI\RadialMenu.cpp(412): error C2039: 'Draw' : is not a member of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
+     1>UI\RadialMenu.cpp(416): error C2039: 'End' : is not a member of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
+     1>UI\RadialMenu.cpp(426): error C2039: 'Begin' : is not a member of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
+     1>UI\RadialMenu.cpp(432): error C2039: 'Draw' : is not a member of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
+     1>UI\RadialMenu.cpp(435): error C2039: 'End' : is not a member of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
+     1>UI\RadialMenu.cpp(442): error C2027: use of undefined type 'Renderer'
+                 d:\development\settlers2\settlers2\ui\RadialMenu.h(13) : see declaration of 'Renderer'
+     1>UI\RadialMenu.cpp(442): error C2227: left of '->RestoreFromUI' must point to class/struct/union/generic type
          WeightMenu.cpp
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(18): error C2061: syntax error : identifier 'MaterialManager'
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(19): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(19): warning C4183: 'GetMaterialManager': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(60): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(18): error C2065: 'm_pMaterialManager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(18): error C2065: 'manager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(19): error C2065: 'm_pMaterialManager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(20): error C2874: using-declaration causes a multiple declaration of 'ShaderManager'
-                 d:\development\settlers2\settlers2\Graphics/ShaderManager.h(33) : see declaration of 'ShaderManager'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(42): error C2061: syntax error : identifier 'RenderQueue'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): warning C4183: 'GetRenderQueue': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2065: 'm_renderQueue' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(67): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(68): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(69): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(70): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(71): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(72): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
+     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
      1>c1xx : fatal error C1903: unable to recover from previous error(s); stopping compilation
+         RenderSystem.cpp
+     1>d:\development\settlers2\settlers2\world\systems\RenderSystem.h(19): error C2061: syntax error : identifier 'Renderer'
+     1>d:\development\settlers2\settlers2\world\systems\RenderSystem.h(22): error C2061: syntax error : identifier 'Renderer'
+     1>World\Systems\RenderSystem.cpp(20): error C2061: syntax error : identifier 'Renderer'
+     1>World\Systems\RenderSystem.cpp(41): error C2061: syntax error : identifier 'Renderer'
+         Generating Code...
+         Compiling...
          MapEditor.cpp
-     1>d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(18): error C2061: syntax error : identifier 'MaterialManager'
-     1>d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(19): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(19): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(19): warning C4183: 'GetMaterialManager': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(60): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(60): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(18): error C2065: 'm_pMaterialManager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(18): error C2065: 'manager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(19): error C2065: 'm_pMaterialManager' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(20): error C2874: using-declaration causes a multiple declaration of 'ShaderManager'
-                 d:\development\settlers2\settlers2\Graphics/ShaderManager.h(33) : see declaration of 'ShaderManager'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(42): error C2061: syntax error : identifier 'RenderQueue'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): warning C4183: 'GetRenderQueue': missing return type; assumed to be a member function returning 'int'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C2143: syntax error : missing ';' before '*'
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(84): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(43): error C2065: 'm_renderQueue' : undeclared identifier
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(67): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(68): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(69): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(70): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(71): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
-     1>d:\development\settlers2\settlers2\graphics\RenderFrame.h(72): error C2440: 'return' : cannot convert from 'const D3DSurface' to 'D3DSurface *'
-                 No user-defined-conversion operator available that can perform this conversion, or the operator cannot be called
+     1>d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
      1>Editor\MapEditor.cpp(187): error C2039: 'End' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
      1>Editor\MapEditor.cpp(190): error C2039: 'End' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
      1>Editor\MapEditor.cpp(427): error C2039: 'BeginWorldObject' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
      1>Editor\MapEditor.cpp(436): error C2039: 'Draw' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
      1>Editor\MapEditor.cpp(439): error C2039: 'End' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
      1>Editor\MapEditor.cpp(450): error C2039: 'BeginWorldObject' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
      1>Editor\MapEditor.cpp(460): error C2039: 'Draw' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
      1>Editor\MapEditor.cpp(463): error C2039: 'End' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
      1>Editor\MapEditor.cpp(474): error C2039: 'BeginWorldObject' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
      1>Editor\MapEditor.cpp(484): error C2039: 'Draw' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
      1>Editor\MapEditor.cpp(486): error C2039: 'Draw' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
      1>Editor\MapEditor.cpp(490): error C2039: 'End' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
      1>Editor\MapEditor.cpp(503): error C2039: 'BeginWorldObject' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
      1>Editor\MapEditor.cpp(513): error C2039: 'Draw' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
      1>Editor\MapEditor.cpp(516): error C2039: 'End' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
      1>Editor\MapEditor.cpp(529): error C2039: 'BeginWorldObject' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
      1>Editor\MapEditor.cpp(539): error C2039: 'Draw' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
      1>Editor\MapEditor.cpp(542): error C2039: 'End' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
      1>Editor\MapEditor.cpp(573): error C2039: 'BeginWorldObject' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
      1>Editor\MapEditor.cpp(574): error C2039: 'Draw' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
      1>Editor\MapEditor.cpp(575): error C2039: 'End' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
      1>Editor\MapEditor.cpp(678): error C2039: 'BeginWorldObject' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
      1>Editor\MapEditor.cpp(684): error C2039: 'Draw' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
      1>Editor\MapEditor.cpp(688): error C2039: 'End' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(10) : see declaration of 'SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
          Generating Code...
      1>Построение проекта "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" завершено (целевые объекты build) с ошибкой.
 
 СБОЙ построения.
 
-Затраченное время: 00:00:12.34
+Затраченное время: 00:00:06.07
