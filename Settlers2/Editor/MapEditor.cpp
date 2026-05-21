@@ -93,8 +93,15 @@ void MapEditor::Initialize(World::Map* map, Renderer* renderer,
     m_groundTexture = registry.getTextureOrLoad("ground");
     m_groundAtlas   = registry.getAtlas("ground");
     m_objectAtlas   = registry.getAtlas("icon_tree");
-    m_cursorTexture = registry.getTextureOrLoad("background_cursor_red");
+    m_cursorTexture = registry.getTextureOrLoad("editor_background");
     m_isoCursorTexture = registry.getTextureOrLoad("cursor");
+
+    if (m_spriteRenderer && m_cursorTexture) {
+        m_spriteRenderer->SetTextureSlot(3, m_cursorTexture);
+    }
+    if (m_spriteRenderer && m_isoCursorTexture) {
+        m_spriteRenderer->SetTextureSlot(4, m_isoCursorTexture);
+    }
 
     // Создаём простую белую точку для весовой карты (используется в RenderWeightMap)
     if (device)
@@ -205,14 +212,9 @@ void MapEditor::RenderGeometry() {
 }
 
 void MapEditor::RenderUI() {
-    if (m_pCamera) {
-        m_pCamera->UpdateUI();
-    }
-
-//    RenderCursor();
+    RenderCursor();
 //    RenderTilePreview();
 //    RenderActiveTile();
-//	m_spriteRenderer->End();
 }
 void MapEditor::HandleInput() {
     if (!m_inputManager) return;
@@ -220,22 +222,11 @@ void MapEditor::HandleInput() {
     Input::Gamepad* gamepad = m_inputManager->GetGamepad();
     if (!gamepad) return;
 
-    float moveSpeed = 1500.0f;
-
-    float leftX, leftY;
-    gamepad->GetLeftStick(leftX, leftY);
-    if (fabsf(leftX) > 0.1f || fabsf(leftY) > 0.1f) {
-        m_cameraX += leftX * moveSpeed * 0.016f;
-        m_cameraY += leftY * moveSpeed * 0.016f;
-    }
-
-    float rightX, rightY;
-    gamepad->GetRightStick(rightX, rightY);
-    if (fabsf(rightY) > 0.1f) {
-        float zoomDelta = rightY * 2.0f * 0.016f;
-        m_zoomLevel += zoomDelta;
-        if (m_zoomLevel < 0.25f) m_zoomLevel = 0.25f;
-        if (m_zoomLevel > 4.0f) m_zoomLevel = 4.0f;
+    // Sync camera position from Camera class (EditorScene handles input)
+    if (m_pCamera) {
+        m_cameraX = m_pCamera->GetPosX();
+        m_cameraY = m_pCamera->GetPosY();
+        m_zoomLevel = m_pCamera->GetZoom();
     }
 
 // Update cursor tile from screen center (camera position)
@@ -623,7 +614,7 @@ void MapEditor::RenderCursor() {
     cmd.u1 = 1.0f;
     cmd.v1 = 1.0f;
     cmd.color = 0xFFFFFFFF;
-    cmd.textureID = 0;
+    cmd.textureID = (m_currentLayer == World::Ground) ? 3 : 4;
     cmd.shaderID = SHADER_TERRAIN;
     cmd.blendMode = 1;
     cmd.layer = 0;

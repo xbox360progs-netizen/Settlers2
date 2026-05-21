@@ -188,6 +188,15 @@ void EditorScene::Load() {
         m_spriteRenderer->SetTextureSlot(0, groundTexture);
     }
 
+    // 5.   icon_menu-     slot 5,    для иконок RadialMenu
+    std::tr1::shared_ptr<SpriteAtlas> iconMenuAtlas = registry.getAtlas("icon_menu");
+    if (iconMenuAtlas && iconMenuAtlas->GetTexture() && m_spriteRenderer) {
+        m_spriteRenderer->SetTextureSlot(5, iconMenuAtlas->GetTexture());
+        if (m_radialMenu) {
+            m_radialMenu->SetIconTextureSlot(5);
+        }
+    }
+
     // 
     char logMsg[256];
     _snprintf(logMsg, sizeof(logMsg), "[EditorScene] Final Textures: Bg=%p, Cell=%p, Ground=%p, IconMenu=%p\n", 
@@ -438,7 +447,7 @@ void EditorScene::Update(float deltaTime) {
 		gamepad->GetLeftStick(stickX, stickY);
 		
 		if (fabsf(stickX) > 0.1f || fabsf(stickY) > 0.1f) {
-			m_camera->Move(stickX * moveSpeed, -stickY * moveSpeed); // Y inverted for screen coords
+			m_camera->Move(stickX * moveSpeed, stickY * moveSpeed);
 		}
 		
 		// Right stick: zoom camera
@@ -446,7 +455,7 @@ void EditorScene::Update(float deltaTime) {
 		gamepad->GetRightStick(rightX, rightY);
 		if (fabsf(rightY) > 0.1f) {
 			float zoomSpeed = 1.0f * deltaTime;
-			m_camera->Zoom(-rightY * zoomSpeed); // Push up to zoom in
+			m_camera->Zoom(rightY * zoomSpeed);
 		}
 		
 		m_camera->Update();
@@ -560,6 +569,11 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
 
     m_mapEditor->RenderGeometry();
     m_mapEditor->RenderUI();
+
+    if (m_radialMenu && m_radialMenu->IsVisible()) {
+        m_radialMenu->Render();
+        m_radialMenu->RenderIcons(renderQueue);
+    }
 
     if (m_textManager) {
         char fpsText[64];

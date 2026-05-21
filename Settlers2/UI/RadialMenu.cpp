@@ -56,6 +56,7 @@ RadialMenu::RadialMenu(LPDIRECT3DDEVICE9 device, ShaderManager* shaderManager, B
     , m_lineColor(0.96f, 0.88f, 0.72f, 0.65f)
     , m_centerInnerColor(0.22f, 0.18f, 0.13f, 0.92f)
     , m_centerOuterColor(0.08f, 0.06f, 0.05f, 0.98f)
+    , m_iconTextureSlot(0)
     , m_screenX(0.0f)
     , m_screenY(0.0f)
 {
@@ -329,7 +330,7 @@ void RadialMenu::RenderIcons(Graphics::RenderQueue* renderQueue)
         cmd.depth = 100;
         cmd.layer = LAYER_UI;
         cmd.blendMode = 1;
-        cmd.textureID = 0;
+        cmd.textureID = m_iconTextureSlot;
         renderQueue->Submit(cmd);
     }
 
@@ -357,7 +358,7 @@ void RadialMenu::RenderIcons(Graphics::RenderQueue* renderQueue)
                 cmd.depth = 50;
                 cmd.layer = LAYER_UI;
                 cmd.blendMode = 1;
-                cmd.textureID = 0;
+                cmd.textureID = m_iconTextureSlot;
                 renderQueue->Submit(cmd);
             }
         }

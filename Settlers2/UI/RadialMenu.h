@@ -58,6 +58,8 @@ public:
     void Render();
     void RenderIcons(Graphics::RenderQueue* renderQueue);
 
+    void SetIconTextureSlot(WORD slot) { m_iconTextureSlot = slot; }
+
     void SetInnerColor(float r, float g, float b, float a) { m_innerColor = D3DXVECTOR4(r, g, b, a); }
     void SetOuterColor(float r, float g, float b, float a) { m_outerColor = D3DXVECTOR4(r, g, b, a); }
     void SetHighlightColor(float r, float g, float b, float a) { m_highlightColor = D3DXVECTOR4(r, g, b, a); }
@@ -92,6 +94,8 @@ private:
 
     float m_screenX;
     float m_screenY;
+
+    WORD m_iconTextureSlot;
 
     std::vector<MenuItem> m_items;
 };

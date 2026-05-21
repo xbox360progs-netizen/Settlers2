@@ -243,7 +243,7 @@ HRESULT ShaderManager::LoadAll() {
         OutputDebugStringA("[ShaderManager] WARNING: SPRITE_CONSTANT_INSTANCED shader not loaded, continuing\n");
     }
 
-    hr = LoadShader(SHADER_RADIALMENU, SHADER_ROOT "RadialMenu.fx", "RadialMenuTech");
+    hr = LoadShader(SHADER_RADIALMENU, SHADER_ROOT "RadialMenu.fx", "RadialMenu");
     if (FAILED(hr)) {
         OutputDebugStringA("[ShaderManager] WARNING: RADIALMENU shader not loaded, continuing\n");
     }
