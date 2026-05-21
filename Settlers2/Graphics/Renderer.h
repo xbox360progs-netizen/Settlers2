@@ -9,11 +9,12 @@
 static_assert(sizeof(SpriteVertex) == 32, "SpriteVertex must be 32 bytes");
 
 class Texture;
-namespace Graphics { class ShaderManager; }
+namespace Graphics { class ShaderManager; class RenderQueue; }
 using Graphics::ShaderManager;
 using Graphics::SpriteRenderer;
 using Graphics::RenderFrame;
 using Graphics::GPUTimer;
+using Graphics::RenderQueue;
 
 class Renderer {
 public:
@@ -44,6 +45,7 @@ public:
     void SetSpriteRenderer(SpriteRenderer* pSpriteRenderer);
     RenderFrame* GetRenderFrame() { return m_pRenderFrame; }
     void SetRenderFrame(RenderFrame* frame) { m_pRenderFrame = frame; }
+    RenderQueue* GetRenderQueue() { return m_pRenderQueue; }
     HRESULT LoadShader(ShaderID id, const char* filepath, const char* techniqueName = "SpriteBatchTech");
     bool SetShader(ShaderID id);
     void ResetToDefaultShader();
@@ -63,6 +65,7 @@ private:
     SpriteRenderer* m_pSpriteRenderer;
     RenderFrame* m_pRenderFrame;
     GPUTimer* m_pGPUTimer;
+    RenderQueue* m_pRenderQueue;
 
     LPDIRECT3DVERTEXSHADER9 m_pVertexShader;
     LPDIRECT3DPIXELSHADER9 m_pPixelShader;

@@ -4,9 +4,7 @@
 namespace Graphics {
 
 static void OutputDebugStringA(const char* msg) {
-#ifdef _DEBUG
     ::OutputDebugStringA(msg);
-#endif
 }
 
 BatchBuilder::BatchBuilder()
@@ -31,6 +29,10 @@ void BatchBuilder::EndFrame() {
 
 void BatchBuilder::BuildBatches(const RenderCommand* commands, uint32_t commandCount) {
     if (commandCount == 0 || !commands) return;
+
+    char buf[128];
+    sprintf(buf, "[BatchBuilder] BuildBatches: commands=%d\n", commandCount);
+    OutputDebugStringA(buf);
 
     m_batchCount = 0;
     m_vertexWritePos = 0;
@@ -109,6 +111,10 @@ void BatchBuilder::BuildBatches(const RenderCommand* commands, uint32_t commandC
 
         currentBatch->indexCount += 6;
     }
+
+    sprintf(buf, "[BatchBuilder] BuildBatches done: batches=%d verts=%d idx=%d\n",
+            m_batchCount, m_vertexWritePos, m_indexWritePos);
+    OutputDebugStringA(buf);
 }
 
 void BatchBuilder::Clear() {

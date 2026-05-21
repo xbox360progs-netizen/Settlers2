@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include <stdio.h>
 #include "RenderFrame.h"
 #include "RenderQueue.h"
 #include "SpriteRenderer.h"
@@ -7,9 +8,7 @@
 namespace Graphics {
 
 static void OutputDebugStringA(const char* msg) {
-#ifdef _DEBUG
     ::OutputDebugStringA(msg);
-#endif
 }
 
 RenderFrame::RenderFrame()
@@ -54,17 +53,26 @@ void RenderFrame::BeginFrame() {
 void RenderFrame::Execute() {
     if (!m_initialized) return;
 
+    char buf[128];
+    int cmdCount = m_renderQueue ? m_renderQueue->GetCommandCount() : -1;
+    sprintf(buf, "[RenderFrame] Execute: queue=%p cmdCount=%d\n", m_renderQueue, cmdCount);
+    OutputDebugStringA(buf);
+
     if (m_renderQueue) {
         m_renderQueue->Sort();
     }
 
-    if (m_renderQueue && m_renderQueue->GetCommandCount() > 0) {
+    if (m_renderQueue && cmdCount > 0) {
         m_batchBuilder.BuildBatches(
             m_renderQueue->GetCommands(),
-            m_renderQueue->GetCommandCount());
+            cmdCount);
     }
 
-    if (m_spriteRenderer && m_batchBuilder.GetBatchCount() > 0) {
+    int batchCount = m_batchBuilder.GetBatchCount();
+    sprintf(buf, "[RenderFrame] Execute: batches=%d spriteRenderer=%p\n", batchCount, m_spriteRenderer);
+    OutputDebugStringA(buf);
+
+    if (m_spriteRenderer && batchCount > 0) {
         m_spriteRenderer->Execute(m_batchBuilder);
     }
 

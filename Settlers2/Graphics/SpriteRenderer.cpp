@@ -3,9 +3,7 @@
 #include "ShaderManager.h"
 
 static void OutputDebugStringA(const char* msg) {
-#ifdef _DEBUG
     ::OutputDebugStringA(msg);
-#endif
 }
 
 namespace Graphics {
@@ -126,6 +124,10 @@ void SpriteRenderer::Execute(const BatchBuilder& builder) {
     m_pDevice->SetStreamSource(0, m_vertexBuffer, 0, sizeof(SpriteVertex));
     m_pDevice->SetIndices(m_indexBuffer);
 
+    char dipBuf[128];
+    sprintf(dipBuf, "[SpriteRenderer] Execute: batches=%d\n", builder.GetBatchCount());
+    OutputDebugStringA(dipBuf);
+
     for (uint32_t i = 0; i < builder.GetBatchCount(); i++) {
         const RenderBatch& batch = builder.GetBatches()[i];
 
@@ -154,6 +156,10 @@ void SpriteRenderer::Execute(const BatchBuilder& builder) {
         }
 
         uint32_t primitiveCount = batch.indexCount / 3;
+
+        sprintf(dipBuf, "[SpriteRenderer] DIP batch=%d idx=%d prim=%d tex=%d shader=%d\n",
+                i, batch.indexCount, primitiveCount, batch.textureID, batch.shaderID);
+        OutputDebugStringA(dipBuf);
 
         m_pDevice->DrawIndexedPrimitive(
             D3DPT_TRIANGLELIST,

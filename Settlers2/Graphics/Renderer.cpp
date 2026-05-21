@@ -3,6 +3,7 @@
 #include "Texture.h"
 #include "SpriteRenderer.h"
 #include "RenderFrame.h"
+#include "RenderQueue.h"
 #include "GPUTimer.h"
 #include <stdio.h>
 #include <d3dx9.h>
@@ -10,7 +11,8 @@
 Renderer::Renderer()
     : m_pD3D(NULL), m_pDevice(NULL), m_pBackBuffer(NULL),
       m_pVertexDecl(NULL), m_pVertexShader(NULL), m_pPixelShader(NULL),
-      m_pShaderManager(NULL), m_pSpriteRenderer(NULL), m_pRenderFrame(NULL), m_pGPUTimer(NULL) {
+      m_pShaderManager(NULL), m_pSpriteRenderer(NULL), m_pRenderFrame(NULL), m_pGPUTimer(NULL),
+      m_pRenderQueue(NULL) {
     ZeroMemory(&m_d3dpp, sizeof(m_d3dpp));
     ZeroMemory(m_projMatrix, sizeof(m_projMatrix));
 }
@@ -84,9 +86,13 @@ HRESULT Renderer::Initialize() {
         m_pGPUTimer->Initialize(m_pDevice);
     }
 
+    m_pRenderQueue = new RenderQueue();
+    OutputDebugStringA("[Renderer] RenderQueue created\n");
+
     m_pRenderFrame = new RenderFrame();
     if (m_pRenderFrame) {
         m_pRenderFrame->Initialize(m_pDevice);
+        m_pRenderFrame->SetRenderQueue(m_pRenderQueue);
         m_pRenderFrame->SetSpriteRenderer(m_pSpriteRenderer);
         m_pRenderFrame->SetGPUTimer(m_pGPUTimer);
         OutputDebugStringA("[Renderer] RenderFrame initialized\n");
@@ -142,6 +148,10 @@ void Renderer::PrepareForUI() {
 }
 
 void Renderer::Shutdown() {
+    if (m_pRenderQueue) {
+        delete m_pRenderQueue;
+        m_pRenderQueue = nullptr;
+    }
     if (m_pRenderFrame) {
         m_pRenderFrame->Shutdown();
         delete m_pRenderFrame;

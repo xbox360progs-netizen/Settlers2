@@ -165,13 +165,8 @@ bool GameEngine::Initialize()
     m_sceneManager->SetRenderer(m_renderer);
     m_sceneManager->SetRenderFrame(m_renderer->GetRenderFrame());
 
-    Graphics::RenderQueue* renderQueue = new Graphics::RenderQueue();
+    Graphics::RenderQueue* renderQueue = m_renderer->GetRenderQueue();
     m_sceneManager->SetRenderQueue(renderQueue);
-
-    RenderFrame* renderFrame = m_renderer->GetRenderFrame();
-    if (renderFrame) {
-        renderFrame->SetRenderQueue(renderQueue);
-    }
 
     m_textManager = new TextManager(m_bitmapFont, 1280.0f, 720.0f, renderQueue);
 
