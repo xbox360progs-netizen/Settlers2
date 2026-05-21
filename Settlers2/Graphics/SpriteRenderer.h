@@ -51,7 +51,7 @@ public:
     void BeginFrame();
     void EndFrame();
 
-    void Execute(const BatchBuilder& builder);
+    int Execute(const BatchBuilder& builder);
 
     void SetProjectionMatrix(const float* matrix) {
         memcpy(m_projMatrix, matrix, sizeof(m_projMatrix));

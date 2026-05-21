@@ -374,7 +374,8 @@ void GameEngine::Run()
         ProcessSceneRequests();
         if (m_sceneManager && m_sceneManager->IsSceneReady()) {
             m_sceneManager->ResetFrameRendered();
-            
+            m_renderer->BeginFrame();
+
             RenderFrame* renderFrame = m_renderer->GetRenderFrame();
             if (renderFrame) {
                 renderFrame->BeginFrame();
@@ -384,6 +385,8 @@ void GameEngine::Run()
             } else {
                 m_sceneManager->Render();
             }
+
+            m_renderer->EndFrame();
         }
         
         Sleep(16);

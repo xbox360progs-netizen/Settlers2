@@ -106,8 +106,12 @@ void Renderer::SetSpriteRenderer(SpriteRenderer* pSpriteRenderer) {
     if (m_pSpriteRenderer) {
         m_pSpriteRenderer->SetProjectionMatrix(m_projMatrix);
     }
+    if (m_pRenderFrame) {
+        m_pRenderFrame->SetSpriteRenderer(m_pSpriteRenderer);
+    }
     char buf[256];
-    sprintf(buf, "[Renderer] SetSpriteRenderer: %p\n", pSpriteRenderer);
+    sprintf(buf, "[Renderer] SetSpriteRenderer: %p, RenderFrame spriteRenderer=%p\n",
+            pSpriteRenderer, m_pRenderFrame ? m_pRenderFrame->GetSpriteRenderer() : NULL);
     OutputDebugStringA(buf);
 }
 

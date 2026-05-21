@@ -3,7 +3,9 @@
 #include "ShaderManager.h"
 
 static void OutputDebugStringA(const char* msg) {
+#ifdef _DEBUG
     ::OutputDebugStringA(msg);
+#endif
 }
 
 namespace Graphics {
@@ -101,8 +103,10 @@ void SpriteRenderer::BeginFrame() {
 void SpriteRenderer::EndFrame() {
 }
 
-void SpriteRenderer::Execute(const BatchBuilder& builder) {
-    if (!m_pDevice || builder.GetBatchCount() == 0) return;
+int SpriteRenderer::Execute(const BatchBuilder& builder) {
+    ::OutputDebugStringA("[SpriteRenderer] ENTERED\n");
+    if (!m_pDevice) { ::OutputDebugStringA("[SpriteRenderer] NO DEVICE\n"); return -1; }
+    if (builder.GetBatchCount() == 0) { ::OutputDebugStringA("[SpriteRenderer] NO BATCHES\n"); return -2; }
 
     uint32_t vertexCount = builder.GetVertexCount();
     uint32_t indexCount = builder.GetIndexCount();
@@ -124,9 +128,10 @@ void SpriteRenderer::Execute(const BatchBuilder& builder) {
     m_pDevice->SetStreamSource(0, m_vertexBuffer, 0, sizeof(SpriteVertex));
     m_pDevice->SetIndices(m_indexBuffer);
 
-    char dipBuf[128];
-    sprintf(dipBuf, "[SpriteRenderer] Execute: batches=%d\n", builder.GetBatchCount());
-    OutputDebugStringA(dipBuf);
+    char dipBuf[256];
+    sprintf(dipBuf, "[SpriteRenderer] Execute: batches=%d vertexCount=%d indexCount=%d\n",
+            builder.GetBatchCount(), vertexCount, indexCount);
+    ::OutputDebugStringA(dipBuf);
 
     for (uint32_t i = 0; i < builder.GetBatchCount(); i++) {
         const RenderBatch& batch = builder.GetBatches()[i];
@@ -157,9 +162,9 @@ void SpriteRenderer::Execute(const BatchBuilder& builder) {
 
         uint32_t primitiveCount = batch.indexCount / 3;
 
-        sprintf(dipBuf, "[SpriteRenderer] DIP batch=%d idx=%d prim=%d tex=%d shader=%d\n",
-                i, batch.indexCount, primitiveCount, batch.textureID, batch.shaderID);
-        OutputDebugStringA(dipBuf);
+        sprintf(dipBuf, "[SpriteRenderer] DIP batch=%d startIdx=%d idx=%d prim=%d tex=%d shader=%d\n",
+                i, batch.startIndex, batch.indexCount, primitiveCount, batch.textureID, batch.shaderID);
+        ::OutputDebugStringA(dipBuf);
 
         m_pDevice->DrawIndexedPrimitive(
             D3DPT_TRIANGLELIST,
@@ -173,6 +178,7 @@ void SpriteRenderer::Execute(const BatchBuilder& builder) {
     }
 
     m_pDevice->SetTexture(0, NULL);
+    return 42;
 }
 
 void SpriteRenderer::SetTextureSlot(WORD id, LPDIRECT3DTEXTURE9 tex) {
