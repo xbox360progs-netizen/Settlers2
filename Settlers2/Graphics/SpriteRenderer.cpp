@@ -235,7 +235,12 @@ void SpriteRenderer::SetShader(WORD shaderID) {
         m_pShaderManager->EndShader();
     }
     if (!m_pShaderManager->SetActiveShader((ShaderID)shaderID)) return;
-    m_pShaderManager->SetMatrix("WVP", m_projMatrix);
+    if (shaderID == SHADER_TERRAIN || shaderID == SHADER_WORLD) {
+        const D3DXMATRIX& viewProj = m_pShaderManager->GetShaderMatrix(static_cast<ShaderID>(shaderID));
+        m_pShaderManager->SetMatrix("gViewProj", (const float*)&viewProj);
+    } else {
+        m_pShaderManager->SetMatrix("WVP", m_projMatrix);
+    }
     m_pShaderManager->BeginShader();
     m_pShaderManager->BeginPass(0);
     m_pShaderManager->Commit();

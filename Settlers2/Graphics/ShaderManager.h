@@ -83,6 +83,10 @@ public:
         return m_shaderMatrices[0];
     }
 
+    const D3DXMATRIX& GetShaderMatrix(ShaderID id) const {
+        return m_shaderMatrices[id];
+    }
+
     ShaderID GetCurrentShaderID() const { return m_currentShaderID; }
 
     void CommitChanges();

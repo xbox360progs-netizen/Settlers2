@@ -183,6 +183,11 @@ void EditorScene::Load() {
     // 3.    UV-   (   )
     std::tr1::shared_ptr<SpriteAtlas> groundAtlas = registry.getAtlas("ground");
 
+    // 4.   ground-     slot 0 SpriteRenderer
+    if (groundTexture && m_spriteRenderer) {
+        m_spriteRenderer->SetTextureSlot(0, groundTexture);
+    }
+
     // 
     char logMsg[256];
     _snprintf(logMsg, sizeof(logMsg), "[EditorScene] Final Textures: Bg=%p, Cell=%p, Ground=%p, IconMenu=%p\n", 

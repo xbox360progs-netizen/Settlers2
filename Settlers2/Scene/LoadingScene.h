@@ -69,6 +69,7 @@ private:
     ShaderManager* m_shaderManager;
     BinFileManager* m_binFileManager;
     Texture m_backgroundTexture;  // Loading screen background
+    LPDIRECT3DTEXTURE9 m_progressTexture;  // Progress bar texture
     std::vector<LoadTask> m_loadTasks;
     float m_screenW;
     float m_screenH;

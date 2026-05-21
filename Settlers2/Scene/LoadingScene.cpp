@@ -27,6 +27,7 @@ LoadingScene::LoadingScene()
     , m_binFileManager(nullptr)
     , m_screenW(1280.0f)
     , m_screenH(720.0f)
+    , m_progressTexture(nullptr)
     , m_hLoadingThread(NULL)
     , m_targetProgressPercentage(0)
     , m_isLoadComplete(0)
@@ -267,8 +268,16 @@ void LoadingScene::SetupLoadTasks()
 
     // ===== LOADING SCREEN TEXTURES =====
     AddLoadTask([this]() {
-        TextureRegistry::instance().getTextureOrLoad("loading_background");
-        TextureRegistry::instance().getTextureOrLoad("progressBarBackground");
+        TextureRegistry::instance().registerTexturePath("loading_background", "Background/loading_background.png");
+        LPDIRECT3DTEXTURE9 bgTex = TextureRegistry::instance().getTextureOrLoad("loading_background");
+        LPDIRECT3DTEXTURE9 barTex = TextureRegistry::instance().getTextureOrLoad("progressBarBackground");
+        if (bgTex && m_spriteRenderer) {
+            m_spriteRenderer->SetTextureSlot(0, bgTex);
+            m_backgroundTexture.SetTexture(bgTex);
+        }
+        if (barTex && m_spriteRenderer) {
+            m_spriteRenderer->SetTextureSlot(2, barTex);
+        }
     }, "Load Texture: Loading Screen", 0.5f);
 
     // ===== UI TEXTURES =====
@@ -465,7 +474,14 @@ void LoadingScene::Render(Graphics::RenderQueue* renderQueue)
 		}
 	}
 
-	// Background
+	// Background — re-acquire texture each frame until loaded
+	if (!m_backgroundTexture.GetTexture()) {
+		LPDIRECT3DTEXTURE9 bgTex = TextureRegistry::instance().getTextureOrLoad("loading_background");
+		if (bgTex && m_spriteRenderer) {
+			m_spriteRenderer->SetTextureSlot(0, bgTex);
+			m_backgroundTexture.SetTexture(bgTex);
+		}
+	}
 	if (m_backgroundTexture.GetTexture()) {
 		Graphics::RenderCommand bgCmd = {};
 		bgCmd.shaderID = SHADER_SPRITE;
@@ -482,7 +498,14 @@ void LoadingScene::Render(Graphics::RenderQueue* renderQueue)
 		renderQueue->Submit(bgCmd);
 	}
 
-	// Progress bar
+	// Progress bar — ensure texture is bound
+	if (!m_progressTexture) {
+		LPDIRECT3DTEXTURE9 barTex = TextureRegistry::instance().getTextureOrLoad("progressBarBackground");
+		if (barTex && m_spriteRenderer) {
+			m_spriteRenderer->SetTextureSlot(2, barTex);
+			m_progressTexture = barTex;
+		}
+	}
 	if (m_currentRenderProgress > 0.0f) {
 		float barWidth = 400.0f;
 		float barHeight = 20.0f;
@@ -503,7 +526,7 @@ void LoadingScene::Render(Graphics::RenderQueue* renderQueue)
 		barCmd.color = 0xFFFFFFFF;
 		barCmd.depth = 0;
 		barCmd.layer = LAYER_UI;
-		barCmd.textureID = 0;
+		barCmd.textureID = 2;
 		renderQueue->Submit(barCmd);
 	}
 }
