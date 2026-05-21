@@ -73,6 +73,10 @@ void MenuScene::LoadTextures() {
             m_backgroundTexture.SetTexture(tex);
         }
     }
+
+    if (m_spriteRenderer && m_backgroundTexture.GetTexture()) {
+        m_spriteRenderer->SetTextureSlot(0, m_backgroundTexture.GetTexture());
+    }
 }
 
 void MenuScene::Initialize(LPDIRECT3DDEVICE9 device, SpriteRenderer* spriteRenderer) {

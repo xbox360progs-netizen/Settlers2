@@ -168,10 +168,20 @@ bool GameEngine::Initialize()
     Graphics::RenderQueue* renderQueue = new Graphics::RenderQueue();
     m_sceneManager->SetRenderQueue(renderQueue);
 
+    RenderFrame* renderFrame = m_renderer->GetRenderFrame();
+    if (renderFrame) {
+        renderFrame->SetRenderQueue(renderQueue);
+    }
+
     m_textManager = new TextManager(m_bitmapFont, 1280.0f, 720.0f, renderQueue);
 
     if (m_bitmapFont->GetTexture()) {
         m_textManager->SetFontAtlas(FONT_MENU, m_bitmapFont->GetTexture());
+
+        if (m_spriteRenderer) {
+            m_spriteRenderer->SetTextureSlot(1, m_bitmapFont->GetTexture());
+        }
+
         OutputDebugStringA("[GameEngine::Initialize] Font texture loaded into TextManager\n");
     } else {
         OutputDebugStringA("[GameEngine::Initialize] ERROR: Font texture is NULL\n");
@@ -316,6 +326,9 @@ void GameEngine::Render()
         return;
     }
 
+    m_sceneManager->ResetFrameRendered();
+    m_renderer->BeginFrame();
+
     RenderFrame* renderFrame = m_renderer->GetRenderFrame();
     if (renderFrame) {
         renderFrame->BeginFrame();
@@ -325,6 +338,8 @@ void GameEngine::Render()
     } else {
         m_sceneManager->Render();
     }
+
+    m_renderer->EndFrame();
 }
 
 void GameEngine::Run()

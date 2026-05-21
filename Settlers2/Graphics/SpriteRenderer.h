@@ -1,6 +1,7 @@
 #pragma once
 #include <d3d9.h>
 #include <d3dx9.h>
+#include <map>
 #include "RenderTypes.h"
 #include "BatchBuilder.h"
 
@@ -52,6 +53,12 @@ public:
 
     void Execute(const BatchBuilder& builder);
 
+    void SetProjectionMatrix(const float* matrix) {
+        memcpy(m_projMatrix, matrix, sizeof(m_projMatrix));
+    }
+
+    void SetTextureSlot(WORD id, LPDIRECT3DTEXTURE9 tex);
+
     LPDIRECT3DDEVICE9 GetDevice() const { return m_pDevice; }
     LPDIRECT3DVERTEXBUFFER9 GetVertexBuffer() const { return m_vertexBuffer; }
     LPDIRECT3DINDEXBUFFER9 GetIndexBuffer() const { return m_indexBuffer; }
@@ -73,6 +80,9 @@ private:
     LPDIRECT3DVERTEXBUFFER9 m_vertexBuffer;
     LPDIRECT3DINDEXBUFFER9 m_indexBuffer;
     LPDIRECT3DVERTEXDECLARATION9 m_vertexDecl;
+
+    float m_projMatrix[16];
+    std::map<WORD, LPDIRECT3DTEXTURE9> m_textureMap;
 
     int m_maxSprites;
 

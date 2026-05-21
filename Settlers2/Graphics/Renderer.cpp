@@ -97,6 +97,9 @@ HRESULT Renderer::Initialize() {
 
 void Renderer::SetSpriteRenderer(SpriteRenderer* pSpriteRenderer) {
     m_pSpriteRenderer = pSpriteRenderer;
+    if (m_pSpriteRenderer) {
+        m_pSpriteRenderer->SetProjectionMatrix(m_projMatrix);
+    }
     char buf[256];
     sprintf(buf, "[Renderer] SetSpriteRenderer: %p\n", pSpriteRenderer);
     OutputDebugStringA(buf);
@@ -214,4 +217,7 @@ void Renderer::OnResetDevice() {
 
 void Renderer::SetProjectionMatrix(float width, float height) {
     D3DXMatrixOrthoOffCenterLH((D3DXMATRIX*)m_projMatrix, 0.0f, width, height, 0.0f, 0.0f, 1.0f);
+    if (m_pSpriteRenderer) {
+        m_pSpriteRenderer->SetProjectionMatrix(m_projMatrix);
+    }
 }

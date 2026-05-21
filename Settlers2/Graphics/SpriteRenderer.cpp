@@ -22,6 +22,7 @@ SpriteRenderer::SpriteRenderer()
     , m_shaderSwitches(0)
     , m_stateChanges(0)
 {
+    D3DXMatrixIdentity((D3DXMATRIX*)m_projMatrix);
 }
 
 SpriteRenderer::~SpriteRenderer() {
@@ -72,6 +73,11 @@ void SpriteRenderer::Shutdown() {
     if (m_vertexDecl) { m_vertexDecl->Release(); m_vertexDecl = NULL; }
     if (m_indexBuffer) { m_indexBuffer->Release(); m_indexBuffer = NULL; }
     if (m_vertexBuffer) { m_vertexBuffer->Release(); m_vertexBuffer = NULL; }
+
+    for (std::map<WORD, LPDIRECT3DTEXTURE9>::iterator it = m_textureMap.begin(); it != m_textureMap.end(); ++it) {
+        if (it->second) it->second->Release();
+    }
+    m_textureMap.clear();
 
     m_pDevice = NULL;
     m_pShaderManager = NULL;
@@ -163,14 +169,28 @@ void SpriteRenderer::Execute(const BatchBuilder& builder) {
     m_pDevice->SetTexture(0, NULL);
 }
 
+void SpriteRenderer::SetTextureSlot(WORD id, LPDIRECT3DTEXTURE9 tex) {
+    std::map<WORD, LPDIRECT3DTEXTURE9>::iterator it = m_textureMap.find(id);
+    if (it != m_textureMap.end()) {
+        if (it->second) it->second->Release();
+    }
+    m_textureMap[id] = tex;
+    if (tex) tex->AddRef();
+}
+
 void SpriteRenderer::SetTexture(WORD textureID) {
     if (!m_pDevice) return;
-    (void)textureID;
+
+    std::map<WORD, LPDIRECT3DTEXTURE9>::iterator it = m_textureMap.find(textureID);
+    if (it != m_textureMap.end() && it->second) {
+        m_pDevice->SetTexture(0, it->second);
+    }
 }
 
 void SpriteRenderer::SetShader(WORD shaderID) {
     if (!m_pShaderManager) return;
     m_pShaderManager->SetActiveShader((ShaderID)shaderID);
+    m_pShaderManager->SetMatrix("matOrtho", m_projMatrix);
     m_pShaderManager->BeginShader();
     m_pShaderManager->BeginPass(0);
     m_pShaderManager->Commit();
