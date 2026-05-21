@@ -50,7 +50,7 @@ public:
     void BeginFrame();
     void EndFrame();
 
-    void Execute(const RenderBatch* batches, int batchCount);
+    void Execute(const BatchBuilder& builder);
 
     LPDIRECT3DDEVICE9 GetDevice() const { return m_pDevice; }
     LPDIRECT3DVERTEXBUFFER9 GetVertexBuffer() const { return m_vertexBuffer; }

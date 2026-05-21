@@ -537,7 +537,7 @@ void EditorScene::Update(float deltaTime) {
 	}
 }
 
-void EditorScene::Render(RenderQueue* renderQueue) {
+void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
     if (!m_mapEditor) return;
 
     if (m_mapEditor) {

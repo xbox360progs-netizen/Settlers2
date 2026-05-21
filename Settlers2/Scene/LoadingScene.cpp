@@ -453,7 +453,7 @@ void LoadingScene::Update(float deltaTime)
     }
 }
 
-void LoadingScene::Render(RenderQueue* renderQueue)
+void LoadingScene::Render(Graphics::RenderQueue* renderQueue)
 {
 	if (!renderQueue) return;
 

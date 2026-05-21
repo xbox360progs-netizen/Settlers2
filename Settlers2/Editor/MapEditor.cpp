@@ -187,10 +187,8 @@ void MapEditor::RenderGeometry() {
     }
 
     RenderGridLayer();
-	m_spriteRenderer->End();
     if (m_showNodes) {
         RenderWeightMap();
-		m_spriteRenderer->End();
     }
 
     if (m_showObjects && m_currentLayer == World::Objects) {
@@ -416,95 +414,118 @@ void MapEditor::InitializeMap() {
 }
 
 void MapEditor::RenderGridLayer() {
-    if (!m_spriteRenderer || !m_map || !m_groundAtlas) return;
+    if (!m_renderQueue || !m_map || !m_groundAtlas) return;
 
     World::TileLayer* groundLayer = m_map->GetLayer(World::Ground);
     if (!groundLayer) return;
 
-    // Ground layer - render in world coordinates (shader handles camera transform)
-    {
-        float tw = 238.0f;  // World-space tile width
-        float th = 148.0f;  // World-space tile height
+    float tw = 238.0f;
+    float th = 148.0f;
+    WORD groundTexID = 0;
 
-        // Use SHADER_SPRITE with world coordinates (shader handles camera transform)
-        m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_TERRAIN), reinterpret_cast<LPDIRECT3DTEXTURE9>(m_groundAtlas->GetTexture()), 0.0f, 0.95f, 0.0001f, 1);
-        
-        for (int y = 0; y < groundLayer->GetHeight(); ++y) {
-            for (int x = 0; x < groundLayer->GetWidth(); ++x) {
+    for (int y = 0; y < groundLayer->GetHeight(); ++y) {
+        for (int x = 0; x < groundLayer->GetWidth(); ++x) {
+            float wx, wy;
+            CoordinateSystem::GetInstance().GroundTileToWorld(x, y, wx, wy);
+
+            const World::Tile& tile = groundLayer->GetTile(x, y);
+            Graphics::RenderCommand cmd = {};
+            cmd.x = wx;
+            cmd.y = wy;
+            cmd.width = tw;
+            cmd.height = th;
+            cmd.u0 = tile.u0;
+            cmd.v0 = tile.v0;
+            cmd.u1 = tile.u1;
+            cmd.v1 = tile.v1;
+            cmd.color = 0xFFFFFFFF;
+            cmd.textureID = groundTexID;
+            cmd.shaderID = SHADER_TERRAIN;
+            cmd.blendMode = 0;
+            cmd.layer = 0;
+            cmd.depth = static_cast<WORD>(0.95f * 65535.0f);
+            m_renderQueue->Submit(cmd);
+        }
+    }
+
+    World::TileLayer* overlayLayer = m_map->GetLayer(World::Overlay);
+    if (overlayLayer && m_groundAtlas) {
+        float ntw = 119.0f;
+        float nth = 72.0f;
+
+        for (int y = 0; y < overlayLayer->GetHeight(); ++y) {
+            for (int x = 0; x < overlayLayer->GetWidth(); ++x) {
+                const World::Tile& tile = overlayLayer->GetTile(x, y);
+                if (tile.u1 <= tile.u0 || tile.v1 <= tile.v0) continue;
+
                 float wx, wy;
-                CoordinateSystem::GetInstance().GroundTileToWorld(x, y, wx, wy);
-                
-                const World::Tile& tile = groundLayer->GetTile(x, y);
-                // Draw in world coordinates - shader will apply camera transform
-                m_spriteRenderer->Draw(wx, wy, tw, th, tile.u0, tile.v0, tile.u1, tile.v1, 0xFFFFFFFF);
+                CoordinateSystem::GetInstance().NodeTileToWorld(x, y, wx, wy);
+
+                Graphics::RenderCommand cmd = {};
+                cmd.x = wx;
+                cmd.y = wy;
+                cmd.width = ntw;
+                cmd.height = nth;
+                cmd.u0 = tile.u0;
+                cmd.v0 = tile.v0;
+                cmd.u1 = tile.u1;
+                cmd.v1 = tile.v1;
+                cmd.color = 0x80FFFFFF;
+                cmd.textureID = groundTexID;
+                cmd.shaderID = SHADER_TERRAIN;
+                cmd.blendMode = 1;
+                cmd.layer = 0;
+                cmd.depth = static_cast<WORD>(0.65f * 65535.0f);
+                m_renderQueue->Submit(cmd);
             }
-        }
-        m_spriteRenderer->End();
-    }
-
-    // Overlay layer - Y-sorting depth: 0.5-0.8 (mid-range)
-    {
-        World::TileLayer* overlayLayer = m_map->GetLayer(World::Overlay);
-        if (overlayLayer && m_groundAtlas) {
-            float ntw = 119.0f;  // World-space node tile width
-            float nth = 72.0f;   // World-space node tile height
-
-            // Use SHADER_SPRITE_CONSTANT_INSTANCED with Y-depth sorting
-            m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_TERRAIN), reinterpret_cast<LPDIRECT3DTEXTURE9>(m_groundAtlas->GetTexture()), 0.0f, 0.65f, 0.0001f, 1);
-            
-            for (int y = 0; y < overlayLayer->GetHeight(); ++y) {
-                for (int x = 0; x < overlayLayer->GetWidth(); ++x) {
-                    const World::Tile& tile = overlayLayer->GetTile(x, y);
-                    if (tile.u1 <= tile.u0 || tile.v1 <= tile.v0) continue;
-
-                    float wx, wy;
-                    CoordinateSystem::GetInstance().NodeTileToWorld(x, y, wx, wy);
-                    
-                    m_spriteRenderer->Draw(wx, wy, ntw, nth, tile.u0, tile.v0, tile.u1, tile.v1, 0x80FFFFFF);
-                }
-            }
-            m_spriteRenderer->End();
         }
     }
 
-    // Placement layer - Y-sorting depth: 0.5-0.8
     if (m_currentLayer == World::Placement) {
         World::TileLayer* placementLayer = m_map->GetLayer(World::Placement);
         if (placementLayer) {
             CoordinateSystem& coords = CoordinateSystem::GetInstance();
+            WORD dotTexID = static_cast<WORD>(m_dotTexture ? 0 : 0);
 
-            // Use SHADER_SPRITE_CONSTANT_INSTANCED with Y-depth sorting
-            m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_TERRAIN), m_dotTexture, 0.0f, 0.65f, 0.0001f, 1);
-            
             for (int y = 0; y < NODES_H; ++y) {
                 for (int x = 0; x < NODES_W; ++x) {
                     float wx, wy;
                     coords.NodeTileToWorld(x, y, wx, wy);
-                    
-                    const World::Tile& tile = placementLayer->GetTile(x, y);
 
-                    if (tile.regionIndex >= 0) {
-                        m_spriteRenderer->Draw(wx, wy, 8.0f, 8.0f, 0.0f, 0.0f, 1.0f, 1.0f, D3DCOLOR_ARGB(255, 0, 255, 0));
-                    } else {
-                        m_spriteRenderer->Draw(wx, wy, 8.0f, 8.0f, 0.0f, 0.0f, 1.0f, 1.0f, D3DCOLOR_ARGB(255, 100, 100, 100));
-                    }
+                    const World::Tile& tile = placementLayer->GetTile(x, y);
+                    DWORD dotColor = (tile.regionIndex >= 0)
+                        ? D3DCOLOR_ARGB(255, 0, 255, 0)
+                        : D3DCOLOR_ARGB(255, 100, 100, 100);
+
+                    Graphics::RenderCommand cmd = {};
+                    cmd.x = wx;
+                    cmd.y = wy;
+                    cmd.width = 8.0f;
+                    cmd.height = 8.0f;
+                    cmd.u0 = 0.0f;
+                    cmd.v0 = 0.0f;
+                    cmd.u1 = 1.0f;
+                    cmd.v1 = 1.0f;
+                    cmd.color = dotColor;
+                    cmd.textureID = dotTexID;
+                    cmd.shaderID = SHADER_TERRAIN;
+                    cmd.blendMode = 0;
+                    cmd.layer = 0;
+                    cmd.depth = static_cast<WORD>(0.65f * 65535.0f);
+                    m_renderQueue->Submit(cmd);
                 }
             }
-            m_spriteRenderer->End();
         }
     }
 
-    // Resources layer - Y-sorting depth: 0.5-0.8
     if (m_currentLayer == World::Resources) {
         World::TileLayer* resourcesLayer = m_map->GetLayer(World::Resources);
         if (resourcesLayer && m_objectAtlas) {
-            float ntw = 119.0f;  // World-space node tile width
-            float nth = 72.0f;   // World-space node tile height
+            float ntw = 119.0f;
+            float nth = 72.0f;
             CoordinateSystem& coords = CoordinateSystem::GetInstance();
+            WORD objTexID = 0;
 
-            // Use SHADER_SPRITE_CONSTANT_INSTANCED with Y-depth sorting
-            m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_TERRAIN), reinterpret_cast<LPDIRECT3DTEXTURE9>(m_groundAtlas->GetTexture()), 0.0f, 0.65f, 0.0001f, 1);
-            
             for (int y = 0; y < GRID_HEIGHT; ++y) {
                 for (int x = 0; x < GRID_WIDTH; ++x) {
                     const World::Tile& tile = resourcesLayer->GetTile(x, y);
@@ -512,25 +533,36 @@ void MapEditor::RenderGridLayer() {
 
                     float wx, wy;
                     coords.NodeTileToWorld(x, y, wx, wy);
-                    
-                    m_spriteRenderer->Draw(wx, wy, ntw, nth, tile.u0, tile.v0, tile.u1, tile.v1, 0xFFFFFFFF);
+
+                    Graphics::RenderCommand cmd = {};
+                    cmd.x = wx;
+                    cmd.y = wy;
+                    cmd.width = ntw;
+                    cmd.height = nth;
+                    cmd.u0 = tile.u0;
+                    cmd.v0 = tile.v0;
+                    cmd.u1 = tile.u1;
+                    cmd.v1 = tile.v1;
+                    cmd.color = 0xFFFFFFFF;
+                    cmd.textureID = objTexID;
+                    cmd.shaderID = SHADER_TERRAIN;
+                    cmd.blendMode = 0;
+                    cmd.layer = 0;
+                    cmd.depth = static_cast<WORD>(0.65f * 65535.0f);
+                    m_renderQueue->Submit(cmd);
                 }
             }
-            m_spriteRenderer->End();
         }
     }
 
-    // Roads layer - Y-sorting depth: 0.5-0.8
     if (m_currentLayer == World::Roads) {
         World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
         if (roadsLayer && m_objectAtlas) {
-            float ntw = 119.0f;  // World-space node tile width
-            float nth = 72.0f;   // World-space node tile height
+            float ntw = 119.0f;
+            float nth = 72.0f;
             CoordinateSystem& coords = CoordinateSystem::GetInstance();
+            WORD objTexID = 0;
 
-            // Use SHADER_SPRITE_CONSTANT_INSTANCED with Y-depth sorting
-            m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_TERRAIN), reinterpret_cast<LPDIRECT3DTEXTURE9>(m_groundAtlas->GetTexture()), 0.0f, 0.65f, 0.0001f, 1);
-            
             for (int y = 0; y < GRID_HEIGHT; ++y) {
                 for (int x = 0; x < GRID_WIDTH; ++x) {
                     const World::Tile& tile = roadsLayer->GetTile(x, y);
@@ -538,17 +570,31 @@ void MapEditor::RenderGridLayer() {
 
                     float wx, wy;
                     coords.NodeTileToWorld(x, y, wx, wy);
-                    
-                    m_spriteRenderer->Draw(wx, wy, ntw, nth, tile.u0, tile.v0, tile.u1, tile.v1, 0xFFFFFFFF);
+
+                    Graphics::RenderCommand cmd = {};
+                    cmd.x = wx;
+                    cmd.y = wy;
+                    cmd.width = ntw;
+                    cmd.height = nth;
+                    cmd.u0 = tile.u0;
+                    cmd.v0 = tile.v0;
+                    cmd.u1 = tile.u1;
+                    cmd.v1 = tile.v1;
+                    cmd.color = 0xFFFFFFFF;
+                    cmd.textureID = objTexID;
+                    cmd.shaderID = SHADER_TERRAIN;
+                    cmd.blendMode = 0;
+                    cmd.layer = 0;
+                    cmd.depth = static_cast<WORD>(0.65f * 65535.0f);
+                    m_renderQueue->Submit(cmd);
                 }
             }
-            m_spriteRenderer->End();
         }
     }
 }
 
 void MapEditor::RenderCursor() {
-    if (!m_renderer || !m_groundAtlas) return;
+    if (!m_renderQueue || !m_groundAtlas) return;
 
     LPDIRECT3DTEXTURE9 cursorTex = (m_currentLayer == World::Ground) ? m_cursorTexture : m_isoCursorTexture;
     if (!cursorTex) return;
@@ -559,23 +605,30 @@ void MapEditor::RenderCursor() {
     float tileW = static_cast<float>(firstRegion->width);
     float tileH = static_cast<float>(firstRegion->height);
 
-    float cursorWidth = tileW;
-    float cursorHeight = tileH;
-
     float cursorWorldX, cursorWorldY;
 
     if (m_currentLayer == World::Ground) {
-        CoordinateSystem& coords = CoordinateSystem::GetInstance();
-        coords.GroundTileToWorld(m_cursorTileX, m_cursorTileY, cursorWorldX, cursorWorldY);
+        CoordinateSystem::GetInstance().GroundTileToWorld(m_cursorTileX, m_cursorTileY, cursorWorldX, cursorWorldY);
     } else {
-        CoordinateSystem& coords = CoordinateSystem::GetInstance();
-        coords.NodeTileToWorld(m_cursorTileX, m_cursorTileY, cursorWorldX, cursorWorldY);
+        CoordinateSystem::GetInstance().NodeTileToWorld(m_cursorTileX, m_cursorTileY, cursorWorldX, cursorWorldY);
     }
 
-    // Draw in world coordinates using sprite renderer
-    m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_TERRAIN), cursorTex, cursorWorldY, 0.99f, 0.0001f, 1);
-    m_spriteRenderer->Draw(cursorWorldX, cursorWorldY, cursorWidth, cursorHeight, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF);
-    m_spriteRenderer->End();
+    Graphics::RenderCommand cmd = {};
+    cmd.x = cursorWorldX;
+    cmd.y = cursorWorldY;
+    cmd.width = tileW;
+    cmd.height = tileH;
+    cmd.u0 = 0.0f;
+    cmd.v0 = 0.0f;
+    cmd.u1 = 1.0f;
+    cmd.v1 = 1.0f;
+    cmd.color = 0xFFFFFFFF;
+    cmd.textureID = 0;
+    cmd.shaderID = SHADER_TERRAIN;
+    cmd.blendMode = 1;
+    cmd.layer = 0;
+    cmd.depth = static_cast<WORD>(0.99f * 65535.0f);
+    m_renderQueue->Submit(cmd);
 }
 
 void MapEditor::SetTileByIndex(int index) {
@@ -681,26 +734,36 @@ void MapEditor::CacheNodePositions() {
 }
 
 void MapEditor::RenderWeightMap() {
-    if (!m_spriteRenderer || !m_weightMap) return;
+    if (!m_renderQueue || !m_weightMap) return;
     if (m_currentLayer != World::Nodes) return;
     if (!m_dotTexture) return;
 
     CoordinateSystem& coords = CoordinateSystem::GetInstance();
-    float ds = 16.0f;  // World-space dot size
-    float hds = ds * 0.5f;
-
-    // Use SHADER_SPRITE_CONSTANT_INSTANCED with world coordinates
-    m_spriteRenderer->BeginWorldObject(static_cast<ShaderID>(SHADER_SPRITE_CONSTANT_INSTANCED), m_dotTexture, 0.0f, 0.98f, 0.0001f, 1);
+    float ds = 16.0f;
 
     for (int ny = 0; ny < NODES_H; ++ny) {
         for (int nx = 0; nx < NODES_W; ++nx) {
             float wx, wy;
             coords.NodeTileToWorld(nx, ny, wx, wy);
-            m_spriteRenderer->Draw(wx, wy, ds, ds, 0.0f, 0.0f, 1.0f, 1.0f, D3DCOLOR_ARGB(255, 100, 100, 255));
+
+            Graphics::RenderCommand cmd = {};
+            cmd.x = wx;
+            cmd.y = wy;
+            cmd.width = ds;
+            cmd.height = ds;
+            cmd.u0 = 0.0f;
+            cmd.v0 = 0.0f;
+            cmd.u1 = 1.0f;
+            cmd.v1 = 1.0f;
+            cmd.color = D3DCOLOR_ARGB(255, 100, 100, 255);
+            cmd.textureID = 0;
+            cmd.shaderID = SHADER_SPRITE_CONSTANT_INSTANCED;
+            cmd.blendMode = 1;
+            cmd.layer = 0;
+            cmd.depth = static_cast<WORD>(0.98f * 65535.0f);
+            m_renderQueue->Submit(cmd);
         }
     }
-
-    m_spriteRenderer->End();
 }
 
 bool MapEditor::CanPlaceObject(int x, int y, World::TileType objectType) {

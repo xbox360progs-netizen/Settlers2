@@ -28,7 +28,7 @@ void GameScene::Update(float deltaTime)
     // TODO: Игровая логика
 }
 
-void GameScene::Render(RenderQueue* renderQueue)
+void GameScene::Render(Graphics::RenderQueue* renderQueue)
 {
     (void)renderQueue;
 }

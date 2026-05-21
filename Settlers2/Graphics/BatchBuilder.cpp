@@ -10,12 +10,9 @@ static void OutputDebugStringA(const char* msg) {
 }
 
 BatchBuilder::BatchBuilder()
-    : m_device(NULL)
-    , m_batchCount(0)
+    : m_batchCount(0)
     , m_vertexWritePos(0)
     , m_indexWritePos(0)
-    , m_vertexBuffer(NULL)
-    , m_indexBuffer(NULL)
     , m_currentTexture(0xFFFF)
     , m_currentShader(0xFFFF)
     , m_currentBlend(0xFF)
@@ -23,53 +20,6 @@ BatchBuilder::BatchBuilder()
 }
 
 BatchBuilder::~BatchBuilder() {
-    Shutdown();
-}
-
-void BatchBuilder::Initialize(LPDIRECT3DDEVICE9 device) {
-    m_device = device;
-
-    HRESULT hr = device->CreateVertexBuffer(
-        MAX_VERTICES * sizeof(SpriteVertex),
-        D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY,
-        0,
-        D3DPOOL_DEFAULT,
-        &m_vertexBuffer,
-        NULL);
-
-    if (FAILED(hr)) {
-        OutputDebugStringA("[BatchBuilder] ERROR: Failed to create vertex buffer\n");
-    }
-
-    hr = device->CreateIndexBuffer(
-        MAX_VERTICES * sizeof(uint32_t),
-        D3DUSAGE_WRITEONLY,
-        D3DFMT_INDEX32,
-        D3DPOOL_DEFAULT,
-        &m_indexBuffer,
-        NULL);
-
-    if (FAILED(hr)) {
-        OutputDebugStringA("[BatchBuilder] WARNING: Failed to create index buffer, using vertex buffer only\n");
-    }
-
-    char buf[256];
-    sprintf(buf, "[BatchBuilder] Initialized: maxVertices=%d, maxBatches=%d\n", MAX_VERTICES, MAX_BATCHES);
-    OutputDebugStringA(buf);
-}
-
-void BatchBuilder::Shutdown() {
-    if (m_vertexBuffer) {
-        m_vertexBuffer->Release();
-        m_vertexBuffer = NULL;
-    }
-    if (m_indexBuffer) {
-        m_indexBuffer->Release();
-        m_indexBuffer = NULL;
-    }
-    m_batchCount = 0;
-    m_vertexWritePos = 0;
-    m_indexWritePos = 0;
 }
 
 void BatchBuilder::BeginFrame() {
@@ -123,9 +73,6 @@ void BatchBuilder::BuildBatches(const RenderCommand* commands, uint32_t commandC
             break;
         }
 
-        float hw = cmd.width * 0.5f;
-        float hh = cmd.height * 0.5f;
-
         SpriteVertex* dst = m_vertexPool + m_vertexWritePos;
         uint32_t baseIdx = m_vertexWritePos;
 
@@ -161,27 +108,6 @@ void BatchBuilder::BuildBatches(const RenderCommand* commands, uint32_t commandC
         m_indexWritePos += 6;
 
         currentBatch->indexCount += 6;
-    }
-
-    FlushVertexStream();
-}
-
-void BatchBuilder::FlushVertexStream() {
-    if (m_vertexWritePos == 0 || !m_vertexBuffer) return;
-
-    void* pData = NULL;
-    HRESULT hr = m_vertexBuffer->Lock(0, m_vertexWritePos * sizeof(SpriteVertex), &pData, D3DLOCK_DISCARD);
-    if (SUCCEEDED(hr) && pData) {
-        memcpy(pData, m_vertexPool, m_vertexWritePos * sizeof(SpriteVertex));
-        m_vertexBuffer->Unlock();
-    }
-
-    if (m_indexWritePos > 0 && m_indexBuffer) {
-        hr = m_indexBuffer->Lock(0, m_indexWritePos * sizeof(uint32_t), &pData, D3DLOCK_DISCARD);
-        if (SUCCEEDED(hr) && pData) {
-            memcpy(pData, m_indexPool, m_indexWritePos * sizeof(uint32_t));
-            m_indexBuffer->Unlock();
-        }
     }
 }
 

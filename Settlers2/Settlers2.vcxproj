@@ -240,12 +240,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\GameEngine.h" />
+    <ClInclude Include="Graphics\BatchBuilder.h" />
     <ClInclude Include="Graphics\BinFileManager.h" />
     <ClInclude Include="Graphics\BitmapFont.h" />
     <ClInclude Include="Graphics\BitmapText.h" />
     <ClInclude Include="Graphics\Camera.h" />
     <ClInclude Include="Graphics\CommonVertex.h" />
-    <ClInclude Include="Graphics\DebugOverlay.h" />
     <ClInclude Include="Graphics\FallbackResources.h" />
     <ClInclude Include="Graphics\Font.h" />
     <ClInclude Include="Graphics\Light.h" />
@@ -330,11 +330,11 @@
   <ItemGroup>
     <ClCompile Include="Core\GameEngine.cpp" />
     <ClCompile Include="Core\ThreadSync.cpp" />
+    <ClCompile Include="Graphics\BatchBuilder.cpp" />
     <ClCompile Include="Graphics\BinFileManager.cpp" />
     <ClCompile Include="Graphics\BitmapFont.cpp" />
     <ClCompile Include="Graphics\BitmapText.cpp" />
     <ClCompile Include="Graphics\Camera.cpp" />
-    <ClCompile Include="Graphics\DebugOverlay.cpp" />
     <ClCompile Include="Graphics\FallbackResources.cpp" />
     <ClCompile Include="Graphics\Light.cpp" />
     <ClCompile Include="Graphics\LightOptimizer.cpp" />

@@ -34,15 +34,12 @@ void RenderFrame::Initialize(LPDIRECT3DDEVICE9 pDevice) {
     m_pDevice = pDevice;
     pDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &m_pBackBuffer);
 
-    m_batchBuilder.Initialize(pDevice);
-
     m_initialized = true;
     OutputDebugStringA("[RenderFrame] Initialized\n");
 }
 
 void RenderFrame::Shutdown() {
     if (m_pBackBuffer) { m_pBackBuffer->Release(); m_pBackBuffer = NULL; }
-    m_batchBuilder.Shutdown();
     m_initialized = false;
 }
 
@@ -68,9 +65,7 @@ void RenderFrame::Execute() {
     }
 
     if (m_spriteRenderer && m_batchBuilder.GetBatchCount() > 0) {
-        m_spriteRenderer->Execute(
-            m_batchBuilder.GetBatches(),
-            m_batchBuilder.GetBatchCount());
+        m_spriteRenderer->Execute(m_batchBuilder);
     }
 
     if (m_debugOverlay) {

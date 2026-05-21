@@ -3,6 +3,7 @@
 #include <string>
 #include <memory>
 #include "../Graphics/SpriteRenderer.h"
+#include "../Graphics/RenderQueue.h"
 
 class Camera;
 class SpriteAtlas;

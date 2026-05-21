@@ -4,6 +4,7 @@
 #include "../Entity.h"
 #include <vector>
 
+class Renderer;
 namespace World {
     class EntityManager;
 }

@@ -256,12 +256,12 @@ void RadialMenu::Render()
     D3DXMatrixOrthoOffCenterLH(&projection, 0, screenWidth, screenHeight, 0, 0, 1);
     matWVP = world * projection;
 
-    m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-    m_pDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
-    m_pDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
-    m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
-    m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
-    m_pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+    m_device->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+    m_device->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+    m_device->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+    m_device->SetRenderState(D3DRS_ZENABLE, FALSE);
+    m_device->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+    m_device->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
 
     m_shaderManager->SetActiveShader(SHADER_RADIALMENU);
     m_shaderManager->BeginShader();
@@ -288,7 +288,7 @@ void RadialMenu::Render()
     m_shaderManager->EndPass();
     m_shaderManager->EndShader();
 
-    m_pDevice->SetTexture(0, NULL);
+    m_device->SetTexture(0, NULL);
 }
 
 void RadialMenu::RenderIcons(Graphics::RenderQueue* renderQueue)

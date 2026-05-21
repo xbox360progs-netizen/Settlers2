@@ -48,26 +48,11 @@ HRESULT SpriteRenderer::Initialize(LPDIRECT3DDEVICE9 device, ShaderManager* shad
     hr = device->CreateIndexBuffer(
         indexBufferSize,
         D3DUSAGE_WRITEONLY,
-        D3DFMT_INDEX16,
+        D3DFMT_INDEX32,
         D3DPOOL_DEFAULT,
         &m_indexBuffer,
         NULL);
     if (FAILED(hr)) return hr;
-
-    WORD* pIndices = NULL;
-    hr = m_indexBuffer->Lock(0, 0, (void**)&pIndices, 0);
-    if (SUCCEEDED(hr)) {
-        for (int i = 0; i < m_maxSprites; i++) {
-            int v = (i % 1024) * 4;
-            pIndices[i * 6 + 0] = v + 0;
-            pIndices[i * 6 + 1] = v + 1;
-            pIndices[i * 6 + 2] = v + 2;
-            pIndices[i * 6 + 3] = v + 2;
-            pIndices[i * 6 + 4] = v + 1;
-            pIndices[i * 6 + 5] = v + 3;
-        }
-        m_indexBuffer->Unlock();
-    }
 
     D3DVERTEXELEMENT9 decl[] = {
         { 0,  0, D3DDECLTYPE_FLOAT3, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0 },
@@ -112,15 +97,31 @@ void SpriteRenderer::BeginFrame() {
 void SpriteRenderer::EndFrame() {
 }
 
-void SpriteRenderer::Execute(const RenderBatch* batches, int batchCount) {
-    if (!m_pDevice || batchCount == 0 || !batches) return;
+void SpriteRenderer::Execute(const BatchBuilder& builder) {
+    if (!m_pDevice || builder.GetBatchCount() == 0) return;
+
+    uint32_t vertexCount = builder.GetVertexCount();
+    uint32_t indexCount = builder.GetIndexCount();
+
+    void* pData = NULL;
+    HRESULT hr = m_vertexBuffer->Lock(0, vertexCount * sizeof(SpriteVertex), &pData, 0);
+    if (SUCCEEDED(hr) && pData) {
+        memcpy(pData, builder.GetVertices(), vertexCount * sizeof(SpriteVertex));
+        m_vertexBuffer->Unlock();
+    }
+
+    hr = m_indexBuffer->Lock(0, indexCount * sizeof(uint32_t), &pData, 0);
+    if (SUCCEEDED(hr) && pData) {
+        memcpy(pData, builder.GetIndices(), indexCount * sizeof(uint32_t));
+        m_indexBuffer->Unlock();
+    }
 
     m_pDevice->SetVertexDeclaration(m_vertexDecl);
     m_pDevice->SetStreamSource(0, m_vertexBuffer, 0, sizeof(SpriteVertex));
     m_pDevice->SetIndices(m_indexBuffer);
 
-    for (int i = 0; i < batchCount; i++) {
-        const RenderBatch& batch = batches[i];
+    for (uint32_t i = 0; i < builder.GetBatchCount(); i++) {
+        const RenderBatch& batch = builder.GetBatches()[i];
 
         if (m_stateCache.BlendChanged(batch.blendMode)) {
             if (batch.blendMode == 0) {
@@ -146,14 +147,13 @@ void SpriteRenderer::Execute(const RenderBatch* batches, int batchCount) {
             m_textureSwitches++;
         }
 
-        uint32_t spriteCount = batch.indexCount / 6;
-        uint32_t primitiveCount = spriteCount * 2;
+        uint32_t primitiveCount = batch.indexCount / 3;
 
         m_pDevice->DrawIndexedPrimitive(
             D3DPT_TRIANGLELIST,
             0,
             0,
-            batch.indexCount,
+            vertexCount,
             batch.startIndex,
             primitiveCount);
 
