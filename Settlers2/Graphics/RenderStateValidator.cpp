@@ -1,11 +1,10 @@
 #include "stdafx.h"
 #include "RenderStateValidator.h"
-#include "GPUDebug.h"
 #include <d3d9.h>
 #include <stdio.h>
 
 static IDirect3DDevice9* GetDirect3DDevice9() {
-    return ::GetGlobalDevice();
+    return NULL;
 }
 
 namespace Graphics {

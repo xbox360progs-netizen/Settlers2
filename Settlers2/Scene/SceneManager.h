@@ -9,6 +9,7 @@
 // Forward declarations
 namespace Graphics { class ShaderManager; class SpriteRenderer; class RenderQueue; }
 using Graphics::ShaderManager;
+using Graphics::RenderQueue;
 class Renderer;
 using Graphics::RenderFrame;
 

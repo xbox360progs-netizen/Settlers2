@@ -30,10 +30,6 @@ void RenderQueue::Submit(const RenderCommand& cmd) {
     dst->sortKey = BuildSortKey(cmd.layer, cmd.blendMode, cmd.shaderID, cmd.textureID, cmd.depth);
 }
 
-int RenderQueue::GetCommandCount() const {
-    return m_commandCount;
-}
-
 void RenderQueue::Sort() {
     std::sort(m_commands, m_commands + m_commandCount,
               [](const RenderCommand& a, const RenderCommand& b) {

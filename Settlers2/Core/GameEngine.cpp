@@ -166,11 +166,10 @@ bool GameEngine::Initialize()
     m_sceneManager->SetRenderFrame(m_renderer->GetRenderFrame());
 
     Graphics::RenderQueue* renderQueue = new Graphics::RenderQueue();
-    renderQueue->Initialize(m_renderer->GetDevice());
     m_sceneManager->SetRenderQueue(renderQueue);
 
     m_textManager = new TextManager(m_bitmapFont, 1280.0f, 720.0f, renderQueue);
-    
+
     if (m_bitmapFont->GetTexture()) {
         m_textManager->SetFontAtlas(FONT_MENU, m_bitmapFont->GetTexture());
         OutputDebugStringA("[GameEngine::Initialize] Font texture loaded into TextManager\n");
@@ -187,17 +186,6 @@ bool GameEngine::Initialize()
     SetBinFileManagerStatic(m_binFileManager);
     TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Menu");
     TextureRegistry::instance().getTextureOrLoad("menu_background");
-
-    m_sceneManager = new Scene::SceneManager();
-
-    m_sceneManager->SetShaderManager(m_renderer->GetShaderManager());
-    m_sceneManager->SetSpriteRenderer(m_spriteRenderer);
-    m_sceneManager->SetRenderer(m_renderer);
-    m_sceneManager->SetRenderFrame(m_renderer->GetRenderFrame());
-
-    Graphics::RenderQueue* renderQueue = new Graphics::RenderQueue();
-    renderQueue->Initialize(m_renderer->GetDevice());
-    m_sceneManager->SetRenderQueue(renderQueue);
 
     CreateScenes();
 

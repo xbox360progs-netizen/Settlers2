@@ -3,7 +3,7 @@
 #include <d3dx9.h>
 #include <vector>
 #include <string>
-#include "GPUTimer.h"
+#include "../GPUTimer.h"
 
 namespace Graphics {
 

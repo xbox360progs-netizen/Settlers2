@@ -134,7 +134,7 @@ bool ShaderManager::SetActiveShader(ShaderID id) {
     return true;
 }
 
-Shader* ShaderManager::GetShader(ShaderID id) {
+ShaderManager::Shader* ShaderManager::GetShader(ShaderID id) {
     std::map<ShaderID, Shader>::iterator it = m_shaders.find(id);
     if (it != m_shaders.end()) {
         return &it->second;
@@ -186,7 +186,10 @@ void ShaderManager::SetVector(const char* paramName, const float* vector) {
 
 void ShaderManager::SetTexture(const char* paramName, LPDIRECT3DBASETEXTURE9 pTexture) {
     if (!m_pActiveEffect) return;
-    m_pActiveEffect->SetTexture(paramName, pTexture);
+    D3DXHANDLE hParam = m_pActiveEffect->GetParameterByName(NULL, paramName);
+    if (hParam) {
+        m_pActiveEffect->SetTexture(hParam, pTexture);
+    }
 }
 
 void ShaderManager::OnLostDevice() {

@@ -96,7 +96,7 @@ void DebugOverlay::Render() {
     RenderText(10, y, buffer); y += 15;
 
     const char* passNames[PASS_COUNT] = {
-        "Geometry", "Lighting", "AlphaTest", "Transparent", "UI", "PostFX", "Resolve"
+        "Geometry", "Lighting", "Transparent", "UI"
     };
 
     for (int i = 0; i < PASS_COUNT; i++) {
