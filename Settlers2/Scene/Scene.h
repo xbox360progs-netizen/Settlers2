@@ -4,8 +4,7 @@
 #include <d3d9.h>
 
 // Forward declarations
-class SpriteRenderer;
-class RenderQueue;
+namespace Graphics { class SpriteRenderer; class RenderQueue; }
 
 namespace Scene {
 
@@ -24,7 +23,7 @@ public:
     virtual void Unload() = 0;
 
     virtual void Update(float deltaTime) = 0;
-    virtual void Render(class RenderQueue* renderQueue) = 0;
+    virtual void Render(Graphics::RenderQueue* renderQueue) = 0;
 
     virtual void OnEnter();
     virtual void OnExit();
@@ -38,7 +37,7 @@ public:
     bool IsExitRequested() const { return m_exitRequested; }
     void ClearExitRequest() { m_exitRequested = false; }
 
-    virtual void Initialize(LPDIRECT3DDEVICE9 device, class SpriteRenderer* spriteRenderer);
+    virtual void Initialize(LPDIRECT3DDEVICE9 device, Graphics::SpriteRenderer* spriteRenderer);
 
     SceneManager* GetSceneManager() const;
     void SetSceneManager(SceneManager* manager);

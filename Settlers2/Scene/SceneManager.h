@@ -7,10 +7,9 @@
 #include <xtl.h>
 
 // Forward declarations
-class ShaderManager;
-class SpriteRenderer;
+namespace Graphics { class ShaderManager; class SpriteRenderer; class RenderQueue; }
+using Graphics::ShaderManager;
 class Renderer;
-class RenderQueue;
 using Graphics::RenderFrame;
 
 // Xbox 360 async command buffer forward declarations
@@ -52,15 +51,14 @@ public:
 
     // Queue-based rendering support
     void SetShaderManager(ShaderManager* shaderManager) { m_shaderManager = shaderManager; }
-    void SetSpriteRenderer(SpriteRenderer* spriteRenderer) { m_spriteRenderer = spriteRenderer; }
+    void SetSpriteRenderer(Graphics::SpriteRenderer* spriteRenderer) { m_spriteRenderer = spriteRenderer; }
     void SetRenderer(Renderer* renderer) { m_renderer = renderer; }
-    SpriteRenderer* GetSpriteRenderer() const { return m_spriteRenderer; }
+    Graphics::SpriteRenderer* GetSpriteRenderer() const { return m_spriteRenderer; }
     Renderer* GetRenderer() const { return m_renderer; }
     void SetRenderFrame(RenderFrame* frame) { m_renderFrame = frame; }
     RenderFrame* GetRenderFrame() const { return m_renderFrame; }
     void SetRenderQueue(RenderQueue* queue) { m_renderQueue = queue; }
     RenderQueue* GetRenderQueue() const { return m_renderQueue; }
-    void SubmitRenderCommands();
 
     // Xbox 360 async command buffer support
 #ifdef _XBOX
@@ -90,7 +88,7 @@ private:
     std::map<std::string, Scene*> m_scenes;
     Scene* volatile m_currentScene;  // volatile for Xenon cache coherency
     ShaderManager* m_shaderManager;
-    SpriteRenderer* m_spriteRenderer;
+    Graphics::SpriteRenderer* m_spriteRenderer;
     Renderer* m_renderer;
     RenderFrame* m_renderFrame;
     RenderQueue* m_renderQueue;

@@ -13,6 +13,9 @@
 
 #include <xtl.h>
 
+using Graphics::SpriteRenderer;
+using Graphics::ShaderManager;
+
 namespace Scene {
 
 class LoadingScene : public Scene
@@ -24,7 +27,7 @@ public:
     virtual void Load();
     virtual void Unload();
     virtual void Update(float deltaTime);
-    virtual void Render(class RenderQueue* renderQueue) override;
+    virtual void Render(Graphics::RenderQueue* renderQueue) override;
 
     void SetTargetScene(const std::string& sceneName);
     void SetTextureLoader(TextureLoader* loader) { m_textureLoader = loader; }

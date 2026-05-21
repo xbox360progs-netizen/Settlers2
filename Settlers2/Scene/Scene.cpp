@@ -29,7 +29,7 @@ void Scene::RequestSceneSwitch(const std::string& sceneName)
     m_hasPendingSwitch = true;
 }
 
-void Scene::Initialize(LPDIRECT3DDEVICE9 device, SpriteRenderer* spriteRenderer)
+void Scene::Initialize(LPDIRECT3DDEVICE9 device, Graphics::SpriteRenderer* spriteRenderer)
 {
     (void)device;
     (void)spriteRenderer;

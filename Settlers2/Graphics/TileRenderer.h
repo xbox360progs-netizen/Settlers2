@@ -4,8 +4,8 @@
 #include "../World/TileType.h"
 #include "../World/TileLayer.h"
 #include "../World/Map.h"
+#include "RenderQueue.h"
 
-// Renderer is in global namespace
 class Renderer;
 class SpriteAtlas;
 struct SpriteRegion;
@@ -36,6 +36,7 @@ public:
     void RenderTile(int tileX, int tileY, World::TileType type, int layerOffset = 0);
 
     void SetProjectionMode(int mode) { m_mode = mode; }
+    void SetRenderQueue(Graphics::RenderQueue* rq) { m_renderQueue = rq; }
     void WorldToScreen(int wx, int wy, int& sx, int& sy);
     void ScreenToWorld(int sx, int sy, int& wx, int& wy);
 
@@ -48,6 +49,7 @@ private:
 
     Renderer* m_renderer;
     World::Map* m_map;
+    Graphics::RenderQueue* m_renderQueue;
     int m_mapWidth;
     int m_mapHeight;
     int m_mode;

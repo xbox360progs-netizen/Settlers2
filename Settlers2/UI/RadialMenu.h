@@ -9,6 +9,8 @@
 #include "../Graphics/RenderQueue.h"
 #include "../Input/Gamepad.h"
 
+using Graphics::ShaderManager;
+
 class Quad;
 
 class RadialMenu

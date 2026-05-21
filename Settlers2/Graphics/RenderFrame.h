@@ -1,6 +1,7 @@
 #pragma once
 #include <d3d9.h>
 #include "GPUTimer.h"
+#include "BatchBuilder.h"
 
 namespace Graphics {
 
@@ -30,6 +31,8 @@ public:
     void SetDebugOverlay(RenderDebugOverlay* overlay) { m_debugOverlay = overlay; }
     RenderDebugOverlay* GetDebugOverlay() const { return m_debugOverlay; }
 
+    BatchBuilder& GetBatchBuilder() { return m_batchBuilder; }
+
     void BeginFrame();
     void Execute();
     void EndFrame();
@@ -44,6 +47,7 @@ private:
     TileRenderer* m_tileRenderer;
     GPUTimer* m_gpuTimer;
     RenderDebugOverlay* m_debugOverlay;
+    BatchBuilder m_batchBuilder;
     IDirect3DSurface9* m_pBackBuffer;
     bool m_initialized;
 };

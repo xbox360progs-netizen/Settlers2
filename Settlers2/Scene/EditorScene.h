@@ -19,6 +19,8 @@
 #include "../UI/WeightMenu.h"
 #include "../Graphics/RenderQueue.h"
 
+using Graphics::SpriteRenderer;
+
 namespace Scene {
 
 // FSM states for resource placement
@@ -45,7 +47,7 @@ EditorScene();
     virtual void Load();
     virtual void Unload();
     virtual void Update(float deltaTime);
-    virtual void Render(class RenderQueue* renderQueue) override;
+    virtual void Render(Graphics::RenderQueue* renderQueue) override;
     virtual void OnEnter();
     virtual void OnExit();
 

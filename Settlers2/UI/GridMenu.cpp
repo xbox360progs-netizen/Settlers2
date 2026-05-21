@@ -5,6 +5,7 @@
 #include "../Input/Gamepad.h"
 #include "../Graphics/SpriteRenderer.h"
 #include "../Graphics/ShaderManager.h"
+#include "../Graphics/RenderLayers.h"
 
 namespace
 {
@@ -358,24 +359,14 @@ void GridMenu::SetRenderer(Renderer* renderer)
 void GridMenu::Render(const Camera* camera)
 {
     if (!m_visible) { OutputDebugStringA("[GridMenu] not visible\n"); return; }
-    if (!m_renderer) { OutputDebugStringA("[GridMenu] renderer is NULL\n"); return; }
 
-    ShaderManager* shaderManager = m_renderer->GetShaderManager();
-    if (!shaderManager) { OutputDebugStringA("[GridMenu] shaderManager is NULL\n"); return; }
-
-    // Use the new queue-based render path
-    Render(m_spriteRenderer);
+    Render();
 }
 
-// New single queue-based render path (submits RenderCommand to ShaderManager)
-void GridMenu::Render(SpriteRenderer* spriteRenderer)
+// Queue-based render path
+void GridMenu::Render()
 {
-    if (!m_visible || !spriteRenderer || !m_renderer) {
-        return;
-    }
-
-    ShaderManager* shaderManager = m_renderer->GetShaderManager();
-    if (!shaderManager) {
+    if (!m_visible || !m_renderQueue) {
         return;
     }
 
@@ -396,7 +387,7 @@ void GridMenu::Render(SpriteRenderer* spriteRenderer)
     // 1. Background (menu_bd) - full menu area (depth=150, behind cells, UI layer)
     if (m_backgroundTexture) {
         OutputDebugStringA("[GridMenu::Render] Submitting background command to queue\n");
-        RenderCommand cmd;
+        Graphics::RenderCommand cmd = {};
         cmd.x = menuLeft;
         cmd.y = menuTop;
         cmd.width = m_menuWidth;
@@ -407,11 +398,11 @@ void GridMenu::Render(SpriteRenderer* spriteRenderer)
         cmd.shaderID = SHADER_UI;
         cmd.textureID = 0;
         cmd.blendMode = 1;
-        cmd.layer = 900;
+        cmd.layer = LAYER_UI;
         cmd.depth = 150;
-        cmd.sortKey = BuildSortKey(900, 1, SHADER_UI, 0, 150);
+        cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, 0, 150);
 
-        shaderManager->Submit(cmd);
+        m_renderQueue->Submit(cmd);
     } else {
         OutputDebugStringA("[GridMenu::Render] WARNING: Background texture is NULL, skipping background render\n");
     }
@@ -427,7 +418,7 @@ void GridMenu::Render(SpriteRenderer* spriteRenderer)
                 float cellX = menuLeft + 16.0f + (col * cellSpacing);
                 float cellY = menuTop + 32.0f + (row * cellSpacing);
 
-                RenderCommand cmd;
+                Graphics::RenderCommand cmd = {};
                 cmd.x = cellX;
                 cmd.y = cellY;
                 cmd.width = cellSpacing - 8.0f;
@@ -438,11 +429,11 @@ void GridMenu::Render(SpriteRenderer* spriteRenderer)
                 cmd.shaderID = SHADER_UI;
                 cmd.textureID = 0;
                 cmd.blendMode = 1;
-                cmd.layer = 900;
+                cmd.layer = LAYER_UI;
                 cmd.depth = 120;
-                cmd.sortKey = BuildSortKey(900, 1, SHADER_UI, 0, 120);
+                cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, 0, 120);
 
-                shaderManager->Submit(cmd);
+                m_renderQueue->Submit(cmd);
             }
         }
     } else {
@@ -460,7 +451,7 @@ void GridMenu::Render(SpriteRenderer* spriteRenderer)
             float cellX = menuLeft + 16.0f + (col * cellSpacing);
             float cellY = menuTop + 32.0f + (row * cellSpacing);
 
-            RenderCommand cmd;
+            Graphics::RenderCommand cmd = {};
             cmd.x = cellX;
             cmd.y = cellY;
             cmd.width = cellSpacing - 8.0f;
@@ -471,11 +462,11 @@ void GridMenu::Render(SpriteRenderer* spriteRenderer)
             cmd.shaderID = SHADER_UI;
             cmd.textureID = 0;
             cmd.blendMode = 1;
-            cmd.layer = 900;
+            cmd.layer = LAYER_UI;
             cmd.depth = 100;
-            cmd.sortKey = BuildSortKey(900, 1, SHADER_UI, 0, 100);
+            cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, 0, 100);
 
-            shaderManager->Submit(cmd);
+            m_renderQueue->Submit(cmd);
         }
     } else {
         if (!m_atlasTexture) {

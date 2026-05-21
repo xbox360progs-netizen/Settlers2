@@ -11,8 +11,11 @@ static void OutputDebugStringA(const char* msg) {
 
 BatchBuilder::BatchBuilder()
     : m_device(NULL)
+    , m_batchCount(0)
+    , m_vertexWritePos(0)
+    , m_indexWritePos(0)
     , m_vertexBuffer(NULL)
-    , m_maxVertices(65536)
+    , m_indexBuffer(NULL)
     , m_currentTexture(0xFFFF)
     , m_currentShader(0xFFFF)
     , m_currentBlend(0xFF)
@@ -27,7 +30,7 @@ void BatchBuilder::Initialize(LPDIRECT3DDEVICE9 device) {
     m_device = device;
 
     HRESULT hr = device->CreateVertexBuffer(
-        m_maxVertices * sizeof(SpriteVertex),
+        MAX_VERTICES * sizeof(SpriteVertex),
         D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY,
         0,
         D3DPOOL_DEFAULT,
@@ -38,8 +41,21 @@ void BatchBuilder::Initialize(LPDIRECT3DDEVICE9 device) {
         OutputDebugStringA("[BatchBuilder] ERROR: Failed to create vertex buffer\n");
     }
 
-    m_vertices.reserve(m_maxVertices);
-    OutputDebugStringA("[BatchBuilder] Initialized\n");
+    hr = device->CreateIndexBuffer(
+        MAX_VERTICES * sizeof(uint32_t),
+        D3DUSAGE_WRITEONLY,
+        D3DFMT_INDEX32,
+        D3DPOOL_DEFAULT,
+        &m_indexBuffer,
+        NULL);
+
+    if (FAILED(hr)) {
+        OutputDebugStringA("[BatchBuilder] WARNING: Failed to create index buffer, using vertex buffer only\n");
+    }
+
+    char buf[256];
+    sprintf(buf, "[BatchBuilder] Initialized: maxVertices=%d, maxBatches=%d\n", MAX_VERTICES, MAX_BATCHES);
+    OutputDebugStringA(buf);
 }
 
 void BatchBuilder::Shutdown() {
@@ -47,8 +63,13 @@ void BatchBuilder::Shutdown() {
         m_vertexBuffer->Release();
         m_vertexBuffer = NULL;
     }
-    m_batches.clear();
-    m_vertices.clear();
+    if (m_indexBuffer) {
+        m_indexBuffer->Release();
+        m_indexBuffer = NULL;
+    }
+    m_batchCount = 0;
+    m_vertexWritePos = 0;
+    m_indexWritePos = 0;
 }
 
 void BatchBuilder::BeginFrame() {
@@ -58,91 +79,116 @@ void BatchBuilder::BeginFrame() {
 void BatchBuilder::EndFrame() {
 }
 
-void BatchBuilder::BuildBatches(const std::vector<RenderCommand>& commands) {
-    if (commands.empty()) return;
+void BatchBuilder::BuildBatches(const RenderCommand* commands, uint32_t commandCount) {
+    if (commandCount == 0 || !commands) return;
 
-    RenderBatch currentBatch;
-    bool hasCurrentBatch = false;
+    m_batchCount = 0;
+    m_vertexWritePos = 0;
+    m_indexWritePos = 0;
 
-    for (size_t i = 0; i < commands.size(); i++) {
+    m_currentTexture = 0xFFFF;
+    m_currentShader = 0xFFFF;
+    m_currentBlend = 0xFF;
+
+    RenderBatch* currentBatch = NULL;
+
+    for (uint32_t i = 0; i < commandCount; i++) {
         const RenderCommand& cmd = commands[i];
 
-        bool needsNewBatch = !hasCurrentBatch
-            || cmd.textureID != m_currentTexture
-            || cmd.shaderID != m_currentShader
-            || cmd.blendMode != m_currentBlend;
+        bool needsNewBatch = (m_batchCount == 0)
+            || (cmd.textureID != m_currentTexture)
+            || (cmd.shaderID != m_currentShader)
+            || (cmd.blendMode != m_currentBlend);
 
         if (needsNewBatch) {
-            if (hasCurrentBatch) {
-                currentBatch.vertexCount = (DWORD)m_vertices.size() - currentBatch.vertexOffset;
+            if (m_batchCount >= MAX_BATCHES) {
+                OutputDebugStringA("[BatchBuilder] WARNING: Max batches exceeded\n");
+                break;
             }
 
-            currentBatch.textureID = cmd.textureID;
-            currentBatch.shaderID = cmd.shaderID;
-            currentBatch.blendMode = cmd.blendMode;
-            currentBatch.vertexOffset = (DWORD)m_vertices.size();
-            currentBatch.vertexCount = 0;
+            currentBatch = &m_batches[m_batchCount++];
+            currentBatch->textureID = cmd.textureID;
+            currentBatch->shaderID = cmd.shaderID;
+            currentBatch->blendMode = cmd.blendMode;
+            currentBatch->startIndex = m_indexWritePos;
+            currentBatch->indexCount = 0;
 
             m_currentTexture = cmd.textureID;
             m_currentShader = cmd.shaderID;
             m_currentBlend = cmd.blendMode;
-            hasCurrentBatch = true;
+        }
 
-            m_batches.push_back(currentBatch);
+        if (m_vertexWritePos + 4 > MAX_VERTICES) {
+            OutputDebugStringA("[BatchBuilder] WARNING: Max vertices exceeded\n");
+            break;
         }
 
         float hw = cmd.width * 0.5f;
         float hh = cmd.height * 0.5f;
 
-        SpriteVertex v[4];
+        SpriteVertex* dst = m_vertexPool + m_vertexWritePos;
+        uint32_t baseIdx = m_vertexWritePos;
 
-        v[0].x = cmd.x;          v[0].y = cmd.y;          v[0].z = 0.0f;
-        v[0].u = cmd.u0;         v[0].v = cmd.v0;
-        v[0].color = cmd.color;
-        v[0].padding[0] = 0; v[0].padding[1] = 0;
+        dst[0].x = cmd.x;                  dst[0].y = cmd.y;                  dst[0].z = 0.0f;
+        dst[0].u = cmd.u0;                 dst[0].v = cmd.v0;
+        dst[0].color = cmd.color;
+        dst[0].padding[0] = 0; dst[0].padding[1] = 0;
 
-        v[1].x = cmd.x + cmd.width; v[1].y = cmd.y;          v[1].z = 0.0f;
-        v[1].u = cmd.u1;         v[1].v = cmd.v0;
-        v[1].color = cmd.color;
-        v[1].padding[0] = 0; v[1].padding[1] = 0;
+        dst[1].x = cmd.x + cmd.width;      dst[1].y = cmd.y;                  dst[1].z = 0.0f;
+        dst[1].u = cmd.u1;                 dst[1].v = cmd.v0;
+        dst[1].color = cmd.color;
+        dst[1].padding[0] = 0; dst[1].padding[1] = 0;
 
-        v[2].x = cmd.x;          v[2].y = cmd.y + cmd.height; v[2].z = 0.0f;
-        v[2].u = cmd.u0;         v[2].v = cmd.v1;
-        v[2].color = cmd.color;
-        v[2].padding[0] = 0; v[2].padding[1] = 0;
+        dst[2].x = cmd.x;                  dst[2].y = cmd.y + cmd.height;     dst[2].z = 0.0f;
+        dst[2].u = cmd.u0;                 dst[2].v = cmd.v1;
+        dst[2].color = cmd.color;
+        dst[2].padding[0] = 0; dst[2].padding[1] = 0;
 
-        v[3].x = cmd.x + cmd.width; v[3].y = cmd.y + cmd.height; v[3].z = 0.0f;
-        v[3].u = cmd.u1;         v[3].v = cmd.v1;
-        v[3].color = cmd.color;
-        v[3].padding[0] = 0; v[3].padding[1] = 0;
+        dst[3].x = cmd.x + cmd.width;      dst[3].y = cmd.y + cmd.height;     dst[3].z = 0.0f;
+        dst[3].u = cmd.u1;                 dst[3].v = cmd.v1;
+        dst[3].color = cmd.color;
+        dst[3].padding[0] = 0; dst[3].padding[1] = 0;
 
-        m_vertices.push_back(v[0]);
-        m_vertices.push_back(v[1]);
-        m_vertices.push_back(v[2]);
-        m_vertices.push_back(v[3]);
-    }
+        uint32_t* idx = m_indexPool + m_indexWritePos;
+        idx[0] = baseIdx + 0;
+        idx[1] = baseIdx + 1;
+        idx[2] = baseIdx + 2;
+        idx[3] = baseIdx + 2;
+        idx[4] = baseIdx + 1;
+        idx[5] = baseIdx + 3;
 
-    if (hasCurrentBatch) {
-        m_batches.back().vertexCount = (DWORD)m_vertices.size() - m_batches.back().vertexOffset;
+        m_vertexWritePos += 4;
+        m_indexWritePos += 6;
+
+        currentBatch->indexCount += 6;
     }
 
     FlushVertexStream();
 }
 
 void BatchBuilder::FlushVertexStream() {
-    if (m_vertices.empty() || !m_vertexBuffer) return;
+    if (m_vertexWritePos == 0 || !m_vertexBuffer) return;
 
     void* pData = NULL;
-    HRESULT hr = m_vertexBuffer->Lock(0, m_vertices.size() * sizeof(SpriteVertex), &pData, D3DLOCK_DISCARD);
+    HRESULT hr = m_vertexBuffer->Lock(0, m_vertexWritePos * sizeof(SpriteVertex), &pData, D3DLOCK_DISCARD);
     if (SUCCEEDED(hr) && pData) {
-        memcpy(pData, m_vertices.data(), m_vertices.size() * sizeof(SpriteVertex));
+        memcpy(pData, m_vertexPool, m_vertexWritePos * sizeof(SpriteVertex));
         m_vertexBuffer->Unlock();
+    }
+
+    if (m_indexWritePos > 0 && m_indexBuffer) {
+        hr = m_indexBuffer->Lock(0, m_indexWritePos * sizeof(uint32_t), &pData, D3DLOCK_DISCARD);
+        if (SUCCEEDED(hr) && pData) {
+            memcpy(pData, m_indexPool, m_indexWritePos * sizeof(uint32_t));
+            m_indexBuffer->Unlock();
+        }
     }
 }
 
 void BatchBuilder::Clear() {
-    m_batches.clear();
-    m_vertices.clear();
+    m_batchCount = 0;
+    m_vertexWritePos = 0;
+    m_indexWritePos = 0;
     m_currentTexture = 0xFFFF;
     m_currentShader = 0xFFFF;
     m_currentBlend = 0xFF;

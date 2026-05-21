@@ -158,14 +158,19 @@ bool GameEngine::Initialize()
 		OutputDebugStringA("[GameEngine::Initialize] Warning: Failed to load bitmap font file\n");
 	}
 
-    // CRITICAL: Set SpriteRenderer on Renderer BEFORE creating TextManager
-    m_renderer->SetSpriteRenderer(m_spriteRenderer);
-    OutputDebugStringA("[GameEngine::Initialize] Set SpriteRenderer on Renderer\n");
+    m_sceneManager = new Scene::SceneManager();
 
-    m_textManager = new TextManager(m_bitmapFont, 1280.0f, 720.0f, m_renderer->GetSpriteRenderer());
-    m_textManager->Init(m_renderer, m_renderer->GetShaderManager());
+    m_sceneManager->SetShaderManager(m_renderer->GetShaderManager());
+    m_sceneManager->SetSpriteRenderer(m_spriteRenderer);
+    m_sceneManager->SetRenderer(m_renderer);
+    m_sceneManager->SetRenderFrame(m_renderer->GetRenderFrame());
+
+    Graphics::RenderQueue* renderQueue = new Graphics::RenderQueue();
+    renderQueue->Initialize(m_renderer->GetDevice());
+    m_sceneManager->SetRenderQueue(renderQueue);
+
+    m_textManager = new TextManager(m_bitmapFont, 1280.0f, 720.0f, renderQueue);
     
-    // XBOX 360 CRITICAL: Load font texture into TextManager
     if (m_bitmapFont->GetTexture()) {
         m_textManager->SetFontAtlas(FONT_MENU, m_bitmapFont->GetTexture());
         OutputDebugStringA("[GameEngine::Initialize] Font texture loaded into TextManager\n");
@@ -325,8 +330,10 @@ void GameEngine::Render()
 
     RenderFrame* renderFrame = m_renderer->GetRenderFrame();
     if (renderFrame) {
-        m_sceneManager->SubmitRenderCommands();
+        renderFrame->BeginFrame();
+        m_sceneManager->Render();
         renderFrame->Execute();
+        renderFrame->EndFrame();
     } else {
         m_sceneManager->Render();
     }
@@ -367,20 +374,17 @@ void GameEngine::Run()
         }
 
         ProcessSceneRequests();
-if (m_sceneManager && m_sceneManager->IsSceneReady()) {
-            // CRITICAL FIX: Reset the frame rendered flag to allow SceneManager::Render() to execute
+        if (m_sceneManager && m_sceneManager->IsSceneReady()) {
             m_sceneManager->ResetFrameRendered();
             
-            if (m_renderer) {
-                m_renderer->BeginFrame();
-            }
-
-            if (m_sceneManager) {
+            RenderFrame* renderFrame = m_renderer->GetRenderFrame();
+            if (renderFrame) {
+                renderFrame->BeginFrame();
                 m_sceneManager->Render();
-            }
-            
-            if (m_renderer) {
-                m_renderer->EndFrame(); 
+                renderFrame->Execute();
+                renderFrame->EndFrame();
+            } else {
+                m_sceneManager->Render();
             }
         }
         
@@ -401,16 +405,6 @@ if (m_sceneManager && m_sceneManager->IsSceneReady()) {
     }
 
 std::cout << "[GameEngine] Exiting main loop" << std::endl;
-
-    if (m_renderer) {
-        ShaderManager* sm = m_renderer->GetShaderManager();
-        if (sm) {
-            for (int i = 0; i < ShaderManager::MAX_GLOBAL_COMMANDS; ++i) {
-                InterlockedExchange(&sm->m_commandQueue[i].status, 0);
-            }
-            OutputDebugStringA("[GameEngine] Lock-free queue statuses reset\n");
-        }
-    }
 
     if (m_renderer) {
         m_renderer->Shutdown();

@@ -2,12 +2,14 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include "../Graphics/SpriteRenderer.h"
 
 class Camera;
 class SpriteAtlas;
-class SpriteRenderer;
 class Renderer;
 namespace Input { class Gamepad; }
+
+using Graphics::SpriteRenderer;
 
 class GridMenu
 {
@@ -35,6 +37,7 @@ private:
     LPDIRECT3DTEXTURE9 m_backgroundTexture;
     SpriteRenderer* m_spriteRenderer;
     Renderer* m_renderer;
+    Graphics::RenderQueue* m_renderQueue;
     LPDIRECT3DTEXTURE9 m_cellBackgroundTexture;
 
     std::vector<int> m_spriteIndices;
@@ -84,8 +87,9 @@ public:
     void SetSpriteIndices(const std::vector<int>& spriteIndices);
     void SetTileUVs(const std::vector<TileUV>& tileUVs);
     void SetIconAtlas(std::shared_ptr<SpriteAtlas> atlas);
-    void SetSpriteRenderer(class SpriteRenderer* spriteRenderer);
+    void SetSpriteRenderer(SpriteRenderer* spriteRenderer);
     void SetRenderer(class Renderer* renderer);
+    void SetRenderQueue(Graphics::RenderQueue* renderQueue) { m_renderQueue = renderQueue; }
     // New convenience: set all textures in one call (background, cell background, atlas)
     void SetTextures(LPDIRECT3DTEXTURE9 backgroundTexture, LPDIRECT3DTEXTURE9 cellBackgroundTexture, LPDIRECT3DTEXTURE9 atlasTexture);
     // New paging controls for atlas window
@@ -93,8 +97,7 @@ public:
 
     void Update(Input::Gamepad* input, float deltaTime);
     void Render(const Camera* camera);
-    // New render path using SpriteRenderer directly
-    void Render(class SpriteRenderer* spriteRenderer);
+    void Render();
     
     bool HasSelection() const { return m_selectionMade; }
     int GetSelectedSpriteIndex() const {

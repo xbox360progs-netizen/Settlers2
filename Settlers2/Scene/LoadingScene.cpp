@@ -467,7 +467,7 @@ void LoadingScene::Render(RenderQueue* renderQueue)
 
 	// Background
 	if (m_backgroundTexture.GetTexture()) {
-		Graphics::SpriteCommand bgCmd;
+		Graphics::RenderCommand bgCmd = {};
 		bgCmd.shaderID = SHADER_SPRITE;
 		bgCmd.x = 0.0f;
 		bgCmd.y = 0.0f;
@@ -477,7 +477,7 @@ void LoadingScene::Render(RenderQueue* renderQueue)
 		bgCmd.u1 = 1.0f; bgCmd.v1 = 1.0f;
 		bgCmd.color = 0xFFFFFFFF;
 		bgCmd.depth = 950;
-		bgCmd.layer = 900;
+		bgCmd.layer = LAYER_UI;
 		bgCmd.textureID = 0;
 		renderQueue->Submit(bgCmd);
 	}
@@ -490,7 +490,7 @@ void LoadingScene::Render(RenderQueue* renderQueue)
 		float barY = m_screenH - 80.0f;
 		float fillWidth = barWidth * m_currentRenderProgress;
 
-		Graphics::SpriteCommand barCmd;
+		Graphics::RenderCommand barCmd = {};
 		barCmd.shaderID = SHADER_SPRITE;
 		barCmd.x = barX;
 		barCmd.y = barY;
@@ -502,7 +502,7 @@ void LoadingScene::Render(RenderQueue* renderQueue)
 		barCmd.v1 = 1.0f;
 		barCmd.color = 0xFFFFFFFF;
 		barCmd.depth = 0;
-		barCmd.layer = 900;
+		barCmd.layer = LAYER_UI;
 		barCmd.textureID = 0;
 		renderQueue->Submit(barCmd);
 	}

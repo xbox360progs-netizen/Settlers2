@@ -1,19 +1,29 @@
 #pragma once
 #include <d3d9.h>
 #include <d3dx9.h>
-#include <vector>
 #include "RenderTypes.h"
 #include "BatchBuilder.h"
 
-class ShaderManager;
+namespace Graphics { class ShaderManager; }
+
+namespace Graphics {
 
 struct RenderStateCache {
     WORD currentTexture;
     WORD currentShader;
     BYTE currentBlend;
 
+    DWORD alphaBlendEnable;
+    DWORD srcBlend;
+    DWORD destBlend;
+    DWORD zEnable;
+    DWORD zWriteEnable;
+    DWORD cullMode;
+
     RenderStateCache()
-        : currentTexture(0xFFFF), currentShader(0xFFFF), currentBlend(0xFF) {}
+        : currentTexture(0xFFFF), currentShader(0xFFFF), currentBlend(0xFF),
+          alphaBlendEnable(0xFFFFFFFF), srcBlend(0xFFFFFFFF), destBlend(0xFFFFFFFF),
+          zEnable(0xFFFFFFFF), zWriteEnable(0xFFFFFFFF), cullMode(0xFFFFFFFF) {}
 
     bool TextureChanged(WORD tex) const { return currentTexture != tex; }
     bool ShaderChanged(WORD sh) const { return currentShader != sh; }
@@ -73,3 +83,5 @@ private:
     int m_shaderSwitches;
     int m_stateChanges;
 };
+
+}

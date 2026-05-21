@@ -13,6 +13,8 @@
 #include "../Graphics/RenderQueue.h"
 #include "../Graphics/ShaderManager.h"
 
+using Graphics::SpriteRenderer;
+
 // Menu constants
 static const int MAX_MENU_ITEMS = 4;
 static const float MENU_START_X = 80.0f;
@@ -30,7 +32,7 @@ public:
   virtual void Load();
   virtual void Unload();
   virtual void Update(float deltaTime);
-  virtual void Render(class RenderQueue* renderQueue) override;
+  virtual void Render(Graphics::RenderQueue* renderQueue) override;
   virtual void OnEnter();
   virtual void OnExit();
 

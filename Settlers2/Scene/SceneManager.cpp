@@ -202,132 +202,24 @@ void SceneManager::Update(float deltaTime)
 
 void SceneManager::Render()
 {
-    // Prevent duplicate rendering in the same frame
     if (m_frameRendered) {
-        return; // Already rendered in this frame
+        return;
     }
     m_frameRendered = true;
 
-    if (!m_currentScene)
-    {
+    if (!m_currentScene || !m_isSceneReady || !m_bSceneGraphicsReady) {
         return;
     }
 
-    // Check if scene is ready for rendering (prevents race conditions during initialization)
-    if (!m_isSceneReady || !m_bSceneGraphicsReady)
-    {
-        OutputDebugStringA("[SceneManager::Render] Scene not ready yet, skipping render\n");
-        return;
+    if (m_renderQueue) {
+        m_renderQueue->BeginFrame();
     }
 
-    // === MASTER LOOP RENDERING PIPELINE ===
-    
-    // Step 0: Begin frame and clear screen (CRITICAL!)
-    // Note: BeginFrame/EndFrame will be called by GameEngine, not here
-    // SceneManager only handles scene rendering and command execution
-    
-    // Step 1: CLEAR - Clear command queue at start of frame
-    if (m_shaderManager)
-    {
-        m_shaderManager->ClearQueue();
-    }
-
-    // Step 1.5: BEGIN FRAME - Reset offsets and enable accumulation
-    OutputDebugStringA("[SM::Render] About to call BeginFrame()...\n");
-    if (m_spriteRenderer)
-    {
-        m_spriteRenderer->BeginFrame();
-        OutputDebugStringA("[SM::Render] BeginFrame() returned\n");
-    }
-    else
-    {
-        OutputDebugStringA("[SM::Render] ERROR: m_spriteRenderer is NULL!\n");
-    }
-
-    // Step 2: RECORD - Collect all render commands from scene
-    // The scene will call SpriteRenderer which submits commands to the queue
-    // Nobody draws anything at this stage!
-
-    char dbg[512];
-sprintf(dbg, "[SM::Render] ENTRY - m_currentScene=0x%08X\n", m_currentScene);
-    OutputDebugStringA(dbg);
-    
-    // THREAD SAFETY: Lock BEFORE accessing m_currentScene
     EnterCriticalSection(&m_cs);
-    
-    sprintf(dbg, "[SM::Render] AFTER LOCK\n");
-    OutputDebugStringA(dbg);
-    
-    // GUARD: If pointer is null
-    if (m_currentScene == nullptr) {
-        OutputDebugStringA("[SM::Render] ERROR: m_currentScene is NULL!\n");
-        LeaveCriticalSection(&m_cs);
-        return;
+    if (m_currentScene) {
+        m_currentScene->Render(m_renderQueue);
     }
-    
-    // Dump vtable
-    void** vtable = *(void***)m_currentScene;
-    sprintf(dbg, "[SM::Render] Vtable=0x%08X\n", vtable);
-    OutputDebugStringA(dbg);
-    
-    if (vtable == nullptr) {
-        OutputDebugStringA("[FATAL] Scene Vtable is NULL!\n");
-        LeaveCriticalSection(&m_cs);
-        return;
-    }
-    
-    m_currentScene->Render(m_renderQueue);
     LeaveCriticalSection(&m_cs);
-
-    // Step 2.5: FINALIZE - Seal the batch, disable Submit(), freeze offsets
-    if (m_spriteRenderer)
-    {
-        m_spriteRenderer->FinalizeFrameCommands();
-    }
-
-    // Step 3: SORT
-    OutputDebugStringA("[SceneManager::Render] Calling SortQueue()...\n");
-    if (m_shaderManager)
-    {
-        m_shaderManager->SortQueue();
-    }
-    OutputDebugStringA("[SceneManager::Render] SortQueue() returned\n");
-
-    // Step 4: EXECUTE - Render sorted/batched commands
-    if (!hasCustomPipeline)
-    {
-        OutputDebugStringA("[SceneManager::Render] About to Execute Queue...\n");
-        if (m_shaderManager && m_spriteRenderer)
-        {
-            LPDIRECT3DVERTEXBUFFER9 pVB = m_spriteRenderer->GetVertexBuffer();
-            LPDIRECT3DINDEXBUFFER9 pIB = m_spriteRenderer->GetIndexBuffer();
-            LPDIRECT3DVERTEXDECLARATION9 pDecl = m_spriteRenderer->GetVertexDeclaration();
-            if (pVB && pIB && pDecl)
-            {
-                const D3DXMATRIX& viewProj = m_shaderManager->GetFrameViewProj();
-
-                OutputDebugStringA("[SM::Render] Calling ExecuteQueue...\n");
-                m_shaderManager->ExecuteQueue(pVB, pIB, pDecl, 32, &viewProj, m_spriteRenderer);
-                OutputDebugStringA("[SM::Render] ExecuteQueue RETURNED!\n");
-            }
-            else
-            {
-                OutputDebugStringA("[SceneManager::Render] ERROR: NULL buffers!\n");
-            }
-        }
-    }
-    else
-    {
-        OutputDebugStringA("[SM::Render] Skipping ExecuteQueue - custom pipeline handles it\n");
-    }
-
-    // Step 5: RESET - Reset batch state after ExecuteQueue() is complete
-    if (m_spriteRenderer)
-    {
-        m_spriteRenderer->ResetBatchState();
-    }
-
-    OutputDebugStringA("[SM::Render] ALL DONE - exiting Render()\n");
 }
 
 void SceneManager::Clear()
@@ -391,27 +283,5 @@ void SceneManager::InitializeAsyncCommandBuffer(LPDIRECT3DDEVICE9 pDevice)
     OutputDebugStringA("[SceneManager] Async command buffer call created successfully\n");
 }
 #endif
-
-void SceneManager::SubmitRenderCommands() {
-    if (!m_currentScene || !m_isSceneReady || !m_bSceneGraphicsReady) {
-        return;
-    }
-
-    if (m_spriteRenderer) {
-        m_spriteRenderer->BeginFrame();
-    }
-
-    EnterCriticalSection(&m_cs);
-    if (m_currentScene) {
-        m_currentScene->Render(m_renderQueue);
-    }
-    LeaveCriticalSection(&m_cs);
-
-    if (m_spriteRenderer) {
-        m_spriteRenderer->FinalizeFrameCommands();
-    }
-
-    OutputDebugStringA("[SceneManager] SubmitRenderCommands() done\n");
-}
 
 } // namespace Scene

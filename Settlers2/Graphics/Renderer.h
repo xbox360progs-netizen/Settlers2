@@ -9,7 +9,9 @@
 static_assert(sizeof(SpriteVertex) == 32, "SpriteVertex must be 32 bytes");
 
 class Texture;
-class SpriteRenderer;
+namespace Graphics { class ShaderManager; }
+using Graphics::ShaderManager;
+using Graphics::SpriteRenderer;
 using Graphics::RenderFrame;
 using Graphics::GPUTimer;
 
@@ -48,10 +50,6 @@ public:
 
     void PrepareForUI();
     void Setup2DRenderStates();
-
-    void DrawSingleSprite(Texture* texture, float x, float y, float width, float height, D3DCOLOR color = 0xFFFFFFFF);
-    void DrawSingleSprite(Texture* texture, float x, float y, float width, float height,
-                          float u0, float v0, float u1, float v1, D3DCOLOR color = 0xFFFFFFFF);
 
 private:
     void SetProjectionMatrix(float width, float height);

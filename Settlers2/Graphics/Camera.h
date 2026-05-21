@@ -2,7 +2,8 @@
 #pragma once
 #include <d3dx9.h>
 
-class ShaderManager;
+namespace Graphics { class ShaderManager; }
+using Graphics::ShaderManager;
 
 class Camera
 {

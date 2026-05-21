@@ -2,6 +2,7 @@
 #include "RadialMenu.h"
 #include "../Graphics/Quad.h"
 #include "../Graphics/TextureRegistry.h"
+#include "../Graphics/RenderLayers.h"
 #include <map>
 
 namespace
@@ -314,7 +315,7 @@ void RadialMenu::RenderIcons(Graphics::RenderQueue* renderQueue)
         const float drawX = centerX - (region->width * 0.5f);
         const float drawY = centerY - (region->height * 0.5f);
 
-        Graphics::SpriteCommand cmd;
+        Graphics::RenderCommand cmd = {};
         cmd.shaderID = SHADER_UI;
         cmd.x = drawX;
         cmd.y = drawY;
@@ -326,7 +327,7 @@ void RadialMenu::RenderIcons(Graphics::RenderQueue* renderQueue)
         cmd.v1 = region->v1;
         cmd.color = 0xFFFFFFFF;
         cmd.depth = 100;
-        cmd.layer = 900;
+        cmd.layer = LAYER_UI;
         cmd.blendMode = 1;
         cmd.textureID = 0;
         renderQueue->Submit(cmd);
@@ -342,7 +343,7 @@ void RadialMenu::RenderIcons(Graphics::RenderQueue* renderQueue)
                 const float centerDrawX = m_screenX - (centerRegion->width * 0.5f);
                 const float centerDrawY = m_screenY - (centerRegion->height * 0.5f);
 
-                Graphics::SpriteCommand cmd;
+                Graphics::RenderCommand cmd = {};
                 cmd.shaderID = SHADER_UI;
                 cmd.x = centerDrawX;
                 cmd.y = centerDrawY;
@@ -354,7 +355,7 @@ void RadialMenu::RenderIcons(Graphics::RenderQueue* renderQueue)
                 cmd.v1 = centerRegion->v1;
                 cmd.color = 0xFFF6EBDD;
                 cmd.depth = 50;
-                cmd.layer = 900;
+                cmd.layer = LAYER_UI;
                 cmd.blendMode = 1;
                 cmd.textureID = 0;
                 renderQueue->Submit(cmd);

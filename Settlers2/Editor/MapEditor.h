@@ -13,6 +13,8 @@
 #include <vector>
 #include "../Graphics/Camera.h"
 
+using Graphics::SpriteRenderer;
+
 class Renderer;
 
 namespace Editor {
@@ -53,6 +55,7 @@ public:
     void SetLayer(World::LayerType layer) { m_currentLayer = layer; m_placingTile = false; }
     void SetSpriteRenderer(SpriteRenderer* sr) { m_spriteRenderer = sr; }
     void SetCamera(Camera* pCamera) { m_pCamera = pCamera; }
+    void SetRenderQueue(Graphics::RenderQueue* rq) { m_renderQueue = rq; }
     void SetObjectAtlas(const char* name);
     World::LayerType GetLayer() const { return m_currentLayer; }
 
@@ -101,6 +104,7 @@ World::Map* m_map;
     Logic::WeightMap* m_weightMap;
     SpriteRenderer* m_spriteRenderer;
     Camera* m_pCamera;
+    Graphics::RenderQueue* m_renderQueue;
 
     UI::TilePalette* m_tilePalette;
     UI::Panel* m_toolbarPanel;

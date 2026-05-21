@@ -1,11 +1,13 @@
 #pragma once
 
 #include "../World/ResourceNode.h"
+#include "../Graphics/SpriteRenderer.h"
 #include <d3dx9math.h>
 
 class Texture;
-class SpriteRenderer;
 class TextManager;
+
+using Graphics::SpriteRenderer;
 
 namespace UI {
 

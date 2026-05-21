@@ -12,7 +12,8 @@
 
 // Forward declarations
 class Renderer;
-class ShaderManager;
+namespace Graphics { class ShaderManager; }
+using Graphics::ShaderManager;
 
 // ==========================================================
 // Structure for font character data

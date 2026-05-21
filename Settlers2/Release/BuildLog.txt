@@ -1,237 +1,207 @@
-﻿Построение начато 21.05.2026 8:20:26.
+﻿Построение начато 21.05.2026 14:04:26.
      1>Проект "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" в узле 2 (целевые объекты build).
      1>InitializeBuildStatus:
          Обращение к "Release\Settlers2.unsuccessfulbuild".
        ClCompile:
          Для всех выходных данных обновления не требуется.
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Core\GameEngine.cpp Graphics\DebugOverlay.cpp Graphics\GPUDebug.cpp Graphics\Passes.cpp Graphics\RenderFrame.cpp Graphics\Renderer.cpp Graphics\Debug\DebugOverlay.cpp Graphics\RenderStateValidator.cpp Graphics\ShaderManager.cpp Graphics\SpriteRenderer.cpp Graphics\SpriteShadow.cpp Graphics\TextManager.cpp Scene\EditorScene.cpp Scene\LoadingScene.cpp Scene\MenuScene.cpp Scene\SceneManager.cpp UI\GridMenu.cpp UI\RadialMenu.cpp UI\WeightMenu.cpp World\Systems\RenderSystem.cpp Editor\MapEditor.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Core\GameEngine.cpp Graphics\DebugOverlay.cpp Graphics\GPUDebug.cpp Graphics\Passes.cpp Graphics\Debug\DebugOverlay.cpp Graphics\RenderQueue.cpp Graphics\RenderStateValidator.cpp Graphics\ShaderManager.cpp Scene\EditorScene.cpp Scene\GameScene.cpp Scene\LoadingScene.cpp Scene\MenuScene.cpp Scene\Scene.cpp Scene\SceneManager.cpp UI\GridMenu.cpp UI\RadialMenu.cpp World\Systems\RenderSystem.cpp Editor\MapEditor.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
          GameEngine.cpp
-     1>d:\development\settlers2\settlers2\core\../Graphics/SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
-     1>Core\GameEngine.cpp(195): error C2664: 'Scene::SceneManager::SetRenderQueue' : cannot convert parameter 1 from 'Graphics::RenderQueue *' to 'RenderQueue *'
-                 Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or function-style cast
+     1>d:\development\settlers2\settlers2\core\../Scene/SceneManager.h(60): error C2061: syntax error : identifier 'RenderQueue'
+     1>d:\development\settlers2\settlers2\core\../Scene/SceneManager.h(61): error C2143: syntax error : missing ';' before '*'
+     1>d:\development\settlers2\settlers2\core\../Scene/SceneManager.h(61): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+     1>d:\development\settlers2\settlers2\core\../Scene/SceneManager.h(61): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+     1>d:\development\settlers2\settlers2\core\../Scene/SceneManager.h(61): warning C4183: 'GetRenderQueue': missing return type; assumed to be a member function returning 'int'
+     1>d:\development\settlers2\settlers2\core\../Scene/SceneManager.h(94): error C2143: syntax error : missing ';' before '*'
+     1>d:\development\settlers2\settlers2\core\../Scene/SceneManager.h(94): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+     1>d:\development\settlers2\settlers2\core\../Scene/SceneManager.h(94): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+     1>d:\development\settlers2\settlers2\core\../Scene/SceneManager.h(60): error C2065: 'm_renderQueue' : undeclared identifier
+     1>d:\development\settlers2\settlers2\core\../Scene/SceneManager.h(60): error C2065: 'queue' : undeclared identifier
+     1>d:\development\settlers2\settlers2\core\../Scene/SceneManager.h(61): error C2065: 'm_renderQueue' : undeclared identifier
+     1>Core\GameEngine.cpp(169): error C2039: 'Initialize' : is not a member of 'Graphics::RenderQueue'
+                 d:\development\settlers2\settlers2\core\../Graphics/RenderQueue.h(7) : see declaration of 'Graphics::RenderQueue'
+     1>Core\GameEngine.cpp(170): error C2660: 'Scene::SceneManager::SetRenderQueue' : function does not take 1 arguments
+     1>Core\GameEngine.cpp(198): error C2374: 'renderQueue' : redefinition; multiple initialization
+                 Core\GameEngine.cpp(168) : see declaration of 'renderQueue'
+     1>Core\GameEngine.cpp(199): error C2039: 'Initialize' : is not a member of 'Graphics::RenderQueue'
+                 d:\development\settlers2\settlers2\core\../Graphics/RenderQueue.h(7) : see declaration of 'Graphics::RenderQueue'
          DebugOverlay.cpp
      1>Graphics\DebugOverlay.cpp(99): error C2078: too many initializers
          GPUDebug.cpp
      1>c1xx : fatal error C1083: Cannot open source file: 'Graphics\GPUDebug.cpp': No such file or directory
          Passes.cpp
      1>c1xx : fatal error C1083: Cannot open source file: 'Graphics\Passes.cpp': No such file or directory
-         RenderFrame.cpp
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
-     1>Graphics\RenderFrame.cpp(61): error C2027: use of undefined type 'Graphics::SpriteRenderer'
-                 d:\development\settlers2\settlers2\graphics\RenderFrame.h(8) : see declaration of 'Graphics::SpriteRenderer'
-     1>Graphics\RenderFrame.cpp(61): error C2227: left of '->Execute' must point to class/struct/union/generic type
-     1>Graphics\RenderFrame.cpp(67): error C2039: 'Render' : is not a member of 'Graphics::RenderDebugOverlay'
-                 d:\development\settlers2\settlers2\graphics\RenderDebugOverlay.h(50) : see declaration of 'Graphics::RenderDebugOverlay'
-         Renderer.cpp
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
-     1>Graphics\Renderer.cpp(90): error C2664: 'Graphics::RenderFrame::SetSpriteRenderer' : cannot convert parameter 1 from 'SpriteRenderer *' to 'Graphics::SpriteRenderer *'
-                 Types pointed to are unrelated; conversion requires reinterpret_cast, C-style cast or function-style cast
          DebugOverlay.cpp
      1>d:\development\settlers2\settlers2\graphics\debug\DebugOverlay.h(6): fatal error C1083: Cannot open include file: 'GPUTimer.h': No such file or directory
+         RenderQueue.cpp
+     1>Graphics\RenderQueue.cpp(33): error C2084: function 'int Graphics::RenderQueue::GetCommandCount(void) const' already has a body
+                 d:\development\settlers2\settlers2\graphics\RenderQueue.h(22) : see previous definition of 'GetCommandCount'
          RenderStateValidator.cpp
      1>Graphics\RenderStateValidator.cpp(3): fatal error C1083: Cannot open include file: 'GPUDebug.h': No such file or directory
          ShaderManager.cpp
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
-         SpriteRenderer.cpp
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
-     1>Graphics\SpriteRenderer.cpp(39): error C2065: 'D3DUSAGE_DYNAMIC' : undeclared identifier
-     1>Graphics\SpriteRenderer.cpp(113): error C2143: syntax error : missing ',' before '*'
-     1>Graphics\SpriteRenderer.cpp(114): error C2065: 'batchCount' : undeclared identifier
-     1>Graphics\SpriteRenderer.cpp(114): error C2065: 'batches' : undeclared identifier
-     1>Graphics\SpriteRenderer.cpp(120): error C2065: 'batchCount' : undeclared identifier
-     1>Graphics\SpriteRenderer.cpp(121): error C2143: syntax error : missing ';' before '&'
-     1>Graphics\SpriteRenderer.cpp(121): error C2065: 'batch' : undeclared identifier
-     1>Graphics\SpriteRenderer.cpp(121): error C2065: 'batches' : undeclared identifier
-     1>Graphics\SpriteRenderer.cpp(123): error C2065: 'batch' : undeclared identifier
-     1>Graphics\SpriteRenderer.cpp(123): error C2228: left of '.blendMode' must have class/struct/union
-                 type is ''unknown-type''
-     1>Graphics\SpriteRenderer.cpp(124): error C2065: 'batch' : undeclared identifier
-     1>Graphics\SpriteRenderer.cpp(124): error C2228: left of '.blendMode' must have class/struct/union
-                 type is ''unknown-type''
-     1>Graphics\SpriteRenderer.cpp(131): error C2065: 'batch' : undeclared identifier
-     1>Graphics\SpriteRenderer.cpp(131): error C2228: left of '.blendMode' must have class/struct/union
-                 type is ''unknown-type''
-     1>Graphics\SpriteRenderer.cpp(135): error C2065: 'batch' : undeclared identifier
-     1>Graphics\SpriteRenderer.cpp(135): error C2228: left of '.shaderID' must have class/struct/union
-                 type is ''unknown-type''
-     1>Graphics\SpriteRenderer.cpp(136): error C2065: 'batch' : undeclared identifier
-     1>Graphics\SpriteRenderer.cpp(136): error C2228: left of '.shaderID' must have class/struct/union
-                 type is ''unknown-type''
-     1>Graphics\SpriteRenderer.cpp(137): error C2065: 'batch' : undeclared identifier
-     1>Graphics\SpriteRenderer.cpp(137): error C2228: left of '.shaderID' must have class/struct/union
-                 type is ''unknown-type''
-     1>Graphics\SpriteRenderer.cpp(141): error C2065: 'batch' : undeclared identifier
-     1>Graphics\SpriteRenderer.cpp(141): error C2228: left of '.textureID' must have class/struct/union
-                 type is ''unknown-type''
-     1>Graphics\SpriteRenderer.cpp(142): error C2065: 'batch' : undeclared identifier
-     1>Graphics\SpriteRenderer.cpp(142): error C2228: left of '.textureID' must have class/struct/union
-                 type is ''unknown-type''
-     1>Graphics\SpriteRenderer.cpp(143): error C2065: 'batch' : undeclared identifier
-     1>Graphics\SpriteRenderer.cpp(143): error C2228: left of '.textureID' must have class/struct/union
-                 type is ''unknown-type''
-     1>Graphics\SpriteRenderer.cpp(147): error C2065: 'batch' : undeclared identifier
-     1>Graphics\SpriteRenderer.cpp(147): error C2228: left of '.vertexCount' must have class/struct/union
-                 type is ''unknown-type''
-     1>Graphics\SpriteRenderer.cpp(148): error C2065: 'batch' : undeclared identifier
-     1>Graphics\SpriteRenderer.cpp(148): error C2228: left of '.vertexOffset' must have class/struct/union
-                 type is ''unknown-type''
-     1>Graphics\SpriteRenderer.cpp(153): error C2065: 'batch' : undeclared identifier
-     1>Graphics\SpriteRenderer.cpp(153): error C2228: left of '.vertexOffset' must have class/struct/union
-                 type is ''unknown-type''
-     1>Graphics\SpriteRenderer.cpp(154): error C2065: 'batch' : undeclared identifier
-     1>Graphics\SpriteRenderer.cpp(154): error C2228: left of '.vertexCount' must have class/struct/union
-                 type is ''unknown-type''
-         SpriteShadow.cpp
-         TextManager.cpp
-     1>d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
-     1>Graphics\TextManager.cpp(201): error C2039: 'DrawWithTexture' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Graphics\TextManager.cpp(211): error C2039: 'DrawWithTexture' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Graphics\TextManager.cpp(261): error C2039: 'Begin' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Graphics\TextManager.cpp(283): error C2039: 'End' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Graphics\TextManager.cpp(384): error C2039: 'GetTotalVertexCount' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Graphics\TextManager.cpp(397): error C2039: 'IncrementTotalVertexCount' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\graphics\SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
+     1>Graphics\ShaderManager.cpp(137): error C2143: syntax error : missing ';' before '*'
+     1>Graphics\ShaderManager.cpp(137): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+     1>Graphics\ShaderManager.cpp(137): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+     1>Graphics\ShaderManager.cpp(137): error C2556: 'int *Graphics::ShaderManager::GetShader(ShaderID)' : overloaded function differs only by return type from 'Graphics::ShaderManager::Shader *Graphics::ShaderManager::GetShader(ShaderID)'
+                 d:\development\settlers2\settlers2\Graphics/ShaderManager.h(48) : see declaration of 'Graphics::ShaderManager::GetShader'
+     1>Graphics\ShaderManager.cpp(137): error C2371: 'Graphics::ShaderManager::GetShader' : redefinition; different basic types
+                 d:\development\settlers2\settlers2\Graphics/ShaderManager.h(48) : see declaration of 'Graphics::ShaderManager::GetShader'
+     1>Graphics\ShaderManager.cpp(189): error C2664: 'ID3DXEffect::SetTexture' : cannot convert parameter 1 from 'const char *' to 'D3DXHANDLE'
+                 There is no context in which this conversion is possible
          EditorScene.cpp
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
-     1>c1xx : fatal error C1903: unable to recover from previous error(s); stopping compilation
+     1>Scene\EditorScene.cpp(540): error C2065: 'RenderQueue' : undeclared identifier
+     1>Scene\EditorScene.cpp(540): error C2065: 'renderQueue' : undeclared identifier
+     1>Scene\EditorScene.cpp(540): error C2448: 'Scene::EditorScene::Render' : function-style initializer appears to be a function definition
+         GameScene.cpp
+     1>Scene\GameScene.cpp(31): error C2065: 'RenderQueue' : undeclared identifier
+     1>Scene\GameScene.cpp(31): error C2065: 'renderQueue' : undeclared identifier
+     1>Scene\GameScene.cpp(32): error C2448: 'Scene::GameScene::Render' : function-style initializer appears to be a function definition
          LoadingScene.cpp
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
-     1>Scene\LoadingScene.cpp(480): warning C4305: '=' : truncation from 'int' to 'BYTE'
-     1>Scene\LoadingScene.cpp(480): warning C4309: '=' : truncation of constant value
-     1>Scene\LoadingScene.cpp(482): error C2027: use of undefined type 'RenderQueue'
-                 d:\development\settlers2\settlers2\scene\Scene.h(8) : see declaration of 'RenderQueue'
-     1>Scene\LoadingScene.cpp(482): error C2227: left of '->Submit' must point to class/struct/union/generic type
-     1>Scene\LoadingScene.cpp(505): warning C4305: '=' : truncation from 'int' to 'BYTE'
-     1>Scene\LoadingScene.cpp(505): warning C4309: '=' : truncation of constant value
-     1>Scene\LoadingScene.cpp(507): error C2027: use of undefined type 'RenderQueue'
-                 d:\development\settlers2\settlers2\scene\Scene.h(8) : see declaration of 'RenderQueue'
-     1>Scene\LoadingScene.cpp(507): error C2227: left of '->Submit' must point to class/struct/union/generic type
+     1>Scene\LoadingScene.cpp(456): error C2065: 'RenderQueue' : undeclared identifier
+     1>Scene\LoadingScene.cpp(456): error C2065: 'renderQueue' : undeclared identifier
+     1>Scene\LoadingScene.cpp(457): error C2448: 'Scene::LoadingScene::Render' : function-style initializer appears to be a function definition
          MenuScene.cpp
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
-     1>Scene\MenuScene.cpp(237): warning C4305: '=' : truncation from 'int' to 'BYTE'
-     1>Scene\MenuScene.cpp(237): warning C4309: '=' : truncation of constant value
-     1>Scene\MenuScene.cpp(239): error C2027: use of undefined type 'RenderQueue'
-                 d:\development\settlers2\settlers2\scene\Scene.h(8) : see declaration of 'RenderQueue'
-     1>Scene\MenuScene.cpp(239): error C2227: left of '->Submit' must point to class/struct/union/generic type
-     1>c1xx : fatal error C1903: unable to recover from previous error(s); stopping compilation
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(60): error C2061: syntax error : identifier 'RenderQueue'
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(61): error C2143: syntax error : missing ';' before '*'
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(61): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(61): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(61): warning C4183: 'GetRenderQueue': missing return type; assumed to be a member function returning 'int'
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(94): error C2143: syntax error : missing ';' before '*'
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(94): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(94): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(60): error C2065: 'm_renderQueue' : undeclared identifier
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(60): error C2065: 'queue' : undeclared identifier
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(61): error C2065: 'm_renderQueue' : undeclared identifier
+     1>Scene\MenuScene.cpp(221): error C2065: 'RenderQueue' : undeclared identifier
+     1>Scene\MenuScene.cpp(221): error C2065: 'renderQueue' : undeclared identifier
+     1>Scene\MenuScene.cpp(221): error C2448: 'MenuScene::Render' : function-style initializer appears to be a function definition
+         Scene.cpp
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(60): error C2061: syntax error : identifier 'RenderQueue'
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(61): error C2143: syntax error : missing ';' before '*'
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(61): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(61): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(61): warning C4183: 'GetRenderQueue': missing return type; assumed to be a member function returning 'int'
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(94): error C2143: syntax error : missing ';' before '*'
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(94): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(94): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(60): error C2065: 'm_renderQueue' : undeclared identifier
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(60): error C2065: 'queue' : undeclared identifier
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(61): error C2065: 'm_renderQueue' : undeclared identifier
          SceneManager.cpp
-     1>d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
-     1>Scene\SceneManager.cpp(285): error C2039: 'FinalizeFrameCommands' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Scene\SceneManager.cpp(297): error C2065: 'hasCustomPipeline' : undeclared identifier
-     1>Scene\SceneManager.cpp(327): error C2039: 'ResetBatchState' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Scene\SceneManager.cpp(411): error C2039: 'FinalizeFrameCommands' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\scene\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(60): error C2061: syntax error : identifier 'RenderQueue'
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(61): error C2143: syntax error : missing ';' before '*'
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(61): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(61): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(61): warning C4183: 'GetRenderQueue': missing return type; assumed to be a member function returning 'int'
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(94): error C2143: syntax error : missing ';' before '*'
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(94): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(94): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(60): error C2065: 'm_renderQueue' : undeclared identifier
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(60): error C2065: 'queue' : undeclared identifier
+     1>d:\development\settlers2\settlers2\scene\SceneManager.h(61): error C2065: 'm_renderQueue' : undeclared identifier
+     1>Scene\SceneManager.cpp(37): error C2614: 'Scene::SceneManager' : illegal member initialization: 'm_renderQueue' is not a base or member
+     1>Scene\SceneManager.cpp(214): error C2065: 'm_renderQueue' : undeclared identifier
+     1>Scene\SceneManager.cpp(215): error C2065: 'm_renderQueue' : undeclared identifier
+     1>Scene\SceneManager.cpp(215): error C2227: left of '->BeginFrame' must point to class/struct/union/generic type
+                 type is ''unknown-type''
+     1>Scene\SceneManager.cpp(220): error C2065: 'm_renderQueue' : undeclared identifier
          GridMenu.cpp
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
-     1>UI\GridMenu.cpp(363): error C2027: use of undefined type 'Renderer'
-                 d:\development\settlers2\settlers2\ui\GridMenu.h(9) : see declaration of 'Renderer'
-     1>UI\GridMenu.cpp(363): error C2227: left of '->GetShaderManager' must point to class/struct/union/generic type
-     1>UI\GridMenu.cpp(377): error C2027: use of undefined type 'Renderer'
-                 d:\development\settlers2\settlers2\ui\GridMenu.h(9) : see declaration of 'Renderer'
-     1>UI\GridMenu.cpp(377): error C2227: left of '->GetShaderManager' must point to class/struct/union/generic type
-     1>UI\GridMenu.cpp(410): warning C4305: '=' : truncation from 'int' to 'BYTE'
-     1>UI\GridMenu.cpp(410): warning C4309: '=' : truncation of constant value
-     1>UI\GridMenu.cpp(412): warning C4305: 'argument' : truncation from 'int' to 'BYTE'
-     1>UI\GridMenu.cpp(412): warning C4309: 'argument' : truncation of constant value
-     1>UI\GridMenu.cpp(441): warning C4305: '=' : truncation from 'int' to 'BYTE'
-     1>UI\GridMenu.cpp(441): warning C4309: '=' : truncation of constant value
-     1>UI\GridMenu.cpp(443): warning C4305: 'argument' : truncation from 'int' to 'BYTE'
-     1>UI\GridMenu.cpp(443): warning C4309: 'argument' : truncation of constant value
-     1>UI\GridMenu.cpp(474): warning C4305: '=' : truncation from 'int' to 'BYTE'
-     1>UI\GridMenu.cpp(474): warning C4309: '=' : truncation of constant value
-     1>UI\GridMenu.cpp(476): warning C4305: 'argument' : truncation from 'int' to 'BYTE'
-     1>UI\GridMenu.cpp(476): warning C4309: 'argument' : truncation of constant value
+     1>d:\development\settlers2\settlers2\ui\GridMenu.h(40): error C2039: 'RenderQueue' : is not a member of 'Graphics'
+     1>d:\development\settlers2\settlers2\ui\GridMenu.h(40): error C2143: syntax error : missing ';' before '*'
+     1>d:\development\settlers2\settlers2\ui\GridMenu.h(40): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+     1>d:\development\settlers2\settlers2\ui\GridMenu.h(40): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+     1>d:\development\settlers2\settlers2\ui\GridMenu.h(92): error C2039: 'RenderQueue' : is not a member of 'Graphics'
+     1>d:\development\settlers2\settlers2\ui\GridMenu.h(92): error C2061: syntax error : identifier 'RenderQueue'
+     1>d:\development\settlers2\settlers2\ui\GridMenu.h(92): error C2065: 'm_renderQueue' : undeclared identifier
+     1>d:\development\settlers2\settlers2\ui\GridMenu.h(92): error C2065: 'renderQueue' : undeclared identifier
+     1>UI\GridMenu.cpp(369): error C2065: 'm_renderQueue' : undeclared identifier
+     1>UI\GridMenu.cpp(405): error C2065: 'm_renderQueue' : undeclared identifier
+     1>UI\GridMenu.cpp(405): error C2227: left of '->Submit' must point to class/struct/union/generic type
+                 type is ''unknown-type''
+     1>UI\GridMenu.cpp(436): error C2065: 'm_renderQueue' : undeclared identifier
+     1>UI\GridMenu.cpp(436): error C2227: left of '->Submit' must point to class/struct/union/generic type
+                 type is ''unknown-type''
+     1>UI\GridMenu.cpp(469): error C2065: 'm_renderQueue' : undeclared identifier
+     1>UI\GridMenu.cpp(469): error C2227: left of '->Submit' must point to class/struct/union/generic type
+                 type is ''unknown-type''
          RadialMenu.cpp
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
-     1>UI\RadialMenu.cpp(259): warning C4305: '=' : truncation from 'int' to 'BYTE'
-     1>UI\RadialMenu.cpp(259): warning C4309: '=' : truncation of constant value
-     1>UI\RadialMenu.cpp(261): warning C4305: 'argument' : truncation from 'int' to 'BYTE'
-     1>UI\RadialMenu.cpp(261): warning C4309: 'argument' : truncation of constant value
-     1>UI\RadialMenu.cpp(397): error C2039: 'Begin' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>UI\RadialMenu.cpp(412): error C2039: 'Draw' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>UI\RadialMenu.cpp(416): error C2039: 'End' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>UI\RadialMenu.cpp(426): error C2039: 'Begin' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>UI\RadialMenu.cpp(432): error C2039: 'Draw' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>UI\RadialMenu.cpp(435): error C2039: 'End' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>UI\RadialMenu.cpp(442): error C2027: use of undefined type 'Renderer'
-                 d:\development\settlers2\settlers2\ui\RadialMenu.h(13) : see declaration of 'Renderer'
-     1>UI\RadialMenu.cpp(442): error C2227: left of '->RestoreFromUI' must point to class/struct/union/generic type
-         WeightMenu.cpp
-     1>d:\development\settlers2\settlers2\ui\../Graphics/SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
-     1>c1xx : fatal error C1903: unable to recover from previous error(s); stopping compilation
+     1>UI\RadialMenu.cpp(259): error C2065: 'm_pDevice' : undeclared identifier
+     1>UI\RadialMenu.cpp(259): error C2227: left of '->SetRenderState' must point to class/struct/union/generic type
+                 type is ''unknown-type''
+     1>UI\RadialMenu.cpp(260): error C2065: 'm_pDevice' : undeclared identifier
+     1>UI\RadialMenu.cpp(260): error C2227: left of '->SetRenderState' must point to class/struct/union/generic type
+                 type is ''unknown-type''
+     1>UI\RadialMenu.cpp(261): error C2065: 'm_pDevice' : undeclared identifier
+     1>UI\RadialMenu.cpp(261): error C2227: left of '->SetRenderState' must point to class/struct/union/generic type
+                 type is ''unknown-type''
+     1>UI\RadialMenu.cpp(262): error C2065: 'm_pDevice' : undeclared identifier
+     1>UI\RadialMenu.cpp(262): error C2227: left of '->SetRenderState' must point to class/struct/union/generic type
+                 type is ''unknown-type''
+     1>UI\RadialMenu.cpp(263): error C2065: 'm_pDevice' : undeclared identifier
+     1>UI\RadialMenu.cpp(263): error C2227: left of '->SetRenderState' must point to class/struct/union/generic type
+                 type is ''unknown-type''
+     1>UI\RadialMenu.cpp(264): error C2065: 'm_pDevice' : undeclared identifier
+     1>UI\RadialMenu.cpp(264): error C2227: left of '->SetRenderState' must point to class/struct/union/generic type
+                 type is ''unknown-type''
+     1>UI\RadialMenu.cpp(291): error C2065: 'm_pDevice' : undeclared identifier
+     1>UI\RadialMenu.cpp(291): error C2227: left of '->SetTexture' must point to class/struct/union/generic type
+                 type is ''unknown-type''
          RenderSystem.cpp
      1>d:\development\settlers2\settlers2\world\systems\RenderSystem.h(19): error C2061: syntax error : identifier 'Renderer'
      1>d:\development\settlers2\settlers2\world\systems\RenderSystem.h(22): error C2061: syntax error : identifier 'Renderer'
      1>World\Systems\RenderSystem.cpp(20): error C2061: syntax error : identifier 'Renderer'
      1>World\Systems\RenderSystem.cpp(41): error C2061: syntax error : identifier 'Renderer'
-         Generating Code...
-         Compiling...
          MapEditor.cpp
-     1>d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(43): error C2143: syntax error : missing ',' before '*'
-     1>Editor\MapEditor.cpp(187): error C2039: 'End' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Editor\MapEditor.cpp(190): error C2039: 'End' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Editor\MapEditor.cpp(427): error C2039: 'BeginWorldObject' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Editor\MapEditor.cpp(436): error C2039: 'Draw' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Editor\MapEditor.cpp(439): error C2039: 'End' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Editor\MapEditor.cpp(450): error C2039: 'BeginWorldObject' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Editor\MapEditor.cpp(460): error C2039: 'Draw' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Editor\MapEditor.cpp(463): error C2039: 'End' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Editor\MapEditor.cpp(474): error C2039: 'BeginWorldObject' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Editor\MapEditor.cpp(484): error C2039: 'Draw' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Editor\MapEditor.cpp(486): error C2039: 'Draw' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Editor\MapEditor.cpp(490): error C2039: 'End' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Editor\MapEditor.cpp(503): error C2039: 'BeginWorldObject' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Editor\MapEditor.cpp(513): error C2039: 'Draw' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Editor\MapEditor.cpp(516): error C2039: 'End' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Editor\MapEditor.cpp(529): error C2039: 'BeginWorldObject' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Editor\MapEditor.cpp(539): error C2039: 'Draw' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Editor\MapEditor.cpp(542): error C2039: 'End' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Editor\MapEditor.cpp(573): error C2039: 'BeginWorldObject' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Editor\MapEditor.cpp(574): error C2039: 'Draw' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Editor\MapEditor.cpp(575): error C2039: 'End' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Editor\MapEditor.cpp(678): error C2039: 'BeginWorldObject' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Editor\MapEditor.cpp(684): error C2039: 'Draw' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
-     1>Editor\MapEditor.cpp(688): error C2039: 'End' : is not a member of 'SpriteRenderer'
-                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(29) : see declaration of 'SpriteRenderer'
+     1>Editor\MapEditor.cpp(190): error C2039: 'End' : is not a member of 'Graphics::SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(39) : see declaration of 'Graphics::SpriteRenderer'
+     1>Editor\MapEditor.cpp(193): error C2039: 'End' : is not a member of 'Graphics::SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(39) : see declaration of 'Graphics::SpriteRenderer'
+     1>Editor\MapEditor.cpp(430): error C2039: 'BeginWorldObject' : is not a member of 'Graphics::SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(39) : see declaration of 'Graphics::SpriteRenderer'
+     1>Editor\MapEditor.cpp(439): error C2039: 'Draw' : is not a member of 'Graphics::SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(39) : see declaration of 'Graphics::SpriteRenderer'
+     1>Editor\MapEditor.cpp(442): error C2039: 'End' : is not a member of 'Graphics::SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(39) : see declaration of 'Graphics::SpriteRenderer'
+     1>Editor\MapEditor.cpp(453): error C2039: 'BeginWorldObject' : is not a member of 'Graphics::SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(39) : see declaration of 'Graphics::SpriteRenderer'
+     1>Editor\MapEditor.cpp(463): error C2039: 'Draw' : is not a member of 'Graphics::SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(39) : see declaration of 'Graphics::SpriteRenderer'
+     1>Editor\MapEditor.cpp(466): error C2039: 'End' : is not a member of 'Graphics::SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(39) : see declaration of 'Graphics::SpriteRenderer'
+     1>Editor\MapEditor.cpp(477): error C2039: 'BeginWorldObject' : is not a member of 'Graphics::SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(39) : see declaration of 'Graphics::SpriteRenderer'
+     1>Editor\MapEditor.cpp(487): error C2039: 'Draw' : is not a member of 'Graphics::SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(39) : see declaration of 'Graphics::SpriteRenderer'
+     1>Editor\MapEditor.cpp(489): error C2039: 'Draw' : is not a member of 'Graphics::SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(39) : see declaration of 'Graphics::SpriteRenderer'
+     1>Editor\MapEditor.cpp(493): error C2039: 'End' : is not a member of 'Graphics::SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(39) : see declaration of 'Graphics::SpriteRenderer'
+     1>Editor\MapEditor.cpp(506): error C2039: 'BeginWorldObject' : is not a member of 'Graphics::SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(39) : see declaration of 'Graphics::SpriteRenderer'
+     1>Editor\MapEditor.cpp(516): error C2039: 'Draw' : is not a member of 'Graphics::SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(39) : see declaration of 'Graphics::SpriteRenderer'
+     1>Editor\MapEditor.cpp(519): error C2039: 'End' : is not a member of 'Graphics::SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(39) : see declaration of 'Graphics::SpriteRenderer'
+     1>Editor\MapEditor.cpp(532): error C2039: 'BeginWorldObject' : is not a member of 'Graphics::SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(39) : see declaration of 'Graphics::SpriteRenderer'
+     1>Editor\MapEditor.cpp(542): error C2039: 'Draw' : is not a member of 'Graphics::SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(39) : see declaration of 'Graphics::SpriteRenderer'
+     1>Editor\MapEditor.cpp(545): error C2039: 'End' : is not a member of 'Graphics::SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(39) : see declaration of 'Graphics::SpriteRenderer'
+     1>Editor\MapEditor.cpp(576): error C2039: 'BeginWorldObject' : is not a member of 'Graphics::SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(39) : see declaration of 'Graphics::SpriteRenderer'
+     1>Editor\MapEditor.cpp(577): error C2039: 'Draw' : is not a member of 'Graphics::SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(39) : see declaration of 'Graphics::SpriteRenderer'
+     1>Editor\MapEditor.cpp(578): error C2039: 'End' : is not a member of 'Graphics::SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(39) : see declaration of 'Graphics::SpriteRenderer'
+     1>Editor\MapEditor.cpp(693): error C2039: 'BeginWorldObject' : is not a member of 'Graphics::SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(39) : see declaration of 'Graphics::SpriteRenderer'
+     1>Editor\MapEditor.cpp(699): error C2039: 'Draw' : is not a member of 'Graphics::SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(39) : see declaration of 'Graphics::SpriteRenderer'
+     1>Editor\MapEditor.cpp(703): error C2039: 'End' : is not a member of 'Graphics::SpriteRenderer'
+                 d:\development\settlers2\settlers2\editor\../Graphics/SpriteRenderer.h(39) : see declaration of 'Graphics::SpriteRenderer'
          Generating Code...
      1>Построение проекта "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" завершено (целевые объекты build) с ошибкой.
 
 СБОЙ построения.
 
-Затраченное время: 00:00:06.07
+Затраченное время: 00:00:06.46

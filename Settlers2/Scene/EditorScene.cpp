@@ -538,8 +538,11 @@ void EditorScene::Update(float deltaTime) {
 }
 
 void EditorScene::Render(RenderQueue* renderQueue) {
-    (void)renderQueue;
     if (!m_mapEditor) return;
+
+    if (m_mapEditor) {
+        m_mapEditor->SetRenderQueue(renderQueue);
+    }
 
     if (m_camera && m_shaderManager) {
         m_camera->Update();
@@ -554,11 +557,9 @@ void EditorScene::Render(RenderQueue* renderQueue) {
     m_mapEditor->RenderUI();
 
     if (m_textManager) {
-        m_textManager->BeginTextBatch(FONT_MENU, 0.0f);
         char fpsText[64];
         sprintf(fpsText, "FPS: %d", m_fps);
         m_textManager->DrawTextToScreen(fpsText, 10.0f, 10.0f, 0xFF00FF00, 0.25f);
-        m_textManager->EndTextBatch();
     }
 }
 

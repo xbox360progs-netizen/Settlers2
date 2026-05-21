@@ -8,8 +8,9 @@ namespace Input {
     class InputManager;
 }
 class Renderer;
-class SpriteRenderer;
-class ShaderManager;
+namespace Graphics { class ShaderManager; class SpriteRenderer; }
+using Graphics::ShaderManager;
+using Graphics::SpriteRenderer;
 class BitmapFont;
 class TextManager;
 #include "../Graphics/BinFileManager.h"

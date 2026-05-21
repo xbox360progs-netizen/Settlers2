@@ -224,7 +224,7 @@ void MenuScene::Render(RenderQueue* renderQueue) {
     if (!m_backgroundTexture.GetTexture()) return;
 
     // Background sprite
-    Graphics::SpriteCommand bgCmd;
+    Graphics::RenderCommand bgCmd = {};
     bgCmd.shaderID = SHADER_SPRITE;
     bgCmd.x = 0.0f;
     bgCmd.y = 0.0f;
@@ -234,7 +234,7 @@ void MenuScene::Render(RenderQueue* renderQueue) {
     bgCmd.u1 = 1.0f; bgCmd.v1 = 1.0f;
     bgCmd.color = 0xFFFFFFFF;
     bgCmd.depth = 900;
-    bgCmd.layer = 900;
+    bgCmd.layer = LAYER_UI;
     bgCmd.textureID = 0;
     renderQueue->Submit(bgCmd);
 

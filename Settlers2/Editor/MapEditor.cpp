@@ -3,6 +3,8 @@
 #include "../Logic/WeightMap.h"
 #include "../Logic/CoordinateSystem.h"
 #include "../Graphics/Renderer.h"
+#include "../Graphics/RenderQueue.h"
+#include "../Graphics/RenderLayers.h"
 #include <d3dx9.h>
 #include "../Graphics/Texture.h"
 #include "../Input/Gamepad.h"
@@ -26,6 +28,7 @@ MapEditor::MapEditor()
     , m_currentTileIndex(0)
     , m_currentLayer(World::Ground)
     , m_weightMap(nullptr)
+    , m_renderQueue(0)
     , m_cameraX(0.0f)
     , m_cameraY(0.0f)
     , m_zoomLevel(1.0f)
@@ -628,7 +631,7 @@ void MapEditor::PaintCurrentTile() {
 }
 
 void MapEditor::RenderActiveTile() {
-    if (!m_renderer || m_currentTileIndex < 0) return;
+    if (!m_renderer || m_currentTileIndex < 0 || !m_renderQueue) return;
 
     SpriteAtlas* atlas = (m_currentLayer == World::Objects) ? m_objectAtlas.get() : m_groundAtlas.get();
     LPDIRECT3DTEXTURE9 tex = (m_currentLayer == World::Objects) ? m_objectAtlas->GetTexture() : m_groundTexture;
@@ -641,10 +644,22 @@ void MapEditor::RenderActiveTile() {
     float screenW = static_cast<float>(m_renderer->GetScreenWidth());
     float tileSize = 64.0f;
 
-    Texture texObj;
-    texObj.SetTexture(tex);
-    m_renderer->DrawSingleSprite(&texObj, screenW - tileSize - 10.0f, 10.0f, tileSize, tileSize,
-                                 region->u0, region->v0, region->u1, region->v1);
+    Graphics::RenderCommand cmd = {};
+    cmd.x = screenW - tileSize - 10.0f;
+    cmd.y = 10.0f;
+    cmd.width = tileSize;
+    cmd.height = tileSize;
+    cmd.u0 = region->u0;
+    cmd.v0 = region->v0;
+    cmd.u1 = region->u1;
+    cmd.v1 = region->v1;
+    cmd.color = 0xFFFFFFFF;
+    cmd.shaderID = SHADER_SPRITE;
+    cmd.textureID = 0;
+    cmd.blendMode = 1;
+    cmd.layer = LAYER_UI;
+    cmd.depth = 100;
+    m_renderQueue->Submit(cmd);
 }
 
 void MapEditor::CacheNodePositions() {

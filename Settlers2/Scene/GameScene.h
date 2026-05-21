@@ -14,7 +14,7 @@ public:
     virtual void Load();
     virtual void Unload();
     virtual void Update(float deltaTime);
-    virtual void Render(class RenderQueue* renderQueue) override;
+    virtual void Render(Graphics::RenderQueue* renderQueue) override;
 };
 
 } // namespace Scene

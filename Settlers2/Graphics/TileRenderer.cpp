@@ -4,6 +4,7 @@
 #include "TextureRegistry.h"
 #include "Texture.h"
 #include "SpriteAtlas.h"
+#include "RenderLayers.h"
 #include <cmath>
 #include <cstdio>
 
@@ -29,7 +30,7 @@ void IsoTransform::screenToWorld(float screenX, float screenY,
 }
 
 TileRenderer::TileRenderer(::Renderer* renderer, int mapWidth, int mapHeight)
-  : m_renderer(renderer), m_map(nullptr), m_mapWidth(mapWidth), m_mapHeight(mapHeight),
+  : m_renderer(renderer), m_map(nullptr), m_renderQueue(nullptr), m_mapWidth(mapWidth), m_mapHeight(mapHeight),
     m_mode(0), m_offsetX(0), m_offsetY(0), m_zoom(1.0f) {}
 
 TileRenderer::~TileRenderer() {}
@@ -79,14 +80,24 @@ void TileRenderer::RenderTile(int tileX, int tileY, World::TileType type, int la
 void TileRenderer::drawTileQuad(float x, float y, float width, float height,
                                  LPDIRECT3DTEXTURE9 texture,
                                  float u0, float v0, float u1, float v1) {
-    if (!m_renderer || !texture) return;
+    if (!m_renderQueue || !texture) return;
 
-    ::Renderer* renderer = m_renderer;
-    if (!renderer) return;
-
-    Texture tempTex;
-    tempTex.SetTexture(texture);
-    renderer->DrawSingleSprite(&tempTex, x, y, width, height);
+    Graphics::RenderCommand cmd = {};
+    cmd.x = x;
+    cmd.y = y;
+    cmd.width = width;
+    cmd.height = height;
+    cmd.u0 = u0;
+    cmd.v0 = v0;
+    cmd.u1 = u1;
+    cmd.v1 = v1;
+    cmd.color = 0xFFFFFFFF;
+    cmd.shaderID = SHADER_SPRITE;
+    cmd.textureID = 0;
+    cmd.blendMode = 0;
+    cmd.layer = LAYER_TERRAIN;
+    cmd.depth = 0;
+    m_renderQueue->Submit(cmd);
 }
 
 void TileRenderer::WorldToScreen(int wx, int wy, int& sx, int& sy) {

@@ -8,6 +8,8 @@ static void OutputDebugStringA(const char* msg) {
 #endif
 }
 
+namespace Graphics {
+
 SpriteRenderer::SpriteRenderer()
     : m_pDevice(NULL)
     , m_pShaderManager(NULL)
@@ -36,7 +38,7 @@ HRESULT SpriteRenderer::Initialize(LPDIRECT3DDEVICE9 device, ShaderManager* shad
 
     HRESULT hr = device->CreateVertexBuffer(
         vertexBufferSize,
-        D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY,
+        D3DUSAGE_WRITEONLY,
         0,
         D3DPOOL_DEFAULT,
         &m_vertexBuffer,
@@ -144,16 +146,16 @@ void SpriteRenderer::Execute(const RenderBatch* batches, int batchCount) {
             m_textureSwitches++;
         }
 
-        DWORD spriteCount = batch.vertexCount / 4;
-        DWORD indexStart = (batch.vertexOffset / 4) * 6;
+        uint32_t spriteCount = batch.indexCount / 6;
+        uint32_t primitiveCount = spriteCount * 2;
 
         m_pDevice->DrawIndexedPrimitive(
             D3DPT_TRIANGLELIST,
             0,
-            batch.vertexOffset,
-            batch.vertexCount,
-            indexStart,
-            spriteCount * 2);
+            0,
+            batch.indexCount,
+            batch.startIndex,
+            primitiveCount);
 
         m_drawCalls++;
     }
@@ -172,4 +174,6 @@ void SpriteRenderer::SetShader(WORD shaderID) {
     m_pShaderManager->BeginShader();
     m_pShaderManager->BeginPass(0);
     m_pShaderManager->Commit();
+}
+
 }
