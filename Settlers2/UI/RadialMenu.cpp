@@ -244,7 +244,8 @@ void RadialMenu::Render()
     D3DVIEWPORT9 viewport;
     float screenWidth = 1280.0f;
     float screenHeight = 720.0f;
-    if (SUCCEEDED(m_device->GetViewport(&viewport))) {
+    if (SUCCEEDED(m_device->GetViewport(&viewport)) &&
+        viewport.Width > 0 && viewport.Height > 0) {
         screenWidth = (float)viewport.Width;
         screenHeight = (float)viewport.Height;
     }
@@ -363,4 +364,99 @@ void RadialMenu::RenderIcons(Graphics::RenderQueue* renderQueue)
             }
         }
     }
+}
+
+void RadialMenu::RenderIconsDirect(LPDIRECT3DDEVICE9 device, Graphics::ShaderManager* shaderManager, LPDIRECT3DVERTEXDECLARATION9 spriteVertexDecl)
+{
+    if (!device || !shaderManager || !spriteVertexDecl || !m_visible) {
+        return;
+    }
+
+    D3DXMATRIX proj;
+    D3DXMatrixOrthoOffCenterLH(&proj, 0, 1280.0f, 720.0f, 0, -1, 1);
+
+    shaderManager->SetActiveShader(SHADER_UI);
+    shaderManager->BeginShader();
+    shaderManager->BeginPass(0);
+    shaderManager->SetMatrix("gScreenProj", (float*)&proj);
+
+    device->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+    device->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+    device->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+    device->SetRenderState(D3DRS_ZENABLE, FALSE);
+    device->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+    device->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+    device->SetVertexDeclaration(spriteVertexDecl);
+
+    TextureRegistry& registry = TextureRegistry::instance();
+
+    const float ringRadius = ((m_innerRadius + m_outerRadius) * 0.5f) * (kMenuSize * 0.5f) * 1.0f;
+
+    for (int i = 0; i < (int)m_items.size(); i++) {
+        const float angle = GetShaderSectorCenterAngle(i, m_numSectors);
+        float centerX = m_screenX + cosf(angle) * ringRadius;
+        float centerY = m_screenY - sinf(angle) * ringRadius;
+
+        std::tr1::shared_ptr<SpriteAtlas> atlas = registry.getAtlas(m_items[i].atlasName);
+        if (!atlas) continue;
+
+        uint32_t spriteIndex = m_items[i].spriteIndex;
+        const SpriteRegion* region = atlas->GetRegion(spriteIndex);
+        if (!region) continue;
+
+        LPDIRECT3DTEXTURE9 tex = atlas->GetTexture();
+        if (!tex) continue;
+        device->SetTexture(0, tex);
+
+        const float drawX = centerX - region->width * 0.5f;
+        const float drawY = centerY - region->height * 0.5f;
+        const float w = (float)region->width;
+        const float h = (float)region->height;
+
+        SpriteVertex verts[6];
+        verts[0].x = drawX; verts[0].y = drawY; verts[0].z = 0; verts[0].u = region->u0; verts[0].v = region->v0; verts[0].color = 0xFFFFFFFF; verts[0].padding[0] = 0; verts[0].padding[1] = 0;
+        verts[1].x = drawX + w; verts[1].y = drawY; verts[1].z = 0; verts[1].u = region->u1; verts[1].v = region->v0; verts[1].color = 0xFFFFFFFF; verts[1].padding[0] = 0; verts[1].padding[1] = 0;
+        verts[2].x = drawX + w; verts[2].y = drawY + h; verts[2].z = 0; verts[2].u = region->u1; verts[2].v = region->v1; verts[2].color = 0xFFFFFFFF; verts[2].padding[0] = 0; verts[2].padding[1] = 0;
+        verts[3].x = drawX; verts[3].y = drawY; verts[3].z = 0; verts[3].u = region->u0; verts[3].v = region->v0; verts[3].color = 0xFFFFFFFF; verts[3].padding[0] = 0; verts[3].padding[1] = 0;
+        verts[4].x = drawX + w; verts[4].y = drawY + h; verts[4].z = 0; verts[4].u = region->u1; verts[4].v = region->v1; verts[4].color = 0xFFFFFFFF; verts[4].padding[0] = 0; verts[4].padding[1] = 0;
+        verts[5].x = drawX; verts[5].y = drawY + h; verts[5].z = 0; verts[5].u = region->u0; verts[5].v = region->v1; verts[5].color = 0xFFFFFFFF; verts[5].padding[0] = 0; verts[5].padding[1] = 0;
+
+        shaderManager->CommitChanges();
+        device->DrawPrimitiveUP(D3DPT_TRIANGLELIST, 2, verts, sizeof(SpriteVertex));
+    }
+
+    const MenuItem* centerItem = GetCenterItem();
+    if (centerItem) {
+        std::tr1::shared_ptr<SpriteAtlas> centerAtlas = registry.getAtlas(centerItem->atlasName);
+        if (centerAtlas) {
+            uint32_t centerSpriteIndex = centerItem->spriteIndex;
+            const SpriteRegion* centerRegion = centerAtlas->GetRegion(centerSpriteIndex);
+            if (centerRegion) {
+                LPDIRECT3DTEXTURE9 centerTex = centerAtlas->GetTexture();
+                if (centerTex) {
+                    device->SetTexture(0, centerTex);
+                }
+
+                const float centerDrawX = m_screenX - centerRegion->width * 0.5f;
+                const float centerDrawY = m_screenY - centerRegion->height * 0.5f;
+                const float cw = (float)centerRegion->width;
+                const float ch = (float)centerRegion->height;
+
+                SpriteVertex verts[6];
+                verts[0].x = centerDrawX; verts[0].y = centerDrawY; verts[0].z = 0; verts[0].u = centerRegion->u0; verts[0].v = centerRegion->v0; verts[0].color = 0xFFF6EBDD; verts[0].padding[0] = 0; verts[0].padding[1] = 0;
+                verts[1].x = centerDrawX + cw; verts[1].y = centerDrawY; verts[1].z = 0; verts[1].u = centerRegion->u1; verts[1].v = centerRegion->v0; verts[1].color = 0xFFF6EBDD; verts[1].padding[0] = 0; verts[1].padding[1] = 0;
+                verts[2].x = centerDrawX + cw; verts[2].y = centerDrawY + ch; verts[2].z = 0; verts[2].u = centerRegion->u1; verts[2].v = centerRegion->v1; verts[2].color = 0xFFF6EBDD; verts[2].padding[0] = 0; verts[2].padding[1] = 0;
+                verts[3].x = centerDrawX; verts[3].y = centerDrawY; verts[3].z = 0; verts[3].u = centerRegion->u0; verts[3].v = centerRegion->v0; verts[3].color = 0xFFF6EBDD; verts[3].padding[0] = 0; verts[3].padding[1] = 0;
+                verts[4].x = centerDrawX + cw; verts[4].y = centerDrawY + ch; verts[4].z = 0; verts[4].u = centerRegion->u1; verts[4].v = centerRegion->v1; verts[4].color = 0xFFF6EBDD; verts[4].padding[0] = 0; verts[4].padding[1] = 0;
+                verts[5].x = centerDrawX; verts[5].y = centerDrawY + ch; verts[5].z = 0; verts[5].u = centerRegion->u0; verts[5].v = centerRegion->v1; verts[5].color = 0xFFF6EBDD; verts[5].padding[0] = 0; verts[5].padding[1] = 0;
+
+                shaderManager->CommitChanges();
+                device->DrawPrimitiveUP(D3DPT_TRIANGLELIST, 2, verts, sizeof(SpriteVertex));
+            }
+        }
+    }
+
+    shaderManager->EndPass();
+    shaderManager->EndShader();
+    device->SetTexture(0, NULL);
 }

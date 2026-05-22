@@ -48,6 +48,7 @@ EditorScene();
     virtual void Unload();
     virtual void Update(float deltaTime);
     virtual void Render(Graphics::RenderQueue* renderQueue) override;
+    virtual void RenderOverlay() override;
     virtual void OnEnter();
     virtual void OnExit();
 

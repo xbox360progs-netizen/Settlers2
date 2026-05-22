@@ -24,6 +24,7 @@ public:
 
     virtual void Update(float deltaTime) = 0;
     virtual void Render(Graphics::RenderQueue* renderQueue) = 0;
+    virtual void RenderOverlay() {}
 
     virtual void OnEnter();
     virtual void OnExit();

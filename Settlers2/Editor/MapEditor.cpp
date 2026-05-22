@@ -222,14 +222,22 @@ void MapEditor::HandleInput() {
     Input::Gamepad* gamepad = m_inputManager->GetGamepad();
     if (!gamepad) return;
 
-    // Sync camera position from Camera class (EditorScene handles input)
+    // Sync camera data
     if (m_pCamera) {
         m_cameraX = m_pCamera->GetPosX();
         m_cameraY = m_pCamera->GetPosY();
         m_zoomLevel = m_pCamera->GetZoom();
     }
 
-// Update cursor tile from screen center (camera position)
+    // Update cursor tile from actual screen center (camera pos ≠ screen center at zoom≠1)
+    float worldCenterX, worldCenterY;
+    if (m_pCamera) {
+        m_pCamera->GetWorldCenter(worldCenterX, worldCenterY);
+    } else {
+        worldCenterX = m_cameraX;
+        worldCenterY = m_cameraY;
+    }
+
     const SpriteRegion* firstRegion = m_groundAtlas ? m_groundAtlas->GetRegion(0) : nullptr;
     if (firstRegion) {
         CoordinateSystem& coords = CoordinateSystem::GetInstance();
@@ -237,7 +245,7 @@ void MapEditor::HandleInput() {
         if (m_currentLayer == World::Ground) {
             // Ground layer - use simple rectangular grid
             int newTileX, newTileY;
-            coords.WorldToGroundTile(m_cameraX, m_cameraY, newTileX, newTileY);
+            coords.WorldToGroundTile(worldCenterX, worldCenterY, newTileX, newTileY);
 
             // Clamp to grid bounds
             if (newTileX >= 0 && newTileX < GRID_WIDTH && newTileY >= 0 && newTileY < GRID_HEIGHT) {
@@ -247,7 +255,7 @@ void MapEditor::HandleInput() {
         } else {
             // Nodes layer - use dense staggered grid
             int newTileX, newTileY;
-            coords.WorldToNodeTile(m_cameraX, m_cameraY, newTileX, newTileY);
+            coords.WorldToNodeTile(worldCenterX, worldCenterY, newTileX, newTileY);
 
             // Clamp to nodes grid bounds
             int nodesW = coords.GetNodesWidth();

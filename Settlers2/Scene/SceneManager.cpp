@@ -237,6 +237,14 @@ void SceneManager::Clear()
     m_currentScene = NULL;
 }
 
+void SceneManager::RenderOverlay()
+{
+    if (!m_currentScene || !m_isSceneReady || !m_bSceneGraphicsReady) {
+        return;
+    }
+    m_currentScene->RenderOverlay();
+}
+
 void SceneManager::ResetFrameRendered() {
     m_frameRendered = false;
 }

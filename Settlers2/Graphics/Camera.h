@@ -29,6 +29,7 @@ public:
 
     void ScreenToWorld(float sx,float sy,float& wx,float& wy) const;
     void WorldToScreen(float wx,float wy,float& sx,float& sy) const;
+    void GetWorldCenter(float& wx, float& wy) const;
 
     const D3DXMATRIX& GetViewMatrix() const { return m_view; }
     const D3DXMATRIX& GetProjectionMatrix() const { return m_proj; }

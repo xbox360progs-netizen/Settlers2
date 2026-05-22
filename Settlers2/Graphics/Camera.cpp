@@ -197,3 +197,11 @@ void Camera::WorldToScreen(float wx,float wy,float& sx,float& sy) const
     sx = (wx - m_posX - halfW)*m_zoom + halfW;
     sy = (wy - m_posY - halfH)*m_zoom + halfH;
 }
+
+void Camera::GetWorldCenter(float& wx, float& wy) const
+{
+    float halfW = m_screenWidth * 0.5f;
+    float halfH = m_screenHeight * 0.5f;
+    wx = (m_posX - halfW) / m_zoom + m_posX + halfW;
+    wy = (m_posY - halfH) / m_zoom + m_posY + halfH;
+}

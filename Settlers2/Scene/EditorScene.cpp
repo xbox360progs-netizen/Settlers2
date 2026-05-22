@@ -128,8 +128,8 @@ void EditorScene::Load() {
     m_camera = new Camera();
     if (m_camera) {
         m_camera->Initialize(1280.0f, 720.0f, m_shaderManager);
-        m_camera->SetPosition(0.0f, 0.0f);
-        m_camera->Update();
+        m_camera->SetPosition(300.0f, 300.0f);
+        m_camera->Zoom(1.5f);
         OutputDebugStringA("[EditorScene] Camera initialized and bound to ShaderManager\n");
     }
 
@@ -545,10 +545,6 @@ void EditorScene::Update(float deltaTime) {
 		}
 	}
 
-	if (m_camera && m_camera->GetPosX() == 0.0f && m_camera->GetPosY() == 0.0f) {
-		m_camera->SetPosition(300.0f, 300.0f);
-		m_camera->Zoom(1.5f);
-	}
 }
 
 void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
@@ -570,16 +566,23 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
     m_mapEditor->RenderGeometry();
     m_mapEditor->RenderUI();
 
-    if (m_radialMenu && m_radialMenu->IsVisible()) {
-        m_radialMenu->Render();
-        m_radialMenu->RenderIcons(renderQueue);
-    }
-
     if (m_textManager) {
         char fpsText[64];
         sprintf(fpsText, "FPS: %d", m_fps);
         m_textManager->DrawTextToScreen(fpsText, 10.0f, 10.0f, 0xFF00FF00, 0.25f);
     }
+}
+
+void EditorScene::RenderOverlay() {
+    if (!m_radialMenu || !m_radialMenu->IsVisible()) return;
+    if (!m_renderer || !m_shaderManager || !m_spriteRenderer) return;
+
+    m_radialMenu->Render();
+
+    LPDIRECT3DDEVICE9 device = m_renderer->GetDevice();
+    if (!device) return;
+
+    m_radialMenu->RenderIconsDirect(device, m_shaderManager, m_spriteRenderer->GetVertexDeclaration());
 }
 
 void EditorScene::OnEnter() {

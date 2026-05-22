@@ -46,6 +46,7 @@ public:
     // Обновление и рендер текущей сцены
     void Update(float deltaTime);
     void Render();
+    void RenderOverlay();
 
     // Очистка
     void Clear();

@@ -57,6 +57,7 @@ public:
 
     void Render();
     void RenderIcons(Graphics::RenderQueue* renderQueue);
+    void RenderIconsDirect(LPDIRECT3DDEVICE9 device, Graphics::ShaderManager* shaderManager, LPDIRECT3DVERTEXDECLARATION9 spriteVertexDecl);
 
     void SetIconTextureSlot(WORD slot) { m_iconTextureSlot = slot; }
 

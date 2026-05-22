@@ -329,6 +329,7 @@ void GameEngine::Render()
         renderFrame->BeginFrame();
         m_sceneManager->Render();
         renderFrame->Execute();
+        m_sceneManager->RenderOverlay();
         renderFrame->EndFrame();
     } else {
         m_sceneManager->Render();
@@ -381,6 +382,7 @@ void GameEngine::Run()
                 renderFrame->BeginFrame();
                 m_sceneManager->Render();
                 renderFrame->Execute();
+                m_sceneManager->RenderOverlay();
                 renderFrame->EndFrame();
             } else {
                 m_sceneManager->Render();
