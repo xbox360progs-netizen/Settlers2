@@ -511,6 +511,10 @@ void MapEditor::RenderGridLayer() {
                         const World::Tile& objTile = objectsLayer->GetTile(x, y);
                         hasObject = (objTile.u1 > objTile.u0 && objTile.v1 > objTile.v0);
                     }
+                    if (!hasObject) {
+                        const World::Tile& pt = placementLayer->GetTile(x, y);
+                        hasObject = (pt.regionIndex >= 0);
+                    }
                     DWORD dotColor = hasObject
                         ? D3DCOLOR_ARGB(255, 255, 50, 50)
                         : D3DCOLOR_ARGB(255, 100, 100, 100);
@@ -761,6 +765,28 @@ void MapEditor::PaintCurrentTile() {
         tile.regionIndex = m_currentTileIndex;
         tile.type = GetObjectTypeByIndex(m_currentTileIndex);
         tile.atlasName = m_currentObjectAtlasName;
+        tile.walkable = !region->blocksMovement;
+
+        // Fill Placement layer for collision footprint
+        World::TileLayer* placementLayer = m_map->GetLayer(World::Placement);
+        if (placementLayer) {
+            int pw = placementLayer->GetWidth();
+            int ph = placementLayer->GetHeight();
+            for (uint32_t dy = 0; dy < region->collHeight; ++dy) {
+                for (uint32_t dx = 0; dx < region->collWidth; ++dx) {
+                    int fx = tileX + (int)dx;
+                    int fy = tileY + (int)dy;
+                    if (fx >= 0 && fx < pw && fy >= 0 && fy < ph) {
+                        World::Tile& pt = placementLayer->GetTile(fx, fy);
+                        pt.regionIndex = m_currentTileIndex;
+                        pt.type = tile.type;
+                        pt.atlasName = m_currentObjectAtlasName;
+                        pt.walkable = !region->blocksMovement;
+                        pt.buildable = false;
+                    }
+                }
+            }
+        }
     } else if (m_currentLayer == World::Ground) {
         if (!m_groundAtlas) return;
         if (m_currentTileIndex >= (int)m_groundAtlas->GetRegionCount()) return;
@@ -885,7 +911,7 @@ bool MapEditor::CanPlaceObject(int x, int y, World::TileType objectType) {
 World::TileType MapEditor::GetObjectTypeByIndex(int index) {
     if (strcmp(m_currentObjectAtlasName, "icon_tree") == 0) {
         return World::Tree;
-    } else if (strcmp(m_currentObjectAtlasName, "icon_mountain") == 0) {
+    } else if (strcmp(m_currentObjectAtlasName, "mountain") == 0) {
         return World::Mountain;
     } else if (strcmp(m_currentObjectAtlasName, "icon_building") == 0) {
         return World::Building;

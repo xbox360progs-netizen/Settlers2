@@ -15,6 +15,10 @@ struct SpriteRegion {
     float pivotX, pivotY;
     bool flipX, flipY;
     std::string name;
+    uint32_t collWidth;     // collider width in node-tiles (default 1)
+    uint32_t collHeight;    // collider height in node-tiles (default 1)
+    bool blocksMovement;    // whether the object blocks movement (default true)
+    bool isTrigger;         // whether it's a trigger (default false)
 };
 
 // SpriteAnimation structure for animation metadata

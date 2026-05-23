@@ -340,9 +340,9 @@ void LoadingScene::SetupLoadTasks()
     }, "Load Texture: Atlas icon_tree", 0.5f);
 
     AddLoadTask([this]() {
-        LoadAtlasOrTexture("icon_mountains", "game:\\Media\\Textures\\AtlasTextures\\icon_mountains.png");
+        LoadAtlasOrTexture("mountains", "game:\\Media\\Textures\\AtlasTextures\\mountains.png");
     }, "Load Texture: Atlas icon_mountains", 0.5f);
-
+/*
     AddLoadTask([this]() {
         LoadAtlasOrTexture("icon_mountains_water", "game:\\Media\\Textures\\AtlasTextures\\icon_mountains_water.png");
     }, "Load Texture: Atlas icon_mountains_water", 0.5f);
@@ -350,7 +350,7 @@ void LoadingScene::SetupLoadTasks()
     AddLoadTask([this]() {
         LoadAtlasOrTexture("icon_rocks", "game:\\Media\\Textures\\AtlasTextures\\icon_rocks.png");
     }, "Load Texture: Atlas icon_rocks", 0.5f);
-
+*/
     AddLoadTask([this]() {
         LoadAtlasOrTexture("icon_menu", "game:\\Media\\Textures\\AtlasTextures\\icon_menu.png");
     }, "Load Texture: Atlas icon_menu", 0.5f);

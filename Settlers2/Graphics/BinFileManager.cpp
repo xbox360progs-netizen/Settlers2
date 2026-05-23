@@ -497,6 +497,10 @@ bool BinFileManager::ParseMultiLevelAtlas(BYTE* buffer, DWORD bufferSize, Sprite
 
         reg.flipX = flipX;
         reg.flipY = flipY;
+        reg.collWidth = collWidth;
+        reg.collHeight = collHeight;
+        reg.blocksMovement = blocksMovement;
+        reg.isTrigger = isTrigger;
 
         // Add to atlas storage
         atlas->AddRegion(reg);
@@ -595,6 +599,10 @@ AtlasPtr BinFileManager::CreateAtlasFromSingleTexture(LPDIRECT3DDEVICE9 pDevice,
     region.u1 = 1.0f; region.v1 = 1.0f;
     region.pivotX = region.width * 0.5f; region.pivotY = region.height * 0.5f;
     region.flipX = false; region.flipY = false;
+    region.collWidth = 1;
+    region.collHeight = 1;
+    region.blocksMovement = true;
+    region.isTrigger = false;
 
     atlas->AddRegion(region);
 
@@ -717,6 +725,10 @@ bool BinFileManager::ParseAnimationAtlas(BYTE* buffer, DWORD bufferSize, SpriteA
 
         reg.flipX = false;
         reg.flipY = false;
+        reg.collWidth = 1;
+        reg.collHeight = 1;
+        reg.blocksMovement = true;
+        reg.isTrigger = false;
 
         // Add region to atlas
         uint32_t regionIndex = atlas->GetRegionCount();

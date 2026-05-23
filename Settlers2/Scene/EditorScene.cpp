@@ -24,9 +24,7 @@ namespace Scene {
 
 const char* EditorScene::kObjectAtlasNames[] = {
     "icon_tree",
-    "icon_mountains",
-    "icon_mountains_water",
-    "icon_rocks"
+    "mountains"
 };
 const int EditorScene::kObjectAtlasCount = 4;
 
@@ -599,7 +597,7 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
         D3DXMATRIX viewProj = m_camera->GetViewMatrix() * m_camera->GetProjectionMatrix();
         
         m_shaderManager->SetFrameViewProj(&viewProj);
-        OutputDebugStringA("[EditorScene::Render] SetFrameViewProj called with camera matrix\n");
+//        OutputDebugStringA("[EditorScene::Render] SetFrameViewProj called with camera matrix\n");
     }
 
     m_mapEditor->RenderGeometry();
