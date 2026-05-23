@@ -473,6 +473,7 @@ bool BinFileManager::ParseMultiLevelAtlas(BYTE* buffer, DWORD bufferSize, Sprite
             continue;
         }
 
+        // Default pivot 0xFFFF → center (width/2, height/2)
         if (pivotX == 0xFFFF) pivotX = width / 2;
         if (pivotY == 0xFFFF) pivotY = height / 2;
 
@@ -485,21 +486,14 @@ bool BinFileManager::ParseMultiLevelAtlas(BYTE* buffer, DWORD bufferSize, Sprite
         reg.name = spriteName;
         reg.width = width;
         reg.height = height;
+        reg.pivotX = (float)pivotX;
+        reg.pivotY = (float)pivotY;
 
         // UVs are pre-calculated in C# tool, assign them directly
         reg.u0 = uv_min_x;
         reg.v0 = uv_min_y;
         reg.u1 = uv_max_x;
         reg.v1 = uv_max_y;
-
-        // Convert pivot 0xFFFF to default (0,0)
-        if (pivotX == 0xFFFF || pivotY == 0xFFFF) {
-            reg.pivotX = 0.0f;
-            reg.pivotY = 0.0f;
-        } else {
-            reg.pivotX = (float)pivotX;
-            reg.pivotY = (float)pivotY;
-        }
 
         reg.flipX = flipX;
         reg.flipY = flipY;
@@ -599,7 +593,7 @@ AtlasPtr BinFileManager::CreateAtlasFromSingleTexture(LPDIRECT3DDEVICE9 pDevice,
     region.height = static_cast<float>(desc.Height);
     region.u0 = 0.0f; region.v0 = 0.0f;
     region.u1 = 1.0f; region.v1 = 1.0f;
-    region.pivotX = 0.0f; region.pivotY = 0.0f;
+    region.pivotX = region.width * 0.5f; region.pivotY = region.height * 0.5f;
     region.flipX = false; region.flipY = false;
 
     atlas->AddRegion(region);
@@ -700,13 +694,10 @@ bool BinFileManager::ParseAnimationAtlas(BYTE* buffer, DWORD bufferSize, SpriteA
         reg.width = w;
         reg.height = h;
 
-        if (px == 0xFFFF || py == 0xFFFF) {
-            reg.pivotX = 0.0f;
-            reg.pivotY = 0.0f;
-        } else {
-            reg.pivotX = (float)px;
-            reg.pivotY = (float)py;
-        }
+        if (px == 0xFFFF) px = w / 2;
+        if (py == 0xFFFF) py = h / 2;
+        reg.pivotX = (float)px;
+        reg.pivotY = (float)py;
 
         if (version >= 2) {
             if (pos + 16 > bufferSize) {

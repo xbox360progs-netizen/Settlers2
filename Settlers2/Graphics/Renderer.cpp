@@ -189,9 +189,7 @@ void Renderer::EndSceneOnly() {
 void Renderer::EndFrame() {
     if (!m_pDevice) return;
     m_pDevice->EndScene();
-    OutputDebugStringA("[Renderer::EndFrame] Calling Present...\n");
     m_pDevice->Present(NULL, NULL, NULL, NULL);
-    OutputDebugStringA("[Renderer::EndFrame] Present done\n");
 }
 
 void Renderer::Clear(D3DCOLOR color) {

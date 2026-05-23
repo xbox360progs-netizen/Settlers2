@@ -110,10 +110,6 @@ void BatchBuilder::BuildBatches(const RenderCommand* commands, uint32_t commandC
         currentBatch->indexCount += 6;
     }
 
-    char buf[256];
-    sprintf(buf, "[BatchBuilder] cmds=%u batches=%u verts=%u idx=%u\n",
-            commandCount, m_batchCount, m_vertexWritePos, m_indexWritePos);
-    ::OutputDebugStringA(buf);
 }
 
 void BatchBuilder::Clear() {

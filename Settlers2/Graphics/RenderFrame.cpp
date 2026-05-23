@@ -63,9 +63,6 @@ void RenderFrame::Execute() {
         cmdCount = m_renderQueue->GetCommandCount();
     }
 
-    sprintf(buf, "[RenderFrame] queue=%p cmdCount=%d\n", m_renderQueue, cmdCount);
-    ::OutputDebugStringA(buf);
-
     if (cmdCount > 0) {
         m_batchBuilder.BuildBatches(
             m_renderQueue->GetCommands(),
@@ -73,15 +70,8 @@ void RenderFrame::Execute() {
     }
 
     int batchCount = m_batchBuilder.GetBatchCount();
-    sprintf(buf, "[RenderFrame] batches=%d spriteRenderer=%p willCall=%d\n",
-            batchCount, m_spriteRenderer, (m_spriteRenderer && batchCount > 0) ? 1 : 0);
-    ::OutputDebugStringA(buf);
-
     if (m_spriteRenderer && batchCount > 0) {
-        ::OutputDebugStringA("[RenderFrame] Calling SpriteRenderer::Execute\n");
-        int result = m_spriteRenderer->Execute(m_batchBuilder);
-        sprintf(buf, "[RenderFrame] SpriteRenderer::Execute returned %d\n", result);
-        ::OutputDebugStringA(buf);
+        m_spriteRenderer->Execute(m_batchBuilder);
     }
 
     if (m_debugOverlay) {

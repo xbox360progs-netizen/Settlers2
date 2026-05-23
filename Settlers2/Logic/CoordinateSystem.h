@@ -33,10 +33,10 @@ public:
 
         float mapPixelW = m_groundW * m_tileW;
         float mapPixelH = m_groundH * m_tileH;
-        m_groundLeft = -mapPixelW * 0.5f;
-        m_groundTop = -mapPixelH * 0.5f;
-        m_groundRight = mapPixelW * 0.5f;
-        m_groundBottom = mapPixelH * 0.5f;
+        m_groundLeft = 0.0f;
+        m_groundTop = 0.0f;
+        m_groundRight = mapPixelW;
+        m_groundBottom = mapPixelH;
 
         // Layer 1 (Nodes) - half tiles, 2x denser
         m_nodeW = m_tileW * 0.5f;  // 119
@@ -119,6 +119,8 @@ public:
 
     int GetNodesWidth() const { return m_nodesW; }
     int GetNodesHeight() const { return m_nodesH; }
+    float GetNodeWidth() const { return m_nodeW; }
+    float GetNodeHeight() const { return m_nodeH; }
 
     // Get center of map
     void GetDiamondCenter(float& cx, float& cy) const {

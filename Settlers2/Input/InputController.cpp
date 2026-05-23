@@ -28,6 +28,11 @@ void InputController::Update()
     float stickX, stickY;
     m_gamepad->GetLeftStick(stickX, stickY);
 
+    // Apply deadzone: snap to center if within deadzone to prevent drift
+    const float deadzone = 0.15f;
+    if (fabsf(stickX) < deadzone) stickX = 0.0f;
+    if (fabsf(stickY) < deadzone) stickY = 0.0f;
+
     // Convert stick position to screen cursor position
     // Stick range: -1.0 to 1.0
     // Screen position: 0 to screenWidth/Height

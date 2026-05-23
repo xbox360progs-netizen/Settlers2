@@ -14,7 +14,11 @@ Map::Map(int groundWidth, int groundHeight, int otherWidth, int otherHeight)
     // Ground layer: 20x20
     m_layers[static_cast<int>(Ground)] = new TileLayer(Ground, groundWidth, groundHeight);
 
-    // Other layers: 40x40
+    // Node-based layers: 40x40 (staggered grid)
+    m_layers[static_cast<int>(Roads)] = new TileLayer(Roads, otherWidth, otherHeight);
+    m_layers[static_cast<int>(Nodes)] = new TileLayer(Nodes, otherWidth, otherHeight);
+    m_layers[static_cast<int>(Placement)] = new TileLayer(Placement, otherWidth, otherHeight);
+    m_layers[static_cast<int>(Resources)] = new TileLayer(Resources, otherWidth, otherHeight);
     m_layers[static_cast<int>(Objects)] = new TileLayer(Objects, otherWidth, otherHeight);
     m_layers[static_cast<int>(Overlay)] = new TileLayer(Overlay, otherWidth, otherHeight);
 
@@ -23,7 +27,7 @@ Map::Map(int groundWidth, int groundHeight, int otherWidth, int otherHeight)
     m_resourceMap.resize(resourceMapSize, World::ResourceNode());
 
     // Initialize weights to default (Land = 2)
-    InitializeWeights(Weight_Land);
+    InitializeWeights(Weight_Deep);
 }
 
 Map::~Map()
@@ -178,6 +182,8 @@ bool Map::GetTileUnderMouse(float screenX, float screenY, Camera* camera, LayerT
             // Get world position of this tile's center
             float tileCenterX, tileCenterY;
             coords.NodeTileToWorld(checkX, checkY, tileCenterX, tileCenterY);
+            tileCenterX += coords.GetNodeWidth() * 0.5f;
+            tileCenterY += coords.GetNodeHeight() * 0.5f;
 
             // Calculate distance from click point to tile center
             float distX = worldX - tileCenterX;
@@ -247,6 +253,8 @@ bool Map::GetTileAt(float worldX, float worldY, LayerType layer, int& tileX, int
             // Get world position of this tile's center
             float tileCenterX, tileCenterY;
             coords.NodeTileToWorld(checkX, checkY, tileCenterX, tileCenterY);
+            tileCenterX += coords.GetNodeWidth() * 0.5f;
+            tileCenterY += coords.GetNodeHeight() * 0.5f;
 
             // Calculate distance from point to tile center
             float distX = worldX - tileCenterX;

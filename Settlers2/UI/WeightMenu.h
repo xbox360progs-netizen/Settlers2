@@ -2,9 +2,9 @@
 
 #include "../World/ResourceNode.h"
 #include "../Graphics/SpriteRenderer.h"
+#include "../Graphics/RenderQueue.h"
 #include <d3dx9math.h>
 
-class Texture;
 class TextManager;
 
 using Graphics::SpriteRenderer;
@@ -16,26 +16,34 @@ public:
     WeightMenu();
     ~WeightMenu();
 
-    bool Initialize(Texture* background, Texture* dpadCross, SpriteRenderer* renderer, TextManager* textManager);
+    bool Initialize(SpriteRenderer* renderer, TextManager* textManager);
     void Update(float deltaTime);
     void Render();
-    void Open();
+    void Open(BYTE activeWeight);
     void Close();
     bool IsVisible() const { return m_isVisible; }
     BYTE GetSelectedWeight() const { return m_selectedWeight; }
+
+    void SetTextures(LPDIRECT3DTEXTURE9 background, LPDIRECT3DTEXTURE9 dpadCross);
+    void SetRenderQueue(Graphics::RenderQueue* renderQueue) { m_renderQueue = renderQueue; }
+    void SetTextureSlots(WORD bgSlot, WORD dpadSlot) { m_bgSlot = bgSlot; m_dpadSlot = dpadSlot; }
 
 private:
     bool m_isVisible;
     BYTE m_selectedWeight;
     float m_animationTime;
 
-    Texture* m_backgroundTexture;
-    Texture* m_dpadCrossTexture;
+    LPDIRECT3DTEXTURE9 m_backgroundTexture;
+    LPDIRECT3DTEXTURE9 m_dpadCrossTexture;
     SpriteRenderer* m_spriteRenderer;
     TextManager* m_textManager;
+    Graphics::RenderQueue* m_renderQueue;
 
     D3DXVECTOR2 m_position;
     float m_scale;
+
+    WORD m_bgSlot;
+    WORD m_dpadSlot;
 };
 
 } // namespace UI

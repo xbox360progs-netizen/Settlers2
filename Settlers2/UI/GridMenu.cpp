@@ -28,7 +28,7 @@ namespace
     }
 }
 
-const float GridMenu::kBaseCellSize = 80.0f;
+const float GridMenu::kBaseCellSize = 48.0f;
 const float GridMenu::kMenuScale = 1.2f;
 const int GridMenu::kGridCols = 4;
 const int GridMenu::kGridRows = 4;
@@ -47,8 +47,8 @@ GridMenu::GridMenu()
     , m_itemsPerPage(kItemsPerPage)
     , m_visible(false), m_selectionMade(false)
     , m_inputDelayTimer(0.0f)
-    , m_menuWidth(kGridCols * kBaseCellSize + 32.0f)
-    , m_menuHeight(kGridRows * kBaseCellSize + 64.0f)
+    , m_menuWidth(704.0f)
+    , m_menuHeight(768.0f)
     , m_cellWidth(kBaseCellSize)
     , m_cellHeight(kBaseCellSize)
     , m_screenX(0.0f), m_screenY(0.0f)
@@ -56,6 +56,9 @@ GridMenu::GridMenu()
     , m_atlasTotal(0)
     , m_windowSize(16)
     , m_windowStep(16)
+    , m_backgroundSlot(0)
+    , m_cellSlot(0)
+    , m_atlasSlot(0)
 {
 }
 
@@ -273,15 +276,15 @@ void GridMenu::UpdateFromStick(float stickX, float stickY)
         if (stickY < 0) {
             int row = m_selectedIndex / kGridCols;
             int col = m_selectedIndex % kGridCols;
-            if (row < kGridRows - 1) {
-                m_selectedIndex += kGridCols;
+            if (row > 0) {
+                m_selectedIndex -= kGridCols;
                 moved = true;
             }
         } else {
             int row = m_selectedIndex / kGridCols;
             int col = m_selectedIndex % kGridCols;
-            if (row > 0) {
-                m_selectedIndex -= kGridCols;
+            if (row < kGridRows - 1) {
+                m_selectedIndex += kGridCols;
                 moved = true;
             }
         }
@@ -380,8 +383,13 @@ void GridMenu::Render()
     float cellSpacing = (kBaseCellSize + 48.0f) * kMenuScale;
     int totalSprites = min((int)m_tileUVs.size(), kItemsPerPage);
 
-    sprintf(debugMsg, "[GridMenu::Render] menuDims=%.1fx%.1f, menuLeft=%.1f, menuTop=%.1f, cellSpacing=%.1f, totalSprites=%d\n",
-            m_menuWidth, m_menuHeight, menuLeft, menuTop, cellSpacing, totalSprites);
+    float gridWidth = (kGridCols - 1) * cellSpacing + (cellSpacing - 8.0f);
+    float gridHeight = (kGridRows - 1) * cellSpacing + (cellSpacing - 8.0f);
+    float gridOffsetX = (m_menuWidth - gridWidth) * 0.5f;
+    float gridOffsetY = (m_menuHeight - gridHeight) * 0.5f;
+
+    sprintf(debugMsg, "[GridMenu::Render] menuDims=%.1fx%.1f, menuLeft=%.1f, menuTop=%.1f, cellSpacing=%.1f, totalSprites=%d gridOff=%.1f,%.1f\n",
+            m_menuWidth, m_menuHeight, menuLeft, menuTop, cellSpacing, totalSprites, gridOffsetX, gridOffsetY);
     OutputDebugStringA(debugMsg);
 
     // 1. Background (menu_bd) - full menu area (depth=150, behind cells, UI layer)
@@ -396,11 +404,11 @@ void GridMenu::Render()
         cmd.u1 = 1.0f; cmd.v1 = 1.0f;
         cmd.color = 0xFFFFFFFF;
         cmd.shaderID = SHADER_UI;
-        cmd.textureID = 0;
+        cmd.textureID = m_backgroundSlot;
         cmd.blendMode = 1;
         cmd.layer = LAYER_UI;
         cmd.depth = 150;
-        cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, 0, 150);
+        cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, m_backgroundSlot, 150);
 
         m_renderQueue->Submit(cmd);
     } else {
@@ -415,8 +423,8 @@ void GridMenu::Render()
                 int localIndex = row * kGridCols + col;
                 if (localIndex >= totalSprites) continue;
 
-                float cellX = menuLeft + 16.0f + (col * cellSpacing);
-                float cellY = menuTop + 32.0f + (row * cellSpacing);
+                float cellX = menuLeft + gridOffsetX + (col * cellSpacing);
+                float cellY = menuTop + gridOffsetY + (row * cellSpacing);
 
                 Graphics::RenderCommand cmd = {};
                 cmd.x = cellX;
@@ -427,11 +435,11 @@ void GridMenu::Render()
                 cmd.u1 = 1.0f; cmd.v1 = 1.0f;
                 cmd.color = 0xFFFFFFFF;
                 cmd.shaderID = SHADER_UI;
-                cmd.textureID = 0;
+                cmd.textureID = m_cellSlot;
                 cmd.blendMode = 1;
                 cmd.layer = LAYER_UI;
                 cmd.depth = 120;
-                cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, 0, 120);
+                cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, m_cellSlot, 120);
 
                 m_renderQueue->Submit(cmd);
             }
@@ -448,8 +456,8 @@ void GridMenu::Render()
             int row = i / kGridCols;
             int col = i % kGridCols;
             const TileUV& tileUV = m_tileUVs[i];
-            float cellX = menuLeft + 16.0f + (col * cellSpacing);
-            float cellY = menuTop + 32.0f + (row * cellSpacing);
+            float cellX = menuLeft + gridOffsetX + (col * cellSpacing);
+            float cellY = menuTop + gridOffsetY + (row * cellSpacing);
 
             Graphics::RenderCommand cmd = {};
             cmd.x = cellX;
@@ -460,11 +468,11 @@ void GridMenu::Render()
             cmd.u1 = tileUV.u1; cmd.v1 = tileUV.v1;
             cmd.color = 0xFFFFFFFF;
             cmd.shaderID = SHADER_UI;
-            cmd.textureID = 0;
+            cmd.textureID = m_atlasSlot;
             cmd.blendMode = 1;
             cmd.layer = LAYER_UI;
             cmd.depth = 100;
-            cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, 0, 100);
+            cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, m_atlasSlot, 100);
 
             m_renderQueue->Submit(cmd);
         }
@@ -474,6 +482,75 @@ void GridMenu::Render()
         }
         if (m_tileUVs.empty()) {
             OutputDebugStringA("[GridMenu::Render] WARNING: No tile UVs available, skipping icons\n");
+        }
+    }
+
+    // 4. Selected cell highlight (depth=90, on top of everything else)
+    if (m_selectedIndex >= 0 && m_selectedIndex < totalSprites) {
+        int selRow = m_selectedIndex / kGridCols;
+        int selCol = m_selectedIndex % kGridCols;
+        float selX = menuLeft + gridOffsetX + (selCol * cellSpacing);
+        float selY = menuTop + gridOffsetY + (selRow * cellSpacing);
+
+        float highlightSize = cellSpacing + 4.0f;
+        float highlightOffset = (highlightSize - (cellSpacing - 8.0f)) * 0.5f;
+
+        Graphics::RenderCommand cmd = {};
+        cmd.x = selX - highlightOffset;
+        cmd.y = selY - highlightOffset;
+        cmd.width = highlightSize;
+        cmd.height = highlightSize;
+        cmd.u0 = 0.0f; cmd.v0 = 0.0f;
+        cmd.u1 = 1.0f; cmd.v1 = 1.0f;
+        cmd.color = 0xCCFFFF00;
+        cmd.shaderID = SHADER_UI;
+        cmd.textureID = m_cellSlot;
+        cmd.blendMode = 1;
+        cmd.layer = LAYER_UI;
+        cmd.depth = 90;
+        cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, m_cellSlot, 90);
+        m_renderQueue->Submit(cmd);
+
+        // White glow behind selected icon
+        if (m_selectedIndex < (int)m_tileUVs.size()) {
+            const TileUV& tileUV = m_tileUVs[m_selectedIndex];
+            float glowPad = 12.0f;
+            Graphics::RenderCommand glowCmd = {};
+            glowCmd.x = selX - glowPad;
+            glowCmd.y = selY - glowPad;
+            glowCmd.width = cellSpacing - 8.0f + glowPad * 2.0f;
+            glowCmd.height = cellSpacing - 8.0f + glowPad * 2.0f;
+            glowCmd.u0 = tileUV.u0; glowCmd.v0 = tileUV.v0;
+            glowCmd.u1 = tileUV.u1; glowCmd.v1 = tileUV.v1;
+            glowCmd.color = 0x60FFFFFF;
+            glowCmd.shaderID = SHADER_UI;
+            glowCmd.textureID = m_atlasSlot;
+            glowCmd.blendMode = 1;
+            glowCmd.layer = LAYER_UI;
+            glowCmd.depth = 85;
+            glowCmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, m_atlasSlot, 85);
+            m_renderQueue->Submit(glowCmd);
+        }
+
+        // Draw selected icon slightly larger on top
+        if (m_selectedIndex < (int)m_tileUVs.size()) {
+            const TileUV& tileUV = m_tileUVs[m_selectedIndex];
+            float iconPad = 8.0f;
+            Graphics::RenderCommand iconCmd = {};
+            iconCmd.x = selX - iconPad;
+            iconCmd.y = selY - iconPad;
+            iconCmd.width = cellSpacing - 8.0f + iconPad * 2.0f;
+            iconCmd.height = cellSpacing - 8.0f + iconPad * 2.0f;
+            iconCmd.u0 = tileUV.u0; iconCmd.v0 = tileUV.v0;
+            iconCmd.u1 = tileUV.u1; iconCmd.v1 = tileUV.v1;
+            iconCmd.color = 0xFFFFFFFF;
+            iconCmd.shaderID = SHADER_UI;
+            iconCmd.textureID = m_atlasSlot;
+            iconCmd.blendMode = 1;
+            iconCmd.layer = LAYER_UI;
+            iconCmd.depth = 80;
+            iconCmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, m_atlasSlot, 80);
+            m_renderQueue->Submit(iconCmd);
         }
     }
 }

@@ -71,6 +71,10 @@ private:
 
     void UpdateFromStick(float stickX, float stickY);
 
+    WORD m_backgroundSlot;
+    WORD m_cellSlot;
+    WORD m_atlasSlot;
+
 public:
     GridMenu();
     ~GridMenu();
@@ -91,6 +95,7 @@ public:
     void SetSpriteRenderer(SpriteRenderer* spriteRenderer);
     void SetRenderer(class Renderer* renderer);
     void SetRenderQueue(Graphics::RenderQueue* renderQueue) { m_renderQueue = renderQueue; }
+    void SetTextureSlots(WORD bgSlot, WORD cellSlot, WORD atlasSlot) { m_backgroundSlot = bgSlot; m_cellSlot = cellSlot; m_atlasSlot = atlasSlot; }
     // New convenience: set all textures in one call (background, cell background, atlas)
     void SetTextures(LPDIRECT3DTEXTURE9 backgroundTexture, LPDIRECT3DTEXTURE9 cellBackgroundTexture, LPDIRECT3DTEXTURE9 atlasTexture);
     // New paging controls for atlas window

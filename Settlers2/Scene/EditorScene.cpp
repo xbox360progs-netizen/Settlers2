@@ -16,6 +16,7 @@
 #include "../Editor/MapEditor.h"
 #include "../Graphics/SpriteAtlas.h"
 #include "../Graphics/TextureRegistry.h"
+#include "../Graphics/RenderLayers.h"
 #include <iostream>
 #include <cstdio>
 
@@ -140,13 +141,10 @@ void EditorScene::Load() {
         OutputDebugStringA("[EditorScene] InputController initialized\n");
     }
 
-    // Initialize WeightMenu for D-pad weight selection
     m_weightMenu = new UI::WeightMenu();
     if (m_weightMenu) {
-        // TODO: Load menu_background.png and dpad_cross.png textures
-        // For now, initialize with nullptr (textures can be loaded later)
-        m_weightMenu->Initialize(nullptr, nullptr, m_spriteRenderer, m_textManager);
-        OutputDebugStringA("[EditorScene] WeightMenu initialized\n");
+        m_weightMenu->Initialize(m_spriteRenderer, m_textManager);
+        OutputDebugStringA("[EditorScene] WeightMenu stub created (textures set later)\n");
     }
     
     // Create and initialize RadialMenu
@@ -203,11 +201,32 @@ void EditorScene::Load() {
               (void*)bgTexture, (void*)cellTexture, (void*)groundTexture, (void*)iconMenuTexture);
     OutputDebugStringA(logMsg);
 
+    // Register GridMenu textures in sprite slots
+    if (m_spriteRenderer) {
+        m_spriteRenderer->SetTextureSlot(6, bgTexture);
+        m_spriteRenderer->SetTextureSlot(7, cellTexture);
+        m_spriteRenderer->SetTextureSlot(8, groundTexture);
+        m_spriteRenderer->SetTextureSlot(9, groundTexture);
+    }
+
+    // Initialize WeightMenu textures
+    if (m_weightMenu) {
+        LPDIRECT3DTEXTURE9 dpadCrossTex = registry.getTextureOrLoad("dpad_cross");
+        m_weightMenu->SetTextureSlots(10, 11);
+        m_weightMenu->SetTextures(bgTexture, dpadCrossTex);
+        if (m_spriteRenderer) {
+            m_spriteRenderer->SetTextureSlot(10, bgTexture);
+            m_spriteRenderer->SetTextureSlot(11, dpadCrossTex);
+        }
+        OutputDebugStringA("[EditorScene] WeightMenu textures set\n");
+    }
+
     // Initialize GridMenu with textures
     if (!m_gridMenu && m_renderer) {
         m_gridMenu = new GridMenu();
         if (m_gridMenu->Initialize()) {
             m_gridMenu->SetTextures(bgTexture, cellTexture, groundTexture);
+            m_gridMenu->SetTextureSlots(6, 7, 8);
             
             // Build UVs from ground atlas if available
             if (groundAtlas) {
@@ -287,96 +306,114 @@ void EditorScene::Update(float deltaTime) {
 		}
 	}
 
-	// Toggle WeightMenu with LT in WEIGHTS mode
-	if (m_editorMode == MODE_WEIGHTS && gamepad->IsButtonPressed(Input::GP_LT)) {
-		if (m_weightMenu) {
-			if (m_weightMenuVisible) {
-				m_weightMenu->Close();
-				m_weightMenuVisible = false;
-			} else {
-				m_weightMenu->Open();
-				m_weightMenuVisible = true;
-			}
-		}
-	}
-
-	// Handle D-pad input for weight selection when menu is visible
+	// Handle D-pad input for weight selection when Nodes menu is visible
 	if (m_weightMenuVisible && m_weightMenu) {
+		bool selected = false;
 		if (gamepad->IsButtonPressed(Input::GP_DPadUp)) {
-			m_activeWeight = World::Weight_Block;  // 3
-			m_weightMenu->Close();
-			m_weightMenuVisible = false;
+			m_activeWeight = World::Weight_Block;
+			selected = true;
 		}
 		else if (gamepad->IsButtonPressed(Input::GP_DPadDown)) {
-			m_activeWeight = World::Weight_Deep;  // 0
-			m_weightMenu->Close();
-			m_weightMenuVisible = false;
+			m_activeWeight = World::Weight_Deep;
+			selected = true;
 		}
 		else if (gamepad->IsButtonPressed(Input::GP_DPadLeft)) {
-			m_activeWeight = World::Weight_Shallow;  // 1
-			m_weightMenu->Close();
-			m_weightMenuVisible = false;
+			m_activeWeight = World::Weight_Shallow;
+			selected = true;
 		}
 		else if (gamepad->IsButtonPressed(Input::GP_DPadRight)) {
-			m_activeWeight = World::Weight_Land;  // 2
+			m_activeWeight = World::Weight_Land;
+			selected = true;
+		}
+
+		if (selected) {
+			m_editorMode = MODE_WEIGHTS;
 			m_weightMenu->Close();
 			m_weightMenuVisible = false;
 		}
 	}
 
 	if (!menuActive && !m_weightMenuVisible) {
-		// Toggle GridMenu with RB
+		// Toggle GridMenu with RB (blocked for Nodes layer — WeightMenu used instead)
 		if (gamepad->IsButtonPressed(Input::GP_RB)) {
-			if (!m_gridMenu) {
-				m_gridMenu = new GridMenu();
-				if (m_gridMenu->Initialize()) {
-					// Load atlas based on current layer
-					if (m_currentLayer == World::Objects) {
-						m_objectAtlasIndex = 0;
-						LoadGridMenuAtlas(kObjectAtlasNames[m_objectAtlasIndex]);
+			if (m_currentLayer == World::Nodes) {
+				if (m_weightMenu) {
+					if (m_weightMenuVisible) {
+						m_weightMenu->Close();
+						m_weightMenuVisible = false;
 					} else {
-						LoadGridMenuAtlas("ground");
+						m_weightMenu->Open(m_activeWeight);
+						m_weightMenuVisible = true;
 					}
 				}
-				m_gridMenu->Show(640.0f, 360.0f);
+			} else {
+        if (!m_gridMenu) {
+                m_gridMenu = new GridMenu();
+                if (m_gridMenu->Initialize()) {
+                    m_gridMenu->SetTextureSlots(6, 7, 8);
+                    // Load atlas based on current layer
+                    if (m_currentLayer == World::Objects) {
+                        m_objectAtlasIndex = 0;
+                        LoadGridMenuAtlas(kObjectAtlasNames[m_objectAtlasIndex]);
+                        if (m_mapEditor) m_mapEditor->SetObjectAtlas(kObjectAtlasNames[m_objectAtlasIndex]);
+                    } else {
+                        LoadGridMenuAtlas("ground");
+                    }
+                }
+                m_gridMenu->Show(640.0f, 280.0f);
 			} else if (m_gridMenu->IsVisible()) {
 				m_gridMenu->Hide();
-			} else {
-				// Show GridMenu with appropriate atlas for current layer
-				if (m_currentLayer == World::Objects) {
-					LoadGridMenuAtlas(kObjectAtlasNames[m_objectAtlasIndex]);
-				} else {
-					LoadGridMenuAtlas("ground");
-				}
-				m_gridMenu->Show(640.0f, 360.0f);
-			}
+        } else {
+                // Show GridMenu with appropriate atlas for current layer
+                if (m_currentLayer == World::Objects) {
+                    LoadGridMenuAtlas(kObjectAtlasNames[m_objectAtlasIndex]);
+                    if (m_mapEditor) m_mapEditor->SetObjectAtlas(kObjectAtlasNames[m_objectAtlasIndex]);
+                } else {
+                    LoadGridMenuAtlas("ground");
+                }
+                m_gridMenu->Show(640.0f, 280.0f);
+            }
 		}
 	}
+	}
 
-	// Update InputController for world coordinate translation
+	// Update InputController for button events
 	if (m_inputController) {
 		m_inputController->Update();
-		
-		// Get world cursor position
-		float worldX, worldY;
-		m_inputController->GetWorldCursor(worldX, worldY);
-		
-		// Convert screen cursor position to tile selection
-		float screenX = (worldX + m_camera->GetPosX()) / m_camera->GetZoom();
-		float screenY = (worldY + m_camera->GetPosY()) / m_camera->GetZoom();
-		
-		// Get tile under cursor using Grid Picking
-		if (m_mapEditor && m_mapEditor->GetMap()) {
-			int tileX, tileY;
-			if (m_mapEditor->GetMap()->GetTileUnderMouse(screenX, screenY, m_camera, m_currentLayer, tileX, tileY)) {
-				m_selectedTileX = tileX;
-				m_selectedTileY = tileY;
-				m_hasSelection = true;
-				
-				// Update phantom tile position when in PLACING state
-				if (m_currentState == STATE_PLACING) {
-					m_phantomTileX = tileX;
-					m_phantomTileY = tileY;
+
+		// For MODE_WEIGHTS: compute tile at camera center (screen center), not from stick cursor
+		if (m_editorMode == MODE_WEIGHTS && !m_weightMenuVisible) {
+			float centerWorldX, centerWorldY;
+			m_camera->GetWorldCenter(centerWorldX, centerWorldY);
+
+			if (m_mapEditor && m_mapEditor->GetMap()) {
+				int tileX, tileY;
+				if (m_mapEditor->GetMap()->GetTileAt(centerWorldX, centerWorldY, m_currentLayer, tileX, tileY)) {
+					m_selectedTileX = tileX;
+					m_selectedTileY = tileY;
+					m_hasSelection = true;
+					float tileWorldX, tileWorldY;
+					CoordinateSystem::GetInstance().NodeTileToWorld(tileX, tileY, tileWorldX, tileWorldY);
+					char buf[256];
+					sprintf_s(buf, "[WEIGHT] Center world=(%.0f,%.0f) tile=(%d,%d) tileWorld=(%.0f,%.0f) layer=%d\n",
+						centerWorldX, centerWorldY, tileX, tileY, tileWorldX, tileWorldY, m_currentLayer);
+					OutputDebugStringA(buf);
+				}
+			}
+		} else {
+			// Get world cursor position from stick for object placement
+			float worldX, worldY;
+			m_inputController->GetWorldCursor(worldX, worldY);
+
+			// Get tile at world coordinates directly (no camera round-trip)
+			if (m_mapEditor && m_mapEditor->GetMap()) {
+				int tileX, tileY;
+				if (m_mapEditor->GetMap()->GetTileAt(worldX, worldY, m_currentLayer, tileX, tileY)) {
+					// Update phantom tile position when in PLACING state
+					if (m_currentState == STATE_PLACING) {
+						m_phantomTileX = tileX;
+						m_phantomTileY = tileY;
+					}
 				}
 			}
 		}
@@ -388,22 +425,12 @@ void EditorScene::Update(float deltaTime) {
 				// Handle weight painting in MODE_WEIGHTS
 				if (m_editorMode == MODE_WEIGHTS && !m_weightMenuVisible) {
 					if (m_inputController->IsButtonAPressed()) {
-						// Paint weight at cursor position using staggered grid math
-						float worldX, worldY;
-						m_inputController->GetWorldCursor(worldX, worldY);
-						
-						// Staggered grid calculation (40x40 Objects layer)
-						// Tile height = 72, Tile width = 119, Offset = 59.5
-						float row = worldY / 72.0f;
-						float offsetX = (fmodf(row, 2.0f) > 0.5f) ? 59.5f : 0.0f;
-						float col = (worldX - offsetX) / 119.0f;
-						
-						int tileX = static_cast<int>(col);
-						int tileY = static_cast<int>(row);
-						
-						// Set weight on the map
-						if (m_mapEditor && m_mapEditor->GetMap()) {
-							m_mapEditor->GetMap()->SetNodeWeight(tileX, tileY, m_activeWeight);
+						if (m_mapEditor && m_mapEditor->GetMap() && m_hasSelection) {
+							m_mapEditor->GetMap()->SetNodeWeight(m_selectedTileX, m_selectedTileY, m_activeWeight);
+							char buf[256];
+							sprintf_s(buf, "[WEIGHT] PAINT tile=(%d,%d) weight=%d\n",
+								m_selectedTileX, m_selectedTileY, m_activeWeight);
+							OutputDebugStringA(buf);
 						}
 					}
 				}
@@ -502,8 +529,9 @@ void EditorScene::Update(float deltaTime) {
             m_yButtonWasPressed = false;
         }
 
-        // Update map editor visibility based on current layer
+        // Update map editor visibility and layer sync
         if (m_mapEditor) {
+            m_mapEditor->SetLayer(m_currentLayer);
             switch (m_currentLayer) {
                 case World::Ground:
                     m_mapEditor->SetShowObjects(false);
@@ -525,6 +553,17 @@ void EditorScene::Update(float deltaTime) {
 
             if (m_currentLayer == World::Objects) {
                 m_mapEditor->SetObjectAtlas(kObjectAtlasNames[m_objectAtlasIndex]);
+            }
+        }
+
+        // Update sprite slot 8 with the active layer's atlas for preview
+        if (m_spriteRenderer) {
+            TextureRegistry& reg = TextureRegistry::instance();
+            const char* atlasName = (m_currentLayer == World::Objects)
+                ? kObjectAtlasNames[m_objectAtlasIndex] : "ground";
+            std::tr1::shared_ptr<SpriteAtlas> atlas = reg.getAtlas(atlasName);
+            if (atlas) {
+                m_spriteRenderer->SetTextureSlot(8, atlas->GetTexture());
             }
         }
     }
@@ -570,6 +609,65 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
         char fpsText[64];
         sprintf(fpsText, "FPS: %d", m_fps);
         m_textManager->DrawTextToScreen(fpsText, 10.0f, 10.0f, 0xFF00FF00, 0.25f);
+
+        static const char* layerNames[] = {
+            "Roads", "Nodes", "Placement", "Resources", "Ground", "Objects", "Overlay"
+        };
+        const char* layerName = "Unknown";
+        int layerIdx = static_cast<int>(m_currentLayer);
+        if (layerIdx >= 0 && layerIdx < 7) {
+            layerName = layerNames[layerIdx];
+        }
+        char layerText[64];
+        sprintf(layerText, "Layer: %s", layerName);
+        m_textManager->DrawTextToScreen(layerText, 1280.0f - 200.0f, 720.0f - 30.0f, 0xFFFFFFFF, 0.25f);
+    }
+
+    // Render GridMenu (submits to queue via renderQueue)
+    if (m_gridMenu) {
+        m_gridMenu->SetRenderQueue(renderQueue);
+        if (m_gridMenu->IsVisible()) {
+            m_gridMenu->Render();
+        }
+    }
+
+    // Render WeightMenu (submits to queue via renderQueue)
+    if (m_weightMenu) {
+        m_weightMenu->SetRenderQueue(renderQueue);
+        if (m_weightMenu->IsVisible()) {
+            m_weightMenu->Render();
+        }
+    }
+
+    // Active sprite preview in top-left corner
+    if (m_mapEditor && m_spriteRenderer && renderQueue) {
+        int tileIdx = m_mapEditor->GetCurrentTileIndex();
+        if (tileIdx >= 0) {
+            TextureRegistry& reg = TextureRegistry::instance();
+            const char* atlasName = (m_currentLayer == World::Objects)
+                ? kObjectAtlasNames[m_objectAtlasIndex] : "ground";
+            std::tr1::shared_ptr<SpriteAtlas> atlas = reg.getAtlas(atlasName);
+            if (atlas && tileIdx < (int)atlas->GetRegionCount()) {
+                const SpriteRegion* region = atlas->GetRegion(tileIdx);
+                if (region) {
+                    Graphics::RenderCommand cmd = {};
+                    cmd.x = 10.0f;
+                    cmd.y = 40.0f;
+                    cmd.width = 64.0f;
+                    cmd.height = 64.0f;
+                    cmd.u0 = region->u0; cmd.v0 = region->v0;
+                    cmd.u1 = region->u1; cmd.v1 = region->v1;
+                    cmd.color = 0xFFFFFFFF;
+                    cmd.shaderID = SHADER_UI;
+                    cmd.textureID = 8;
+                    cmd.blendMode = 1;
+                    cmd.layer = LAYER_UI;
+                    cmd.depth = 200;
+                    cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, 8, 200);
+                    renderQueue->Submit(cmd);
+                }
+            }
+        }
     }
 }
 
@@ -597,6 +695,11 @@ void EditorScene::BindGridMenuTextures(LPDIRECT3DTEXTURE9 bgTexture, LPDIRECT3DT
 {
     if (m_gridMenu) {
         m_gridMenu->SetTextures(bgTexture, cellTexture, atlasTexture);
+        if (m_spriteRenderer) {
+            m_spriteRenderer->SetTextureSlot(6, bgTexture);
+            m_spriteRenderer->SetTextureSlot(7, cellTexture);
+            m_spriteRenderer->SetTextureSlot(8, atlasTexture);
+        }
         OutputDebugStringA("[EditorScene] BindGridMenuTextures called\n");
     } else {
         OutputDebugStringA("[EditorScene] BindGridMenuTextures called but GridMenu not initialized\n");
@@ -614,6 +717,11 @@ void EditorScene::LoadGridMenuAtlas(const char* atlasName) {
         LPDIRECT3DTEXTURE9 cellTex = registry.getTextureOrLoad("menu_cell");
         m_gridMenu->SetTextures(bgTex, cellTex, atlasTex);
         m_gridMenu->SetIconAtlas(atlas);
+        if (m_spriteRenderer) {
+            m_spriteRenderer->SetTextureSlot(6, bgTex);
+            m_spriteRenderer->SetTextureSlot(7, cellTex);
+            m_spriteRenderer->SetTextureSlot(8, atlasTex);
+        }
 
         std::vector<GridMenu::TileUV> uvs;
         uvs.reserve(atlas->GetRegionCount());
