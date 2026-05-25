@@ -41,6 +41,8 @@ private:
     Graphics::RenderQueue* m_renderQueue;
     LPDIRECT3DTEXTURE9 m_cellBackgroundTexture;
 
+    TileUV m_backgroundUV;
+    TileUV m_cellUV;
     std::vector<int> m_spriteIndices;
     std::vector<TileUV> m_tileUVs;
     std::shared_ptr<SpriteAtlas> m_iconAtlas;
@@ -70,6 +72,7 @@ private:
     float m_screenY;
 
     void UpdateFromStick(float stickX, float stickY);
+    void UpdateTileUVsForCurrentPage();
 
     WORD m_backgroundSlot;
     WORD m_cellSlot;
@@ -96,6 +99,9 @@ public:
     void SetRenderer(class Renderer* renderer);
     void SetRenderQueue(Graphics::RenderQueue* renderQueue) { m_renderQueue = renderQueue; }
     void SetTextureSlots(WORD bgSlot, WORD cellSlot, WORD atlasSlot) { m_backgroundSlot = bgSlot; m_cellSlot = cellSlot; m_atlasSlot = atlasSlot; }
+    // Background/cell UV sub-rects (for atlas-based bg/cell sprites)
+    void SetBackgroundUV(const TileUV& uv) { m_backgroundUV = uv; }
+    void SetCellUV(const TileUV& uv) { m_cellUV = uv; }
     // New convenience: set all textures in one call (background, cell background, atlas)
     void SetTextures(LPDIRECT3DTEXTURE9 backgroundTexture, LPDIRECT3DTEXTURE9 cellBackgroundTexture, LPDIRECT3DTEXTURE9 atlasTexture);
     // New paging controls for atlas window
@@ -107,11 +113,17 @@ public:
     
     bool HasSelection() const { return m_selectionMade; }
     int GetSelectedSpriteIndex() const {
+        int globalIndex = m_currentPage * kItemsPerPage + m_selectedIndex;
+        if (globalIndex >= 0 && globalIndex < (int)m_spriteIndices.size()) {
+            return m_spriteIndices[globalIndex];
+        }
         if (m_selectedIndex >= 0 && m_selectedIndex < (int)m_tileUVs.size()) {
             return m_atlasStart + m_selectedIndex;
         }
         return -1;
     }
+    // Directly set tile UVs and global sprite indices for group-based loading
+    void SetTileData(const std::vector<TileUV>& uvs, const std::vector<int>& globalIndices);
     void ResetSelection();
     
     void NextPage();

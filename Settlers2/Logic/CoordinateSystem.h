@@ -38,11 +38,11 @@ public:
         m_groundRight = mapPixelW;
         m_groundBottom = mapPixelH;
 
-        // Layer 1 (Nodes) - half tiles, 2x denser
+        // Layer 1 (Nodes) - half tiles, 2x denser horizontally, 4x denser vertically
         m_nodeW = m_tileW * 0.5f;  // 119
         m_nodeH = m_tileH * 0.5f; // 74
         m_nodesW = m_groundW * 2;  // 40
-        m_nodesH = m_groundH * 2;    // 40
+        m_nodesH = m_groundH * 4;  // 80 (double Y rows because spacing is half)
     }
 
     void Initialize() {
@@ -81,20 +81,19 @@ public:
 
     // === LAYER 1: NODES (staggered grid) ===
 
-    // Node tile to world coords (staggered)
+    // Node tile to world coords (staggered, compact isometric)
     void NodeTileToWorld(int nx, int ny, float& wx, float& wy) const {
-        // Origin at left-top of ground layer
         float originX = m_groundLeft;
         float originY = m_groundTop;
 
-        // Staggered offset for odd rows
-        float offsetX = (ny % 2) * (m_nodeW * 0.5f);
+        // Even rows shifted right by half (59.5), odd rows not shifted
+        float offsetX = ((ny % 2) == 0) ? (m_nodeW * 0.5f) : 0.0f;
 
         wx = originX + nx * m_nodeW + offsetX;
-        wy = originY + ny * m_nodeH;
+        wy = originY + ny * (m_nodeH * 0.5f);
     }
 
-    // World coords to node tile (staggered)
+    // World coords to node tile (staggered, compact isometric)
     void WorldToNodeTile(float wx, float wy, int& nx, int& ny) const {
         float originX = m_groundLeft;
         float originY = m_groundTop;
@@ -102,11 +101,11 @@ public:
         float relX = wx - originX;
         float relY = wy - originY;
 
-        // Find row
-        ny = static_cast<int>(relY / m_nodeH);
+        // Find row using half-height spacing (37), with rounding to nearest cell
+        ny = static_cast<int>((relY + (m_nodeH * 0.25f)) / (m_nodeH * 0.5f));
 
-        // Find col with row offset
-        float offsetX = (ny % 2) * (m_nodeW * 0.5f);
+        // Even rows shift by half, odd rows don't
+        float offsetX = ((ny % 2) == 0) ? (m_nodeW * 0.5f) : 0.0f;
         nx = static_cast<int>((relX - offsetX) / m_nodeW);
     }
 
@@ -114,7 +113,7 @@ public:
         left = m_groundLeft;
         top = m_groundTop;
         right = m_groundLeft + m_nodesW * m_nodeW;
-        bottom = m_groundTop + m_nodesH * m_nodeH;
+        bottom = m_groundTop + m_nodesH * (m_nodeH * 0.5f);
     }
 
     int GetNodesWidth() const { return m_nodesW; }

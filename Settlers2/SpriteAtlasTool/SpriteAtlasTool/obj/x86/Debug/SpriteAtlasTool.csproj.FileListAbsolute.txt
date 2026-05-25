@@ -1,0 +1,17 @@
+C:\Users\Urfin Jus\Documents\SpriteAtlasTool\SpriteAtlasTool\obj\x86\Debug\SpriteAtlasTool.Form1.resources
+C:\Users\Urfin Jus\Documents\SpriteAtlasTool\SpriteAtlasTool\obj\x86\Debug\SpriteAtlasTool.Properties.Resources.resources
+C:\Users\Urfin Jus\Documents\SpriteAtlasTool\SpriteAtlasTool\obj\x86\Debug\SpriteAtlasTool.csproj.GenerateResource.Cache
+C:\Users\Urfin Jus\Documents\SpriteAtlasTool\SpriteAtlasTool\bin\Debug\SpriteAtlasTool.exe
+C:\Users\Urfin Jus\Documents\SpriteAtlasTool\SpriteAtlasTool\bin\Debug\SpriteAtlasTool.pdb
+C:\Users\Urfin Jus\Documents\SpriteAtlasTool\SpriteAtlasTool\obj\x86\Debug\SpriteAtlasTool.exe
+C:\Users\Urfin Jus\Documents\SpriteAtlasTool\SpriteAtlasTool\obj\x86\Debug\SpriteAtlasTool.pdb
+D:\development\Settlers2\Settlers2\SpriteAtlasTool\SpriteAtlasTool\bin\Debug\SpriteAtlasTool.exe
+D:\development\Settlers2\Settlers2\SpriteAtlasTool\SpriteAtlasTool\bin\Debug\SpriteAtlasTool.pdb
+D:\development\Settlers2\Settlers2\SpriteAtlasTool\SpriteAtlasTool\obj\x86\Debug\SpriteAtlasTool.csproj.AssemblyReference.cache
+D:\development\Settlers2\Settlers2\SpriteAtlasTool\SpriteAtlasTool\obj\x86\Debug\SpriteAtlasTool.EditCollisionForm.resources
+D:\development\Settlers2\Settlers2\SpriteAtlasTool\SpriteAtlasTool\obj\x86\Debug\SpriteAtlasTool.Form1.resources
+D:\development\Settlers2\Settlers2\SpriteAtlasTool\SpriteAtlasTool\obj\x86\Debug\SpriteAtlasTool.Properties.Resources.resources
+D:\development\Settlers2\Settlers2\SpriteAtlasTool\SpriteAtlasTool\obj\x86\Debug\SpriteAtlasTool.csproj.GenerateResource.cache
+D:\development\Settlers2\Settlers2\SpriteAtlasTool\SpriteAtlasTool\obj\x86\Debug\SpriteAtlasTool.csproj.CoreCompileInputs.cache
+D:\development\Settlers2\Settlers2\SpriteAtlasTool\SpriteAtlasTool\obj\x86\Debug\SpriteAtlasTool.exe
+D:\development\Settlers2\Settlers2\SpriteAtlasTool\SpriteAtlasTool\obj\x86\Debug\SpriteAtlasTool.pdb

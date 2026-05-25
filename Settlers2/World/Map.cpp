@@ -97,10 +97,10 @@ void Map::Resize(int width, int height)
         m_layers[static_cast<int>(Ground)]->Resize(20, 20);
     }
 
-    // Objects and Overlay are 40x40
+    // Objects and Overlay are 40x80 (denser grid)
     for (int i = 1; i < static_cast<int>(LayerCount); ++i) {
         if (m_layers[i]) {
-            m_layers[i]->Resize(40, 40);
+            m_layers[i]->Resize(m_width * 2, m_height * 4);
         }
     }
 }
@@ -157,7 +157,7 @@ bool Map::GetTileUnderMouse(float screenX, float screenY, Camera* camera, LayerT
 
     // Check bounds
     int layerWidth = (layer == Ground) ? m_width : m_width * 2;
-    int layerHeight = (layer == Ground) ? m_height : m_height * 2;
+    int layerHeight = (layer == Ground) ? m_height : m_height * 4;
     
     if (initialX < 0 || initialX >= layerWidth || initialY < 0 || initialY >= layerHeight) {
         return false;
@@ -228,7 +228,7 @@ bool Map::GetTileAt(float worldX, float worldY, LayerType layer, int& tileX, int
 
     // Check bounds
     int layerWidth = (layer == Ground) ? m_width : m_width * 2;
-    int layerHeight = (layer == Ground) ? m_height : m_height * 2;
+    int layerHeight = (layer == Ground) ? m_height : m_height * 4;
     
     if (initialX < 0 || initialX >= layerWidth || initialY < 0 || initialY >= layerHeight) {
         return false;
@@ -321,7 +321,7 @@ void Map::GetTilesInView(Camera* camera, LayerType layer, int& minX, int& minY, 
         
         // Clamp to layer bounds (40x40 for Objects/Overlay)
         int layerWidth = m_width * 2;
-        int layerHeight = m_height * 2;
+        int layerHeight = m_height * 4;
         minX = max(0, minX);
         minY = max(0, minY);
         maxX = min(layerWidth - 1, maxX);
@@ -339,7 +339,7 @@ void Map::GetTilesInView(Camera* camera, LayerType layer, int& minX, int& minY, 
 ResourceNode& Map::GetResourceNode(int x, int y)
 {
     int layerWidth = m_width * 2;  // Objects layer is 40x40
-    int layerHeight = m_height * 2;
+    int layerHeight = m_height * 4;
     
     if (x < 0 || x >= layerWidth || y < 0 || y >= layerHeight) {
         static ResourceNode invalidNode;
@@ -358,7 +358,7 @@ ResourceNode& Map::GetResourceNode(int x, int y)
 const ResourceNode& Map::GetResourceNode(int x, int y) const
 {
     int layerWidth = m_width * 2;  // Objects layer is 40x40
-    int layerHeight = m_height * 2;
+    int layerHeight = m_height * 4;
     
     if (x < 0 || x >= layerWidth || y < 0 || y >= layerHeight) {
         static ResourceNode invalidNode;
@@ -377,7 +377,7 @@ const ResourceNode& Map::GetResourceNode(int x, int y) const
 void Map::SetResourceNode(int x, int y, ResourceType type, int amount, bool isVisible)
 {
     int layerWidth = m_width * 2;  // Objects layer is 40x40
-    int layerHeight = m_height * 2;
+    int layerHeight = m_height * 4;
     
     if (x < 0 || x >= layerWidth || y < 0 || y >= layerHeight) {
         return;
@@ -401,8 +401,8 @@ void Map::ClearResources()
 // Weight management
 BYTE Map::GetNodeWeight(int x, int y) const
 {
-    int layerWidth = m_width * 2;  // Objects layer is 40x40
-    int layerHeight = m_height * 2;
+    int layerWidth = m_width * 2;   // 40
+    int layerHeight = m_height * 4; // 80 (double rows at half spacing)
     
     if (x < 0 || x >= layerWidth || y < 0 || y >= layerHeight) {
         return Weight_Land;  // Default to land if out of bounds
@@ -418,8 +418,8 @@ BYTE Map::GetNodeWeight(int x, int y) const
 
 void Map::SetNodeWeight(int x, int y, BYTE weight)
 {
-    int layerWidth = m_width * 2;  // Objects layer is 40x40
-    int layerHeight = m_height * 2;
+    int layerWidth = m_width * 2;   // 40
+    int layerHeight = m_height * 4; // 80
     
     if (x < 0 || x >= layerWidth || y < 0 || y >= layerHeight) {
         return;

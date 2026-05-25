@@ -37,7 +37,8 @@ enum EditorMode
 {
     MODE_TERRAIN = 0,
     MODE_WEIGHTS,
-    MODE_RESOURCES
+    MODE_RESOURCES,
+    MODE_PLACEMENT
 };
 
 class EditorScene : public Scene {
@@ -64,8 +65,11 @@ EditorScene();
     // Load an atlas by name into GridMenu (textures + UVs)
     void LoadGridMenuAtlas(const char* atlasName);
 
-    // Cycle through object atlases (icon_tree -> icon_mountains -> icon_mountains_water -> icon_rocks)
-    void CycleObjectAtlas();
+    // Load a maptiles group into GridMenu (filter sprites by group)
+    void LoadGridMenuGroup(const char* groupName);
+
+    // Cycle through maptiles groups for object placement
+    void CycleObjectGroup();
 
     Renderer* m_renderer;
     SpriteRenderer* m_spriteRenderer;
@@ -80,10 +84,10 @@ EditorScene();
     Editor::MapEditor* m_mapEditor;
     World::LayerType m_currentLayer;
 
-    // Object atlas cycling
-    static const char* kObjectAtlasNames[];
-    static const int kObjectAtlasCount;
-    int m_objectAtlasIndex;
+    // Object group cycling (maptiles groups)
+    static const char* kObjectGroupNames[];
+    static const int kObjectGroupCount;
+    int m_objectGroupIndex;
     bool m_yButtonWasPressed;
 
     // FPS counter
@@ -112,6 +116,7 @@ EditorScene();
 
     // Weight menu for D-pad weight selection
     UI::WeightMenu* m_weightMenu;
+    bool m_weightMenuPlacementMode;
 };
 
 } // namespace Scene

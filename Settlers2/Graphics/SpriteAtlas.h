@@ -17,6 +17,8 @@ struct SpriteRegion {
     std::string name;
     uint32_t collWidth;     // collider width in node-tiles (default 1)
     uint32_t collHeight;    // collider height in node-tiles (default 1)
+    int collOffX;           // collider X offset from cursor tile (0 = compute from pivot)
+    int collOffY;           // collider Y offset from cursor tile (0 = compute from pivot)
     bool blocksMovement;    // whether the object blocks movement (default true)
     bool isTrigger;         // whether it's a trigger (default false)
 };
@@ -69,9 +71,16 @@ public:
     const SpriteAnimation* GetAnimation(const char* animName) const;
     uint32_t GetAnimationCount() const { return (uint32_t)m_animations.size(); }
 
+    // Group support - groups map group name to list of sprite indices
+    void AddGroup(const std::string& name, const std::vector<uint32_t>& spriteIndices);
+    const std::vector<uint32_t>* GetGroup(const char* name) const;
+    std::vector<std::string> GetGroupNames() const;
+    uint32_t GetGroupCount() const { return (uint32_t)m_groups.size(); }
+
 private:
     std::map<std::string, uint32_t> m_nameToIndex; // For fast lookup by name
     std::vector<SpriteRegion> m_regions;           // Sprite regions
+    std::map<std::string, std::vector<uint32_t> > m_groups; // Group name → sprite indices
     std::map<std::string, SpriteAnimation> m_animations; // Animation metadata
     LPDIRECT3DTEXTURE9 m_pTexture;                // Tiled texture from XG
     uint32_t m_textureWidth;

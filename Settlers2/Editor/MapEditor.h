@@ -52,11 +52,13 @@ public:
     void SetBrushSize(BrushSize size) { m_brushSize = size; }
     void SetCurrentTileType(World::TileType type) { m_currentTileType = type; }
     void SetTileByIndex(int index);
-    void SetLayer(World::LayerType layer) { m_currentLayer = layer; m_placingTile = false; }
+    void SetLayer(World::LayerType layer) { m_currentLayer = layer; m_placingTile = false; m_currentTileIndex = -1; }
     void SetSpriteRenderer(SpriteRenderer* sr) { m_spriteRenderer = sr; }
     void SetCamera(Camera* pCamera) { m_pCamera = pCamera; }
     void SetRenderQueue(Graphics::RenderQueue* rq) { m_renderQueue = rq; }
-    void SetObjectAtlas(const char* name);
+    void SetObjectGroup(const char* groupName);
+    void SetPlacementOccupied(bool occupied) { m_placementOccupied = occupied; }
+    bool IsPlacementOccupied() const { return m_placementOccupied; }
     World::LayerType GetLayer() const { return m_currentLayer; }
 
     World::TileType GetCurrentTileType() const { return m_currentTileType; }
@@ -65,10 +67,14 @@ public:
 
     World::Map* GetMap() { return m_map; }
     const World::Map* GetMap() const { return m_map; }
+    int GetCursorTileX() const { return m_cursorTileX; }
+    int GetCursorTileY() const { return m_cursorTileY; }
 
     void PaintArea(int centerX, int centerY);
     void PaintTile(int x, int y);
     void PaintCurrentTile();
+    void DeleteObjectAt(int x, int y);
+    bool IsPlacementFootprintFree(int tx, int ty, const SpriteRegion* region) const;
 	bool CanPlaceObject(int x, int y, World::TileType objectType);
 
 	void MapEditor::SetShowObjects(bool show) { m_showObjects = show; }
@@ -116,10 +122,11 @@ World::Map* m_map;
     static const int GRID_WIDTH = 20;
     static const int GRID_HEIGHT = 20;
     static const int NODES_W = 40;
-    static const int NODES_H = 40;
+    static const int NODES_H = 80;
 
 private:
 	const char* m_currentObjectAtlasName;
+    const char* m_currentObjectGroupName;
 
     int m_hoveredTileX, m_hoveredTileY;
     int m_selectedTileX, m_selectedTileY;
@@ -128,8 +135,6 @@ private:
     LPDIRECT3DTEXTURE9 m_groundTexture;
     std::tr1::shared_ptr<SpriteAtlas> m_groundAtlas;
     std::tr1::shared_ptr<SpriteAtlas> m_objectAtlas;
-    LPDIRECT3DTEXTURE9 m_cursorTexture;
-    LPDIRECT3DTEXTURE9 m_isoCursorTexture;
     LPDIRECT3DTEXTURE9 m_dotTexture;
 
     int m_cursorTileX;
@@ -140,14 +145,16 @@ private:
     bool m_showOverlay;
     bool m_showNodes;
 
-    NodePos m_nodesCache[NODES_W][NODES_H];
-    NodePos m_groundCache[GRID_WIDTH][GRID_HEIGHT];
+    NodePos m_nodesCache[NODES_H][NODES_W];
+    NodePos m_groundCache[GRID_HEIGHT][GRID_WIDTH];
 
     void InitializeMap();
     void RenderActiveTile();
+    bool m_placementOccupied;
     void RenderGridLayer();
     void RenderCursor();
     void RenderWeightMap();
+    void ClearPlacementFootprint(int tx, int ty, World::TileLayer* objectsLayer);
 };
 
 } // namespace Editor

@@ -60,6 +60,8 @@ GridMenu::GridMenu()
     , m_cellSlot(0)
     , m_atlasSlot(0)
 {
+    m_backgroundUV.u0 = 0.0f; m_backgroundUV.v0 = 0.0f; m_backgroundUV.u1 = 1.0f; m_backgroundUV.v1 = 1.0f;
+    m_cellUV.u0 = 0.0f; m_cellUV.v0 = 0.0f; m_cellUV.u1 = 1.0f; m_cellUV.v1 = 1.0f;
 }
 
 GridMenu::~GridMenu()
@@ -185,6 +187,20 @@ void GridMenu::SetTextures(LPDIRECT3DTEXTURE9 backgroundTexture, LPDIRECT3DTEXTU
     if (m_atlasTexture) m_atlasTexture->AddRef();
 }
 
+void GridMenu::SetTileData(const std::vector<TileUV>& uvs, const std::vector<int>& globalIndices)
+{
+    m_allTileUVs = uvs;
+    m_spriteIndices = globalIndices;
+    m_atlasStart = 0;
+    m_atlasTotal = (int)uvs.size();
+    m_windowSize = kItemsPerPage;
+    m_currentPage = 0;
+    m_selectedIndex = 0;
+    m_totalPages = (m_atlasTotal + kItemsPerPage - 1) / kItemsPerPage;
+    if (m_totalPages < 1) m_totalPages = 1;
+    UpdateTileUVsForCurrentPage();
+}
+
 void GridMenu::SetAllTileUVs(const std::vector<TileUV>& allUVs)
 {
     m_allTileUVs = allUVs;
@@ -304,11 +320,23 @@ void GridMenu::UpdateFromStick(float stickX, float stickY)
     }
 }
 
+void GridMenu::UpdateTileUVsForCurrentPage()
+{
+    m_tileUVs.clear();
+    int start = m_currentPage * kItemsPerPage;
+    int end = start + kItemsPerPage;
+    if (end > m_atlasTotal) end = m_atlasTotal;
+    for (int i = start; i < end; ++i) {
+        m_tileUVs.push_back(m_allTileUVs[i]);
+    }
+}
+
 void GridMenu::NextPage()
 {
     if (m_currentPage < m_totalPages - 1) {
         m_currentPage++;
         m_selectedIndex = 0;
+        UpdateTileUVsForCurrentPage();
     }
 }
 
@@ -317,6 +345,7 @@ void GridMenu::PrevPage()
     if (m_currentPage > 0) {
         m_currentPage--;
         m_selectedIndex = 0;
+        UpdateTileUVsForCurrentPage();
     }
 }
 
@@ -324,8 +353,9 @@ void GridMenu::ConfirmSelection()
 {
     if (!m_visible) return;
 
-    if (m_selectedIndex >= 0 && m_selectedIndex < (int)m_spriteIndices.size()) {
-        m_selectedSpriteIndex = m_spriteIndices[m_selectedIndex];
+    int globalIndex = m_currentPage * kItemsPerPage + m_selectedIndex;
+    if (globalIndex >= 0 && globalIndex < (int)m_spriteIndices.size()) {
+        m_selectedSpriteIndex = m_spriteIndices[globalIndex];
         m_selectionMade = true;
     }
 }
@@ -380,19 +410,20 @@ void GridMenu::Render()
 
     float menuLeft = m_screenX - (m_menuWidth * 0.5f);
     float menuTop = m_screenY - (m_menuHeight * 0.5f);
-    float cellSpacing = (kBaseCellSize + 48.0f) * kMenuScale;
+    float cellSpacingX = 119.0f;
+    float cellSpacingY = 74.0f;
     int totalSprites = min((int)m_tileUVs.size(), kItemsPerPage);
 
-    float gridWidth = (kGridCols - 1) * cellSpacing + (cellSpacing - 8.0f);
-    float gridHeight = (kGridRows - 1) * cellSpacing + (cellSpacing - 8.0f);
+    float gridWidth = kGridCols * cellSpacingX;
+    float gridHeight = kGridRows * cellSpacingY;
     float gridOffsetX = (m_menuWidth - gridWidth) * 0.5f;
     float gridOffsetY = (m_menuHeight - gridHeight) * 0.5f;
 
-    sprintf(debugMsg, "[GridMenu::Render] menuDims=%.1fx%.1f, menuLeft=%.1f, menuTop=%.1f, cellSpacing=%.1f, totalSprites=%d gridOff=%.1f,%.1f\n",
-            m_menuWidth, m_menuHeight, menuLeft, menuTop, cellSpacing, totalSprites, gridOffsetX, gridOffsetY);
+    sprintf(debugMsg, "[GridMenu::Render] menuDims=%.1fx%.1f, menuLeft=%.1f, menuTop=%.1f, cellSpacingX=%.1f cellSpacingY=%.1f, totalSprites=%d gridOff=%.1f,%.1f\n",
+            m_menuWidth, m_menuHeight, menuLeft, menuTop, cellSpacingX, cellSpacingY, totalSprites, gridOffsetX, gridOffsetY);
     OutputDebugStringA(debugMsg);
 
-    // 1. Background (menu_bd) - full menu area (depth=150, behind cells, UI layer)
+    // 1. Background (menu_background_cell from maptiles) - full menu area (depth=150, behind cells, UI layer)
     if (m_backgroundTexture) {
         OutputDebugStringA("[GridMenu::Render] Submitting background command to queue\n");
         Graphics::RenderCommand cmd = {};
@@ -400,8 +431,8 @@ void GridMenu::Render()
         cmd.y = menuTop;
         cmd.width = m_menuWidth;
         cmd.height = m_menuHeight;
-        cmd.u0 = 0.0f; cmd.v0 = 0.0f;
-        cmd.u1 = 1.0f; cmd.v1 = 1.0f;
+        cmd.u0 = m_backgroundUV.u0; cmd.v0 = m_backgroundUV.v0;
+        cmd.u1 = m_backgroundUV.u1; cmd.v1 = m_backgroundUV.v1;
         cmd.color = 0xFFFFFFFF;
         cmd.shaderID = SHADER_UI;
         cmd.textureID = m_backgroundSlot;
@@ -415,7 +446,7 @@ void GridMenu::Render()
         OutputDebugStringA("[GridMenu::Render] WARNING: Background texture is NULL, skipping background render\n");
     }
 
-    // 2. Cell backgrounds (menu_cell) - 4x4 grid (depth=120, behind icons, UI layer)
+    // 2. Cell backgrounds (menu_cell from maptiles) - 4x4 grid (depth=120, behind icons, UI layer)
     if (m_cellBackgroundTexture) {
         OutputDebugStringA("[GridMenu::Render] Submitting cell background commands to queue\n");
         for (int row = 0; row < kGridRows; ++row) {
@@ -423,16 +454,16 @@ void GridMenu::Render()
                 int localIndex = row * kGridCols + col;
                 if (localIndex >= totalSprites) continue;
 
-                float cellX = menuLeft + gridOffsetX + (col * cellSpacing);
-                float cellY = menuTop + gridOffsetY + (row * cellSpacing);
+                float cellX = menuLeft + gridOffsetX + (col * cellSpacingX);
+                float cellY = menuTop + gridOffsetY + (row * cellSpacingY);
 
                 Graphics::RenderCommand cmd = {};
                 cmd.x = cellX;
                 cmd.y = cellY;
-                cmd.width = cellSpacing - 8.0f;
-                cmd.height = cellSpacing - 8.0f;
-                cmd.u0 = 0.0f; cmd.v0 = 0.0f;
-                cmd.u1 = 1.0f; cmd.v1 = 1.0f;
+                cmd.width = cellSpacingX - 2.0f;
+                cmd.height = cellSpacingY - 2.0f;
+                cmd.u0 = m_cellUV.u0; cmd.v0 = m_cellUV.v0;
+                cmd.u1 = m_cellUV.u1; cmd.v1 = m_cellUV.v1;
                 cmd.color = 0xFFFFFFFF;
                 cmd.shaderID = SHADER_UI;
                 cmd.textureID = m_cellSlot;
@@ -456,14 +487,14 @@ void GridMenu::Render()
             int row = i / kGridCols;
             int col = i % kGridCols;
             const TileUV& tileUV = m_tileUVs[i];
-            float cellX = menuLeft + gridOffsetX + (col * cellSpacing);
-            float cellY = menuTop + gridOffsetY + (row * cellSpacing);
+            float cellX = menuLeft + gridOffsetX + (col * cellSpacingX);
+            float cellY = menuTop + gridOffsetY + (row * cellSpacingY);
 
             Graphics::RenderCommand cmd = {};
             cmd.x = cellX;
             cmd.y = cellY;
-            cmd.width = cellSpacing - 8.0f;
-            cmd.height = cellSpacing - 8.0f;
+            cmd.width = cellSpacingX - 2.0f;
+            cmd.height = cellSpacingY - 2.0f;
             cmd.u0 = tileUV.u0; cmd.v0 = tileUV.v0;
             cmd.u1 = tileUV.u1; cmd.v1 = tileUV.v1;
             cmd.color = 0xFFFFFFFF;
@@ -489,19 +520,21 @@ void GridMenu::Render()
     if (m_selectedIndex >= 0 && m_selectedIndex < totalSprites) {
         int selRow = m_selectedIndex / kGridCols;
         int selCol = m_selectedIndex % kGridCols;
-        float selX = menuLeft + gridOffsetX + (selCol * cellSpacing);
-        float selY = menuTop + gridOffsetY + (selRow * cellSpacing);
+        float selX = menuLeft + gridOffsetX + (selCol * cellSpacingX);
+        float selY = menuTop + gridOffsetY + (selRow * cellSpacingY);
 
-        float highlightSize = cellSpacing + 4.0f;
-        float highlightOffset = (highlightSize - (cellSpacing - 8.0f)) * 0.5f;
+        float highlightSizeX = cellSpacingX + 2.0f;
+        float highlightSizeY = cellSpacingY + 2.0f;
+        float highlightOffsetX = (highlightSizeX - (cellSpacingX - 2.0f)) * 0.5f;
+        float highlightOffsetY = (highlightSizeY - (cellSpacingY - 2.0f)) * 0.5f;
 
         Graphics::RenderCommand cmd = {};
-        cmd.x = selX - highlightOffset;
-        cmd.y = selY - highlightOffset;
-        cmd.width = highlightSize;
-        cmd.height = highlightSize;
-        cmd.u0 = 0.0f; cmd.v0 = 0.0f;
-        cmd.u1 = 1.0f; cmd.v1 = 1.0f;
+        cmd.x = selX - highlightOffsetX;
+        cmd.y = selY - highlightOffsetY;
+        cmd.width = highlightSizeX;
+        cmd.height = highlightSizeY;
+        cmd.u0 = m_cellUV.u0; cmd.v0 = m_cellUV.v0;
+        cmd.u1 = m_cellUV.u1; cmd.v1 = m_cellUV.v1;
         cmd.color = 0xCCFFFF00;
         cmd.shaderID = SHADER_UI;
         cmd.textureID = m_cellSlot;
@@ -514,12 +547,13 @@ void GridMenu::Render()
         // White glow behind selected icon
         if (m_selectedIndex < (int)m_tileUVs.size()) {
             const TileUV& tileUV = m_tileUVs[m_selectedIndex];
-            float glowPad = 12.0f;
+            float glowPadX = 6.0f;
+            float glowPadY = 4.0f;
             Graphics::RenderCommand glowCmd = {};
-            glowCmd.x = selX - glowPad;
-            glowCmd.y = selY - glowPad;
-            glowCmd.width = cellSpacing - 8.0f + glowPad * 2.0f;
-            glowCmd.height = cellSpacing - 8.0f + glowPad * 2.0f;
+            glowCmd.x = selX - glowPadX;
+            glowCmd.y = selY - glowPadY;
+            glowCmd.width = cellSpacingX - 2.0f + glowPadX * 2.0f;
+            glowCmd.height = cellSpacingY - 2.0f + glowPadY * 2.0f;
             glowCmd.u0 = tileUV.u0; glowCmd.v0 = tileUV.v0;
             glowCmd.u1 = tileUV.u1; glowCmd.v1 = tileUV.v1;
             glowCmd.color = 0x60FFFFFF;
@@ -535,12 +569,13 @@ void GridMenu::Render()
         // Draw selected icon slightly larger on top
         if (m_selectedIndex < (int)m_tileUVs.size()) {
             const TileUV& tileUV = m_tileUVs[m_selectedIndex];
-            float iconPad = 8.0f;
+            float iconPadX = 4.0f;
+            float iconPadY = 2.0f;
             Graphics::RenderCommand iconCmd = {};
-            iconCmd.x = selX - iconPad;
-            iconCmd.y = selY - iconPad;
-            iconCmd.width = cellSpacing - 8.0f + iconPad * 2.0f;
-            iconCmd.height = cellSpacing - 8.0f + iconPad * 2.0f;
+            iconCmd.x = selX - iconPadX;
+            iconCmd.y = selY - iconPadY;
+            iconCmd.width = cellSpacingX - 2.0f + iconPadX * 2.0f;
+            iconCmd.height = cellSpacingY - 2.0f + iconPadY * 2.0f;
             iconCmd.u0 = tileUV.u0; iconCmd.v0 = tileUV.v0;
             iconCmd.u1 = tileUV.u1; iconCmd.v1 = tileUV.v1;
             iconCmd.color = 0xFFFFFFFF;

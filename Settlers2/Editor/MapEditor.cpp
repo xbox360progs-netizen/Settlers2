@@ -39,8 +39,6 @@ MapEditor::MapEditor()
     , m_isDragging(false)
     , m_groundTexture(0)
     , m_groundAtlas(0)
-    , m_cursorTexture(0)
-    , m_isoCursorTexture(0)  
     , m_dotTexture(0)
     , m_cursorTileX(0)
     , m_cursorTileY(0)
@@ -48,8 +46,10 @@ MapEditor::MapEditor()
 	, m_showObjects(true)
     , m_showOverlay(true)
 , m_showNodes(true)
- 	, m_currentObjectAtlasName("icon_tree")
+ 	, m_currentObjectAtlasName("maptiles")
+    , m_currentObjectGroupName("Tree")
     , m_pCamera(nullptr)
+    , m_placementOccupied(true)
 {
 }
 
@@ -92,21 +92,9 @@ void MapEditor::Initialize(World::Map* map, Renderer* renderer,
     TextureRegistry& registry = TextureRegistry::instance();
     m_groundTexture = registry.getTextureOrLoad("ground");
     m_groundAtlas   = registry.getAtlas("ground");
-    m_objectAtlas   = registry.getAtlas("icon_tree");
-    m_cursorTexture = registry.getTextureOrLoad("editor_background");
-    m_isoCursorTexture = registry.getTextureOrLoad("cursor");
-
-    if (m_spriteRenderer && m_cursorTexture) {
-        m_spriteRenderer->SetTextureSlot(3, m_cursorTexture);
-    }
-    if (m_spriteRenderer && m_isoCursorTexture) {
-        m_spriteRenderer->SetTextureSlot(4, m_isoCursorTexture);
-    }
+    m_objectAtlas   = registry.getAtlas("maptiles");
     if (m_spriteRenderer && m_objectAtlas) {
         m_spriteRenderer->SetTextureSlot(9, m_objectAtlas->GetTexture());
-    }
-    if (m_spriteRenderer && m_dotTexture) {
-        m_spriteRenderer->SetTextureSlot(2, m_dotTexture);
     }
 
     // Создаём простую белую точку для весовой карты (используется в RenderWeightMap)
@@ -121,6 +109,9 @@ void MapEditor::Initialize(World::Map* map, Renderer* renderer,
             m_dotTexture->LockRect(0, &lockRect, nullptr, 0);
             *(DWORD*)lockRect.pBits = D3DCOLOR_ARGB(255, 255, 255, 255);
             m_dotTexture->UnlockRect(0);
+        }
+        if (m_spriteRenderer) {
+            m_spriteRenderer->SetTextureSlot(2, m_dotTexture);
         }
     }
 
@@ -462,23 +453,27 @@ void MapEditor::RenderGridLayer() {
     if (m_currentLayer == World::Overlay) {
         World::TileLayer* overlayLayer = m_map->GetLayer(World::Overlay);
         if (overlayLayer) {
+            CoordinateSystem& coords = CoordinateSystem::GetInstance();
+            float dotW = coords.GetNodeWidth() * 0.25f;
+            float dotH = coords.GetNodeHeight() * 0.25f;
+
             for (int y = 0; y < overlayLayer->GetHeight(); ++y) {
                 for (int x = 0; x < overlayLayer->GetWidth(); ++x) {
                     const World::Tile& tile = overlayLayer->GetTile(x, y);
 
                     float wx, wy;
-                    CoordinateSystem::GetInstance().NodeTileToWorld(x, y, wx, wy);
+                    coords.NodeTileToWorld(x, y, wx, wy);
 
                     bool hasOverlay = (tile.u1 > tile.u0 && tile.v1 > tile.v0);
                     DWORD dotColor = hasOverlay
-                        ? D3DCOLOR_ARGB(255, 50, 200, 50)
-                        : D3DCOLOR_ARGB(255, 100, 100, 100);
+                        ? D3DCOLOR_ARGB(180, 50, 200, 50)
+                        : D3DCOLOR_ARGB(120, 100, 100, 100);
 
                     Graphics::RenderCommand cmd = {};
-                    cmd.x = wx;
-                    cmd.y = wy;
-                    cmd.width = 8.0f;
-                    cmd.height = 8.0f;
+                    cmd.x = wx - dotW * 0.5f;
+                    cmd.y = wy - dotH * 0.5f;
+                    cmd.width = dotW;
+                    cmd.height = dotH;
                     cmd.u0 = 0.0f;
                     cmd.v0 = 0.0f;
                     cmd.u1 = 1.0f;
@@ -486,7 +481,7 @@ void MapEditor::RenderGridLayer() {
                     cmd.color = dotColor;
                     cmd.textureID = 2;
                     cmd.shaderID = SHADER_TERRAIN;
-                    cmd.blendMode = 0;
+                    cmd.blendMode = 1;
                     cmd.layer = 0;
                     cmd.depth = static_cast<WORD>(0.97f * 65535.0f);
                     m_renderQueue->Submit(cmd);
@@ -500,6 +495,8 @@ void MapEditor::RenderGridLayer() {
         World::TileLayer* objectsLayer = m_map->GetLayer(World::Objects);
         if (placementLayer) {
             CoordinateSystem& coords = CoordinateSystem::GetInstance();
+            float dotW = coords.GetNodeWidth() * 0.25f;
+            float dotH = coords.GetNodeHeight() * 0.25f;
 
             for (int y = 0; y < NODES_H; ++y) {
                 for (int x = 0; x < NODES_W; ++x) {
@@ -516,14 +513,14 @@ void MapEditor::RenderGridLayer() {
                         hasObject = (pt.regionIndex >= 0);
                     }
                     DWORD dotColor = hasObject
-                        ? D3DCOLOR_ARGB(255, 255, 50, 50)
-                        : D3DCOLOR_ARGB(255, 100, 100, 100);
+                        ? D3DCOLOR_ARGB(180, 255, 50, 50)
+                        : D3DCOLOR_ARGB(120, 100, 100, 100);
 
                     Graphics::RenderCommand cmd = {};
-                    cmd.x = wx;
-                    cmd.y = wy;
-                    cmd.width = 8.0f;
-                    cmd.height = 8.0f;
+                    cmd.x = wx - dotW * 0.5f;
+                    cmd.y = wy - dotH * 0.5f;
+                    cmd.width = dotW;
+                    cmd.height = dotH;
                     cmd.u0 = 0.0f;
                     cmd.v0 = 0.0f;
                     cmd.u1 = 1.0f;
@@ -531,7 +528,7 @@ void MapEditor::RenderGridLayer() {
                     cmd.color = dotColor;
                     cmd.textureID = 2;
                     cmd.shaderID = SHADER_TERRAIN;
-                    cmd.blendMode = 0;
+                    cmd.blendMode = 1;
                     cmd.layer = 0;
                     cmd.depth = static_cast<WORD>(0.97f * 65535.0f);
                     m_renderQueue->Submit(cmd);
@@ -543,23 +540,27 @@ void MapEditor::RenderGridLayer() {
     if (m_currentLayer == World::Resources) {
         World::TileLayer* resourcesLayer = m_map->GetLayer(World::Resources);
         if (resourcesLayer) {
+            CoordinateSystem& coords = CoordinateSystem::GetInstance();
+            float dotW = coords.GetNodeWidth() * 0.25f;
+            float dotH = coords.GetNodeHeight() * 0.25f;
+
             for (int y = 0; y < NODES_H; ++y) {
                 for (int x = 0; x < NODES_W; ++x) {
                     const World::Tile& tile = resourcesLayer->GetTile(x, y);
 
                     float wx, wy;
-                    CoordinateSystem::GetInstance().NodeTileToWorld(x, y, wx, wy);
+                    coords.NodeTileToWorld(x, y, wx, wy);
 
                     bool occupied = (tile.u1 > tile.u0 && tile.v1 > tile.v0);
                     DWORD dotColor = occupied
-                        ? D3DCOLOR_ARGB(255, 255, 200, 50)
-                        : D3DCOLOR_ARGB(255, 100, 100, 100);
+                        ? D3DCOLOR_ARGB(180, 255, 200, 50)
+                        : D3DCOLOR_ARGB(120, 100, 100, 100);
 
                     Graphics::RenderCommand cmd = {};
-                    cmd.x = wx;
-                    cmd.y = wy;
-                    cmd.width = 8.0f;
-                    cmd.height = 8.0f;
+                    cmd.x = wx - dotW * 0.5f;
+                    cmd.y = wy - dotH * 0.5f;
+                    cmd.width = dotW;
+                    cmd.height = dotH;
                     cmd.u0 = 0.0f;
                     cmd.v0 = 0.0f;
                     cmd.u1 = 1.0f;
@@ -567,7 +568,7 @@ void MapEditor::RenderGridLayer() {
                     cmd.color = dotColor;
                     cmd.textureID = 2;
                     cmd.shaderID = SHADER_TERRAIN;
-                    cmd.blendMode = 0;
+                    cmd.blendMode = 1;
                     cmd.layer = 0;
                     cmd.depth = static_cast<WORD>(0.97f * 65535.0f);
                     m_renderQueue->Submit(cmd);
@@ -579,23 +580,27 @@ void MapEditor::RenderGridLayer() {
     if (m_currentLayer == World::Roads) {
         World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
         if (roadsLayer) {
+            CoordinateSystem& coords = CoordinateSystem::GetInstance();
+            float dotW = coords.GetNodeWidth() * 0.25f;
+            float dotH = coords.GetNodeHeight() * 0.25f;
+
             for (int y = 0; y < NODES_H; ++y) {
                 for (int x = 0; x < NODES_W; ++x) {
                     const World::Tile& tile = roadsLayer->GetTile(x, y);
 
                     float wx, wy;
-                    CoordinateSystem::GetInstance().NodeTileToWorld(x, y, wx, wy);
+                    coords.NodeTileToWorld(x, y, wx, wy);
 
                     bool occupied = (tile.u1 > tile.u0 && tile.v1 > tile.v0);
                     DWORD dotColor = occupied
-                        ? D3DCOLOR_ARGB(255, 50, 100, 255)
-                        : D3DCOLOR_ARGB(255, 100, 100, 100);
+                        ? D3DCOLOR_ARGB(180, 50, 100, 255)
+                        : D3DCOLOR_ARGB(120, 100, 100, 100);
 
                     Graphics::RenderCommand cmd = {};
-                    cmd.x = wx;
-                    cmd.y = wy;
-                    cmd.width = 8.0f;
-                    cmd.height = 8.0f;
+                    cmd.x = wx - dotW * 0.5f;
+                    cmd.y = wy - dotH * 0.5f;
+                    cmd.width = dotW;
+                    cmd.height = dotH;
                     cmd.u0 = 0.0f;
                     cmd.v0 = 0.0f;
                     cmd.u1 = 1.0f;
@@ -603,7 +608,7 @@ void MapEditor::RenderGridLayer() {
                     cmd.color = dotColor;
                     cmd.textureID = 2;
                     cmd.shaderID = SHADER_TERRAIN;
-                    cmd.blendMode = 0;
+                    cmd.blendMode = 1;
                     cmd.layer = 0;
                     cmd.depth = static_cast<WORD>(0.97f * 65535.0f);
                     m_renderQueue->Submit(cmd);
@@ -612,7 +617,7 @@ void MapEditor::RenderGridLayer() {
         }
     }
 
-    if (m_currentLayer == World::Objects) {
+    {
         World::TileLayer* objectsLayer = m_map->GetLayer(World::Objects);
         if (objectsLayer && m_objectAtlas) {
             CoordinateSystem& coords = CoordinateSystem::GetInstance();
@@ -685,8 +690,17 @@ void MapEditor::RenderGridLayer() {
 void MapEditor::RenderCursor() {
     if (!m_renderQueue || !m_groundAtlas) return;
 
-    LPDIRECT3DTEXTURE9 cursorTex = (m_currentLayer == World::Ground) ? m_cursorTexture : m_isoCursorTexture;
-    if (!cursorTex) return;
+    LPDIRECT3DTEXTURE9 maptilesTex = m_objectAtlas ? m_objectAtlas->GetTexture() : NULL;
+    if (!maptilesTex) return;
+
+    const char* cursorName = (m_currentLayer == World::Ground) ? "background_cursor_red" : "street_PathCursor";
+    uint32_t cursorIdx = m_objectAtlas ? m_objectAtlas->GetIndex(cursorName) : 0xFFFFFFFF;
+    const SpriteRegion* cursorRegion = (cursorIdx != 0xFFFFFFFF && m_objectAtlas) ? m_objectAtlas->GetRegion(cursorIdx) : NULL;
+    float u0 = 0.0f, v0 = 0.0f, u1 = 1.0f, v1 = 1.0f;
+    if (cursorRegion) {
+        u0 = cursorRegion->u0; v0 = cursorRegion->v0;
+        u1 = cursorRegion->u1; v1 = cursorRegion->v1;
+    }
 
     const SpriteRegion* firstRegion = m_groundAtlas->GetRegion(0);
     if (!firstRegion) return;
@@ -711,12 +725,12 @@ void MapEditor::RenderCursor() {
     cmd.y = cursorWorldY;
     cmd.width = cursorW;
     cmd.height = cursorH;
-    cmd.u0 = 0.0f;
-    cmd.v0 = 0.0f;
-    cmd.u1 = 1.0f;
-    cmd.v1 = 1.0f;
+    cmd.u0 = u0;
+    cmd.v0 = v0;
+    cmd.u1 = u1;
+    cmd.v1 = v1;
     cmd.color = 0xFFFFFFFF;
-    cmd.textureID = (m_currentLayer == World::Ground) ? 3 : 4;
+    cmd.textureID = 9;
     cmd.shaderID = SHADER_TERRAIN;
     cmd.blendMode = 1;
     cmd.layer = 0;
@@ -729,19 +743,72 @@ void MapEditor::SetTileByIndex(int index) {
     m_placingTile = true;
 }
 
-void MapEditor::SetObjectAtlas(const char* name) {
-    if (name) {
-        m_currentObjectAtlasName = name; 
+void MapEditor::SetObjectGroup(const char* groupName) {
+    if (groupName) {
+        m_currentObjectGroupName = groupName;
+        m_currentObjectAtlasName = "maptiles";
         TextureRegistry& registry = TextureRegistry::instance();
-        m_objectAtlas = registry.getAtlas(name);
+        m_objectAtlas = registry.getAtlas("maptiles");
         if (m_spriteRenderer && m_objectAtlas) {
             m_spriteRenderer->SetTextureSlot(9, m_objectAtlas->GetTexture());
+        }
+        char buf[128];
+        sprintf_s(buf, "[MapEditor] SetObjectGroup: '%s'\n", groupName);
+        OutputDebugStringA(buf);
+    }
+}
+
+void MapEditor::ClearPlacementFootprint(int tx, int ty, World::TileLayer* objectsLayer) {
+    World::TileLayer* placementLayer = m_map->GetLayer(World::Placement);
+    if (!placementLayer || !objectsLayer) return;
+
+    const World::Tile& oldTile = objectsLayer->GetTile(tx, ty);
+    if (oldTile.regionIndex < 0) return;
+
+    uint32_t oldCollW = 1, oldCollH = 1;
+    int offX = 0, offY = 0;
+    if (!oldTile.atlasName.empty()) {
+        std::tr1::shared_ptr<SpriteAtlas> atlas = TextureRegistry::instance().getAtlas(oldTile.atlasName);
+        if (atlas.get()) {
+            const SpriteRegion* oldRegion = atlas->GetRegion(oldTile.regionIndex);
+            if (oldRegion) {
+                oldCollW = oldRegion->collWidth;
+                oldCollH = oldRegion->collHeight;
+                CoordinateSystem& coords = CoordinateSystem::GetInstance();
+                if (oldRegion->collOffX != 0 || oldRegion->collOffY != 0) {
+                    offX = oldRegion->collOffX;
+                    offY = oldRegion->collOffY;
+                } else {
+                    float pivotDX = oldRegion->pivotX - oldRegion->width * 0.5f;
+                    float pivotDY = oldRegion->pivotY - oldRegion->height * 0.5f;
+                    offX = -(int)(pivotDX / coords.GetNodeWidth());
+                    offY = -(int)(pivotDY / coords.GetNodeHeight());
+                }
+            }
+        }
+    }
+
+    int pw = placementLayer->GetWidth();
+    int ph = placementLayer->GetHeight();
+    for (uint32_t dy = 0; dy < oldCollH; ++dy) {
+        for (uint32_t dx = 0; dx < oldCollW; ++dx) {
+            int fx = tx + offX + (int)dx;
+            int fy = ty + offY + (int)dy;
+            if (fx >= 0 && fx < pw && fy >= 0 && fy < ph) {
+                World::Tile& pt = placementLayer->GetTile(fx, fy);
+                pt.regionIndex = -1;
+                pt.type = World::None;
+                pt.atlasName.clear();
+                pt.walkable = true;
+                pt.buildable = true;
+            }
         }
     }
 }
 
 void MapEditor::PaintCurrentTile() {
-    if (!m_map || m_currentTileIndex < 0) return;
+    if (!m_map) return;
+    if (m_currentTileIndex < 0 && m_currentLayer != World::Placement) return;
 
     World::TileLayer* layer = m_map->GetLayer(m_currentLayer);
     if (!layer) return;
@@ -751,21 +818,63 @@ void MapEditor::PaintCurrentTile() {
 
     if (tileX < 0 || tileX >= layer->GetWidth() || tileY < 0 || tileY >= layer->GetHeight()) return;
 
+    // Erase mode: clear object and its Placement footprint
+    if (m_currentMode == EditMode_Erase && m_currentLayer == World::Objects) {
+        World::TileLayer* objectsLayer = m_map->GetLayer(World::Objects);
+        if (objectsLayer) {
+            const World::Tile& oldTile = objectsLayer->GetTile(tileX, tileY);
+            if (oldTile.regionIndex >= 0) {
+                ClearPlacementFootprint(tileX, tileY, objectsLayer);
+            }
+            World::Tile& eraseTile = objectsLayer->GetTile(tileX, tileY);
+            eraseTile = World::Tile();
+        }
+        return;
+    }
+
     World::Tile& tile = layer->GetTile(tileX, tileY);
 
     if (m_currentLayer == World::Objects) {
+        // Clear old placement footprint if tile already has an object
+        World::TileLayer* objectsLayer = m_map->GetLayer(World::Objects);
+        if (objectsLayer) {
+            const World::Tile& oldTile = objectsLayer->GetTile(tileX, tileY);
+            if (oldTile.regionIndex >= 0) {
+                ClearPlacementFootprint(tileX, tileY, objectsLayer);
+            }
+        }
+
         if (!m_objectAtlas) return;
         if (m_currentTileIndex >= (int)m_objectAtlas->GetRegionCount()) return;
         const SpriteRegion* region = m_objectAtlas->GetRegion(m_currentTileIndex);
         if (!region) return;
+
+        // Check occupancy: if ANY tile in the collision footprint is occupied, deny placement
+        if (!IsPlacementFootprintFree(tileX, tileY, region)) {
+            return;
+        }
+
         tile.u0 = region->u0;
         tile.v0 = region->v0;
         tile.u1 = region->u1;
         tile.v1 = region->v1;
         tile.regionIndex = m_currentTileIndex;
         tile.type = GetObjectTypeByIndex(m_currentTileIndex);
-        tile.atlasName = m_currentObjectAtlasName;
+        tile.atlasName = "maptiles";
         tile.walkable = !region->blocksMovement;
+
+        // Collision tile offset: use stored collOffX/collOffY if set, else compute from pivot
+        CoordinateSystem& coords = CoordinateSystem::GetInstance();
+        int offX, offY;
+        if (region->collOffX != 0 || region->collOffY != 0) {
+            offX = region->collOffX;
+            offY = region->collOffY;
+        } else {
+            float pivotDX = region->pivotX - region->width * 0.5f;
+            float pivotDY = region->pivotY - region->height * 0.5f;
+            offX = -(int)(pivotDX / coords.GetNodeWidth());
+            offY = -(int)(pivotDY / coords.GetNodeHeight());
+        }
 
         // Fill Placement layer for collision footprint
         World::TileLayer* placementLayer = m_map->GetLayer(World::Placement);
@@ -774,13 +883,13 @@ void MapEditor::PaintCurrentTile() {
             int ph = placementLayer->GetHeight();
             for (uint32_t dy = 0; dy < region->collHeight; ++dy) {
                 for (uint32_t dx = 0; dx < region->collWidth; ++dx) {
-                    int fx = tileX + (int)dx;
-                    int fy = tileY + (int)dy;
+                    int fx = tileX + offX + (int)dx;
+                    int fy = tileY + offY + (int)dy;
                     if (fx >= 0 && fx < pw && fy >= 0 && fy < ph) {
                         World::Tile& pt = placementLayer->GetTile(fx, fy);
                         pt.regionIndex = m_currentTileIndex;
                         pt.type = tile.type;
-                        pt.atlasName = m_currentObjectAtlasName;
+                        pt.atlasName = "maptiles";
                         pt.walkable = !region->blocksMovement;
                         pt.buildable = false;
                     }
@@ -798,7 +907,27 @@ void MapEditor::PaintCurrentTile() {
         tile.v1 = region->v1;
         tile.regionIndex = m_currentTileIndex;
         tile.atlasName = "ground";
+    } else if (m_currentLayer == World::Placement) {
+        tile.regionIndex = m_placementOccupied ? 1 : -1;
+        tile.buildable = !m_placementOccupied;
+        tile.walkable = !m_placementOccupied;
+        tile.type = World::None;
+        tile.atlasName.clear();
     }
+}
+
+void MapEditor::DeleteObjectAt(int x, int y) {
+    if (!m_map) return;
+    World::TileLayer* objectsLayer = m_map->GetLayer(World::Objects);
+    if (!objectsLayer) return;
+    if (x < 0 || x >= objectsLayer->GetWidth() || y < 0 || y >= objectsLayer->GetHeight()) return;
+
+    const World::Tile& oldTile = objectsLayer->GetTile(x, y);
+    if (oldTile.regionIndex < 0) return;
+
+    ClearPlacementFootprint(x, y, objectsLayer);
+    World::Tile& eraseTile = objectsLayer->GetTile(x, y);
+    eraseTile = World::Tile();
 }
 
 void MapEditor::RenderActiveTile() {
@@ -867,16 +996,20 @@ void MapEditor::RenderWeightMap() {
     if (!m_dotTexture) return;
     if (!m_map) return;
 
+    CoordinateSystem& wCoords = CoordinateSystem::GetInstance();
+    float dotW = wCoords.GetNodeWidth() * 0.25f;
+    float dotH = wCoords.GetNodeHeight() * 0.25f;
+
     for (int ny = 0; ny < NODES_H; ++ny) {
         for (int nx = 0; nx < NODES_W; ++nx) {
             BYTE w = m_map->GetNodeWeight(nx, ny);
             const NodePos& pos = m_nodesCache[ny][nx];
 
             Graphics::RenderCommand cmd = {};
-            cmd.x = pos.worldX;
-            cmd.y = pos.worldY;
-            cmd.width = 8.0f;
-            cmd.height = 8.0f;
+            cmd.x = pos.worldX - dotW * 0.5f;
+            cmd.y = pos.worldY - dotH * 0.5f;
+            cmd.width = dotW;
+            cmd.height = dotH;
             cmd.u0 = 0.0f;
             cmd.v0 = 0.0f;
             cmd.u1 = 1.0f;
@@ -890,6 +1023,40 @@ void MapEditor::RenderWeightMap() {
             m_renderQueue->Submit(cmd);
         }
     }
+}
+
+bool MapEditor::IsPlacementFootprintFree(int tx, int ty, const SpriteRegion* region) const {
+    if (!m_map || !region) return false;
+    if (region->collWidth == 0 || region->collHeight == 0) return true;
+
+    CoordinateSystem& coords = CoordinateSystem::GetInstance();
+    int offX, offY;
+    if (region->collOffX != 0 || region->collOffY != 0) {
+        offX = region->collOffX;
+        offY = region->collOffY;
+    } else {
+        float pivotDX = region->pivotX - region->width * 0.5f;
+        float pivotDY = region->pivotY - region->height * 0.5f;
+        offX = -(int)(pivotDX / coords.GetNodeWidth());
+        offY = -(int)(pivotDY / coords.GetNodeHeight());
+    }
+
+    World::TileLayer* placementLayer = m_map->GetLayer(World::Placement);
+    if (!placementLayer) return true;
+
+    int pw = placementLayer->GetWidth();
+    int ph = placementLayer->GetHeight();
+    for (uint32_t dy = 0; dy < region->collHeight; ++dy) {
+        for (uint32_t dx = 0; dx < region->collWidth; ++dx) {
+            int fx = tx + offX + (int)dx;
+            int fy = ty + offY + (int)dy;
+            if (fx >= 0 && fx < pw && fy >= 0 && fy < ph) {
+                const World::Tile& pt = placementLayer->GetTile(fx, fy);
+                if (pt.regionIndex >= 0) return false;
+            }
+        }
+    }
+    return true;
 }
 
 bool MapEditor::CanPlaceObject(int x, int y, World::TileType objectType) {
@@ -909,18 +1076,18 @@ bool MapEditor::CanPlaceObject(int x, int y, World::TileType objectType) {
 }
 
 World::TileType MapEditor::GetObjectTypeByIndex(int index) {
-    if (strcmp(m_currentObjectAtlasName, "icon_tree") == 0) {
-        return World::Tree;
-    } else if (strcmp(m_currentObjectAtlasName, "mountain") == 0) {
-        return World::Mountain;
-    } else if (strcmp(m_currentObjectAtlasName, "icon_building") == 0) {
-        return World::Building;
-    } else if (strcmp(m_currentObjectAtlasName, "icon_rock") == 0) {
-        return World::Rock;
-    } else if (strcmp(m_currentObjectAtlasName, "icon_decoration") == 0) {
-        return World::Decoration;
-    } else if (strcmp(m_currentObjectAtlasName, "icon_water_mountain") == 0) {
-        return World::MountainOnWater;
+    if (m_currentObjectGroupName) {
+        if (strcmp(m_currentObjectGroupName, "tree") == 0) {
+            return World::Tree;
+        } else if (strcmp(m_currentObjectGroupName, "mountain_water") == 0) {
+            return World::Mountain;
+        } else if (strcmp(m_currentObjectGroupName, "mountain") == 0) {
+            return World::Mountain;
+        } else if (strcmp(m_currentObjectGroupName, "rock") == 0) {
+            return World::Decoration;
+        } else if (strcmp(m_currentObjectGroupName, "decoration") == 0) {
+            return World::Decoration;
+        }
     }
     return World::Tree;
 }

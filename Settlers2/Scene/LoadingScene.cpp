@@ -280,80 +280,10 @@ void LoadingScene::SetupLoadTasks()
         }
     }, "Load Texture: Loading Screen", 0.5f);
 
-    // ===== UI TEXTURES =====
+    // ===== ATLAS TEXTURES (all sprites in one maptiles atlas) =====
     AddLoadTask([this]() {
-        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "UI");
-    }, "Load Texture: UI", 0.5f);
-
-    // ===== MOUNTAINS =====
-    AddLoadTask([this]() {
-        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Mountains");
-    }, "Load Texture: Mountains", 1.5f);
-
-    // ===== MountainsWater =====
-    AddLoadTask([this]() {
-        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "MountainsWater");
-    }, "Load Texture: MountainsWater", 1.5f);
-
-    // ===== TREES =====
-    AddLoadTask([this]() {
-        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Trees");
-    }, "Load Texture: Trees", 1.5f);
-
-    // ===== ROCKS =====
-    AddLoadTask([this]() {
-        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Rocks");
-    }, "Load Texture: Rocks", 1.0f);
-
-    // ===== DECORATIONS =====
-    AddLoadTask([this]() {
-        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Decorations");
-    }, "Load Texture: Decorations", 1.0f);
-
-    // ===== BUILDINGS =====
-    AddLoadTask([this]() {
-        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Buildings");
-    }, "Load Texture: Buildings", 1.5f);
-
-    // ===== ROADS =====
-    AddLoadTask([this]() {
-        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Roads");
-    }, "Load Texture: Roads", 0.5f);
-
-    // ===== UNITS =====
-    AddLoadTask([this]() {
-        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Units");
-    }, "Load Texture: Units", 1.0f);
-
-    // ===== RESOURCE ICONS =====
-    AddLoadTask([this]() {
-        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "ResourceIcons");
-    }, "Load Texture: ResourceIcons", 0.5f);
-
-    // ===== ATLAS ICONS =====
-    AddLoadTask([this]() {
-        LoadAtlasOrTexture("ground", "game:\\Media\\Textures\\AtlasTextures\\ground.png");
-    }, "Load Texture: Atlas ground", 0.5f);
-
-    AddLoadTask([this]() {
-        LoadAtlasOrTexture("icon_tree", "game:\\Media\\Textures\\AtlasTextures\\icon_tree.png");
-    }, "Load Texture: Atlas icon_tree", 0.5f);
-
-    AddLoadTask([this]() {
-        LoadAtlasOrTexture("mountains", "game:\\Media\\Textures\\AtlasTextures\\mountains.png");
-    }, "Load Texture: Atlas icon_mountains", 0.5f);
-/*
-    AddLoadTask([this]() {
-        LoadAtlasOrTexture("icon_mountains_water", "game:\\Media\\Textures\\AtlasTextures\\icon_mountains_water.png");
-    }, "Load Texture: Atlas icon_mountains_water", 0.5f);
-
-    AddLoadTask([this]() {
-        LoadAtlasOrTexture("icon_rocks", "game:\\Media\\Textures\\AtlasTextures\\icon_rocks.png");
-    }, "Load Texture: Atlas icon_rocks", 0.5f);
-*/
-    AddLoadTask([this]() {
-        LoadAtlasOrTexture("icon_menu", "game:\\Media\\Textures\\AtlasTextures\\icon_menu.png");
-    }, "Load Texture: Atlas icon_menu", 0.5f);
+        LoadAtlasOrTexture("maptiles", "game:\\Media\\Textures\\AtlasTextures\\maptiles.png");
+    }, "Load Texture: maptiles", 0.5f);
 }
 void LoadingScene::AddLoadTask(std::function<void()> task, const std::string& name, float weight)
 {

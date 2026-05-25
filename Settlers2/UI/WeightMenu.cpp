@@ -20,6 +20,9 @@ WeightMenu::WeightMenu()
     , m_scale(1.0f)
     , m_bgSlot(0)
     , m_dpadSlot(0)
+    , m_dpadUV(0.0f, 0.0f, 1.0f, 1.0f)
+    , m_bgUV(0.0f, 0.0f, 1.0f, 1.0f)
+    , m_isPlacementMode(false)
 {
 }
 
@@ -54,15 +57,15 @@ void WeightMenu::Render()
 {
     if (!m_isVisible || !m_renderQueue) return;
 
-    // Background (2x size)
+    // Background (2x size, from maptiles menu_background_cell UV)
     if (m_backgroundTexture) {
         Graphics::RenderCommand cmd = {};
         cmd.x = m_position.x - 300.0f;
         cmd.y = m_position.y - 300.0f;
         cmd.width = 600.0f;
         cmd.height = 600.0f;
-        cmd.u0 = 0.0f; cmd.v0 = 0.0f;
-        cmd.u1 = 1.0f; cmd.v1 = 1.0f;
+        cmd.u0 = m_bgUV.x; cmd.v0 = m_bgUV.y;
+        cmd.u1 = m_bgUV.z; cmd.v1 = m_bgUV.w;
         cmd.color = 0xFFFFFFFF;
         cmd.shaderID = SHADER_UI;
         cmd.textureID = m_bgSlot;
@@ -80,8 +83,8 @@ void WeightMenu::Render()
         cmd.y = m_position.y - 64.0f;
         cmd.width = 128.0f;
         cmd.height = 128.0f;
-        cmd.u0 = 0.0f; cmd.v0 = 0.0f;
-        cmd.u1 = 1.0f; cmd.v1 = 1.0f;
+        cmd.u0 = m_dpadUV.x; cmd.v0 = m_dpadUV.y;
+        cmd.u1 = m_dpadUV.z; cmd.v1 = m_dpadUV.w;
         cmd.color = 0xFFFFFFFF;
         cmd.shaderID = SHADER_UI;
         cmd.textureID = m_dpadSlot;
@@ -96,19 +99,29 @@ void WeightMenu::Render()
     if (m_textManager) {
         float d = 100.0f;
         float s = 0.25f;
-        // Each weight has its own color; active is bright, inactive is dim
-        bool isBlock = (m_selectedWeight == World::Weight_Block);
-        bool isDeep = (m_selectedWeight == World::Weight_Deep);
-        bool isShallow = (m_selectedWeight == World::Weight_Shallow);
-        bool isLand = (m_selectedWeight == World::Weight_Land);
-        m_textManager->DrawString("BLOCK", m_position.x - 24.0f, m_position.y - 180.0f,
-            isBlock ? 0xFFFF4444 : 0xFF882222, s, FONT_MENU, false, FONT_STYLE_NORMAL, d);
-        m_textManager->DrawString("DEEP", m_position.x - 24.0f, m_position.y + 155.0f,
-            isDeep ? 0xFF4488FF : 0xFF224477, s, FONT_MENU, false, FONT_STYLE_NORMAL, d);
-        m_textManager->DrawString("SHALLOW", m_position.x - 190.0f, m_position.y - 8.0f,
-            isShallow ? 0xFF44FFFF : 0xFF227777, s, FONT_MENU, false, FONT_STYLE_NORMAL, d);
-        m_textManager->DrawString("LAND", m_position.x + 140.0f, m_position.y - 8.0f,
-            isLand ? 0xFF44FF44 : 0xFF227722, s, FONT_MENU, false, FONT_STYLE_NORMAL, d);
+        if (m_isPlacementMode) {
+            // Placement mode: only 2 options (Up=Occupied, Down=Free)
+            bool isOccupied = (m_selectedWeight == World::Weight_Block);
+            bool isFree = (m_selectedWeight == World::Weight_Land);
+            m_textManager->DrawString("OCCUPIED", m_position.x - 34.0f, m_position.y - 180.0f,
+                isOccupied ? 0xFFFF4444 : 0xFF882222, s, FONT_MENU, false, FONT_STYLE_NORMAL, d);
+            m_textManager->DrawString("FREE", m_position.x - 16.0f, m_position.y + 155.0f,
+                isFree ? 0xFF44FF44 : 0xFF227722, s, FONT_MENU, false, FONT_STYLE_NORMAL, d);
+        } else {
+            // Each weight has its own color; active is bright, inactive is dim
+            bool isBlock = (m_selectedWeight == World::Weight_Block);
+            bool isDeep = (m_selectedWeight == World::Weight_Deep);
+            bool isShallow = (m_selectedWeight == World::Weight_Shallow);
+            bool isLand = (m_selectedWeight == World::Weight_Land);
+            m_textManager->DrawString("BLOCK", m_position.x - 24.0f, m_position.y - 180.0f,
+                isBlock ? 0xFFFF4444 : 0xFF882222, s, FONT_MENU, false, FONT_STYLE_NORMAL, d);
+            m_textManager->DrawString("DEEP", m_position.x - 24.0f, m_position.y + 155.0f,
+                isDeep ? 0xFF4488FF : 0xFF224477, s, FONT_MENU, false, FONT_STYLE_NORMAL, d);
+            m_textManager->DrawString("SHALLOW", m_position.x - 190.0f, m_position.y - 8.0f,
+                isShallow ? 0xFF44FFFF : 0xFF227777, s, FONT_MENU, false, FONT_STYLE_NORMAL, d);
+            m_textManager->DrawString("LAND", m_position.x + 140.0f, m_position.y - 8.0f,
+                isLand ? 0xFF44FF44 : 0xFF227722, s, FONT_MENU, false, FONT_STYLE_NORMAL, d);
+        }
     }
 }
 

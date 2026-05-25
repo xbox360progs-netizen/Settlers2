@@ -22,11 +22,14 @@
 
 namespace Scene {
 
-const char* EditorScene::kObjectAtlasNames[] = {
-    "icon_tree",
-    "mountains"
+const char* EditorScene::kObjectGroupNames[] = {
+    "tree",
+    "mountain_water",
+    "mountain",
+    "rock",
+    "decoration"
 };
-const int EditorScene::kObjectAtlasCount = 4;
+const int EditorScene::kObjectGroupCount = 5;
 
 EditorScene::EditorScene()
     : Scene("Editor")
@@ -41,7 +44,7 @@ EditorScene::EditorScene()
     , m_gridMenu(nullptr)
     , m_mapEditor(nullptr)
     , m_currentLayer(World::Ground)
-    , m_objectAtlasIndex(0)
+    , m_objectGroupIndex(0)
     , m_yButtonWasPressed(false)
     , m_fps(0)
     , m_frameCount(0)
@@ -58,6 +61,7 @@ EditorScene::EditorScene()
     , m_weightMenuVisible(false)
     , m_activeWeight(World::Weight_Land)
     , m_weightMenu(nullptr)
+    , m_weightMenuPlacementMode(false)
 {
 }
 
@@ -150,81 +154,109 @@ void EditorScene::Load() {
     if (m_radialMenu) {
         m_radialMenu->Initialize();
 
-// Add menu items for layers (name, typeId, spriteIndex for icon_menu atlas)
+// Add menu items for layers (name, typeId, spriteName from maptiles UI group)
         std::vector<RadialMenu::MenuItem> items;
-        items.push_back(RadialMenu::MenuItem(std::wstring(L"Roads"), World::Roads, 0));
-        items.push_back(RadialMenu::MenuItem(std::wstring(L"Nodes"), World::Nodes, 1));
-        items.push_back(RadialMenu::MenuItem(std::wstring(L"Placement"), World::Placement, 2));
-        items.push_back(RadialMenu::MenuItem(std::wstring(L"Resources"), World::Resources, 3));
-        items.push_back(RadialMenu::MenuItem(std::wstring(L"Ground"), World::Ground, 4));
-        items.push_back(RadialMenu::MenuItem(std::wstring(L"Objects"), World::Objects, 5));
-        items.push_back(RadialMenu::MenuItem(std::wstring(L"Overlay"), World::Overlay, 6));
+        items.push_back(RadialMenu::MenuItem(std::wstring(L"Roads"), World::Roads, "build_way"));
+        items.push_back(RadialMenu::MenuItem(std::wstring(L"Nodes"), World::Nodes, "set_nodes"));
+        items.push_back(RadialMenu::MenuItem(std::wstring(L"Placement"), World::Placement, "set_placement"));
+        items.push_back(RadialMenu::MenuItem(std::wstring(L"Resources"), World::Resources, "set_resources"));
+        items.push_back(RadialMenu::MenuItem(std::wstring(L"Ground"), World::Ground, "set_bg"));
+        items.push_back(RadialMenu::MenuItem(std::wstring(L"Objects"), World::Objects, "set_landscape"));
         m_radialMenu->SetItems(items);
     }
 
     // === TEXTURE SETUP ===
 
-    // 1.   ,     (SingleSprites  textures.ini)
     TextureRegistry& registry = TextureRegistry::instance();
-    registry.initializeFromManifest("game:\\Media\\Config\\textures.ini", "UI");
     registry.initializeFromManifest("game:\\Media\\Config\\textures.ini", "AtlasTextures");
-    registry.initializeFromManifest("game:\\Media\\Config\\textures.ini", "ResourceIcons");
 
-    // 2. ,     .    ,   ,    .
-    LPDIRECT3DTEXTURE9 bgTexture    = registry.getTextureOrLoad("menu_bd");
-    LPDIRECT3DTEXTURE9 cellTexture  = registry.getTextureOrLoad("menu_cell");
+    // Ground atlas (loaded by LoadingScene)
     LPDIRECT3DTEXTURE9 groundTexture = registry.getTextureOrLoad("ground");
-    LPDIRECT3DTEXTURE9 iconMenuTexture = registry.getTextureOrLoad("icon_menu");
-
-    // 3.    UV-   (   )
     std::tr1::shared_ptr<SpriteAtlas> groundAtlas = registry.getAtlas("ground");
 
-    // 4.   ground-     slot 0 SpriteRenderer
+    // Ground texture in slot 0
     if (groundTexture && m_spriteRenderer) {
         m_spriteRenderer->SetTextureSlot(0, groundTexture);
     }
 
-    // 5.   icon_menu-     slot 5,    для иконок RadialMenu
-    std::tr1::shared_ptr<SpriteAtlas> iconMenuAtlas = registry.getAtlas("icon_menu");
-    if (iconMenuAtlas && iconMenuAtlas->GetTexture() && m_spriteRenderer) {
-        m_spriteRenderer->SetTextureSlot(5, iconMenuAtlas->GetTexture());
+    // Maptiles atlas (loaded by LoadingScene) — slot 5 for RadialMenu icons
+    std::tr1::shared_ptr<SpriteAtlas> maptilesAtlas = registry.getAtlas("maptiles");
+    LPDIRECT3DTEXTURE9 maptilesTex = (maptilesAtlas ? maptilesAtlas->GetTexture() : NULL);
+    if (maptilesTex && m_spriteRenderer) {
+        m_spriteRenderer->SetTextureSlot(5, maptilesTex);
         if (m_radialMenu) {
             m_radialMenu->SetIconTextureSlot(5);
         }
     }
 
-    // 
+    // Extract bg/cell UVs from maptiles atlas (menu_background_cell, menu_cell)
+    GridMenu::TileUV bgUV = {0,0,1,1}, cellUV = {0,0,1,1};
+    if (maptilesAtlas) {
+        uint32_t bgIdx = maptilesAtlas->GetIndex("menu_background_cell");
+        if (bgIdx != 0xFFFFFFFF) {
+            const SpriteRegion* reg = maptilesAtlas->GetRegion(bgIdx);
+            if (reg) { bgUV.u0 = reg->u0; bgUV.v0 = reg->v0; bgUV.u1 = reg->u1; bgUV.v1 = reg->v1; }
+        } else {
+            OutputDebugStringA("[EditorScene] WARNING: 'menu_background_cell' NOT FOUND in maptiles atlas!\n");
+        }
+        uint32_t cellIdx = maptilesAtlas->GetIndex("menu_cell");
+        if (cellIdx != 0xFFFFFFFF) {
+            const SpriteRegion* reg = maptilesAtlas->GetRegion(cellIdx);
+            if (reg) { cellUV.u0 = reg->u0; cellUV.v0 = reg->v0; cellUV.u1 = reg->u1; cellUV.v1 = reg->v1; }
+            else { OutputDebugStringA("[EditorScene] WARNING: 'menu_cell' found but GetRegion returned NULL!\n"); }
+        } else {
+            OutputDebugStringA("[EditorScene] WARNING: 'menu_cell' NOT FOUND in maptiles atlas!\n");
+        }
+    }
+
     char logMsg[256];
-    _snprintf(logMsg, sizeof(logMsg), "[EditorScene] Final Textures: Bg=%p, Cell=%p, Ground=%p, IconMenu=%p\n", 
-              (void*)bgTexture, (void*)cellTexture, (void*)groundTexture, (void*)iconMenuTexture);
+    _snprintf(logMsg, sizeof(logMsg), "[EditorScene] Textures: Ground=%p, Maptiles=%p\n", 
+              (void*)groundTexture, (void*)maptilesTex);
     OutputDebugStringA(logMsg);
 
-    // Register GridMenu textures in sprite slots
+    // Register GridMenu texture slots (bg/cell use maptiles texture with UV sub-rects)
     if (m_spriteRenderer) {
-        m_spriteRenderer->SetTextureSlot(6, bgTexture);
-        m_spriteRenderer->SetTextureSlot(7, cellTexture);
+        m_spriteRenderer->SetTextureSlot(6, maptilesTex);
+        m_spriteRenderer->SetTextureSlot(7, maptilesTex);
         m_spriteRenderer->SetTextureSlot(8, groundTexture);
         m_spriteRenderer->SetTextureSlot(9, groundTexture);
     }
 
     // Initialize WeightMenu textures
     if (m_weightMenu) {
-        LPDIRECT3DTEXTURE9 dpadCrossTex = registry.getTextureOrLoad("dpad_cross");
+        std::tr1::shared_ptr<SpriteAtlas> wmMaptiles = registry.getAtlas("maptiles");
+        LPDIRECT3DTEXTURE9 dpadCrossTex = NULL;
+        float dpadU0 = 0.0f, dpadV0 = 0.0f, dpadU1 = 1.0f, dpadV1 = 1.0f;
+        if (wmMaptiles) {
+            uint32_t dpadIdx = wmMaptiles->GetIndex("dpad_cross");
+            if (dpadIdx != 0xFFFFFFFF) {
+                const SpriteRegion* dpadReg = wmMaptiles->GetRegion(dpadIdx);
+                if (dpadReg) {
+                    dpadU0 = dpadReg->u0; dpadV0 = dpadReg->v0;
+                    dpadU1 = dpadReg->u1; dpadV1 = dpadReg->v1;
+                }
+            }
+            dpadCrossTex = wmMaptiles->GetTexture();
+        }
         m_weightMenu->SetTextureSlots(10, 11);
-        m_weightMenu->SetTextures(bgTexture, dpadCrossTex);
+        m_weightMenu->SetTextures(maptilesTex, dpadCrossTex);
+        m_weightMenu->SetDpadUV(dpadU0, dpadV0, dpadU1, dpadV1);
+        m_weightMenu->SetBackgroundUV(bgUV.u0, bgUV.v0, bgUV.u1, bgUV.v1);
         if (m_spriteRenderer) {
-            m_spriteRenderer->SetTextureSlot(10, bgTexture);
+            m_spriteRenderer->SetTextureSlot(10, maptilesTex);
             m_spriteRenderer->SetTextureSlot(11, dpadCrossTex);
         }
-        OutputDebugStringA("[EditorScene] WeightMenu textures set\n");
+        OutputDebugStringA("[EditorScene] WeightMenu textures set (dpad_cross from maptiles)\n");
     }
 
-    // Initialize GridMenu with textures
+    // Initialize GridMenu with textures (bg/cell from maptiles atlas)
     if (!m_gridMenu && m_renderer) {
         m_gridMenu = new GridMenu();
         if (m_gridMenu->Initialize()) {
-            m_gridMenu->SetTextures(bgTexture, cellTexture, groundTexture);
+            m_gridMenu->SetTextures(maptilesTex, maptilesTex, groundTexture);
             m_gridMenu->SetTextureSlots(6, 7, 8);
+            m_gridMenu->SetBackgroundUV(bgUV);
+            m_gridMenu->SetCellUV(cellUV);
             
             // Build UVs from ground atlas if available
             if (groundAtlas) {
@@ -254,7 +286,7 @@ void EditorScene::Load() {
     // Initialize MapEditor
     if (!m_mapEditor && m_renderer && m_inputManager) {
         m_mapEditor = new Editor::MapEditor();
-        World::Map* map = new World::Map(Editor::MapEditor::GRID_WIDTH, Editor::MapEditor::GRID_HEIGHT,Editor::MapEditor::GRID_WIDTH * 2, Editor::MapEditor::GRID_HEIGHT * 2);
+        World::Map* map = new World::Map(Editor::MapEditor::GRID_WIDTH, Editor::MapEditor::GRID_HEIGHT, Editor::MapEditor::GRID_WIDTH * 2, Editor::MapEditor::GRID_HEIGHT * 4);
         m_mapEditor->Initialize(map, m_renderer, m_inputManager, m_renderer->GetDevice());
         m_mapEditor->SetSpriteRenderer(m_spriteRenderer);
         m_mapEditor->SetCamera(m_camera);
@@ -307,25 +339,38 @@ void EditorScene::Update(float deltaTime) {
 	// Handle D-pad input for weight selection when Nodes menu is visible
 	if (m_weightMenuVisible && m_weightMenu) {
 		bool selected = false;
-		if (gamepad->IsButtonPressed(Input::GP_DPadUp)) {
-			m_activeWeight = World::Weight_Block;
-			selected = true;
-		}
-		else if (gamepad->IsButtonPressed(Input::GP_DPadDown)) {
-			m_activeWeight = World::Weight_Deep;
-			selected = true;
-		}
-		else if (gamepad->IsButtonPressed(Input::GP_DPadLeft)) {
-			m_activeWeight = World::Weight_Shallow;
-			selected = true;
-		}
-		else if (gamepad->IsButtonPressed(Input::GP_DPadRight)) {
-			m_activeWeight = World::Weight_Land;
-			selected = true;
+		if (m_weightMenuPlacementMode) {
+			// Placement mode: Up=Occupied, Down=Free
+			if (gamepad->IsButtonPressed(Input::GP_DPadUp)) {
+				m_activeWeight = World::Weight_Block;
+				selected = true;
+			}
+			else if (gamepad->IsButtonPressed(Input::GP_DPadDown)) {
+				m_activeWeight = World::Weight_Land;
+				selected = true;
+			}
+		} else {
+			if (gamepad->IsButtonPressed(Input::GP_DPadUp)) {
+				m_activeWeight = World::Weight_Block;
+				selected = true;
+			}
+			else if (gamepad->IsButtonPressed(Input::GP_DPadDown)) {
+				m_activeWeight = World::Weight_Deep;
+				selected = true;
+			}
+			else if (gamepad->IsButtonPressed(Input::GP_DPadLeft)) {
+				m_activeWeight = World::Weight_Shallow;
+				selected = true;
+			}
+			else if (gamepad->IsButtonPressed(Input::GP_DPadRight)) {
+				m_activeWeight = World::Weight_Land;
+				selected = true;
+			}
 		}
 
 		if (selected) {
-			m_editorMode = MODE_WEIGHTS;
+			m_editorMode = m_weightMenuPlacementMode ? MODE_PLACEMENT : MODE_WEIGHTS;
+			m_weightMenuPlacementMode = false;
 			m_weightMenu->Close();
 			m_weightMenuVisible = false;
 		}
@@ -334,12 +379,14 @@ void EditorScene::Update(float deltaTime) {
 	if (!menuActive && !m_weightMenuVisible) {
 		// Toggle GridMenu with RB (blocked for Nodes layer — WeightMenu used instead)
 		if (gamepad->IsButtonPressed(Input::GP_RB)) {
-			if (m_currentLayer == World::Nodes) {
+			if (m_currentLayer == World::Nodes || m_currentLayer == World::Placement) {
 				if (m_weightMenu) {
 					if (m_weightMenuVisible) {
 						m_weightMenu->Close();
 						m_weightMenuVisible = false;
 					} else {
+						m_weightMenuPlacementMode = (m_currentLayer == World::Placement);
+						m_weightMenu->SetPlacementMode(m_weightMenuPlacementMode);
 						m_weightMenu->Open(m_activeWeight);
 						m_weightMenuVisible = true;
 					}
@@ -351,9 +398,9 @@ void EditorScene::Update(float deltaTime) {
                     m_gridMenu->SetTextureSlots(6, 7, 8);
                     // Load atlas based on current layer
                     if (m_currentLayer == World::Objects) {
-                        m_objectAtlasIndex = 0;
-                        LoadGridMenuAtlas(kObjectAtlasNames[m_objectAtlasIndex]);
-                        if (m_mapEditor) m_mapEditor->SetObjectAtlas(kObjectAtlasNames[m_objectAtlasIndex]);
+                        m_objectGroupIndex = 0;
+                        LoadGridMenuGroup(kObjectGroupNames[m_objectGroupIndex]);
+                        if (m_mapEditor) m_mapEditor->SetObjectGroup(kObjectGroupNames[m_objectGroupIndex]);
                     } else {
                         LoadGridMenuAtlas("ground");
                     }
@@ -362,10 +409,10 @@ void EditorScene::Update(float deltaTime) {
 			} else if (m_gridMenu->IsVisible()) {
 				m_gridMenu->Hide();
         } else {
-                // Show GridMenu with appropriate atlas for current layer
+                // Show GridMenu with appropriate group/atlas for current layer
                 if (m_currentLayer == World::Objects) {
-                    LoadGridMenuAtlas(kObjectAtlasNames[m_objectAtlasIndex]);
-                    if (m_mapEditor) m_mapEditor->SetObjectAtlas(kObjectAtlasNames[m_objectAtlasIndex]);
+                    LoadGridMenuGroup(kObjectGroupNames[m_objectGroupIndex]);
+                    if (m_mapEditor) m_mapEditor->SetObjectGroup(kObjectGroupNames[m_objectGroupIndex]);
                 } else {
                     LoadGridMenuAtlas("ground");
                 }
@@ -503,16 +550,24 @@ void EditorScene::Update(float deltaTime) {
 		if (gamepad->IsButtonPressed(Input::GP_B)) {
 			m_gridMenu->Hide();
 		}
-		// Y button - cycle object atlases (only in Objects layer)
+		// Y button - cycle object groups (only in Objects layer)
 		if (gamepad->IsButtonPressed(Input::GP_Y) && m_currentLayer == World::Objects) {
-			CycleObjectAtlas();
+            CycleObjectGroup();
 		}
-		// Shoulder triggers to navigate windows
+		// Shoulder triggers to navigate pages (Objects) or windows (Ground)
 		if (gamepad->IsButtonPressed(Input::GP_LB)) {
-			m_gridMenu->PrevWindow();
+			if (m_currentLayer == World::Objects) {
+				m_gridMenu->PrevPage();
+			} else {
+				m_gridMenu->PrevWindow();
+			}
 		}
 		if (gamepad->IsButtonPressed(Input::GP_RB)) {
-			m_gridMenu->NextWindow();
+			if (m_currentLayer == World::Objects) {
+				m_gridMenu->NextPage();
+			} else {
+				m_gridMenu->NextWindow();
+			}
 		}
 	}
 
@@ -550,7 +605,7 @@ void EditorScene::Update(float deltaTime) {
             }
 
             if (m_currentLayer == World::Objects) {
-                m_mapEditor->SetObjectAtlas(kObjectAtlasNames[m_objectAtlasIndex]);
+                m_mapEditor->SetObjectGroup(kObjectGroupNames[m_objectGroupIndex]);
             }
         }
 
@@ -558,7 +613,7 @@ void EditorScene::Update(float deltaTime) {
         if (m_spriteRenderer) {
             TextureRegistry& reg = TextureRegistry::instance();
             const char* atlasName = (m_currentLayer == World::Objects)
-                ? kObjectAtlasNames[m_objectAtlasIndex] : "ground";
+                ? "maptiles" : "ground";
             std::tr1::shared_ptr<SpriteAtlas> atlas = reg.getAtlas(atlasName);
             if (atlas) {
                 m_spriteRenderer->SetTextureSlot(8, atlas->GetTexture());
@@ -571,14 +626,19 @@ void EditorScene::Update(float deltaTime) {
 	if (m_mapEditor && !menuActive) {
 		m_mapEditor->Update(deltaTime);
 
-		// X button - reset to first tile from ground
+		// X button - delete object at cursor
 		if (gamepad->IsButtonPressed(Input::GP_X)) {
-			m_mapEditor->SetTileByIndex(0);
+			m_mapEditor->DeleteObjectAt(m_mapEditor->GetCursorTileX(), m_mapEditor->GetCursorTileY());
 		}
 
-		// A button - paint current tile while held
-		if (gamepad->IsButtonDown(Input::GP_A)) {
-			m_mapEditor->PaintCurrentTile();
+		// A button - paint current tile on each press (not held, to avoid accidental placement after menu close)
+		if (gamepad->IsButtonPressed(Input::GP_A)) {
+			if (m_currentLayer != World::Placement || m_editorMode == MODE_PLACEMENT) {
+				if (m_currentLayer == World::Placement) {
+					m_mapEditor->SetPlacementOccupied(m_activeWeight == World::Weight_Block);
+				}
+				m_mapEditor->PaintCurrentTile();
+			}
 		}
 	}
 
@@ -643,7 +703,7 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
         if (tileIdx >= 0) {
             TextureRegistry& reg = TextureRegistry::instance();
             const char* atlasName = (m_currentLayer == World::Objects)
-                ? kObjectAtlasNames[m_objectAtlasIndex] : "ground";
+                ? "maptiles" : "ground";
             std::tr1::shared_ptr<SpriteAtlas> atlas = reg.getAtlas(atlasName);
             if (atlas && tileIdx < (int)atlas->GetRegionCount()) {
                 const SpriteRegion* region = atlas->GetRegion(tileIdx);
@@ -711,15 +771,38 @@ void EditorScene::LoadGridMenuAtlas(const char* atlasName) {
     std::tr1::shared_ptr<SpriteAtlas> atlas = registry.getAtlas(atlasName);
     if (atlas) {
         LPDIRECT3DTEXTURE9 atlasTex = atlas->GetTexture();
-        LPDIRECT3DTEXTURE9 bgTex = registry.getTextureOrLoad("menu_bd");
-        LPDIRECT3DTEXTURE9 cellTex = registry.getTextureOrLoad("menu_cell");
-        m_gridMenu->SetTextures(bgTex, cellTex, atlasTex);
+        std::tr1::shared_ptr<SpriteAtlas> maptiles = registry.getAtlas("maptiles");
+        LPDIRECT3DTEXTURE9 maptilesTex = (maptiles ? maptiles->GetTexture() : NULL);
+        m_gridMenu->SetTextures(maptilesTex, maptilesTex, atlasTex);
         m_gridMenu->SetIconAtlas(atlas);
         if (m_spriteRenderer) {
-            m_spriteRenderer->SetTextureSlot(6, bgTex);
-            m_spriteRenderer->SetTextureSlot(7, cellTex);
+            m_spriteRenderer->SetTextureSlot(6, maptilesTex);
+            m_spriteRenderer->SetTextureSlot(7, maptilesTex);
             m_spriteRenderer->SetTextureSlot(8, atlasTex);
         }
+
+        // Set bg/cell UVs from maptiles atlas
+        GridMenu::TileUV bgUV = {0,0,1,1}, cellUV = {0,0,1,1};
+        if (maptiles) {
+            uint32_t bgIdx = maptiles->GetIndex("menu_background_cell");
+            if (bgIdx != 0xFFFFFFFF) {
+                const SpriteRegion* reg = maptiles->GetRegion(bgIdx);
+                if (reg) { bgUV.u0 = reg->u0; bgUV.v0 = reg->v0; bgUV.u1 = reg->u1; bgUV.v1 = reg->v1; }
+                else { OutputDebugStringA("[EditorScene LoadGridMenuAtlas] WARNING: 'menu_background_cell' found but GetRegion NULL\n"); }
+            } else {
+                OutputDebugStringA("[EditorScene LoadGridMenuAtlas] WARNING: 'menu_background_cell' NOT FOUND\n");
+            }
+            uint32_t cellIdx = maptiles->GetIndex("menu_cell");
+            if (cellIdx != 0xFFFFFFFF) {
+                const SpriteRegion* reg = maptiles->GetRegion(cellIdx);
+                if (reg) { cellUV.u0 = reg->u0; cellUV.v0 = reg->v0; cellUV.u1 = reg->u1; cellUV.v1 = reg->v1; }
+                else { OutputDebugStringA("[EditorScene LoadGridMenuAtlas] WARNING: 'menu_cell' found but GetRegion NULL\n"); }
+            } else {
+                OutputDebugStringA("[EditorScene LoadGridMenuAtlas] WARNING: 'menu_cell' NOT FOUND\n");
+            }
+        }
+        m_gridMenu->SetBackgroundUV(bgUV);
+        m_gridMenu->SetCellUV(cellUV);
 
         std::vector<GridMenu::TileUV> uvs;
         uvs.reserve(atlas->GetRegionCount());
@@ -745,15 +828,87 @@ void EditorScene::LoadGridMenuAtlas(const char* atlasName) {
     }
 }
 
-void EditorScene::CycleObjectAtlas() {
-    m_objectAtlasIndex = (m_objectAtlasIndex + 1) % kObjectAtlasCount;
-    const char* atlasName = kObjectAtlasNames[m_objectAtlasIndex];
-    LoadGridMenuAtlas(atlasName);
+void EditorScene::LoadGridMenuGroup(const char* groupName) {
+    if (!m_gridMenu) return;
+
+    TextureRegistry& registry = TextureRegistry::instance();
+    std::tr1::shared_ptr<SpriteAtlas> maptiles = registry.getAtlas("maptiles");
+    if (!maptiles) {
+        char buf[128];
+        sprintf_s(buf, "[EditorScene] maptiles atlas not found for group '%s'\n", groupName);
+        OutputDebugStringA(buf);
+        return;
+    }
+
+    LPDIRECT3DTEXTURE9 atlasTex = maptiles->GetTexture();
+    m_gridMenu->SetTextures(atlasTex, atlasTex, atlasTex);
+    m_gridMenu->SetIconAtlas(maptiles);
+    if (m_spriteRenderer) {
+        m_spriteRenderer->SetTextureSlot(6, atlasTex);
+        m_spriteRenderer->SetTextureSlot(7, atlasTex);
+        m_spriteRenderer->SetTextureSlot(8, atlasTex);
+    }
+
+    // Set bg/cell UVs from maptiles atlas
+    GridMenu::TileUV bgUV = {0,0,1,1}, cellUV = {0,0,1,1};
+    {
+        uint32_t bgIdx = maptiles->GetIndex("menu_background_cell");
+        if (bgIdx != 0xFFFFFFFF) {
+            const SpriteRegion* reg = maptiles->GetRegion(bgIdx);
+            if (reg) { bgUV.u0 = reg->u0; bgUV.v0 = reg->v0; bgUV.u1 = reg->u1; bgUV.v1 = reg->v1; }
+            else { OutputDebugStringA("[EditorScene LoadGridMenuGroup] WARNING: 'menu_background_cell' found but GetRegion NULL\n"); }
+        } else {
+            OutputDebugStringA("[EditorScene LoadGridMenuGroup] WARNING: 'menu_background_cell' NOT FOUND\n");
+        }
+        uint32_t cellIdx = maptiles->GetIndex("menu_cell");
+        if (cellIdx != 0xFFFFFFFF) {
+            const SpriteRegion* reg = maptiles->GetRegion(cellIdx);
+            if (reg) { cellUV.u0 = reg->u0; cellUV.v0 = reg->v0; cellUV.u1 = reg->u1; cellUV.v1 = reg->v1; }
+            else { OutputDebugStringA("[EditorScene LoadGridMenuGroup] WARNING: 'menu_cell' found but GetRegion NULL\n"); }
+        } else {
+            OutputDebugStringA("[EditorScene LoadGridMenuGroup] WARNING: 'menu_cell' NOT FOUND\n");
+        }
+    }
+    m_gridMenu->SetBackgroundUV(bgUV);
+    m_gridMenu->SetCellUV(cellUV);
+
+    const std::vector<uint32_t>* groupIndices = maptiles->GetGroup(groupName);
+    std::vector<GridMenu::TileUV> uvs;
+    std::vector<int> globalIndices;
+    if (groupIndices) {
+        uvs.reserve(groupIndices->size());
+        globalIndices.reserve(groupIndices->size());
+        for (uint32_t i = 0; i < groupIndices->size(); ++i) {
+            uint32_t spriteIdx = (*groupIndices)[i];
+            const SpriteRegion* reg = maptiles->GetRegion(spriteIdx);
+            GridMenu::TileUV tu;
+            if (reg) {
+                tu.u0 = reg->u0; tu.v0 = reg->v0; tu.u1 = reg->u1; tu.v1 = reg->v1;
+            } else {
+                tu.u0 = 0.0f; tu.v0 = 0.0f; tu.u1 = 1.0f; tu.v1 = 1.0f;
+            }
+            uvs.push_back(tu);
+            globalIndices.push_back((int)spriteIdx);
+        }
+    }
+    m_gridMenu->SetTileData(uvs, globalIndices);
+    m_gridMenu->SetSpriteRenderer(m_spriteRenderer);
+    m_gridMenu->ResetSelection();
+
+    char buf[128];
+    sprintf_s(buf, "[EditorScene] Loaded group '%s' from maptiles (%d sprites)\n", groupName, (int)uvs.size());
+    OutputDebugStringA(buf);
+}
+
+void EditorScene::CycleObjectGroup() {
+    m_objectGroupIndex = (m_objectGroupIndex + 1) % kObjectGroupCount;
+    const char* groupName = kObjectGroupNames[m_objectGroupIndex];
+    LoadGridMenuGroup(groupName);
     if (m_mapEditor) {
-        m_mapEditor->SetObjectAtlas(atlasName);
+        m_mapEditor->SetObjectGroup(groupName);
     }
     char buf[128];
-    sprintf_s(buf, "[EditorScene] CycleObjectAtlas: index=%d, name='%s'\n", m_objectAtlasIndex, atlasName);
+    sprintf_s(buf, "[EditorScene] CycleObjectGroup: index=%d, group='%s'\n", m_objectGroupIndex, groupName);
     OutputDebugStringA(buf);
 }
 

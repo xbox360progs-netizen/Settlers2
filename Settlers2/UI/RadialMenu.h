@@ -18,15 +18,11 @@ class RadialMenu
 public:
     struct MenuItem {
         std::wstring name;
-        std::string atlasName;
-        uint32_t spriteIndex;
+        std::string spriteName;
         int typeId;
 
-        MenuItem(const std::string& atlas, uint32_t spriteIdx, int type = -1)
-            : name(L""), atlasName(atlas), spriteIndex(spriteIdx), typeId(type) {}
-
-        MenuItem(const std::wstring& itemName, int type, uint32_t spriteIdx)
-            : name(itemName), atlasName("icon_menu"), spriteIndex(spriteIdx), typeId(type) {}
+        MenuItem(const std::wstring& itemName, int type, const std::string& sprite)
+            : name(itemName), spriteName(sprite), typeId(type) {}
     };
 
     RadialMenu(LPDIRECT3DDEVICE9 device, ShaderManager* shaderManager, BinFileManager* binFileManager);

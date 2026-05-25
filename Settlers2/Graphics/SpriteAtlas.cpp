@@ -19,6 +19,7 @@ SpriteAtlas::~SpriteAtlas() {
     }
     m_regions.clear();
     m_nameToIndex.clear();
+    m_groups.clear();
     m_animations.clear();
 }
 
@@ -116,6 +117,30 @@ const SpriteRegion* SpriteAtlas::GetRegion(uint32_t index) const {
         return &m_regions[index];
     }
     return NULL;
+}
+
+void SpriteAtlas::AddGroup(const std::string& name, const std::vector<uint32_t>& spriteIndices) {
+    m_groups[name] = spriteIndices;
+    char buf[256];
+    sprintf(buf, "[SpriteAtlas] Added group '%s' with %d sprites\n", name.c_str(), (int)spriteIndices.size());
+    OutputDebugStringA(buf);
+}
+
+const std::vector<uint32_t>* SpriteAtlas::GetGroup(const char* name) const {
+    std::map<std::string, std::vector<uint32_t> >::const_iterator it = m_groups.find(name);
+    if (it != m_groups.end()) {
+        return &it->second;
+    }
+    return NULL;
+}
+
+std::vector<std::string> SpriteAtlas::GetGroupNames() const {
+    std::vector<std::string> names;
+    names.reserve(m_groups.size());
+    for (std::map<std::string, std::vector<uint32_t> >::const_iterator it = m_groups.begin(); it != m_groups.end(); ++it) {
+        names.push_back(it->first);
+    }
+    return names;
 }
 
 void SpriteAtlas::AddAnimation(const SpriteAnimation& anim) {

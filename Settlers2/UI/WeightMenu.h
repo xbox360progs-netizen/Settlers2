@@ -25,8 +25,11 @@ public:
     BYTE GetSelectedWeight() const { return m_selectedWeight; }
 
     void SetTextures(LPDIRECT3DTEXTURE9 background, LPDIRECT3DTEXTURE9 dpadCross);
+    void SetDpadUV(float u0, float v0, float u1, float v1) { m_dpadUV = D3DXVECTOR4(u0, v0, u1, v1); }
+    void SetBackgroundUV(float u0, float v0, float u1, float v1) { m_bgUV = D3DXVECTOR4(u0, v0, u1, v1); }
     void SetRenderQueue(Graphics::RenderQueue* renderQueue) { m_renderQueue = renderQueue; }
     void SetTextureSlots(WORD bgSlot, WORD dpadSlot) { m_bgSlot = bgSlot; m_dpadSlot = dpadSlot; }
+    void SetPlacementMode(bool placementMode) { m_isPlacementMode = placementMode; }
 
 private:
     bool m_isVisible;
@@ -44,6 +47,9 @@ private:
 
     WORD m_bgSlot;
     WORD m_dpadSlot;
+    D3DXVECTOR4 m_dpadUV;
+    D3DXVECTOR4 m_bgUV;
+    bool m_isPlacementMode;
 };
 
 } // namespace UI
