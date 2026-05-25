@@ -287,27 +287,38 @@ namespace SpriteAtlasTool
             float centerX, centerY;
             GetGridCenter(out centerX, out centerY);
 
-            // Always use m_colliderOffsetX/Y: loaded from file, set by tile selection,
-            // or default (0,0) = collision starts at pivot tile.
-            int centerTileX = m_colliderOffsetX;
-            int centerTileY = m_colliderOffsetY;
-
             using (Brush coverBrush = new SolidBrush(Color.FromArgb(60, Color.Blue)))
             using (Pen coverPen = new Pen(Color.Blue, 1.0f))
             {
-                for (int dy = 0; dy < collHeight; dy++)
+                if (m_selectedTiles.Count > 0)
                 {
-                    for (int dx = 0; dx < collWidth; dx++)
+                    // Рисуем строго те тайлы, которые выделил пользователь (совпадает с зелёным)
+                    foreach (Point tilePos in m_selectedTiles)
                     {
-                        int tileX = centerTileX + dx;
-                        int tileY = centerTileY + dy;
-
                         float sx, sy;
-                        TileToScreen(tileX, tileY, centerX, centerY, out sx, out sy);
-
+                        TileToScreen(tilePos.X, tilePos.Y, centerX, centerY, out sx, out sy);
                         PointF[] pts = GetDiamondPoints(sx, sy, HALF_NODE_W, HALF_NODE_H);
                         graphics.FillPolygon(coverBrush, pts);
                         graphics.DrawPolygon(coverPen, pts);
+                    }
+                }
+                else
+                {
+                    // Без выделения — рисуем прямоугольник от сохранённого offset
+                    int centerTileX = m_colliderOffsetX;
+                    int centerTileY = m_colliderOffsetY;
+                    for (int dy = 0; dy < collHeight; dy++)
+                    {
+                        for (int dx = 0; dx < collWidth; dx++)
+                        {
+                            int tileX = centerTileX + dx;
+                            int tileY = centerTileY + dy;
+                            float sx, sy;
+                            TileToScreen(tileX, tileY, centerX, centerY, out sx, out sy);
+                            PointF[] pts = GetDiamondPoints(sx, sy, HALF_NODE_W, HALF_NODE_H);
+                            graphics.FillPolygon(coverBrush, pts);
+                            graphics.DrawPolygon(coverPen, pts);
+                        }
                     }
                 }
             }
