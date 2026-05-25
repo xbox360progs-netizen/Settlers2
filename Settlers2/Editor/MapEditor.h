@@ -10,6 +10,7 @@
 #include "../Input/InputManager.h"
 #include "../UI/TilePalette.h"
 #include "../UI/Panel.h"
+#include "../Graphics/TextManager.h"
 #include <vector>
 #include "../Graphics/Camera.h"
 
@@ -55,11 +56,15 @@ public:
     void SetLayer(World::LayerType layer) { m_currentLayer = layer; m_placingTile = false; m_currentTileIndex = -1; }
     void SetSpriteRenderer(SpriteRenderer* sr) { m_spriteRenderer = sr; }
     void SetCamera(Camera* pCamera) { m_pCamera = pCamera; }
-    void SetRenderQueue(Graphics::RenderQueue* rq) { m_renderQueue = rq; }
+    void SetRenderQueue(Graphics::RenderQueue* rq) { m_renderQueue = rq; if (m_textManager) m_textManager->SetRenderQueue(rq); }
+    void SetTextManager(TextManager* tm) { m_textManager = tm; }
     void SetObjectGroup(const char* groupName);
     void SetPlacementOccupied(bool occupied) { m_placementOccupied = occupied; }
     bool IsPlacementOccupied() const { return m_placementOccupied; }
     World::LayerType GetLayer() const { return m_currentLayer; }
+
+    void AutoAssignResourcesForTrees();
+    void SetShowResourceIcons(bool show) { m_showResourceIcons = show; }
 
     World::TileType GetCurrentTileType() const { return m_currentTileType; }
     int GetCurrentTileIndex() const { return m_currentTileIndex; }
@@ -141,6 +146,8 @@ private:
     int m_cursorTileY;
     bool m_placingTile;
 
+    TextManager* m_textManager;
+
 	bool m_showObjects;
     bool m_showOverlay;
     bool m_showNodes;
@@ -151,7 +158,10 @@ private:
     void InitializeMap();
     void RenderActiveTile();
     bool m_placementOccupied;
+    bool m_showResourceIcons;
+    int m_resourceIconIndices[6]; // Cached sprite indices for resource icons (indexed by ResourceType-1)
     void RenderGridLayer();
+    void RenderResources();
     void RenderCursor();
     void RenderWeightMap();
     void ClearPlacementFootprint(int tx, int ty, World::TileLayer* objectsLayer);

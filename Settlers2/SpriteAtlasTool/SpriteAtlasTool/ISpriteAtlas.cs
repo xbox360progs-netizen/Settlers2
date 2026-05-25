@@ -23,6 +23,7 @@ namespace SpriteAtlasTool
             get { return Pivot.X >= 0 && Pivot.Y >= 0; }
         }
         public bool IsPacked { get; set; }
+        public NodeWeightInfo NodeWeights { get; set; }
         public SpriteRegion(Rectangle bounds)
         {
             Bounds = bounds;
@@ -34,6 +35,7 @@ namespace SpriteAtlasTool
             FlipX = false;
             FlipY = false;
             Name = "";
+            NodeWeights = new NodeWeightInfo();
         }
 
         public override string ToString()
@@ -107,6 +109,38 @@ namespace SpriteAtlasTool
             return _collision;
         }
         set { _collision = value; }
+    }
+
+}
+
+public class NodeWeightInfo
+{
+    public List<NodeWeightEntry> Entries { get; set; }
+
+    public NodeWeightInfo()
+    {
+        Entries = new List<NodeWeightEntry>();
+    }
+}
+
+public struct NodeWeightEntry
+{
+    public int NX;      // relative X in node grid (0..1 for ground tile)
+    public int NY;      // relative Y in node grid (0..3 for ground tile)
+    public byte Weight; // 0=Deep, 1=Shallow, 2=Land, 3=Block
+
+    public NodeWeightEntry(int nx, int ny, byte weight)
+    {
+        NX = nx;
+        NY = ny;
+        Weight = weight;
+    }
+
+    public override string ToString()
+    {
+        string[] names = { "Deep", "Shallow", "Land", "Block" };
+        string wName = (Weight < 4) ? names[Weight] : "?";
+        return string.Format("({0},{1})={2}", NX, NY, wName);
     }
 }
     

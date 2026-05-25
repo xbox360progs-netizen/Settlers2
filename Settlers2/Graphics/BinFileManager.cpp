@@ -64,7 +64,7 @@ static bool IsHeaderValid(uint16_t v, uint16_t h, uint8_t t, uint32_t bufferSize
     if (v == 0 || v > 10 || h > bufferSize) return false;
     switch (t) {
     case 1: // MultiLevel
-        return (v == 1 || v == 2 || v == 3 || v == 4 || v == 5 || v == 6 || v == 7 || v == 8) && h == 24;
+        return (v == 1 || v == 2 || v == 3 || v == 4 || v == 5 || v == 6 || v == 7 || v == 8 || v == 9) && h == 24;
     default:
         return false;
     }
@@ -209,7 +209,7 @@ bool BinFileManager::ParseBinFile(BYTE* buffer, DWORD bufferSize, SpriteAtlas* a
         else if (!validBE && validLE) bigEndian = false;
         else if (validBE && validLE) bigEndian = true;
         else {
-            if ((versionBE == 3 || versionBE == 4 || versionBE == 5 || versionBE == 6 || versionBE == 7 || versionBE == 8) && headerSizeBE == 24) {
+            if ((versionBE >= 3 && versionBE <= 9) && headerSizeBE == 24) {
                 bigEndian = true;
                 OutputDebugStringA("[ParseBinFile] Принудительно выбран BigEndian для MultiLevel\n");
             } else {
@@ -506,6 +506,34 @@ bool BinFileManager::ParseMultiLevelAtlas(BYTE* buffer, DWORD bufferSize, Sprite
             }
         }
 
+        // Начиная с версии 9 - читаем записи весов узлов (NodeWeight entries)
+        std::vector<NodeWeightEntry> nodeWeightEntries;
+        if (version >= 9) {
+            if (pos + 4 > bufferSize) {
+                sprintf(debugMsg, "[ParseMultiLevelAtlas] Ошибка чтения количества NodeWeight спрайта %d\n", spriteIdx);
+                OutputDebugStringA(debugMsg);
+                return false;
+            }
+            uint32_t entryCount = ReadU32(buffer + pos, bigEndian); pos += 4;
+            if (entryCount > 1024) {
+                sprintf(debugMsg, "[ParseMultiLevelAtlas] Слишком много NodeWeight entry спрайта %d: %d\n", spriteIdx, entryCount);
+                OutputDebugStringA(debugMsg);
+                return false;
+            }
+            for (uint32_t ei = 0; ei < entryCount; ei++) {
+                if (pos + 9 > bufferSize) {
+                    sprintf(debugMsg, "[ParseMultiLevelAtlas] Ошибка чтения NodeWeight entry %d спрайта %d\n", ei, spriteIdx);
+                    OutputDebugStringA(debugMsg);
+                    return false;
+                }
+                NodeWeightEntry e;
+                e.nx = (int)ReadU32(buffer + pos, bigEndian); pos += 4;
+                e.ny = (int)ReadU32(buffer + pos, bigEndian); pos += 4;
+                e.weight = buffer[pos]; pos += 1;
+                nodeWeightEntries.push_back(e);
+            }
+        }
+
         if (width == 0 || height == 0 || width > kMaxFrameDim || height > kMaxFrameDim) {
             sprintf(debugMsg, "[ParseMultiLevelAtlas] Пропущен спрайт %d: неверные размеры\n", spriteIdx);
             OutputDebugStringA(debugMsg);
@@ -543,6 +571,7 @@ bool BinFileManager::ParseMultiLevelAtlas(BYTE* buffer, DWORD bufferSize, Sprite
         reg.blocksMovement = blocksMovement;
         reg.isTrigger = isTrigger;
         reg.collMask = collMask;
+        reg.nodeWeightEntries = nodeWeightEntries;
 
         // Add to atlas storage
         atlas->AddRegion(reg);
@@ -651,6 +680,7 @@ AtlasPtr BinFileManager::CreateAtlasFromSingleTexture(LPDIRECT3DDEVICE9 pDevice,
     region.collHeight = 1;
     region.blocksMovement = true;
     region.isTrigger = false;
+    region.nodeWeightEntries.clear(); // Default: no entries
 
     atlas->AddRegion(region);
 
@@ -777,6 +807,7 @@ bool BinFileManager::ParseAnimationAtlas(BYTE* buffer, DWORD bufferSize, SpriteA
         reg.collHeight = 1;
         reg.blocksMovement = true;
         reg.isTrigger = false;
+        reg.nodeWeightEntries.clear(); // Default: no entries
 
         // Add region to atlas
         uint32_t regionIndex = atlas->GetRegionCount();

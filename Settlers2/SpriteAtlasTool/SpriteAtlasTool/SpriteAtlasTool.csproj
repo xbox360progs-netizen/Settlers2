@@ -54,6 +54,12 @@
     <Compile Include="EditCollisionForm.Designer.cs">
       <DependentUpon>EditCollisionForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="EditNodeWeightForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="EditNodeWeightForm.Designer.cs">
+      <DependentUpon>EditNodeWeightForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="EditRectangleForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -85,6 +91,9 @@
     <Compile Include="SingleSpriteAtlas.cs" />
     <EmbeddedResource Include="EditCollisionForm.resx">
       <DependentUpon>EditCollisionForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="EditNodeWeightForm.resx">
+      <DependentUpon>EditNodeWeightForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>

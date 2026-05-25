@@ -8,6 +8,13 @@
 // VS2010/Xbox 360 compatibility for uint32_t
 typedef unsigned int uint32_t;
 
+// Per-node weight entry for ground tile sprites
+struct NodeWeightEntry {
+    int nx;             // relative X in node grid
+    int ny;             // relative Y in node grid
+    unsigned char weight; // 0=Deep, 1=Shallow, 2=Land, 3=Block
+};
+
 // SpriteRegion structure for storing sprite data from atlas
 struct SpriteRegion {
     float u0, v0, u1, v1; // UV coordinates for shader
@@ -22,6 +29,7 @@ struct SpriteRegion {
     bool blocksMovement;    // whether the object blocks movement (default true)
     bool isTrigger;         // whether it's a trigger (default false)
     std::vector<std::pair<int,int> > collMask; // Exact collision tile mask (dx,dy relative to collOffX/Y)
+    std::vector<NodeWeightEntry> nodeWeightEntries; // Per-node weight entries for ground tiles
 };
 
 // SpriteAnimation structure for animation metadata

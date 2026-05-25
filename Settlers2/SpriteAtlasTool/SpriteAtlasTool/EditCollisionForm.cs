@@ -277,13 +277,13 @@ namespace SpriteAtlasTool
                         graphics.FillPolygon(tileBrush, pts);
                         graphics.DrawPolygon(gridPen, pts);
 
-                        // Label origin
+                        // Label origin at tile (0,0)
                         if (nx == 0 && ny == 0)
                         {
-                            using (Font f = new Font("Arial", 8, FontStyle.Bold))
-                            using (Brush b = new SolidBrush(Color.Yellow))
+                            using (Font f = new Font("Arial", 7, FontStyle.Bold))
+                            using (Brush b = new SolidBrush(Color.FromArgb(180, Color.Orange)))
                             {
-                                graphics.DrawString("P", f, b, sx - 4, sy - 12);
+                                graphics.DrawString("0,0", f, b, sx - 8, sy - 12);
                             }
                         }
                     }
@@ -405,6 +405,13 @@ namespace SpriteAtlasTool
             {
                 graphics.DrawLine(pivotPen, pvx - 8, pvy, pvx + 8, pvy);
                 graphics.DrawLine(pivotPen, pvx, pvy - 8, pvx, pvy + 8);
+            }
+
+            // "P" label at pivot
+            using (Font font = new Font("Arial", 8, FontStyle.Bold))
+            using (Brush brush = new SolidBrush(Color.Yellow))
+            {
+                graphics.DrawString("P", font, brush, pvx - 4, pvy - 14);
             }
 
             // Info label

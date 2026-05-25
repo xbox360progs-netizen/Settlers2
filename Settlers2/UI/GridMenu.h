@@ -78,6 +78,9 @@ private:
     WORD m_cellSlot;
     WORD m_atlasSlot;
 
+    float m_cellSpacingX;
+    float m_cellSpacingY;
+
 public:
     GridMenu();
     ~GridMenu();
@@ -95,6 +98,7 @@ public:
     void SetSpriteIndices(const std::vector<int>& spriteIndices);
     void SetTileUVs(const std::vector<TileUV>& tileUVs);
     void SetIconAtlas(std::shared_ptr<SpriteAtlas> atlas);
+    void SetCellSpacing(float x, float y) { m_cellSpacingX = x; m_cellSpacingY = y; }
     void SetSpriteRenderer(SpriteRenderer* spriteRenderer);
     void SetRenderer(class Renderer* renderer);
     void SetRenderQueue(Graphics::RenderQueue* renderQueue) { m_renderQueue = renderQueue; }

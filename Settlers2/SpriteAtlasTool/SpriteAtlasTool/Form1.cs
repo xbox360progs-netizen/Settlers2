@@ -1150,6 +1150,10 @@ namespace SpriteAtlasTool
             btnEditCollision.Visible = hasSprite && (isSingleSprite || isMultiLevel);
             btnEditCollision.Enabled = hasSprite && (isSingleSprite || isMultiLevel);
 
+            // Кнопка редактирования NodeWeight для SingleSprite и MultiLevel
+            btnEditNodeWeight.Visible = hasSprite && (isSingleSprite || isMultiLevel);
+            btnEditNodeWeight.Enabled = hasSprite && (isSingleSprite || isMultiLevel);
+
             // btnEditCollision.Visible = hasSprite && isSingleSprite;
         }
 
@@ -1875,6 +1879,27 @@ namespace SpriteAtlasTool
                     selectedSprite.Collision = form.CollisionInfo;
                     pictureBox1.Invalidate();
                     UpdatePreview();
+                }
+            }
+            else
+            {
+                MessageBox.Show("Select a sprite first!");
+            }
+        }
+
+        private void btnEditNodeWeight_Click(object sender, EventArgs e)
+        {
+            if (selectedSprite != null && loadedImage != null)
+            {
+                Rectangle srcRect = selectedSprite.OriginalBounds;
+                if (srcRect.Width <= 0 || srcRect.Height <= 0) return;
+                EditNodeWeightForm form = new EditNodeWeightForm(selectedSprite, loadedImage);
+                if (form.ShowDialog() == DialogResult.OK)
+                {
+                    selectedSprite.NodeWeights = form.NodeWeights;
+                    int count = selectedSprite.NodeWeights.Entries.Count;
+                    lblInfo.Text = string.Format("NodeWeight entries: {0}", count);
+                    RefreshSpriteList();
                 }
             }
             else

@@ -15,3 +15,4 @@ D:\development\Settlers2\Settlers2\SpriteAtlasTool\SpriteAtlasTool\obj\x86\Relea
 D:\development\Settlers2\Settlers2\SpriteAtlasTool\SpriteAtlasTool\obj\x86\Release\SpriteAtlasTool.Form1.resources
 D:\development\Settlers2\Settlers2\SpriteAtlasTool\SpriteAtlasTool\obj\x86\Release\SpriteAtlasTool.Properties.Resources.resources
 D:\development\Settlers2\Settlers2\SpriteAtlasTool\SpriteAtlasTool\obj\x86\Release\SpriteAtlasTool.csproj.GenerateResource.Cache
+D:\development\Settlers2\Settlers2\SpriteAtlasTool\SpriteAtlasTool\obj\x86\Release\SpriteAtlasTool.EditNodeWeightForm.resources

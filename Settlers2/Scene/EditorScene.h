@@ -29,7 +29,8 @@ enum EditorState
     STATE_IDLE = 0,
     STATE_SELECTING,
     STATE_PLACING,
-    STATE_INPUT_AMOUNT
+    STATE_INPUT_AMOUNT,
+    STATE_DEPOSIT_PREVIEW
 };
 
 // Editor modes for different editing operations
@@ -71,6 +72,9 @@ EditorScene();
     // Cycle through maptiles groups for object placement
     void CycleObjectGroup();
 
+    // Load resource icons into GridMenu
+    void LoadResourceIcons();
+
     Renderer* m_renderer;
     SpriteRenderer* m_spriteRenderer;
     Input::InputManager* m_inputManager;
@@ -89,6 +93,11 @@ EditorScene();
     static const int kObjectGroupCount;
     int m_objectGroupIndex;
     bool m_yButtonWasPressed;
+
+    // Resource group for GridMenu
+    static const char* kResourceGroupName;
+    static const int kResourceTypeCount;
+    int m_resourceAmount;
 
     // FPS counter
     int m_fps;
@@ -109,8 +118,13 @@ EditorScene();
     int m_phantomTileX;
     int m_phantomTileY;
 
+    // Deposit preview (building → confirm → resource icon)
+    int m_depositBuildingSpriteIdx;
+    bool m_depositConfirmPending;
+
     // Editor mode (Terrain, Weights, Resources)
     EditorMode m_editorMode;
+    bool m_resourcesInitialized;
     bool m_weightMenuVisible;
     BYTE m_activeWeight;
 

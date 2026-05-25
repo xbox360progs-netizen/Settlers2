@@ -176,9 +176,11 @@ namespace SpriteAtlasTool
                         s.IsPacked ||
                         hasTransformFeatures ||
                         hasCollisionOffset);
+                    bool hasNodeWeight = Sprites.Any(s => s.NodeWeights.Entries.Count > 0);
 
                     // Новая версия для поддержки трансформаций/имен и смещения коллайдера
-                    uint version = hasMask ? 8u :
+                    uint version = hasNodeWeight ? 9u :
+                                   hasMask ? 8u :
                                    hasCollisionOffset ? 7u :
                                    (hasTransformFeatures ? 6u : (hasAdvancedFeatures ? 4u : 3u));
 
@@ -295,6 +297,19 @@ namespace SpriteAtlasTool
                                     WriteBigEndian(bw, (uint)(int)p.X);
                                     WriteBigEndian(bw, (uint)(int)p.Y);
                                 }
+                            }
+                        }
+
+                        // Начиная с версии 9 - сохраняем веса узлов (NodeWeight entries)
+                        if (version >= 9)
+                        {
+                            var entries = sprite.NodeWeights.Entries;
+                            WriteBigEndian(bw, (uint)entries.Count);
+                            foreach (NodeWeightEntry e in entries)
+                            {
+                                WriteBigEndian(bw, (uint)e.NX);
+                                WriteBigEndian(bw, (uint)e.NY);
+                                bw.Write(e.Weight);
                             }
                         }
                     }
@@ -482,6 +497,20 @@ namespace SpriteAtlasTool
                                 int dx = (int)ReadBigEndian(br);
                                 int dy = (int)ReadBigEndian(br);
                                 sprite.Collision.MaskTiles.Add(new Point(dx, dy));
+                            }
+                        }
+
+                        // Начиная с версии 9 - читаем веса узлов (NodeWeight entries)
+                        if (version >= 9)
+                        {
+                            uint entryCount = ReadBigEndian(br);
+                            sprite.NodeWeights.Entries.Clear();
+                            for (uint ei = 0; ei < entryCount; ei++)
+                            {
+                                int nx = (int)ReadBigEndian(br);
+                                int ny = (int)ReadBigEndian(br);
+                                byte w = br.ReadByte();
+                                sprite.NodeWeights.Entries.Add(new NodeWeightEntry(nx, ny, w));
                             }
                         }
 

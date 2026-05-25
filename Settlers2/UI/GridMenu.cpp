@@ -59,6 +59,8 @@ GridMenu::GridMenu()
     , m_backgroundSlot(0)
     , m_cellSlot(0)
     , m_atlasSlot(0)
+    , m_cellSpacingX(119.0f)
+    , m_cellSpacingY(74.0f)
 {
     m_backgroundUV.u0 = 0.0f; m_backgroundUV.v0 = 0.0f; m_backgroundUV.u1 = 1.0f; m_backgroundUV.v1 = 1.0f;
     m_cellUV.u0 = 0.0f; m_cellUV.v0 = 0.0f; m_cellUV.u1 = 1.0f; m_cellUV.v1 = 1.0f;
@@ -410,8 +412,8 @@ void GridMenu::Render()
 
     float menuLeft = m_screenX - (m_menuWidth * 0.5f);
     float menuTop = m_screenY - (m_menuHeight * 0.5f);
-    float cellSpacingX = 119.0f;
-    float cellSpacingY = 74.0f;
+    float cellSpacingX = m_cellSpacingX;
+    float cellSpacingY = m_cellSpacingY;
     int totalSprites = min((int)m_tileUVs.size(), kItemsPerPage);
 
     float gridWidth = kGridCols * cellSpacingX;

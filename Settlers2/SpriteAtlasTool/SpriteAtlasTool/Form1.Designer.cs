@@ -87,6 +87,7 @@ namespace SpriteAtlasTool
             this.chkShowPivotGuides = new System.Windows.Forms.CheckBox();
             this.btnPivotTopLeft = new System.Windows.Forms.Button();
             this.btnEditCollision = new System.Windows.Forms.Button();
+            this.btnEditNodeWeight = new System.Windows.Forms.Button();
             this.btnCreateMirror = new System.Windows.Forms.Button();
             this.btnAutoNameSprites = new System.Windows.Forms.Button();
             this.editNameToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -732,6 +733,16 @@ namespace SpriteAtlasTool
             this.btnEditCollision.UseVisualStyleBackColor = true;
             this.btnEditCollision.Click += new System.EventHandler(this.btnEditCollision_Click);
             // 
+            // btnEditNodeWeight
+            // 
+            this.btnEditNodeWeight.Location = new System.Drawing.Point(3, 302);
+            this.btnEditNodeWeight.Name = "btnEditNodeWeight";
+            this.btnEditNodeWeight.Size = new System.Drawing.Size(105, 23);
+            this.btnEditNodeWeight.TabIndex = 33;
+            this.btnEditNodeWeight.Text = "NodeWeight";
+            this.btnEditNodeWeight.UseVisualStyleBackColor = true;
+            this.btnEditNodeWeight.Click += new System.EventHandler(this.btnEditNodeWeight_Click);
+            // 
             // btnCreateMirror
             // 
             this.btnCreateMirror.Location = new System.Drawing.Point(231, 32);
@@ -806,6 +817,7 @@ namespace SpriteAtlasTool
             this.panel1.Controls.Add(this.buttonLoadBin);
             this.panel1.Controls.Add(this.chkShowGuides);
             this.panel1.Controls.Add(this.btnDeleteSelected);
+            this.panel1.Controls.Add(this.btnEditNodeWeight);
             this.panel1.Controls.Add(this.btnEditCollision);
             this.panel1.Controls.Add(this.btnSaveDefaultBin);
             this.panel1.Controls.Add(this.btnDeleteRect);
@@ -945,6 +957,7 @@ namespace SpriteAtlasTool
         private ToolStripMenuItem exportUVToolStripMenuItem1;
         private Button btnPivotTopLeft;
         private Button btnEditCollision;
+        private Button btnEditNodeWeight;
         private ToolStripMenuItem fileCloseToolStripMenuItem;
         private Button btnCreateMirror;
         private Button btnAutoNameSprites;

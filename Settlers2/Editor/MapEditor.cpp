@@ -50,7 +50,10 @@ MapEditor::MapEditor()
     , m_currentObjectGroupName("Tree")
     , m_pCamera(nullptr)
     , m_placementOccupied(true)
+    , m_showResourceIcons(false)
+    , m_textManager(nullptr)
 {
+    for (int i = 0; i < 6; ++i) m_resourceIconIndices[i] = -1;
 }
 
 MapEditor::~MapEditor() {
@@ -210,6 +213,9 @@ void MapEditor::RenderGeometry() {
 
 void MapEditor::RenderUI() {
     RenderCursor();
+    if (m_showResourceIcons) {
+        RenderResources();
+    }
 //    RenderTilePreview();
 //    RenderActiveTile();
 }
@@ -538,39 +544,58 @@ void MapEditor::RenderGridLayer() {
     }
 
     if (m_currentLayer == World::Resources) {
-        World::TileLayer* resourcesLayer = m_map->GetLayer(World::Resources);
-        if (resourcesLayer) {
-            CoordinateSystem& coords = CoordinateSystem::GetInstance();
-            float dotW = coords.GetNodeWidth() * 0.25f;
-            float dotH = coords.GetNodeHeight() * 0.25f;
+        if (m_objectAtlas) {
+            // Cache resource icon indices on first access
+            if (m_resourceIconIndices[0] < 0) {
+                for (int i = 1; i <= 6; ++i) {
+                    World::ResourceType rt = static_cast<World::ResourceType>(i);
+                    const char* iconName = World::ResourceTypeToIconName(rt);
+                    if (iconName && iconName[0]) {
+                        uint32_t idx = m_objectAtlas->GetIndex(iconName);
+                        m_resourceIconIndices[i-1] = (idx != 0xFFFFFFFF) ? (int)idx : -1;
+                    }
+                }
+            }
 
+            CoordinateSystem& coords = CoordinateSystem::GetInstance();
+            float nodeW = coords.GetNodeWidth();
+
+            // Render resource icons centered above each tile that has a resource node
             for (int y = 0; y < NODES_H; ++y) {
                 for (int x = 0; x < NODES_W; ++x) {
-                    const World::Tile& tile = resourcesLayer->GetTile(x, y);
+                    const World::ResourceNode& rn = m_map->GetResourceNode(x, y);
+                    if (rn.type == World::ResourceType_None || !rn.isVisible) continue;
 
                     float wx, wy;
                     coords.NodeTileToWorld(x, y, wx, wy);
 
-                    bool occupied = (tile.u1 > tile.u0 && tile.v1 > tile.v0);
-                    DWORD dotColor = occupied
-                        ? D3DCOLOR_ARGB(180, 255, 200, 50)
-                        : D3DCOLOR_ARGB(120, 100, 100, 100);
+                    int iconIdx = m_resourceIconIndices[rn.type - 1];
+                    if (iconIdx < 0) continue;
+
+                    const SpriteRegion* iconRegion = m_objectAtlas->GetRegion(iconIdx);
+                    if (!iconRegion) continue;
+
+                    float iconW = (float)iconRegion->width;
+                    float iconH = (float)iconRegion->height;
+                    // Position icon centered on tile, above the object
+                    float iconX = wx + (nodeW - iconW) * 0.5f;
+                    float iconY = wy - iconH - 2.0f;
 
                     Graphics::RenderCommand cmd = {};
-                    cmd.x = wx - dotW * 0.5f;
-                    cmd.y = wy - dotH * 0.5f;
-                    cmd.width = dotW;
-                    cmd.height = dotH;
-                    cmd.u0 = 0.0f;
-                    cmd.v0 = 0.0f;
-                    cmd.u1 = 1.0f;
-                    cmd.v1 = 1.0f;
-                    cmd.color = dotColor;
-                    cmd.textureID = 2;
+                    cmd.x = iconX;
+                    cmd.y = iconY;
+                    cmd.width = iconW;
+                    cmd.height = iconH;
+                    cmd.u0 = iconRegion->u0;
+                    cmd.v0 = iconRegion->v0;
+                    cmd.u1 = iconRegion->u1;
+                    cmd.v1 = iconRegion->v1;
+                    cmd.color = 0xFFFFFFFF;
+                    cmd.textureID = 9;
                     cmd.shaderID = SHADER_TERRAIN;
                     cmd.blendMode = 1;
                     cmd.layer = 0;
-                    cmd.depth = static_cast<WORD>(0.97f * 65535.0f);
+                    cmd.depth = static_cast<WORD>(0.99f * 65535.0f);
                     m_renderQueue->Submit(cmd);
                 }
             }
@@ -939,6 +964,27 @@ void MapEditor::PaintCurrentTile() {
         tile.v1 = region->v1;
         tile.regionIndex = m_currentTileIndex;
         tile.atlasName = "ground";
+
+        // First, initialize ALL nodes in this tile's area to Land (default)
+        for (int dy = 0; dy < 4; dy++) {
+            int maxDx = (dy % 2 == 1) ? 2 : 1; // odd rows have 3 columns, even have 2
+            for (int dx = 0; dx <= maxDx; dx++) {
+                int nx = tileX * 2 + dx;
+                int ny = tileY * 4 + dy;
+                if (nx >= 0 && nx < NODES_W && ny >= 0 && ny < NODES_H) {
+                    m_map->SetNodeWeight(nx, ny, World::Weight_Land);
+                }
+            }
+        }
+
+        // Then apply per-node weight entries (overrides Land where needed)
+        for (size_t wi = 0; wi < region->nodeWeightEntries.size(); ++wi) {
+            int nx = tileX * 2 + region->nodeWeightEntries[wi].nx;
+            int ny = tileY * 4 + region->nodeWeightEntries[wi].ny;
+            if (nx >= 0 && nx < NODES_W && ny >= 0 && ny < NODES_H) {
+                m_map->SetNodeWeight(nx, ny, region->nodeWeightEntries[wi].weight);
+            }
+        }
     } else if (m_currentLayer == World::Placement) {
         tile.regionIndex = m_placementOccupied ? 1 : -1;
         tile.buildable = !m_placementOccupied;
@@ -1115,6 +1161,67 @@ bool MapEditor::CanPlaceObject(int x, int y, World::TileType objectType) {
             return (weight == Logic::WEIGHT_LAND || weight == Logic::WEIGHT_COAST);
         default:
             return true;
+    }
+}
+
+void MapEditor::RenderResources() {
+    if (!m_renderQueue || !m_map || !m_textManager || m_currentLayer != World::Resources) return;
+
+    CoordinateSystem& coords = CoordinateSystem::GetInstance();
+    float nodeW = coords.GetNodeWidth();
+
+    for (int y = 0; y < NODES_H; ++y) {
+        for (int x = 0; x < NODES_W; ++x) {
+            const World::ResourceNode& rn = m_map->GetResourceNode(x, y);
+            if (rn.type == World::ResourceType_None || !rn.isVisible) continue;
+
+            float wx, wy;
+            coords.NodeTileToWorld(x, y, wx, wy);
+
+            char amountBuf[16];
+            sprintf_s(amountBuf, "%d", rn.amount);
+
+            float textX = wx + nodeW * 0.5f;
+            float textY = wy - 24.0f;
+
+            m_textManager->DrawTextToWorld(amountBuf, textX, textY, 0xFFFFFF00, 0.12f, FONT_MENU, FONT_STYLE_SHADOW);
+        }
+    }
+}
+
+void MapEditor::AutoAssignResourcesForTrees() {
+    if (!m_map) return;
+
+    World::TileLayer* objectsLayer = m_map->GetLayer(World::Objects);
+    if (!objectsLayer) return;
+
+    int assigned = 0;
+    for (int y = 0; y < objectsLayer->GetHeight(); ++y) {
+        for (int x = 0; x < objectsLayer->GetWidth(); ++x) {
+            const World::Tile& tile = objectsLayer->GetTile(x, y);
+            World::ResourceNode& rn = m_map->GetResourceNode(x, y);
+
+            // Skip if already has a resource
+            if (rn.type != World::ResourceType_None) continue;
+
+            // Only assign if a valid object exists (has sprite data)
+            if (tile.regionIndex < 0) continue;
+            if (tile.u1 <= tile.u0 || tile.v1 <= tile.v0) continue;
+
+            World::ResourceType rt = World::TileTypeToResourceType(tile.type);
+            if (rt != World::ResourceType_None) {
+                rn.type = rt;
+                rn.amount = World::GetDefaultResourceAmount(rt);
+                rn.isVisible = true;
+                assigned++;
+            }
+        }
+    }
+
+    if (assigned > 0) {
+        char buf[128];
+        sprintf_s(buf, "[MapEditor] Auto-assigned %d resource nodes for trees/objects\n", assigned);
+        OutputDebugStringA(buf);
     }
 }
 
