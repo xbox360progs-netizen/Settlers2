@@ -287,24 +287,10 @@ namespace SpriteAtlasTool
             float centerX, centerY;
             GetGridCenter(out centerX, out centerY);
 
-            // Use user-set offset if tiles were selected, otherwise compute from pivot
-            int centerTileX, centerTileY;
-            if (m_selectedTiles.Count > 0)
-            {
-                centerTileX = m_colliderOffsetX;
-                centerTileY = m_colliderOffsetY;
-            }
-            else
-            {
-                float spriteW = m_sprite.OriginalBounds.Width;
-                float spriteH = m_sprite.OriginalBounds.Height;
-                float pivotX = m_sprite.HasPivot ? m_sprite.Pivot.X : spriteW * 0.5f;
-                float pivotY = m_sprite.HasPivot ? m_sprite.Pivot.Y : spriteH * 0.5f;
-                float pivotOffsetX = pivotX - (spriteW * 0.5f);
-                float pivotOffsetY = pivotY - (spriteH * 0.5f);
-                centerTileX = -(int)(pivotOffsetX / NODE_TILE_W);
-                centerTileY = -(int)(pivotOffsetY / NODE_TILE_H);
-            }
+            // Always use m_colliderOffsetX/Y: loaded from file, set by tile selection,
+            // or default (0,0) = collision starts at pivot tile.
+            int centerTileX = m_colliderOffsetX;
+            int centerTileY = m_colliderOffsetY;
 
             using (Brush coverBrush = new SolidBrush(Color.FromArgb(60, Color.Blue)))
             using (Pen coverPen = new Pen(Color.Blue, 1.0f))
