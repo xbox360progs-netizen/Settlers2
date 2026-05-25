@@ -1,19 +1,27 @@
-﻿Построение начато 25.05.2026 17:09:05.
+﻿Построение начато 25.05.2026 17:20:05.
      1>Проект "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" в узле 2 (целевые объекты build).
      1>InitializeBuildStatus:
          Создание "Release\Settlers2.unsuccessfulbuild", так как было задано "AlwaysCreate".
        ClCompile:
          Для всех выходных данных обновления не требуется.
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Core\GameEngine.cpp Editor\MapEditor.cpp Graphics\RenderFrame.cpp Graphics\Renderer.cpp Graphics\SpriteRenderer.cpp Scene\EditorScene.cpp Scene\LoadingScene.cpp Scene\MenuScene.cpp Scene\SceneManager.cpp UI\GridMenu.cpp UI\WeightMenu.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Core\GameEngine.cpp Editor\MapEditor.cpp Graphics\BatchBuilder.cpp Graphics\BitmapFont.cpp Graphics\BitmapText.cpp Graphics\OverlayFPS.cpp Graphics\RenderFrame.cpp Graphics\Renderer.cpp Graphics\ShaderManager.cpp Graphics\SpriteRenderer.cpp Graphics\SpriteShadow.cpp Graphics\TextManager.cpp Graphics\TileRenderer.cpp Scene\EditorScene.cpp Scene\LoadingScene.cpp Scene\MenuScene.cpp Scene\Scene.cpp Scene\SceneManager.cpp UI\GridMenu.cpp UI\WeightMenu.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
          GameEngine.cpp
          MapEditor.cpp
+         BatchBuilder.cpp
+         BitmapFont.cpp
+         BitmapText.cpp
+         OverlayFPS.cpp
          RenderFrame.cpp
-     1>Graphics\RenderFrame.cpp(58): warning C4101: 'buf' : unreferenced local variable
          Renderer.cpp
+         ShaderManager.cpp
          SpriteRenderer.cpp
+         SpriteShadow.cpp
+         TextManager.cpp
+         TileRenderer.cpp
          EditorScene.cpp
          LoadingScene.cpp
          MenuScene.cpp
+         Scene.cpp
          SceneManager.cpp
          GridMenu.cpp
          WeightMenu.cpp
@@ -107,4 +115,4 @@
 
 Построение успешно завершено.
 
-Затраченное время: 00:00:23.43
+Затраченное время: 00:00:25.61

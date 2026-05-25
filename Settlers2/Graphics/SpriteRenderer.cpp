@@ -43,7 +43,7 @@ HRESULT SpriteRenderer::Initialize(LPDIRECT3DDEVICE9 device, ShaderManager* shad
     hr = device->CreateIndexBuffer(
         indexBufferSize,
         D3DUSAGE_WRITEONLY,
-        D3DFMT_INDEX32,
+        D3DFMT_INDEX16,
         D3DPOOL_DEFAULT,
         &m_indexBuffer,
         NULL);
@@ -108,9 +108,9 @@ int SpriteRenderer::Execute(const BatchBuilder& builder) {
         m_vertexBuffer->Unlock();
     }
 
-    hr = m_indexBuffer->Lock(0, indexCount * sizeof(uint32_t), &pData, 0);
+    hr = m_indexBuffer->Lock(0, indexCount * sizeof(uint16_t), &pData, 0);
     if (SUCCEEDED(hr) && pData) {
-        memcpy(pData, builder.GetIndices(), indexCount * sizeof(uint32_t));
+        memcpy(pData, builder.GetIndices(), indexCount * sizeof(uint16_t));
         m_indexBuffer->Unlock();
     }
 

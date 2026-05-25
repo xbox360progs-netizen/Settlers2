@@ -96,7 +96,7 @@ void BatchBuilder::BuildBatches(const RenderCommand* commands, uint32_t commandC
         dst[3].color = cmd.color;
         dst[3].padding[0] = 0; dst[3].padding[1] = 0;
 
-        uint32_t* idx = m_indexPool + m_indexWritePos;
+        uint16_t* idx = m_indexPool + m_indexWritePos;
         idx[0] = baseIdx + 0;
         idx[1] = baseIdx + 1;
         idx[2] = baseIdx + 2;

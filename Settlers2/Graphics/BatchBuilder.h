@@ -39,7 +39,7 @@ public:
     const SpriteVertex* GetVertices() const { return m_vertexPool; }
     uint32_t GetVertexCount() const { return m_vertexWritePos; }
 
-    const uint32_t* GetIndices() const { return m_indexPool; }
+    const uint16_t* GetIndices() const { return m_indexPool; }
     uint32_t GetIndexCount() const { return m_indexWritePos; }
 
     void Clear();
@@ -51,7 +51,7 @@ private:
     SpriteVertex m_vertexPool[MAX_VERTICES];
     uint32_t m_vertexWritePos;
 
-    uint32_t m_indexPool[MAX_VERTICES * 3 / 2];
+    uint16_t m_indexPool[MAX_VERTICES * 3 / 2];
     uint32_t m_indexWritePos;
 
     uint16_t m_currentTexture;
