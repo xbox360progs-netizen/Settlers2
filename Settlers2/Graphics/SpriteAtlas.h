@@ -21,6 +21,7 @@ struct SpriteRegion {
     int collOffY;           // collider Y offset from cursor tile (0 = compute from pivot)
     bool blocksMovement;    // whether the object blocks movement (default true)
     bool isTrigger;         // whether it's a trigger (default false)
+    std::vector<std::pair<int,int> > collMask; // Exact collision tile mask (dx,dy relative to collOffX/Y)
 };
 
 // SpriteAnimation structure for animation metadata

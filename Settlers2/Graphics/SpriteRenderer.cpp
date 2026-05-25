@@ -118,6 +118,12 @@ int SpriteRenderer::Execute(const BatchBuilder& builder) {
     hr = m_pDevice->SetStreamSource(0, m_vertexBuffer, 0, sizeof(SpriteVertex));
     hr = m_pDevice->SetIndices(m_indexBuffer);
 
+    // Force Z-test OFF at start of each frame to prevent leaked state from shadow/postfx passes
+    m_pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+    m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+    m_stateCache.zEnable = FALSE;
+    m_stateCache.zWriteEnable = FALSE;
+
     for (uint32_t i = 0; i < builder.GetBatchCount(); i++) {
         const RenderBatch& batch = builder.GetBatches()[i];
 

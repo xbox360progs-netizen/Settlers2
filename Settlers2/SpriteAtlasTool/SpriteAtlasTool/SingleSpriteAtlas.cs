@@ -50,8 +50,11 @@ namespace SpriteAtlasTool
                         Sprites.Any(s => s.Collision.Width > 0 || s.Collision.Height > 0);
                     bool hasCollisionOffset = Sprites.Any(s =>
                         s.Collision.OffsetX != 0 || s.Collision.OffsetY != 0);
+                    bool hasMask = Sprites.Any(s =>
+                        s.Collision.MaskTiles != null && s.Collision.MaskTiles.Count > 0);
 
-                    uint version = hasCollisionOffset ? 7u : (hasAdvancedFeatures ? 3u : 2u);
+                    uint version = hasMask ? 8u :
+                                   hasCollisionOffset ? 7u : (hasAdvancedFeatures ? 3u : 2u);
 
                     WriteBigEndian(bw, version);
                     WriteBigEndian(bw, 16u);
@@ -103,6 +106,22 @@ namespace SpriteAtlasTool
                         {
                             WriteBigEndian(bw, (uint)(int)sprite.Collision.OffsetX);
                             WriteBigEndian(bw, (uint)(int)sprite.Collision.OffsetY);
+                        }
+
+                        // Начиная с версии 8 - сохраняем маску тайлов коллизии
+                        if (version >= 8)
+                        {
+                            var mask = sprite.Collision.MaskTiles;
+                            uint maskCount = (mask != null) ? (uint)mask.Count : 0u;
+                            WriteBigEndian(bw, maskCount);
+                            if (mask != null)
+                            {
+                                foreach (Point p in mask)
+                                {
+                                    WriteBigEndian(bw, (uint)(int)p.X);
+                                    WriteBigEndian(bw, (uint)(int)p.Y);
+                                }
+                            }
                         }
                     }
                 }
@@ -203,6 +222,19 @@ namespace SpriteAtlasTool
                         {
                             sprite.Collision.OffsetX = (int)ReadBigEndian(br);
                             sprite.Collision.OffsetY = (int)ReadBigEndian(br);
+                        }
+
+                        // Начиная с версии 8 - читаем маску тайлов коллизии
+                        if (version >= 8 && sprite.Collision != null)
+                        {
+                            uint maskCount = ReadBigEndian(br);
+                            sprite.Collision.MaskTiles.Clear();
+                            for (uint m = 0; m < maskCount; m++)
+                            {
+                                int dx = (int)ReadBigEndian(br);
+                                int dy = (int)ReadBigEndian(br);
+                                sprite.Collision.MaskTiles.Add(new Point(dx, dy));
+                            }
                         }
 
                         sprite.DisplayBounds = originalBounds;

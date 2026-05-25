@@ -171,5 +171,11 @@ namespace SpriteAtlasTool
     public int OffsetY { get; set; } // Смещение коллайдера по Y (тайлы)
     public bool BlocksMovement { get; set; } // Блокирует ли движение
     public bool IsTrigger { get; set; }     // Триггер (не блокирует, но вызывает событие)
+    public List<Point> MaskTiles { get; set; } // Точная маска тайлов (относительные координаты от Offset)
+
+    public CollisionInfo()
+    {
+        MaskTiles = new List<Point>();
+    }
 }
 }

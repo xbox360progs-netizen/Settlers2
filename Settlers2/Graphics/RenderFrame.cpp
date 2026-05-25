@@ -55,7 +55,6 @@ void RenderFrame::BeginFrame() {
 void RenderFrame::Execute() {
     if (!m_initialized) return;
 
-    char buf[128];
     int cmdCount = 0;
 
     if (m_renderQueue) {

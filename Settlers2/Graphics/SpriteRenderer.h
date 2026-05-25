@@ -29,6 +29,8 @@ struct RenderStateCache {
     bool TextureChanged(WORD tex) const { return currentTexture != tex; }
     bool ShaderChanged(WORD sh) const { return currentShader != sh; }
     bool BlendChanged(BYTE blend) const { return currentBlend != blend; }
+    bool ZEnabledChanged(DWORD zenable) const { return zEnable != zenable; }
+    bool ZWriteChanged(DWORD zwrite) const { return zWriteEnable != zwrite; }
 
     void Update(WORD tex, WORD sh, BYTE blend) {
         currentTexture = tex;

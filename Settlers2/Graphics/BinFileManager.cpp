@@ -7,6 +7,7 @@
 #include <fstream>
 #include <xtl.h>
 #include <cstring>
+#include <utility>
 
 // Вспомогательные функции для чтения с конвертацией endianness
 static inline uint32_t ReadU32LE(const BYTE* ptr)
@@ -63,7 +64,7 @@ static bool IsHeaderValid(uint16_t v, uint16_t h, uint8_t t, uint32_t bufferSize
     if (v == 0 || v > 10 || h > bufferSize) return false;
     switch (t) {
     case 1: // MultiLevel
-        return (v == 1 || v == 2 || v == 3 || v == 4 || v == 5 || v == 6 || v == 7) && h == 24;
+        return (v == 1 || v == 2 || v == 3 || v == 4 || v == 5 || v == 6 || v == 7 || v == 8) && h == 24;
     default:
         return false;
     }
@@ -208,7 +209,7 @@ bool BinFileManager::ParseBinFile(BYTE* buffer, DWORD bufferSize, SpriteAtlas* a
         else if (!validBE && validLE) bigEndian = false;
         else if (validBE && validLE) bigEndian = true;
         else {
-            if ((versionBE == 3 || versionBE == 4 || versionBE == 5 || versionBE == 6 || versionBE == 7) && headerSizeBE == 24) {
+            if ((versionBE == 3 || versionBE == 4 || versionBE == 5 || versionBE == 6 || versionBE == 7 || versionBE == 8) && headerSizeBE == 24) {
                 bigEndian = true;
                 OutputDebugStringA("[ParseBinFile] Принудительно выбран BigEndian для MultiLevel\n");
             } else {
@@ -479,6 +480,32 @@ bool BinFileManager::ParseMultiLevelAtlas(BYTE* buffer, DWORD bufferSize, Sprite
             collOffY = (int)ReadU32(buffer + pos, bigEndian); pos += 4;
         }
 
+        // Начиная с версии 8 - читаем маску тайлов коллизии
+        std::vector<std::pair<int,int> > collMask;
+        if (version >= 8) {
+            if (pos + 4 > bufferSize) {
+                sprintf(debugMsg, "[ParseMultiLevelAtlas] Ошибка чтения маски коллизии спрайта %d\n", spriteIdx);
+                OutputDebugStringA(debugMsg);
+                return false;
+            }
+            uint32_t maskCount = ReadU32(buffer + pos, bigEndian); pos += 4;
+            if (maskCount > 1024) {
+                sprintf(debugMsg, "[ParseMultiLevelAtlas] Слишком много тайлов в маске спрайта %d: %d\n", spriteIdx, maskCount);
+                OutputDebugStringA(debugMsg);
+                return false;
+            }
+            for (uint32_t m = 0; m < maskCount; m++) {
+                if (pos + 8 > bufferSize) {
+                    sprintf(debugMsg, "[ParseMultiLevelAtlas] Ошибка чтения элемента маски %d спрайта %d\n", m, spriteIdx);
+                    OutputDebugStringA(debugMsg);
+                    return false;
+                }
+                int dx = (int)ReadU32(buffer + pos, bigEndian); pos += 4;
+                int dy = (int)ReadU32(buffer + pos, bigEndian); pos += 4;
+                collMask.push_back(std::make_pair(dx, dy));
+            }
+        }
+
         if (width == 0 || height == 0 || width > kMaxFrameDim || height > kMaxFrameDim) {
             sprintf(debugMsg, "[ParseMultiLevelAtlas] Пропущен спрайт %d: неверные размеры\n", spriteIdx);
             OutputDebugStringA(debugMsg);
@@ -515,6 +542,7 @@ bool BinFileManager::ParseMultiLevelAtlas(BYTE* buffer, DWORD bufferSize, Sprite
         reg.collOffY = collOffY;
         reg.blocksMovement = blocksMovement;
         reg.isTrigger = isTrigger;
+        reg.collMask = collMask;
 
         // Add to atlas storage
         atlas->AddRegion(reg);

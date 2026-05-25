@@ -767,6 +767,7 @@ void MapEditor::ClearPlacementFootprint(int tx, int ty, World::TileLayer* object
 
     uint32_t oldCollW = 1, oldCollH = 1;
     int offX = 0, offY = 0;
+    std::vector<std::pair<int,int> > collMask;
     if (!oldTile.atlasName.empty()) {
         std::tr1::shared_ptr<SpriteAtlas> atlas = TextureRegistry::instance().getAtlas(oldTile.atlasName);
         if (atlas.get()) {
@@ -784,16 +785,17 @@ void MapEditor::ClearPlacementFootprint(int tx, int ty, World::TileLayer* object
                     offX = -(int)(pivotDX / coords.GetNodeWidth());
                     offY = -(int)(pivotDY / coords.GetNodeHeight());
                 }
+                collMask = oldRegion->collMask;
             }
         }
     }
 
     int pw = placementLayer->GetWidth();
     int ph = placementLayer->GetHeight();
-    for (uint32_t dy = 0; dy < oldCollH; ++dy) {
-        for (uint32_t dx = 0; dx < oldCollW; ++dx) {
-            int fx = tx + offX + (int)dx;
-            int fy = ty + offY + (int)dy;
+    if (!collMask.empty()) {
+        for (size_t i = 0; i < collMask.size(); ++i) {
+            int fx = tx + offX + collMask[i].first;
+            int fy = ty + offY + collMask[i].second;
             if (fx >= 0 && fx < pw && fy >= 0 && fy < ph) {
                 World::Tile& pt = placementLayer->GetTile(fx, fy);
                 pt.regionIndex = -1;
@@ -801,6 +803,21 @@ void MapEditor::ClearPlacementFootprint(int tx, int ty, World::TileLayer* object
                 pt.atlasName.clear();
                 pt.walkable = true;
                 pt.buildable = true;
+            }
+        }
+    } else {
+        for (uint32_t dy = 0; dy < oldCollH; ++dy) {
+            for (uint32_t dx = 0; dx < oldCollW; ++dx) {
+                int fx = tx + offX + (int)dx;
+                int fy = ty + offY + (int)dy;
+                if (fx >= 0 && fx < pw && fy >= 0 && fy < ph) {
+                    World::Tile& pt = placementLayer->GetTile(fx, fy);
+                    pt.regionIndex = -1;
+                    pt.type = World::None;
+                    pt.atlasName.clear();
+                    pt.walkable = true;
+                    pt.buildable = true;
+                }
             }
         }
     }
@@ -881,10 +898,10 @@ void MapEditor::PaintCurrentTile() {
         if (placementLayer) {
             int pw = placementLayer->GetWidth();
             int ph = placementLayer->GetHeight();
-            for (uint32_t dy = 0; dy < region->collHeight; ++dy) {
-                for (uint32_t dx = 0; dx < region->collWidth; ++dx) {
-                    int fx = tileX + offX + (int)dx;
-                    int fy = tileY + offY + (int)dy;
+            if (!region->collMask.empty()) {
+                for (size_t i = 0; i < region->collMask.size(); ++i) {
+                    int fx = tileX + offX + region->collMask[i].first;
+                    int fy = tileY + offY + region->collMask[i].second;
                     if (fx >= 0 && fx < pw && fy >= 0 && fy < ph) {
                         World::Tile& pt = placementLayer->GetTile(fx, fy);
                         pt.regionIndex = m_currentTileIndex;
@@ -892,6 +909,21 @@ void MapEditor::PaintCurrentTile() {
                         pt.atlasName = "maptiles";
                         pt.walkable = !region->blocksMovement;
                         pt.buildable = false;
+                    }
+                }
+            } else {
+                for (uint32_t dy = 0; dy < region->collHeight; ++dy) {
+                    for (uint32_t dx = 0; dx < region->collWidth; ++dx) {
+                        int fx = tileX + offX + (int)dx;
+                        int fy = tileY + offY + (int)dy;
+                        if (fx >= 0 && fx < pw && fy >= 0 && fy < ph) {
+                            World::Tile& pt = placementLayer->GetTile(fx, fy);
+                            pt.regionIndex = m_currentTileIndex;
+                            pt.type = tile.type;
+                            pt.atlasName = "maptiles";
+                            pt.walkable = !region->blocksMovement;
+                            pt.buildable = false;
+                        }
                     }
                 }
             }
@@ -1046,13 +1078,24 @@ bool MapEditor::IsPlacementFootprintFree(int tx, int ty, const SpriteRegion* reg
 
     int pw = placementLayer->GetWidth();
     int ph = placementLayer->GetHeight();
-    for (uint32_t dy = 0; dy < region->collHeight; ++dy) {
-        for (uint32_t dx = 0; dx < region->collWidth; ++dx) {
-            int fx = tx + offX + (int)dx;
-            int fy = ty + offY + (int)dy;
+    if (!region->collMask.empty()) {
+        for (size_t i = 0; i < region->collMask.size(); ++i) {
+            int fx = tx + offX + region->collMask[i].first;
+            int fy = ty + offY + region->collMask[i].second;
             if (fx >= 0 && fx < pw && fy >= 0 && fy < ph) {
                 const World::Tile& pt = placementLayer->GetTile(fx, fy);
                 if (pt.regionIndex >= 0) return false;
+            }
+        }
+    } else {
+        for (uint32_t dy = 0; dy < region->collHeight; ++dy) {
+            for (uint32_t dx = 0; dx < region->collWidth; ++dx) {
+                int fx = tx + offX + (int)dx;
+                int fy = ty + offY + (int)dy;
+                if (fx >= 0 && fx < pw && fy >= 0 && fy < ph) {
+                    const World::Tile& pt = placementLayer->GetTile(fx, fy);
+                    if (pt.regionIndex >= 0) return false;
+                }
             }
         }
     }

@@ -50,6 +50,20 @@ namespace SpriteAtlasTool
             chkIsTrigger.Checked = m_collisionInfo.IsTrigger;
             m_colliderOffsetX = m_collisionInfo.OffsetX;
             m_colliderOffsetY = m_collisionInfo.OffsetY;
+
+            // Load mask if present
+            m_selectedTiles.Clear();
+            if (m_collisionInfo.MaskTiles != null && m_collisionInfo.MaskTiles.Count > 0)
+            {
+                foreach (Point rel in m_collisionInfo.MaskTiles)
+                {
+                    m_selectedTiles.Add(new Point(
+                        rel.X + m_colliderOffsetX,
+                        rel.Y + m_colliderOffsetY));
+                }
+                UpdateColliderFromSelectedTiles();
+            }
+
             previewPanel.Invalidate();
             this.previewPanel.MouseClick += new System.Windows.Forms.MouseEventHandler(this.previewPanel_MouseClick);
         }
@@ -409,9 +423,17 @@ namespace SpriteAtlasTool
             m_collisionInfo.BlocksMovement = chkBlocksMovement.Checked;
             m_collisionInfo.IsTrigger = chkIsTrigger.Checked;
 
+            // Save mask from selected tiles (if any)
+            m_collisionInfo.MaskTiles.Clear();
             if (m_selectedTiles.Count > 0)
             {
                 UpdateColliderFromSelectedTiles();
+                foreach (Point abs in m_selectedTiles)
+                {
+                    m_collisionInfo.MaskTiles.Add(new Point(
+                        abs.X - m_colliderOffsetX,
+                        abs.Y - m_colliderOffsetY));
+                }
             }
 
             m_collisionInfo.OffsetX = m_colliderOffsetX;
@@ -451,6 +473,7 @@ namespace SpriteAtlasTool
             m_collisionInfo.OffsetY = 0;
             m_collisionInfo.BlocksMovement = true;
             m_collisionInfo.IsTrigger = false;
+            m_collisionInfo.MaskTiles.Clear();
             previewPanel.Invalidate();
         }
     }
