@@ -398,7 +398,7 @@ namespace SpriteAtlasTool
             m_collisionInfo.BlocksMovement = chkBlocksMovement.Checked;
             m_collisionInfo.IsTrigger = chkIsTrigger.Checked;
 
-            if (m_isSelectingTiles && m_selectedTiles.Count > 0)
+            if (m_selectedTiles.Count > 0)
             {
                 UpdateColliderFromSelectedTiles();
             }
