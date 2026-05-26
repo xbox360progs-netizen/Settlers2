@@ -80,6 +80,7 @@ private:
 
     bool m_visible;
     bool m_selectionMade;
+    bool m_selectionLatched;
     int m_confirmedIndex;
 
     D3DXVECTOR4 m_innerColor;

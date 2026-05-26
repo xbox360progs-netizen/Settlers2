@@ -49,6 +49,7 @@ RadialMenu::RadialMenu(LPDIRECT3DDEVICE9 device, ShaderManager* shaderManager, B
     , m_centerIconSize(54.0f * kMenuScale)
     , m_visible(false)
     , m_selectionMade(false)
+    , m_selectionLatched(false)
     , m_confirmedIndex(-1)
     , m_innerColor(0.30f, 0.24f, 0.18f, 0.72f)
     , m_outerColor(0.10f, 0.08f, 0.06f, 0.88f)
@@ -101,6 +102,7 @@ void RadialMenu::Show(float screenX, float screenY)
     m_visible = true;
     m_selectedIndex = -1;
     m_selectionMade = false;
+    m_selectionLatched = false;
     m_confirmedIndex = -1;
 }
 
@@ -108,6 +110,7 @@ void RadialMenu::Hide()
 {
     m_visible = false;
     m_selectedIndex = -1;
+    m_selectionLatched = false;
 }
 
 void RadialMenu::AddItem(const MenuItem& item)
@@ -218,8 +221,7 @@ void RadialMenu::UpdateFromStick(float stickX, float stickY)
     float len = sqrtf(stickX * stickX + stickY * stickY);
     if (len > 0.3f) {
         CalculateSelectedSector(stickX, stickY);
-    } else {
-        m_selectedIndex = -1;
+        m_selectionLatched = true;
     }
 }
 

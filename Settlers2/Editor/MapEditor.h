@@ -64,6 +64,7 @@ public:
     World::LayerType GetLayer() const { return m_currentLayer; }
 
     void AutoAssignResourcesForTrees();
+    void RebuildObjectInteractionZones();
     void SetShowResourceIcons(bool show) { m_showResourceIcons = show; }
 
     World::TileType GetCurrentTileType() const { return m_currentTileType; }
@@ -80,6 +81,7 @@ public:
     void PaintCurrentTile();
     void DeleteObjectAt(int x, int y);
     bool IsPlacementFootprintFree(int tx, int ty, const SpriteRegion* region) const;
+    bool FindMountainObjectForResource(int x, int y, int& mountainX, int& mountainY) const;
 	bool CanPlaceObject(int x, int y, World::TileType objectType);
 
 	void MapEditor::SetShowObjects(bool show) { m_showObjects = show; }
@@ -122,6 +124,7 @@ World::Map* m_map;
 
     float m_cameraX, m_cameraY;
     float m_zoomLevel;
+    float m_worldCenterX, m_worldCenterY;
 
     public:
     static const int GRID_WIDTH = 20;
@@ -159,12 +162,14 @@ private:
     void RenderActiveTile();
     bool m_placementOccupied;
     bool m_showResourceIcons;
-    int m_resourceIconIndices[6]; // Cached sprite indices for resource icons (indexed by ResourceType-1)
+    int m_resourceIconIndices[World::ResourceType_Count]; // Cached sprite indices for resource icons (indexed by ResourceType)
     void RenderGridLayer();
     void RenderResources();
     void RenderCursor();
     void RenderWeightMap();
     void ClearPlacementFootprint(int tx, int ty, World::TileLayer* objectsLayer);
+    void ClearObjectInteractionZone(int tx, int ty, World::TileLayer* objectsLayer);
+    void MarkObjectInteractionZone(int tx, int ty, const World::Tile& objectTile, const SpriteRegion* region);
 };
 
 } // namespace Editor

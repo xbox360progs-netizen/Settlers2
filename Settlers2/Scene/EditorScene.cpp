@@ -32,7 +32,21 @@ const char* EditorScene::kObjectGroupNames[] = {
 const int EditorScene::kObjectGroupCount = 5;
 
 const char* EditorScene::kResourceGroupName = "ResourceIcons";
-const int EditorScene::kResourceTypeCount = 7;
+const int EditorScene::kResourceTypeCount = World::ResourceType_Count - 1;
+const int EditorScene::kResourceMenuGroupCount = 4;
+
+struct ResourceMenuGroupDef {
+    const char* iconName;
+    World::ResourceType resources[8];
+    int count;
+};
+
+static const ResourceMenuGroupDef kResourceMenuGroups[] = {
+    { "icon_deposit_wood",  { World::ResourceType_Wood, World::ResourceType_RealWood, World::ResourceType_ExoticWood }, 3 },
+    { "icon_deposit_stone", { World::ResourceType_Stone, World::ResourceType_Marble, World::ResourceType_Granite }, 3 },
+    { "icon_deposit_mine",  { World::ResourceType_Iron, World::ResourceType_Gold, World::ResourceType_Coal, World::ResourceType_BronzeOre, World::ResourceType_Titanium, World::ResourceType_Salpeter }, 6 },
+    { "icon_deposit_food",  { World::ResourceType_Corn, World::ResourceType_Water, World::ResourceType_Meat, World::ResourceType_Fish }, 4 }
+};
 
 EditorScene::EditorScene()
     : Scene("Editor")
@@ -49,6 +63,7 @@ EditorScene::EditorScene()
     , m_currentLayer(World::Ground)
     , m_objectGroupIndex(0)
     , m_yButtonWasPressed(false)
+    , m_blockCameraUntilStickNeutral(false)
     , m_fps(0)
     , m_frameCount(0)
     , m_lastFpsTime(0)
@@ -68,6 +83,8 @@ EditorScene::EditorScene()
     , m_depositBuildingSpriteIdx(-1)
     , m_depositConfirmPending(false)
     , m_resourceAmount(10)
+    , m_resourceMenuGroupIndex(-1)
+    , m_resourceMenuShowingGroups(true)
     , m_resourcesInitialized(false)
 {
 }
@@ -426,19 +443,19 @@ void EditorScene::Update(float deltaTime) {
 						m_weightMenuVisible = true;
 					}
 				}
-			} else if (m_currentLayer == World::Resources && m_currentState != STATE_DEPOSIT_PREVIEW) {
-				// (blocked during deposit preview to avoid interrupting the flow)
+			} else if (m_currentLayer == World::Resources && m_currentState == STATE_IDLE) {
+				// (blocked during STATE_PLACING / STATE_INPUT_AMOUNT to avoid interrupting the flow)
 				if (!m_gridMenu) {
 					m_gridMenu = new GridMenu();
 					if (m_gridMenu->Initialize()) {
 						m_gridMenu->SetTextureSlots(6, 7, 8);
-						LoadResourceIcons();
+						LoadResourceGroupIcons();
 					}
 					m_gridMenu->Show(640.0f, 330.0f);
 				} else if (m_gridMenu->IsVisible()) {
 					m_gridMenu->Hide();
 				} else {
-					LoadResourceIcons();
+					LoadResourceGroupIcons();
 					m_gridMenu->Show(640.0f, 330.0f);
 				}
 			} else {
@@ -505,7 +522,7 @@ void EditorScene::Update(float deltaTime) {
 				int tileX, tileY;
                 if (m_mapEditor->GetMap()->GetTileAt(worldX, worldY, m_currentLayer, tileX, tileY)) {
                     // Update phantom tile position when in PLACING or DEPOSIT_PREVIEW state
-                    if (m_currentState == STATE_PLACING || m_currentState == STATE_DEPOSIT_PREVIEW) {
+                    if (m_currentState == STATE_PLACING) {
                         m_phantomTileX = tileX;
                         m_phantomTileY = tileY;
                     }
@@ -535,58 +552,56 @@ void EditorScene::Update(float deltaTime) {
 				// GridMenu is open, waiting for selection
 				break;
 				
-			case STATE_PLACING:
-				// Phantom resource follows cursor
-				// A button: Place resource and open OSK
-				if (m_inputController->IsButtonAPressed()) {
-					// Transition to INPUT_AMOUNT state
-					m_currentState = STATE_INPUT_AMOUNT;
-					// TODO: Open OSK for amount input
-					// For now, use default amount of 500
-					if (m_mapEditor && m_mapEditor->GetMap()) {
-						m_mapEditor->GetMap()->SetResourceNode(m_phantomTileX, m_phantomTileY, m_activeResourceType, 500, true);
-					}
-					m_currentState = STATE_PLACING; // Return to placing for multiple placements
-				}
-				// B button: Cancel placement
-				if (m_inputController->IsButtonBPressed()) {
-					m_currentState = STATE_IDLE;
-					m_activeResourceType = World::ResourceType_None;
-				}
-				break;
-				
-            case STATE_DEPOSIT_PREVIEW:
-            {
-                // Building preview follows cursor (phantom tile updated in the world cursor block above)
+            case STATE_PLACING:
+                // Phantom resource follows cursor
+                // A button: Place resource then enter edit mode
                 if (m_inputController->IsButtonAPressed()) {
-                    if (!m_depositConfirmPending) {
-                        // First A press: show confirmation prompt
-                        m_depositConfirmPending = true;
-                    } else {
-                        // Second A press: confirm placement, set resource node
-                        if (m_mapEditor && m_mapEditor->GetMap()) {
-                            m_mapEditor->GetMap()->SetResourceNode(
-                                m_phantomTileX, m_phantomTileY,
-                                m_activeResourceType, m_resourceAmount, true);
+                    if (m_mapEditor && m_mapEditor->GetMap()) {
+                        bool canPlace = true;
+                        int placeX = m_phantomTileX;
+                        int placeY = m_phantomTileY;
+                        // Validate mine/stone deposits: only on mountains
+                        if (World::ResourceRequiresMountain(m_activeResourceType)) {
+                            m_mapEditor->RebuildObjectInteractionZones();
+                            if (!m_mapEditor->FindMountainObjectForResource(m_phantomTileX, m_phantomTileY, placeX, placeY)) {
+                                OutputDebugStringA("[Editor] Deposits can only be placed on mountains!\n");
+                                canPlace = false;
+                            }
                         }
-                        m_currentState = STATE_IDLE;
-                        m_depositConfirmPending = false;
-                        m_activeResourceType = World::ResourceType_None;
-                        m_depositBuildingSpriteIdx = -1;
+                        if (canPlace) {
+                            m_phantomTileX = placeX;
+                            m_phantomTileY = placeY;
+                            m_mapEditor->GetMap()->SetResourceNode(placeX, placeY, m_activeResourceType, m_resourceAmount, true);
+                            m_currentState = STATE_INPUT_AMOUNT;
+                        }
                     }
                 }
+                // B button: complete / cancel placement
                 if (m_inputController->IsButtonBPressed()) {
-                    // B: cancel everything
                     m_currentState = STATE_IDLE;
-                    m_depositConfirmPending = false;
                     m_activeResourceType = World::ResourceType_None;
-                    m_depositBuildingSpriteIdx = -1;
                 }
                 break;
-            }
+
             case STATE_INPUT_AMOUNT:
-                // OSK is open, waiting for input
-                // This will be handled by OSK callback
+                // Amount editing mode: D-pad adjusts m_resourceAmount above
+                // A — confirm and save (uses frozen phantom position from STATE_PLACING)
+                if (m_inputController->IsButtonYPressed()) {
+                    if (m_mapEditor && m_mapEditor->GetMap()) {
+                        m_mapEditor->GetMap()->SetResourceNode(m_phantomTileX, m_phantomTileY, m_activeResourceType, m_resourceAmount, true);
+                        char buf[128];
+                        sprintf_s(buf, "[Editor] Saved resource %s at (%d,%d) amount=%d\n",
+                            World::ResourceTypeToString(m_activeResourceType), m_phantomTileX, m_phantomTileY, m_resourceAmount);
+                        OutputDebugStringA(buf);
+                    }
+                    m_currentState = STATE_IDLE;
+                }
+                // B — cancel (clears active resource type to stop further placement)
+                if (m_inputController->IsButtonBPressed()) {
+                    m_currentState = STATE_IDLE;
+                    m_activeResourceType = World::ResourceType_None;
+                    OutputDebugStringA("[Editor] Resource edit cancelled\n");
+                }
                 break;
         }
 	}
@@ -597,7 +612,12 @@ void EditorScene::Update(float deltaTime) {
 		float stickX, stickY;
 		gamepad->GetLeftStick(stickX, stickY);
 		
-		if (fabsf(stickX) > 0.1f || fabsf(stickY) > 0.1f) {
+		// Block camera movement right after menu closes until stick returns to neutral
+		if (m_blockCameraUntilStickNeutral) {
+			if (fabsf(stickX) <= 0.1f && fabsf(stickY) <= 0.1f) {
+				m_blockCameraUntilStickNeutral = false;
+			}
+		} else if (fabsf(stickX) > 0.1f || fabsf(stickY) > 0.1f) {
 			m_camera->Move(stickX * moveSpeed, stickY * moveSpeed);
 		}
 		
@@ -623,39 +643,46 @@ void EditorScene::Update(float deltaTime) {
 			int selectedIndex = m_gridMenu->GetSelectedSpriteIndex();
 			if (selectedIndex >= 0 && m_mapEditor) {
             if (m_currentLayer == World::Resources) {
-                // Resource layer: map selected icon to ResourceType
+                // Resource layer: first select resource group, then concrete resource.
                 const std::tr1::shared_ptr<SpriteAtlas>& maptiles = TextureRegistry::instance().getAtlas("maptiles");
                 if (maptiles) {
                     const SpriteRegion* region = maptiles->GetRegion(selectedIndex);
                     if (region) {
-                        for (int i = 1; i <= kResourceTypeCount; ++i) {
-                            World::ResourceType rt = static_cast<World::ResourceType>(i);
-                            if (region->name == World::ResourceTypeToIconName(rt)) {
-                                m_activeResourceType = rt;
-                                m_resourceAmount = World::GetDefaultResourceAmount(rt);
-                                if (World::IsDepositResource(rt)) {
-                                    // Deposit resources: enter preview mode with building sprite
-                                    m_currentState = STATE_DEPOSIT_PREVIEW;
+                        if (m_resourceMenuShowingGroups) {
+                            for (int i = 0; i < kResourceMenuGroupCount; ++i) {
+                                if (region->name == kResourceMenuGroups[i].iconName) {
+                                    m_resourceMenuGroupIndex = i;
+                                    LoadResourceGroupResources(i);
+                                    char buf[128];
+                                    sprintf_s(buf, "[EditorScene] Selected resource group: %s\n", kResourceMenuGroups[i].iconName);
+                                    OutputDebugStringA(buf);
+                                    return;
+                                }
+                            }
+                        } else {
+                            for (int i = 1; i < World::ResourceType_Count; ++i) {
+                                World::ResourceType rt = static_cast<World::ResourceType>(i);
+                                if (region->name == World::ResourceTypeToIconName(rt)) {
+                                    m_activeResourceType = rt;
+                                    m_resourceAmount = World::GetDefaultResourceAmount(rt);
+                                    m_currentState = STATE_PLACING;
                                     m_depositConfirmPending = false;
-                                    // Cache the building sprite index
+                                    m_depositBuildingSpriteIdx = -1;
                                     const char* buildingName = World::ResourceTypeToBuildingSpriteName(rt);
                                     m_depositBuildingSpriteIdx = (buildingName && buildingName[0])
                                         ? (int)maptiles->GetIndex(buildingName)
                                         : -1;
-                                    // If building sprite not found, use the resource icon itself
                                     if (m_depositBuildingSpriteIdx < 0) {
                                         m_depositBuildingSpriteIdx = selectedIndex;
                                     }
-                                } else {
-                                    // Tree: direct placement (existing behavior)
-                                    m_currentState = STATE_PLACING;
+                                    char buf[160];
+                                    sprintf_s(buf, "[EditorScene] Selected resource type: %s, amount: %d (mountain=%d, buildingIdx=%d)\n",
+                                        World::ResourceTypeToString(rt), m_resourceAmount,
+                                        World::ResourceRequiresMountain(rt), m_depositBuildingSpriteIdx);
+                                    OutputDebugStringA(buf);
+                                    m_gridMenu->Hide();
+                                    return;
                                 }
-                                char buf[128];
-                                sprintf_s(buf, "[EditorScene] Selected resource type: %s, amount: %d (deposit=%d, buildingIdx=%d)\n",
-                                    World::ResourceTypeToString(rt), m_resourceAmount,
-                                    World::IsDepositResource(rt), m_depositBuildingSpriteIdx);
-                                OutputDebugStringA(buf);
-                                break;
                             }
                         }
                     }
@@ -664,10 +691,14 @@ void EditorScene::Update(float deltaTime) {
 					m_mapEditor->SetTileByIndex(selectedIndex);
 				}
 			}
-			m_gridMenu->Hide();
+			if (m_currentLayer != World::Resources) m_gridMenu->Hide();
 		}
 		if (gamepad->IsButtonPressed(Input::GP_B)) {
-			m_gridMenu->Hide();
+            if (m_currentLayer == World::Resources && !m_resourceMenuShowingGroups) {
+                LoadResourceGroupIcons();
+            } else {
+			    m_gridMenu->Hide();
+            }
 		}
 		// Y button - cycle object groups (only in Objects layer)
 		if (gamepad->IsButtonPressed(Input::GP_Y) && m_currentLayer == World::Objects) {
@@ -685,6 +716,12 @@ void EditorScene::Update(float deltaTime) {
 	// Also update RadialMenu if visible
 	if (m_radialMenu && m_radialMenu->IsVisible()) {
     m_radialMenu->Update(gamepad);
+
+    // Block camera if radial menu was just closed (via A confirm or B cancel)
+    if (!m_radialMenu->IsVisible()) {
+        m_blockCameraUntilStickNeutral = true;
+    }
+
     if (m_radialMenu->HasSelection()) {
         int selectedType = m_radialMenu->GetSelectedTypeId();
         m_currentLayer = static_cast<World::LayerType>(selectedType);
@@ -696,6 +733,15 @@ void EditorScene::Update(float deltaTime) {
         // Update map editor visibility and layer sync
         if (m_mapEditor) {
             m_mapEditor->SetLayer(m_currentLayer);
+
+            // Cancel any active resource placement/editing when switching layer
+            bool wasResourceLayer = (m_currentState != STATE_IDLE
+                || m_activeResourceType != World::ResourceType_None);
+            m_currentState = STATE_IDLE;
+            m_activeResourceType = World::ResourceType_None;
+            m_depositConfirmPending = false;
+            m_depositBuildingSpriteIdx = -1;
+
             switch (m_currentLayer) {
                 case World::Ground:
                     m_mapEditor->SetShowObjects(false);
@@ -716,8 +762,6 @@ void EditorScene::Update(float deltaTime) {
                         m_mapEditor->AutoAssignResourcesForTrees();
                         m_resourcesInitialized = true;
                     }
-                    // Reset resource placement state
-                    m_currentState = STATE_IDLE;
                     break;
                 case World::Overlay:
                     m_mapEditor->SetShowObjects(true);
@@ -782,14 +826,39 @@ void EditorScene::Update(float deltaTime) {
 
 			// A button - place/edit resource at cursor (only in IDLE state, otherwise FSM handles it)
 			if (gamepad->IsButtonPressed(Input::GP_A) && m_currentState == STATE_IDLE) {
-				if (m_activeResourceType != World::ResourceType_None) {
-					int tx = m_mapEditor->GetCursorTileX();
-					int ty = m_mapEditor->GetCursorTileY();
-					m_mapEditor->GetMap()->SetResourceNode(tx, ty, m_activeResourceType, m_resourceAmount, true);
+				int tx = m_mapEditor->GetCursorTileX();
+				int ty = m_mapEditor->GetCursorTileY();
+
+				// Check: if tile already has a resource, load it for editing
+				const World::ResourceNode& existingNode = m_mapEditor->GetMap()->GetResourceNode(tx, ty);
+				if (existingNode.type != World::ResourceType_None) {
+					m_activeResourceType = existingNode.type;
+					m_resourceAmount = existingNode.amount;
+					m_currentState = STATE_INPUT_AMOUNT;
 					char buf[128];
-					sprintf_s(buf, "[EditorScene] Placed resource %s at (%d,%d) amount=%d\n",
-						World::ResourceTypeToString(m_activeResourceType), tx, ty, m_resourceAmount);
+					sprintf_s(buf, "[Editor] Edit resource %s amount=%d at (%d,%d). D-pad to adjust, A to confirm, B to cancel\n",
+						World::ResourceTypeToString(m_activeResourceType), m_resourceAmount, tx, ty);
 					OutputDebugStringA(buf);
+				} else if (m_activeResourceType != World::ResourceType_None) {
+					// Check: deposit resources only on mountains
+					bool canPlace = true;
+					int placeX = tx;
+					int placeY = ty;
+					if (World::ResourceRequiresMountain(m_activeResourceType)) {
+						m_mapEditor->RebuildObjectInteractionZones();
+						if (!m_mapEditor->FindMountainObjectForResource(tx, ty, placeX, placeY)) {
+							OutputDebugStringA("[Editor] Deposits can only be placed on mountains!\n");
+							canPlace = false;
+						}
+					}
+
+					if (canPlace) {
+						m_mapEditor->GetMap()->SetResourceNode(placeX, placeY, m_activeResourceType, m_resourceAmount, true);
+						char buf[128];
+						sprintf_s(buf, "[EditorScene] Placed resource %s at (%d,%d) amount=%d\n",
+							World::ResourceTypeToString(m_activeResourceType), placeX, placeY, m_resourceAmount);
+						OutputDebugStringA(buf);
+					}
 				}
 			}
 		} else {
@@ -851,16 +920,21 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
         // Show resource info when Resources layer is active
         if (m_currentLayer == World::Resources) {
             char resInfo[256];
-            if (m_currentState == STATE_DEPOSIT_PREVIEW) {
-                if (m_depositConfirmPending) {
-                    sprintf_s(resInfo, "Place %s deposit here?  A: confirm  B: cancel",
-                        World::ResourceTypeToString(m_activeResourceType));
+            if (m_currentState == STATE_INPUT_AMOUNT) {
+                if (World::IsDepositResource(m_activeResourceType)) {
+                    sprintf_s(resInfo, "Deposit at (%d,%d): %s [%d]  D-pad: adjust  Y: save  B: cancel",
+                        m_phantomTileX, m_phantomTileY,
+                        World::ResourceTypeToString(m_activeResourceType), m_resourceAmount);
                 } else {
-                    sprintf_s(resInfo, "Deposit: %s [%d]  A: place building preview  B: cancel  D-pad: adjust amount",
+                    sprintf_s(resInfo, "Editing at (%d,%d): %s [%d]  D-pad: adjust  Y: save  B: cancel",
+                        m_phantomTileX, m_phantomTileY,
                         World::ResourceTypeToString(m_activeResourceType), m_resourceAmount);
                 }
+            } else if (m_currentState == STATE_PLACING) {
+                sprintf_s(resInfo, "Place: %s [%d]  D-pad: adjust  A: place  B: cancel",
+                    World::ResourceTypeToString(m_activeResourceType), m_resourceAmount);
             } else if (m_activeResourceType != World::ResourceType_None) {
-                sprintf_s(resInfo, "Resource: %s [%d]  D-pad Up/Down: +/-5  A: place  X: remove",
+                sprintf_s(resInfo, "Resource: %s [%d]  D-pad: adjust  A: place  X: remove",
                     World::ResourceTypeToString(m_activeResourceType), m_resourceAmount);
             } else {
                 sprintf_s(resInfo, "Press RB to select resource type, then A to place on tile");
@@ -966,8 +1040,9 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
         }
     }
 
-    // Deposit preview: render building sprite at cursor position
-    if (m_currentState == STATE_DEPOSIT_PREVIEW && m_mapEditor && m_spriteRenderer && renderQueue) {
+    // Deposit preview: render building sprite at placed position during amount editing
+    if (m_currentState == STATE_INPUT_AMOUNT && m_mapEditor && m_spriteRenderer && renderQueue
+        && World::IsDepositResource(m_activeResourceType)) {
         CoordinateSystem& coords = CoordinateSystem::GetInstance();
         float wx, wy;
         coords.NodeTileToWorld(m_phantomTileX, m_phantomTileY, wx, wy);
@@ -976,19 +1051,17 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
         if (maptiles && m_depositBuildingSpriteIdx >= 0 && m_depositBuildingSpriteIdx < (int)maptiles->GetRegionCount()) {
             const SpriteRegion* region = maptiles->GetRegion(m_depositBuildingSpriteIdx);
             if (region) {
-                float previewW = 64.0f;
-                float previewH = 64.0f;
-                // Semi-transparent preview before confirmation, solid after
-                D3DCOLOR previewColor = m_depositConfirmPending ? 0xFFFFFFFF : 0xAAFFFFFF;
+                float previewW = (float)region->width;
+                float previewH = (float)region->height;
 
                 Graphics::RenderCommand cmd = {};
-                cmd.x = wx + coords.GetNodeWidth() * 0.5f - previewW * 0.5f;
-                cmd.y = wy - previewH * 0.5f;
+                cmd.x = wx - region->pivotX;
+                cmd.y = wy - region->pivotY;
                 cmd.width = previewW;
                 cmd.height = previewH;
                 cmd.u0 = region->u0; cmd.v0 = region->v0;
                 cmd.u1 = region->u1; cmd.v1 = region->v1;
-                cmd.color = previewColor;
+                cmd.color = 0xFFFFFFFF;
                 cmd.shaderID = SHADER_TERRAIN;
                 cmd.textureID = 9;
                 cmd.blendMode = 1;
@@ -1176,6 +1249,10 @@ void EditorScene::LoadGridMenuGroup(const char* groupName) {
 }
 
 void EditorScene::LoadResourceIcons() {
+    LoadResourceGroupIcons();
+}
+
+void EditorScene::LoadResourceGroupIcons() {
     if (!m_gridMenu) return;
 
     TextureRegistry& registry = TextureRegistry::instance();
@@ -1209,61 +1286,88 @@ void EditorScene::LoadResourceIcons() {
     }
     m_gridMenu->SetBackgroundUV(bgUV);
     m_gridMenu->SetCellUV(cellUV);
-    m_gridMenu->SetCellSpacing(119.0f, 74.0f);
+    m_gridMenu->SetCellSpacing(119.0f, 100.0f);
 
-    // Try loading ResourceIcons group, fall back to individual sprite names
-    const std::vector<uint32_t>* groupIndices = maptiles->GetGroup(kResourceGroupName);
     std::vector<GridMenu::TileUV> uvs;
     std::vector<int> globalIndices;
 
-    if (groupIndices) {
-        uvs.reserve(groupIndices->size());
-        globalIndices.reserve(groupIndices->size());
-        for (uint32_t i = 0; i < groupIndices->size(); ++i) {
-            uint32_t spriteIdx = (*groupIndices)[i];
-            const SpriteRegion* reg = maptiles->GetRegion(spriteIdx);
-            GridMenu::TileUV tu;
-            if (reg) {
-                tu.u0 = reg->u0; tu.v0 = reg->v0; tu.u1 = reg->u1; tu.v1 = reg->v1;
-            } else {
-                tu.u0 = 0.0f; tu.v0 = 0.0f; tu.u1 = 1.0f; tu.v1 = 1.0f;
-            }
-            uvs.push_back(tu);
-            globalIndices.push_back((int)spriteIdx);
+    for (int i = 0; i < kResourceMenuGroupCount; ++i) {
+        uint32_t spriteIdx = maptiles->GetIndex(kResourceMenuGroups[i].iconName);
+        if (spriteIdx == 0xFFFFFFFF) {
+            char buf[128];
+            sprintf_s(buf, "[EditorScene] Resource group icon '%s' not found in maptiles atlas\n",
+                kResourceMenuGroups[i].iconName);
+            OutputDebugStringA(buf);
+            continue;
         }
-    } else {
-        // Fallback: look up individual resource icons by name
-        for (int i = 1; i <= kResourceTypeCount; ++i) {
-            World::ResourceType rt = static_cast<World::ResourceType>(i);
-            const char* iconName = World::ResourceTypeToIconName(rt);
-            if (!iconName || !iconName[0]) continue;
 
-            uint32_t spriteIdx = maptiles->GetIndex(iconName);
-            if (spriteIdx == 0xFFFFFFFF) {
-                char buf[128];
-                sprintf_s(buf, "[EditorScene] Resource icon '%s' not found in maptiles atlas\n", iconName);
-                OutputDebugStringA(buf);
-                continue;
-            }
-
-            const SpriteRegion* reg = maptiles->GetRegion(spriteIdx);
-            GridMenu::TileUV tu;
-            if (reg) {
-                tu.u0 = reg->u0; tu.v0 = reg->v0; tu.u1 = reg->u1; tu.v1 = reg->v1;
-            } else {
-                tu.u0 = 0.0f; tu.v0 = 0.0f; tu.u1 = 1.0f; tu.v1 = 1.0f;
-            }
-            uvs.push_back(tu);
-            globalIndices.push_back((int)spriteIdx);
+        const SpriteRegion* reg = maptiles->GetRegion(spriteIdx);
+        GridMenu::TileUV tu;
+        if (reg) {
+            tu.u0 = reg->u0; tu.v0 = reg->v0; tu.u1 = reg->u1; tu.v1 = reg->v1;
+        } else {
+            tu.u0 = 0.0f; tu.v0 = 0.0f; tu.u1 = 1.0f; tu.v1 = 1.0f;
         }
+        uvs.push_back(tu);
+        globalIndices.push_back((int)spriteIdx);
     }
 
     m_gridMenu->SetTileData(uvs, globalIndices);
     m_gridMenu->SetSpriteRenderer(m_spriteRenderer);
     m_gridMenu->ResetSelection();
+    m_resourceMenuShowingGroups = true;
+    m_resourceMenuGroupIndex = -1;
 
     char buf[128];
-    sprintf_s(buf, "[EditorScene] Loaded resource icons into GridMenu (%d sprites)\n", (int)uvs.size());
+    sprintf_s(buf, "[EditorScene] Loaded resource groups into GridMenu (%d sprites)\n", (int)uvs.size());
+    OutputDebugStringA(buf);
+}
+
+void EditorScene::LoadResourceGroupResources(int groupIndex) {
+    if (!m_gridMenu) return;
+    if (groupIndex < 0 || groupIndex >= kResourceMenuGroupCount) return;
+
+    TextureRegistry& registry = TextureRegistry::instance();
+    std::tr1::shared_ptr<SpriteAtlas> maptiles = registry.getAtlas("maptiles");
+    if (!maptiles) return;
+
+    std::vector<GridMenu::TileUV> uvs;
+    std::vector<int> globalIndices;
+    const ResourceMenuGroupDef& group = kResourceMenuGroups[groupIndex];
+
+    for (int i = 0; i < group.count; ++i) {
+        World::ResourceType rt = group.resources[i];
+        const char* iconName = World::ResourceTypeToIconName(rt);
+        if (!iconName || !iconName[0]) continue;
+
+        uint32_t spriteIdx = maptiles->GetIndex(iconName);
+        if (spriteIdx == 0xFFFFFFFF) {
+            char buf[128];
+            sprintf_s(buf, "[EditorScene] Resource icon '%s' not found in maptiles atlas\n", iconName);
+            OutputDebugStringA(buf);
+            continue;
+        }
+
+        const SpriteRegion* reg = maptiles->GetRegion(spriteIdx);
+        GridMenu::TileUV tu;
+        if (reg) {
+            tu.u0 = reg->u0; tu.v0 = reg->v0; tu.u1 = reg->u1; tu.v1 = reg->v1;
+        } else {
+            tu.u0 = 0.0f; tu.v0 = 0.0f; tu.u1 = 1.0f; tu.v1 = 1.0f;
+        }
+        uvs.push_back(tu);
+        globalIndices.push_back((int)spriteIdx);
+    }
+
+    m_gridMenu->SetTileData(uvs, globalIndices);
+    m_gridMenu->SetSpriteRenderer(m_spriteRenderer);
+    m_gridMenu->ResetSelection();
+    m_resourceMenuShowingGroups = false;
+    m_resourceMenuGroupIndex = groupIndex;
+
+    char buf[160];
+    sprintf_s(buf, "[EditorScene] Loaded resource subgroup '%s' into GridMenu (%d sprites)\n",
+        group.iconName, (int)uvs.size());
     OutputDebugStringA(buf);
 }
 

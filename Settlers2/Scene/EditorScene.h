@@ -74,6 +74,8 @@ EditorScene();
 
     // Load resource icons into GridMenu
     void LoadResourceIcons();
+    void LoadResourceGroupIcons();
+    void LoadResourceGroupResources(int groupIndex);
 
     Renderer* m_renderer;
     SpriteRenderer* m_spriteRenderer;
@@ -93,10 +95,14 @@ EditorScene();
     static const int kObjectGroupCount;
     int m_objectGroupIndex;
     bool m_yButtonWasPressed;
+    bool m_blockCameraUntilStickNeutral;
 
     // Resource group for GridMenu
     static const char* kResourceGroupName;
     static const int kResourceTypeCount;
+    static const int kResourceMenuGroupCount;
+    int m_resourceMenuGroupIndex;
+    bool m_resourceMenuShowingGroups;
     int m_resourceAmount;
 
     // FPS counter

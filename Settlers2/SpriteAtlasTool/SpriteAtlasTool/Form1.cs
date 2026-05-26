@@ -115,6 +115,15 @@ namespace SpriteAtlasTool
             }
         }
 
+        private void ApplySpriteRectangle(SpriteRegion sprite, Rectangle rect)
+        {
+            if (sprite == null) return;
+
+            sprite.Bounds = rect;
+            sprite.DisplayBounds = rect;
+            sprite.OriginalBounds = rect;
+        }
+
         private void animationTimer_Tick(object sender, EventArgs e)
         {
             if (currentAtlas != null && currentAtlas.Type == AtlasType.Animation)
@@ -740,19 +749,13 @@ namespace SpriteAtlasTool
 
             if (isMoving && selectedSprite != null)
             {
-                selectedSprite.Bounds = new Rectangle(
+                Rectangle movedRect = new Rectangle(
                     correctedPoint.X - moveOffset.X,
                     correctedPoint.Y - moveOffset.Y,
                     selectedSprite.Bounds.Width,
                     selectedSprite.Bounds.Height
                 );
-                selectedSprite.DisplayBounds = selectedSprite.Bounds;
-                selectedSprite.OriginalBounds = new Rectangle(
-            selectedSprite.Bounds.X,
-            selectedSprite.Bounds.Y,
-            selectedSprite.Bounds.Width,
-            selectedSprite.Bounds.Height
-        );
+                ApplySpriteRectangle(selectedSprite, movedRect);
                 pictureBox1.Invalidate();
                 UpdatePreview();
                 previewBox.Invalidate();
@@ -807,8 +810,7 @@ namespace SpriteAtlasTool
 
                 if (r.Width > 5 && r.Height > 5)
                 {
-                    selectedSprite.Bounds = r;
-                    selectedSprite.DisplayBounds = r;
+                    ApplySpriteRectangle(selectedSprite, r);
                     pictureBox1.Invalidate();
                     UpdatePreview();
                     previewBox.Invalidate();
@@ -993,8 +995,7 @@ namespace SpriteAtlasTool
         {
             if (selectedSprite != null)
             {
-                selectedSprite.Bounds = newRect;
-                selectedSprite.DisplayBounds = newRect;
+                ApplySpriteRectangle(selectedSprite, newRect);
                 pictureBox1.Invalidate();
                 UpdatePreview();
                 previewBox.Invalidate();
@@ -1019,9 +1020,7 @@ namespace SpriteAtlasTool
                 // Показываем как модальное окно
                 if (editForm.ShowDialog() == DialogResult.OK)
                 {
-                    selectedSprite.Bounds = editForm.ResultRectangle;
-                    selectedSprite.OriginalBounds = editForm.ResultRectangle;
-                    selectedSprite.DisplayBounds = editForm.ResultRectangle;
+                    ApplySpriteRectangle(selectedSprite, editForm.ResultRectangle);
                     pictureBox1.Invalidate();
                     UpdatePreview();
                     RefreshSpriteList();

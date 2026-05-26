@@ -179,13 +179,11 @@ bool Map::GetTileUnderMouse(float screenX, float screenY, Camera* camera, LayerT
                 continue;
             }
 
-            // Get world position of this tile's center
+            // Get world position of this tile's anchor (matches cursor and object rendering)
             float tileCenterX, tileCenterY;
             coords.NodeTileToWorld(checkX, checkY, tileCenterX, tileCenterY);
-            tileCenterX += coords.GetNodeWidth() * 0.5f;
-            tileCenterY += coords.GetNodeHeight() * 0.5f;
 
-            // Calculate distance from click point to tile center
+            // Calculate distance from click point to tile anchor
             float distX = worldX - tileCenterX;
             float distY = worldY - tileCenterY;
             float dist = sqrtf(distX * distX + distY * distY);
@@ -250,13 +248,11 @@ bool Map::GetTileAt(float worldX, float worldY, LayerType layer, int& tileX, int
                 continue;
             }
 
-            // Get world position of this tile's center
+            // Get world position of this tile's anchor (matches cursor and object rendering)
             float tileCenterX, tileCenterY;
             coords.NodeTileToWorld(checkX, checkY, tileCenterX, tileCenterY);
-            tileCenterX += coords.GetNodeWidth() * 0.5f;
-            tileCenterY += coords.GetNodeHeight() * 0.5f;
 
-            // Calculate distance from point to tile center
+            // Calculate distance from point to tile anchor
             float distX = worldX - tileCenterX;
             float distY = worldY - tileCenterY;
             float dist = sqrtf(distX * distX + distY * distY);

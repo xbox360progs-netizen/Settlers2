@@ -120,6 +120,8 @@ public:
     int GetNodesHeight() const { return m_nodesH; }
     float GetNodeWidth() const { return m_nodeW; }
     float GetNodeHeight() const { return m_nodeH; }
+    float GetTileWidth() const { return m_tileW; }
+    float GetTileHeight() const { return m_tileH; }
 
     // Get center of map
     void GetDiamondCenter(float& cx, float& cy) const {

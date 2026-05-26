@@ -53,7 +53,7 @@ MapEditor::MapEditor()
     , m_showResourceIcons(false)
     , m_textManager(nullptr)
 {
-    for (int i = 0; i < 6; ++i) m_resourceIconIndices[i] = -1;
+    for (int i = 0; i < World::ResourceType_Count; ++i) m_resourceIconIndices[i] = -1;
 }
 
 MapEditor::~MapEditor() {
@@ -174,8 +174,24 @@ void MapEditor::Initialize(World::Map* map, Renderer* renderer,
 }
 
 void MapEditor::Update(float deltaTime) {
-    HandleInput();
     UpdateCamera(deltaTime);
+
+    if (m_pCamera) {
+        m_cameraX = m_pCamera->GetPosX();
+        m_cameraY = m_pCamera->GetPosY();
+        m_zoomLevel = m_pCamera->GetZoom();
+        m_pCamera->GetWorldCenter(m_worldCenterX, m_worldCenterY);
+
+        // Hard-bind cursor to camera: compute tile at camera center, ONE place
+        CoordinateSystem& coords = CoordinateSystem::GetInstance();
+        if (m_currentLayer == World::Ground) {
+            coords.WorldToGroundTile(m_worldCenterX, m_worldCenterY, m_cursorTileX, m_cursorTileY);
+        } else {
+            coords.WorldToNodeTile(m_worldCenterX, m_worldCenterY, m_cursorTileX, m_cursorTileY);
+        }
+    }
+
+    HandleInput();
 
     if (m_tilePalette) {
         m_tilePalette->Update(deltaTime);
@@ -191,6 +207,14 @@ void MapEditor::RenderGeometry() {
         m_pDevice->SetVertexShader(NULL);
         m_pDevice->SetPixelShader(NULL);
         m_pDevice->SetTexture(0, NULL);
+    }
+
+    // Bind font texture to slot 12 for world-space text rendering
+    if (m_textManager && m_spriteRenderer) {
+        LPDIRECT3DTEXTURE9 fontTex = m_textManager->GetFontTexture(FONT_MENU);
+        if (fontTex) {
+            m_spriteRenderer->SetTextureSlot(12, fontTex);
+        }
     }
 
     RenderGridLayer();
@@ -213,9 +237,10 @@ void MapEditor::RenderGeometry() {
 
 void MapEditor::RenderUI() {
     RenderCursor();
-    if (m_showResourceIcons) {
-        RenderResources();
-    }
+    // Amount text is now rendered in RenderGridLayer alongside icons
+//    if (m_showResourceIcons) {
+//        RenderResources();
+//    }
 //    RenderTilePreview();
 //    RenderActiveTile();
 }
@@ -224,51 +249,6 @@ void MapEditor::HandleInput() {
 
     Input::Gamepad* gamepad = m_inputManager->GetGamepad();
     if (!gamepad) return;
-
-    // Sync camera data
-    if (m_pCamera) {
-        m_cameraX = m_pCamera->GetPosX();
-        m_cameraY = m_pCamera->GetPosY();
-        m_zoomLevel = m_pCamera->GetZoom();
-    }
-
-    // Update cursor tile from actual screen center (camera pos ≠ screen center at zoom≠1)
-    float worldCenterX, worldCenterY;
-    if (m_pCamera) {
-        m_pCamera->GetWorldCenter(worldCenterX, worldCenterY);
-    } else {
-        worldCenterX = m_cameraX;
-        worldCenterY = m_cameraY;
-    }
-
-    const SpriteRegion* firstRegion = m_groundAtlas ? m_groundAtlas->GetRegion(0) : nullptr;
-    if (firstRegion) {
-        CoordinateSystem& coords = CoordinateSystem::GetInstance();
-
-        if (m_currentLayer == World::Ground) {
-            // Ground layer - use simple rectangular grid
-            int newTileX, newTileY;
-            coords.WorldToGroundTile(worldCenterX, worldCenterY, newTileX, newTileY);
-
-            // Clamp to grid bounds
-            if (newTileX >= 0 && newTileX < GRID_WIDTH && newTileY >= 0 && newTileY < GRID_HEIGHT) {
-                m_cursorTileX = newTileX;
-                m_cursorTileY = newTileY;
-            }
-        } else {
-            // Nodes layer - use dense staggered grid
-            int newTileX, newTileY;
-            coords.WorldToNodeTile(worldCenterX, worldCenterY, newTileX, newTileY);
-
-            // Clamp to nodes grid bounds
-            int nodesW = coords.GetNodesWidth();
-            int nodesH = coords.GetNodesHeight();
-            if (newTileX >= 0 && newTileX < nodesW && newTileY >= 0 && newTileY < nodesH) {
-                m_cursorTileX = newTileX;
-                m_cursorTileY = newTileY;
-            }
-        }
-    }
 
     if (gamepad->IsButtonPressed(Input::GP_LB)) {
         int currentMode = static_cast<int>(m_currentMode);
@@ -546,13 +526,14 @@ void MapEditor::RenderGridLayer() {
     if (m_currentLayer == World::Resources) {
         if (m_objectAtlas) {
             // Cache resource icon indices on first access
-            if (m_resourceIconIndices[0] < 0) {
-                for (int i = 1; i <= 6; ++i) {
+            if (m_resourceIconIndices[World::ResourceType_Wood] < 0) {
+                // ResourceIcons group order is atlas-defined; map enum values by sprite name instead.
+                for (int i = 1; i < World::ResourceType_Count; ++i) {
                     World::ResourceType rt = static_cast<World::ResourceType>(i);
                     const char* iconName = World::ResourceTypeToIconName(rt);
                     if (iconName && iconName[0]) {
                         uint32_t idx = m_objectAtlas->GetIndex(iconName);
-                        m_resourceIconIndices[i-1] = (idx != 0xFFFFFFFF) ? (int)idx : -1;
+                        m_resourceIconIndices[i] = (idx != 0xFFFFFFFF) ? (int)idx : -1;
                     }
                 }
             }
@@ -569,7 +550,8 @@ void MapEditor::RenderGridLayer() {
                     float wx, wy;
                     coords.NodeTileToWorld(x, y, wx, wy);
 
-                    int iconIdx = m_resourceIconIndices[rn.type - 1];
+                    if (rn.type <= World::ResourceType_None || rn.type >= World::ResourceType_Count) continue;
+                    int iconIdx = m_resourceIconIndices[rn.type];
                     if (iconIdx < 0) continue;
 
                     const SpriteRegion* iconRegion = m_objectAtlas->GetRegion(iconIdx);
@@ -577,9 +559,11 @@ void MapEditor::RenderGridLayer() {
 
                     float iconW = (float)iconRegion->width;
                     float iconH = (float)iconRegion->height;
-                    // Position icon centered on tile, above the object
-                    float iconX = wx + (nodeW - iconW) * 0.5f;
-                    float iconY = wy - iconH - 2.0f;
+                    float pivotX = iconRegion->pivotX;
+                    float pivotY = iconRegion->pivotY;
+                    // Position icon at sprite pivot (like regular objects)
+                    float iconX = wx - pivotX;
+                    float iconY = wy - pivotY;
 
                     Graphics::RenderCommand cmd = {};
                     cmd.x = iconX;
@@ -597,6 +581,16 @@ void MapEditor::RenderGridLayer() {
                     cmd.layer = 0;
                     cmd.depth = static_cast<WORD>(0.99f * 65535.0f);
                     m_renderQueue->Submit(cmd);
+
+                    // Отображение количества ресурса в жиле
+                    if (m_textManager) {
+                        char amountStr[16];
+                        sprintf_s(amountStr, "%d", rn.amount);
+                        float textX = iconX + iconW * 0.5f;
+                        float textY = iconY + iconH + 2.0f;
+                        DWORD textColor = (rn.amount > 10) ? 0xFFFFCC00 : 0xFFFF4444;
+                        m_textManager->DrawTextToWorld(amountStr, textX, textY, textColor, 0.15f);
+                    }
                 }
             }
         }
@@ -650,7 +644,7 @@ void MapEditor::RenderGridLayer() {
 
             // Build per-atlas texture slot mapping for all unique atlases on the map
             std::map<std::string, WORD> atlasSlots;
-            WORD nextSlot = 10;
+            WORD nextSlot = 20;
 
             for (int y = 0; y < objectsLayer->GetHeight(); ++y) {
                 for (int x = 0; x < objectsLayer->GetWidth(); ++x) {
@@ -848,6 +842,115 @@ void MapEditor::ClearPlacementFootprint(int tx, int ty, World::TileLayer* object
     }
 }
 
+static bool IsMountainTileType(World::TileType type) {
+    return type == World::Mountain || type == World::MountainOnWater;
+}
+
+static void SetObjectInteractionTile(World::TileLayer* layer, int x, int y, int ownerX, int ownerY, const World::Tile& objectTile) {
+    if (!layer) return;
+    if (x < 0 || y < 0 || x >= layer->GetWidth() || y >= layer->GetHeight()) return;
+
+    World::Tile& marker = layer->GetTile(x, y);
+    marker.type = objectTile.type;
+    marker.x = ownerX;
+    marker.y = ownerY;
+    marker.regionIndex = objectTile.regionIndex;
+    marker.u0 = 0.0f;
+    marker.v0 = 0.0f;
+    marker.u1 = 1.0f;
+    marker.v1 = 1.0f;
+    marker.atlasName = objectTile.atlasName;
+    marker.walkable = objectTile.walkable;
+    marker.buildable = false;
+}
+
+static int MarkObjectInteractionTile(World::TileLayer* layer, int x, int y, int ownerX, int ownerY, const World::Tile& objectTile) {
+    if (!layer) return 0;
+    if (x < 0 || y < 0 || x >= layer->GetWidth() || y >= layer->GetHeight()) return 0;
+
+    const World::Tile& oldMarker = layer->GetTile(x, y);
+    bool wasSame = oldMarker.x == ownerX && oldMarker.y == ownerY
+        && oldMarker.type == objectTile.type && oldMarker.regionIndex == objectTile.regionIndex;
+    SetObjectInteractionTile(layer, x, y, ownerX, ownerY, objectTile);
+    return wasSame ? 0 : 1;
+}
+
+void MapEditor::ClearObjectInteractionZone(int tx, int ty, World::TileLayer* objectsLayer) {
+    if (!m_map || !objectsLayer) return;
+
+    World::TileLayer* zoneLayer = m_map->GetLayer(World::Resources);
+    if (!zoneLayer) return;
+
+    const World::Tile& oldTile = objectsLayer->GetTile(tx, ty);
+    if (oldTile.regionIndex < 0) return;
+
+    for (int y = 0; y < zoneLayer->GetHeight(); ++y) {
+        for (int x = 0; x < zoneLayer->GetWidth(); ++x) {
+            World::Tile& marker = zoneLayer->GetTile(x, y);
+            if (marker.x == tx && marker.y == ty && marker.type == oldTile.type
+                && marker.regionIndex == oldTile.regionIndex && marker.atlasName == oldTile.atlasName) {
+                marker = World::Tile();
+            }
+        }
+    }
+}
+
+void MapEditor::MarkObjectInteractionZone(int tx, int ty, const World::Tile& objectTile, const SpriteRegion* region) {
+    if (!m_map || !region) return;
+
+    World::TileLayer* zoneLayer = m_map->GetLayer(World::Resources);
+    if (!zoneLayer) return;
+
+    CoordinateSystem& coords = CoordinateSystem::GetInstance();
+
+    int marked = 0;
+
+    // Always mark the anchor node.
+    marked += MarkObjectInteractionTile(zoneLayer, tx, ty, tx, ty, objectTile);
+
+    // Mark the collision footprint when authored.
+    int offX, offY;
+    if (region->collOffX != 0 || region->collOffY != 0) {
+        offX = region->collOffX;
+        offY = region->collOffY;
+    } else {
+        float pivotDX = region->pivotX - region->width * 0.5f;
+        float pivotDY = region->pivotY - region->height * 0.5f;
+        offX = -(int)(pivotDX / coords.GetNodeWidth());
+        offY = -(int)(pivotDY / coords.GetNodeHeight());
+    }
+
+    if (!region->collMask.empty()) {
+        for (size_t i = 0; i < region->collMask.size(); ++i) {
+            marked += MarkObjectInteractionTile(zoneLayer, tx + offX + region->collMask[i].first,
+                ty + offY + region->collMask[i].second, tx, ty, objectTile);
+        }
+    } else {
+        for (uint32_t dy = 0; dy < region->collHeight; ++dy) {
+            for (uint32_t dx = 0; dx < region->collWidth; ++dx) {
+                marked += MarkObjectInteractionTile(zoneLayer, tx + offX + (int)dx, ty + offY + (int)dy, tx, ty, objectTile);
+            }
+        }
+    }
+
+    // Mountains are large visual objects. Mark a generous node rectangle around the
+    // sprite bounds, so clicking any visible part of the mountain is understood as mountain area.
+    if (IsMountainTileType(objectTile.type)) {
+        int radiusX = max(2, (int)((region->width + coords.GetNodeWidth() - 1.0f) / coords.GetNodeWidth()) + 2);
+        int radiusY = max(2, (int)((region->height + coords.GetNodeHeight() - 1.0f) / (coords.GetNodeHeight() * 0.5f)) + 2);
+        for (int y = max(0, ty - radiusY); y <= min(zoneLayer->GetHeight() - 1, ty + radiusY); ++y) {
+            for (int x = max(0, tx - radiusX); x <= min(zoneLayer->GetWidth() - 1, tx + radiusX); ++x) {
+                marked += MarkObjectInteractionTile(zoneLayer, x, y, tx, ty, objectTile);
+            }
+        }
+    }
+
+    char buf[192];
+    sprintf_s(buf, "[MapEditor] Marked interaction zone: %s owner=(%d,%d) sprite=%s cells=%d\n",
+        World::TileTypeToString(objectTile.type), tx, ty, region->name.c_str(), marked);
+    OutputDebugStringA(buf);
+}
+
 void MapEditor::PaintCurrentTile() {
     if (!m_map) return;
     if (m_currentTileIndex < 0 && m_currentLayer != World::Placement) return;
@@ -867,6 +970,7 @@ void MapEditor::PaintCurrentTile() {
             const World::Tile& oldTile = objectsLayer->GetTile(tileX, tileY);
             if (oldTile.regionIndex >= 0) {
                 ClearPlacementFootprint(tileX, tileY, objectsLayer);
+                ClearObjectInteractionZone(tileX, tileY, objectsLayer);
             }
             World::Tile& eraseTile = objectsLayer->GetTile(tileX, tileY);
             eraseTile = World::Tile();
@@ -883,6 +987,7 @@ void MapEditor::PaintCurrentTile() {
             const World::Tile& oldTile = objectsLayer->GetTile(tileX, tileY);
             if (oldTile.regionIndex >= 0) {
                 ClearPlacementFootprint(tileX, tileY, objectsLayer);
+                ClearObjectInteractionZone(tileX, tileY, objectsLayer);
             }
         }
 
@@ -890,6 +995,13 @@ void MapEditor::PaintCurrentTile() {
         if (m_currentTileIndex >= (int)m_objectAtlas->GetRegionCount()) return;
         const SpriteRegion* region = m_objectAtlas->GetRegion(m_currentTileIndex);
         if (!region) return;
+
+        // Check terrain suitability (Nodes layer weight) for the cursor tile
+        World::TileType objType = GetObjectTypeByIndex(m_currentTileIndex);
+        if (!CanPlaceObject(tileX, tileY, objType)) {
+            OutputDebugStringA("[Editor] Запрещено: данный объект нельзя разместить на этом типе местности!\n");
+            return;
+        }
 
         // Check occupancy: if ANY tile in the collision footprint is occupied, deny placement
         if (!IsPlacementFootprintFree(tileX, tileY, region)) {
@@ -952,7 +1064,19 @@ void MapEditor::PaintCurrentTile() {
                     }
                 }
             }
+
+            // Auto-assign resource for trees/mountains/water objects
+            World::ResourceType autoRt = World::TileTypeToResourceType(tile.type);
+            if (autoRt != World::ResourceType_None) {
+                World::ResourceNode& rn = m_map->GetResourceNode(tileX, tileY);
+                if (rn.type == World::ResourceType_None) {
+                    rn.type = autoRt;
+                    rn.amount = World::GetDefaultResourceAmount(autoRt);
+                    rn.isVisible = true;
+                }
+            }
         }
+        MarkObjectInteractionZone(tileX, tileY, tile, region);
     } else if (m_currentLayer == World::Ground) {
         if (!m_groundAtlas) return;
         if (m_currentTileIndex >= (int)m_groundAtlas->GetRegionCount()) return;
@@ -1004,8 +1128,114 @@ void MapEditor::DeleteObjectAt(int x, int y) {
     if (oldTile.regionIndex < 0) return;
 
     ClearPlacementFootprint(x, y, objectsLayer);
+    ClearObjectInteractionZone(x, y, objectsLayer);
     World::Tile& eraseTile = objectsLayer->GetTile(x, y);
     eraseTile = World::Tile();
+}
+
+static bool TileHasSpriteData(const World::Tile& tile) {
+    return tile.regionIndex >= 0 && tile.u1 > tile.u0 && tile.v1 > tile.v0;
+}
+
+static bool IsTileInRegionFootprint(int tileX, int tileY, int objectX, int objectY, const SpriteRegion* region) {
+    if (!region) return false;
+
+    CoordinateSystem& coords = CoordinateSystem::GetInstance();
+    int offX, offY;
+    if (region->collOffX != 0 || region->collOffY != 0) {
+        offX = region->collOffX;
+        offY = region->collOffY;
+    } else {
+        float pivotDX = region->pivotX - region->width * 0.5f;
+        float pivotDY = region->pivotY - region->height * 0.5f;
+        offX = -(int)(pivotDX / coords.GetNodeWidth());
+        offY = -(int)(pivotDY / coords.GetNodeHeight());
+    }
+
+    if (!region->collMask.empty()) {
+        for (size_t i = 0; i < region->collMask.size(); ++i) {
+            int fx = objectX + offX + region->collMask[i].first;
+            int fy = objectY + offY + region->collMask[i].second;
+            if (tileX == fx && tileY == fy) return true;
+        }
+        return false;
+    }
+
+    for (uint32_t dy = 0; dy < region->collHeight; ++dy) {
+        for (uint32_t dx = 0; dx < region->collWidth; ++dx) {
+            int fx = objectX + offX + (int)dx;
+            int fy = objectY + offY + (int)dy;
+            if (tileX == fx && tileY == fy) return true;
+        }
+    }
+    return false;
+}
+
+bool MapEditor::FindMountainObjectForResource(int x, int y, int& mountainX, int& mountainY) const {
+    mountainX = x;
+    mountainY = y;
+    if (!m_map) return false;
+
+    World::TileLayer* objectsLayer = m_map->GetLayer(World::Objects);
+    World::TileLayer* placementLayer = m_map->GetLayer(World::Placement);
+    World::TileLayer* zoneLayer = m_map->GetLayer(World::Resources);
+    if (!objectsLayer) return false;
+
+    int width = objectsLayer->GetWidth();
+    int height = objectsLayer->GetHeight();
+    if (x < 0 || y < 0 || x >= width || y >= height) return false;
+
+    if (zoneLayer && x < zoneLayer->GetWidth() && y < zoneLayer->GetHeight()) {
+        const World::Tile& zoneTile = zoneLayer->GetTile(x, y);
+        if (zoneTile.regionIndex >= 0 && IsMountainTileType(zoneTile.type)) {
+            return true;
+        }
+    }
+
+    const World::Tile& objectTile = objectsLayer->GetTile(x, y);
+    if (TileHasSpriteData(objectTile) && IsMountainTileType(objectTile.type)) {
+        return true;
+    }
+
+    if (placementLayer && x < placementLayer->GetWidth() && y < placementLayer->GetHeight()) {
+        const World::Tile& placementTile = placementLayer->GetTile(x, y);
+        if (placementTile.regionIndex >= 0 && IsMountainTileType(placementTile.type)) {
+            return true;
+        }
+    }
+
+    TextureRegistry& reg = TextureRegistry::instance();
+    for (int sy = 0; sy < height; ++sy) {
+        for (int sx = 0; sx < width; ++sx) {
+            const World::Tile& candidate = objectsLayer->GetTile(sx, sy);
+            if (!TileHasSpriteData(candidate) || !IsMountainTileType(candidate.type)) continue;
+
+            std::tr1::shared_ptr<SpriteAtlas> atlas = reg.getAtlas(candidate.atlasName);
+            if (!atlas.get()) atlas = m_objectAtlas;
+            if (!atlas.get()) continue;
+
+            const SpriteRegion* region = atlas->GetRegion(candidate.regionIndex);
+            if (IsTileInRegionFootprint(x, y, sx, sy, region)) return true;
+        }
+    }
+
+    const World::Tile* zoneTile = NULL;
+    const World::Tile* placementTile = NULL;
+    if (zoneLayer && x < zoneLayer->GetWidth() && y < zoneLayer->GetHeight()) {
+        zoneTile = &zoneLayer->GetTile(x, y);
+    }
+    if (placementLayer && x < placementLayer->GetWidth() && y < placementLayer->GetHeight()) {
+        placementTile = &placementLayer->GetTile(x, y);
+    }
+    char buf[256];
+    sprintf_s(buf,
+        "[MapEditor] No mountain zone at (%d,%d): object=%s/%d zone=%s/%d placement=%s/%d\n",
+        x, y,
+        World::TileTypeToString(objectTile.type), objectTile.regionIndex,
+        zoneTile ? World::TileTypeToString(zoneTile->type) : "None", zoneTile ? zoneTile->regionIndex : -1,
+        placementTile ? World::TileTypeToString(placementTile->type) : "None", placementTile ? placementTile->regionIndex : -1);
+    OutputDebugStringA(buf);
+    return false;
 }
 
 void MapEditor::RenderActiveTile() {
@@ -1149,16 +1379,21 @@ bool MapEditor::IsPlacementFootprintFree(int tx, int ty, const SpriteRegion* reg
 }
 
 bool MapEditor::CanPlaceObject(int x, int y, World::TileType objectType) {
-    Logic::TileWeight weight = m_weightMap->GetWeight(x, y);
+    if (!m_map) return false;
+    BYTE weight = m_map->GetNodeWeight(x, y);
 
     switch (objectType) {
         case World::MountainOnWater:
-            return (weight == Logic::WEIGHT_DEEP_WATER || weight == Logic::WEIGHT_SHALLOW_WATER);
+            // Fishing: only on shallow water / coast
+            return weight == World::Weight_Shallow;
         case World::Mountain:
         case World::Tree:
         case World::Rock:
+        case World::Decoration:
+            // Trees, mountains, rocks only on land
+            return weight == World::Weight_Land;
         case World::Building:
-            return (weight == Logic::WEIGHT_LAND || weight == Logic::WEIGHT_COAST);
+            return weight == World::Weight_Land;
         default:
             return true;
     }
@@ -1189,24 +1424,63 @@ void MapEditor::RenderResources() {
     }
 }
 
+void MapEditor::RebuildObjectInteractionZones() {
+    if (!m_map) return;
+
+    World::TileLayer* objectsLayer = m_map->GetLayer(World::Objects);
+    World::TileLayer* zoneLayer = m_map->GetLayer(World::Resources);
+    if (!objectsLayer || !zoneLayer) return;
+
+    for (int y = 0; y < zoneLayer->GetHeight(); ++y) {
+        for (int x = 0; x < zoneLayer->GetWidth(); ++x) {
+            zoneLayer->GetTile(x, y) = World::Tile();
+        }
+    }
+
+    int objectCount = 0;
+    int mountainCount = 0;
+    for (int y = 0; y < objectsLayer->GetHeight(); ++y) {
+        for (int x = 0; x < objectsLayer->GetWidth(); ++x) {
+            const World::Tile& tile = objectsLayer->GetTile(x, y);
+            if (!TileHasSpriteData(tile)) continue;
+
+            std::tr1::shared_ptr<SpriteAtlas> atlas = TextureRegistry::instance().getAtlas(tile.atlasName);
+            if (!atlas.get()) atlas = m_objectAtlas;
+            if (!atlas.get()) continue;
+
+            const SpriteRegion* region = atlas->GetRegion(tile.regionIndex);
+            MarkObjectInteractionZone(x, y, tile, region);
+            objectCount++;
+            if (IsMountainTileType(tile.type)) mountainCount++;
+        }
+    }
+
+    char buf[160];
+    sprintf_s(buf, "[MapEditor] Rebuilt object interaction zones: objects=%d mountains=%d\n",
+        objectCount, mountainCount);
+    OutputDebugStringA(buf);
+}
+
 void MapEditor::AutoAssignResourcesForTrees() {
     if (!m_map) return;
 
     World::TileLayer* objectsLayer = m_map->GetLayer(World::Objects);
     if (!objectsLayer) return;
 
+    RebuildObjectInteractionZones();
+
     int assigned = 0;
     for (int y = 0; y < objectsLayer->GetHeight(); ++y) {
         for (int x = 0; x < objectsLayer->GetWidth(); ++x) {
             const World::Tile& tile = objectsLayer->GetTile(x, y);
+
+            // Only use valid objects (has sprite data)
+            if (!TileHasSpriteData(tile)) continue;
+
             World::ResourceNode& rn = m_map->GetResourceNode(x, y);
 
-            // Skip if already has a resource
+            // Skip resource auto-assignment if already has a resource
             if (rn.type != World::ResourceType_None) continue;
-
-            // Only assign if a valid object exists (has sprite data)
-            if (tile.regionIndex < 0) continue;
-            if (tile.u1 <= tile.u0 || tile.v1 <= tile.v0) continue;
 
             World::ResourceType rt = World::TileTypeToResourceType(tile.type);
             if (rt != World::ResourceType_None) {

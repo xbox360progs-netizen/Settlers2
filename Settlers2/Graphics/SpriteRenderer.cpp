@@ -142,6 +142,7 @@ int SpriteRenderer::Execute(const BatchBuilder& builder) {
         if (m_stateCache.ShaderChanged(batch.shaderID)) {
             SetShader(batch.shaderID);
             m_stateCache.currentShader = batch.shaderID;
+            m_stateCache.currentTexture = 0xFFFF; // Force texture rebind: new shader may have stale g_texture
             m_shaderSwitches++;
         }
 
