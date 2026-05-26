@@ -4,6 +4,7 @@
 #include "../Graphics/SpriteRenderer.h"
 #include "../Graphics/TextManager.h"
 #include "../Graphics/RenderLayers.h"
+#include "../Input/Gamepad.h"
 
 namespace UI {
 
@@ -47,10 +48,14 @@ void WeightMenu::SetTextures(LPDIRECT3DTEXTURE9 background, LPDIRECT3DTEXTURE9 d
     }
 }
 
-void WeightMenu::Update(float deltaTime)
+void WeightMenu::Update(Input::Gamepad* input, float deltaTime)
 {
     if (!m_isVisible) return;
     m_animationTime += deltaTime;
+
+    if (input && input->IsButtonPressed(Input::GP_B)) {
+        Close();
+    }
 }
 
 void WeightMenu::Render()
@@ -95,18 +100,18 @@ void WeightMenu::Render()
         m_renderQueue->Submit(cmd);
     }
 
-    // Labels around the D-pad (on LAYER_FOREGROUND so they render above UI background)
+    // Labels around the D-pad (screen-space text)
     if (m_textManager) {
-        float d = 100.0f;
         float s = 0.25f;
+        float textDepth = 0.1f;
         if (m_isPlacementMode) {
             // Placement mode: only 2 options (Up=Occupied, Down=Free)
             bool isOccupied = (m_selectedWeight == World::Weight_Block);
             bool isFree = (m_selectedWeight == World::Weight_Land);
             m_textManager->DrawString("OCCUPIED", m_position.x - 34.0f, m_position.y - 180.0f,
-                isOccupied ? 0xFFFF4444 : 0xFF882222, s, FONT_MENU, false, FONT_STYLE_NORMAL, d);
+                isOccupied ? 0xFFFF4444 : 0xFF882222, s, FONT_MENU, true, FONT_STYLE_NORMAL, textDepth);
             m_textManager->DrawString("FREE", m_position.x - 16.0f, m_position.y + 155.0f,
-                isFree ? 0xFF44FF44 : 0xFF227722, s, FONT_MENU, false, FONT_STYLE_NORMAL, d);
+                isFree ? 0xFF44FF44 : 0xFF227722, s, FONT_MENU, true, FONT_STYLE_NORMAL, textDepth);
         } else {
             // Each weight has its own color; active is bright, inactive is dim
             bool isBlock = (m_selectedWeight == World::Weight_Block);
@@ -114,13 +119,13 @@ void WeightMenu::Render()
             bool isShallow = (m_selectedWeight == World::Weight_Shallow);
             bool isLand = (m_selectedWeight == World::Weight_Land);
             m_textManager->DrawString("BLOCK", m_position.x - 24.0f, m_position.y - 180.0f,
-                isBlock ? 0xFFFF4444 : 0xFF882222, s, FONT_MENU, false, FONT_STYLE_NORMAL, d);
+                isBlock ? 0xFFFF4444 : 0xFF882222, s, FONT_MENU, true, FONT_STYLE_NORMAL, textDepth);
             m_textManager->DrawString("DEEP", m_position.x - 24.0f, m_position.y + 155.0f,
-                isDeep ? 0xFF4488FF : 0xFF224477, s, FONT_MENU, false, FONT_STYLE_NORMAL, d);
+                isDeep ? 0xFF4488FF : 0xFF224477, s, FONT_MENU, true, FONT_STYLE_NORMAL, textDepth);
             m_textManager->DrawString("SHALLOW", m_position.x - 190.0f, m_position.y - 8.0f,
-                isShallow ? 0xFF44FFFF : 0xFF227777, s, FONT_MENU, false, FONT_STYLE_NORMAL, d);
+                isShallow ? 0xFF44FFFF : 0xFF227777, s, FONT_MENU, true, FONT_STYLE_NORMAL, textDepth);
             m_textManager->DrawString("LAND", m_position.x + 140.0f, m_position.y - 8.0f,
-                isLand ? 0xFF44FF44 : 0xFF227722, s, FONT_MENU, false, FONT_STYLE_NORMAL, d);
+                isLand ? 0xFF44FF44 : 0xFF227722, s, FONT_MENU, true, FONT_STYLE_NORMAL, textDepth);
         }
     }
 }

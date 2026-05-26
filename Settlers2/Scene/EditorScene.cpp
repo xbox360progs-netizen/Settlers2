@@ -256,6 +256,25 @@ void EditorScene::Load() {
         OutputDebugStringA("[EditorScene] WeightMenu textures set (dpad_cross from maptiles)\n");
     }
 
+    // Look up button hint textures from maptiles atlas
+    m_buttonAUV.u0 = 0.0f; m_buttonAUV.v0 = 0.0f; m_buttonAUV.u1 = 1.0f; m_buttonAUV.v1 = 1.0f;
+    m_buttonBUV.u0 = 0.0f; m_buttonBUV.v0 = 0.0f; m_buttonBUV.u1 = 1.0f; m_buttonBUV.v1 = 1.0f;
+    if (maptilesAtlas) {
+        uint32_t btnAIdx = maptilesAtlas->GetIndex("button_A");
+        if (btnAIdx != 0xFFFFFFFF) {
+            const SpriteRegion* reg = maptilesAtlas->GetRegion(btnAIdx);
+            if (reg) { m_buttonAUV.u0 = reg->u0; m_buttonAUV.v0 = reg->v0; m_buttonAUV.u1 = reg->u1; m_buttonAUV.v1 = reg->v1; }
+        }
+        uint32_t btnBIdx = maptilesAtlas->GetIndex("button_B");
+        if (btnBIdx != 0xFFFFFFFF) {
+            const SpriteRegion* reg = maptilesAtlas->GetRegion(btnBIdx);
+            if (reg) { m_buttonBUV.u0 = reg->u0; m_buttonBUV.v0 = reg->v0; m_buttonBUV.u1 = reg->u1; m_buttonBUV.v1 = reg->v1; }
+        }
+    }
+    if (m_spriteRenderer) {
+        m_spriteRenderer->SetTextureSlot(13, maptilesTex);
+    }
+
     // Initialize GridMenu with textures (bg/cell from maptiles atlas)
     if (!m_gridMenu && m_renderer) {
         m_gridMenu = new GridMenu();
@@ -348,41 +367,47 @@ void EditorScene::Update(float deltaTime) {
 
 	// Handle D-pad input for weight selection when Nodes menu is visible
 	if (m_weightMenuVisible && m_weightMenu) {
-		bool selected = false;
-		if (m_weightMenuPlacementMode) {
-			// Placement mode: Up=Occupied, Down=Free
-			if (gamepad->IsButtonPressed(Input::GP_DPadUp)) {
-				m_activeWeight = World::Weight_Block;
-				selected = true;
-			}
-			else if (gamepad->IsButtonPressed(Input::GP_DPadDown)) {
-				m_activeWeight = World::Weight_Land;
-				selected = true;
-			}
+		m_weightMenu->Update(gamepad, deltaTime);
+		m_weightMenuVisible = m_weightMenu->IsVisible();
+		if (!m_weightMenuVisible) {
+			// Menu was closed by B button (handled internally in WeightMenu::Update)
 		} else {
-			if (gamepad->IsButtonPressed(Input::GP_DPadUp)) {
-				m_activeWeight = World::Weight_Block;
-				selected = true;
+			bool selected = false;
+			if (m_weightMenuPlacementMode) {
+				// Placement mode: Up=Occupied, Down=Free
+				if (gamepad->IsButtonPressed(Input::GP_DPadUp)) {
+					m_activeWeight = World::Weight_Block;
+					selected = true;
+				}
+				else if (gamepad->IsButtonPressed(Input::GP_DPadDown)) {
+					m_activeWeight = World::Weight_Land;
+					selected = true;
+				}
+			} else {
+				if (gamepad->IsButtonPressed(Input::GP_DPadUp)) {
+					m_activeWeight = World::Weight_Block;
+					selected = true;
+				}
+				else if (gamepad->IsButtonPressed(Input::GP_DPadDown)) {
+					m_activeWeight = World::Weight_Deep;
+					selected = true;
+				}
+				else if (gamepad->IsButtonPressed(Input::GP_DPadLeft)) {
+					m_activeWeight = World::Weight_Shallow;
+					selected = true;
+				}
+				else if (gamepad->IsButtonPressed(Input::GP_DPadRight)) {
+					m_activeWeight = World::Weight_Land;
+					selected = true;
+				}
 			}
-			else if (gamepad->IsButtonPressed(Input::GP_DPadDown)) {
-				m_activeWeight = World::Weight_Deep;
-				selected = true;
-			}
-			else if (gamepad->IsButtonPressed(Input::GP_DPadLeft)) {
-				m_activeWeight = World::Weight_Shallow;
-				selected = true;
-			}
-			else if (gamepad->IsButtonPressed(Input::GP_DPadRight)) {
-				m_activeWeight = World::Weight_Land;
-				selected = true;
-			}
-		}
 
-		if (selected) {
-			m_editorMode = m_weightMenuPlacementMode ? MODE_PLACEMENT : MODE_WEIGHTS;
-			m_weightMenuPlacementMode = false;
-			m_weightMenu->Close();
-			m_weightMenuVisible = false;
+			if (selected) {
+				m_editorMode = m_weightMenuPlacementMode ? MODE_PLACEMENT : MODE_WEIGHTS;
+				m_weightMenuPlacementMode = false;
+				m_weightMenu->Close();
+				m_weightMenuVisible = false;
+			}
 		}
 	}
 
@@ -409,12 +434,12 @@ void EditorScene::Update(float deltaTime) {
 						m_gridMenu->SetTextureSlots(6, 7, 8);
 						LoadResourceIcons();
 					}
-					m_gridMenu->Show(640.0f, 280.0f);
+					m_gridMenu->Show(640.0f, 330.0f);
 				} else if (m_gridMenu->IsVisible()) {
 					m_gridMenu->Hide();
 				} else {
 					LoadResourceIcons();
-					m_gridMenu->Show(640.0f, 280.0f);
+					m_gridMenu->Show(640.0f, 330.0f);
 				}
 			} else {
         if (!m_gridMenu) {
@@ -430,7 +455,7 @@ void EditorScene::Update(float deltaTime) {
                         LoadGridMenuAtlas("ground");
                     }
                 }
-                m_gridMenu->Show(640.0f, 280.0f);
+                m_gridMenu->Show(640.0f, 330.0f);
 			} else if (m_gridMenu->IsVisible()) {
 				m_gridMenu->Hide();
         } else {
@@ -441,7 +466,7 @@ void EditorScene::Update(float deltaTime) {
                 } else {
                     LoadGridMenuAtlas("ground");
                 }
-                m_gridMenu->Show(640.0f, 280.0f);
+                m_gridMenu->Show(640.0f, 330.0f);
             }
 		}
 	}
@@ -648,20 +673,12 @@ void EditorScene::Update(float deltaTime) {
 		if (gamepad->IsButtonPressed(Input::GP_Y) && m_currentLayer == World::Objects) {
             CycleObjectGroup();
 		}
-		// Shoulder triggers to navigate pages (Objects) or windows (Ground/Resources)
+		// Shoulder triggers to navigate pages (all layers use SetTileData)
 		if (gamepad->IsButtonPressed(Input::GP_LB)) {
-			if (m_currentLayer == World::Objects) {
-				m_gridMenu->PrevPage();
-			} else {
-				m_gridMenu->PrevWindow();
-			}
+			m_gridMenu->PrevPage();
 		}
 		if (gamepad->IsButtonPressed(Input::GP_RB)) {
-			if (m_currentLayer == World::Objects) {
-				m_gridMenu->NextPage();
-			} else {
-				m_gridMenu->NextWindow();
-			}
+			m_gridMenu->NextPage();
 		}
 	}
 
@@ -829,7 +846,7 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
         }
         char layerText[64];
         sprintf(layerText, "Layer: %s", layerName);
-        m_textManager->DrawTextToScreen(layerText, 1280.0f - 200.0f, 720.0f - 30.0f, 0xFFFFFFFF, 0.25f);
+        m_textManager->DrawTextToScreen(layerText, 1280.0f - 280.0f, 720.0f - 30.0f, 0xFFFFFFFF, 0.25f);
 
         // Show resource info when Resources layer is active
         if (m_currentLayer == World::Resources) {
@@ -857,6 +874,56 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
         m_gridMenu->SetRenderQueue(renderQueue);
         if (m_gridMenu->IsVisible()) {
             m_gridMenu->Render();
+            // Show title above grid
+            char titleText[64];
+            if (m_currentLayer == World::Ground) {
+                sprintf_s(titleText, "Ground");
+            } else if (m_currentLayer == World::Objects) {
+                sprintf_s(titleText, "%s", kObjectGroupNames[m_objectGroupIndex]);
+            } else {
+                sprintf_s(titleText, "");
+            }
+            if (titleText[0]) {
+                m_textManager->DrawTextCenteredToScreen(titleText, 640.0f, 50.0f, 0xFFFFFFFF, 0.35f);
+            }
+            // Show section info above grid cells
+            char sectionText[64];
+            sprintf_s(sectionText, "Section %d / %d", m_gridMenu->GetCurrentPage() + 1, m_gridMenu->GetTotalPages());
+            m_textManager->DrawTextCenteredToScreen(sectionText, 640.0f, 145.0f, 0xFFFFFFFF, 0.20f);
+            // Bottom-left: button_A + Select (cell start + 5px = 407)
+            {
+                Graphics::RenderCommand btnCmd = {};
+                btnCmd.x = 407.0f; btnCmd.y = 567.0f;
+                btnCmd.width = 32.0f; btnCmd.height = 32.0f;
+                btnCmd.u0 = m_buttonAUV.u0; btnCmd.v0 = m_buttonAUV.v0;
+                btnCmd.u1 = m_buttonAUV.u1; btnCmd.v1 = m_buttonAUV.v1;
+                btnCmd.color = 0xFFFFFFFF;
+                btnCmd.shaderID = SHADER_UI;
+                btnCmd.textureID = 13;
+                btnCmd.blendMode = 1;
+                btnCmd.layer = LAYER_UI;
+                btnCmd.depth = 60;
+                btnCmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, 13, 60);
+                renderQueue->Submit(btnCmd);
+            }
+            m_textManager->DrawTextToScreen("Select", 444.0f, 573.0f, 0xFF44FF44, 0.22f);
+            // Bottom-right: Close + button_B (cell end - 5px = 871, 15px gap from Close to B)
+            m_textManager->DrawTextToScreen("Close", 764.0f, 573.0f, 0xFFFF4444, 0.22f);
+            {
+                Graphics::RenderCommand btnCmd = {};
+                btnCmd.x = 839.0f; btnCmd.y = 567.0f;
+                btnCmd.width = 32.0f; btnCmd.height = 32.0f;
+                btnCmd.u0 = m_buttonBUV.u0; btnCmd.v0 = m_buttonBUV.v0;
+                btnCmd.u1 = m_buttonBUV.u1; btnCmd.v1 = m_buttonBUV.v1;
+                btnCmd.color = 0xFFFFFFFF;
+                btnCmd.shaderID = SHADER_UI;
+                btnCmd.textureID = 13;
+                btnCmd.blendMode = 1;
+                btnCmd.layer = LAYER_UI;
+                btnCmd.depth = 60;
+                btnCmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, 13, 60);
+                renderQueue->Submit(btnCmd);
+            }
         }
     }
 
@@ -1010,16 +1077,18 @@ void EditorScene::LoadGridMenuAtlas(const char* atlasName) {
     m_gridMenu->SetCellSpacing(119.0f, 74.0f);
 
     std::vector<GridMenu::TileUV> uvs;
+    std::vector<int> globalIndices;
         uvs.reserve(atlas->GetRegionCount());
+        globalIndices.reserve(atlas->GetRegionCount());
         for (uint32_t i = 0; i < atlas->GetRegionCount(); ++i) {
             const SpriteRegion* reg = atlas->GetRegion(i);
             GridMenu::TileUV tu;
             if (reg) { tu.u0 = reg->u0; tu.v0 = reg->v0; tu.u1 = reg->u1; tu.v1 = reg->v1; }
             else { tu.u0 = 0.0f; tu.v0 = 0.0f; tu.u1 = 1.0f; tu.v1 = 1.0f; }
             uvs.push_back(tu);
+            globalIndices.push_back((int)i);
         }
-        m_gridMenu->SetAllTileUVs(uvs);
-        m_gridMenu->SetWindowStart(0);
+        m_gridMenu->SetTileData(uvs, globalIndices);
         m_gridMenu->SetSpriteRenderer(m_spriteRenderer);
         m_gridMenu->ResetSelection();
 
@@ -1076,7 +1145,7 @@ void EditorScene::LoadGridMenuGroup(const char* groupName) {
     }
     m_gridMenu->SetBackgroundUV(bgUV);
     m_gridMenu->SetCellUV(cellUV);
-    m_gridMenu->SetCellSpacing(170.0f, 110.0f);
+    m_gridMenu->SetCellSpacing(110.0f, 74.0f);
 
     const std::vector<uint32_t>* groupIndices = maptiles->GetGroup(groupName);
     std::vector<GridMenu::TileUV> uvs;

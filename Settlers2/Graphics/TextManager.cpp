@@ -103,7 +103,7 @@ void TextManager::PushLetterCommand(LPDIRECT3DTEXTURE9 texture, float x, float y
     cmd.v1 = v1;
     cmd.color = color;
     cmd.shaderID = isUI ? SHADER_UI : SHADER_WORLD;
-    cmd.textureID = 1;
+    cmd.textureID = 12;
     cmd.blendMode = 1;
     cmd.layer = isUI ? LAYER_UI : LAYER_FOREGROUND;
     cmd.depth = (WORD)(depth * 1000.0f);
@@ -160,6 +160,26 @@ void TextManager::DrawString(const std::string& text, float x, float y, D3DCOLOR
 void TextManager::DrawTextToScreen(const std::string& text, float x, float y, D3DCOLOR color, float scale, FontID fontID, FontStyle style)
 {
     DrawString(text, x, y, color, scale, fontID, true, style, 0.05f);
+}
+
+void TextManager::DrawTextCenteredToScreen(const std::string& text, float boxCenterX, float y, D3DCOLOR color, float scale, FontID fontID, FontStyle style)
+{
+    float w = GetTextWidth(text, scale, fontID);
+    DrawTextToScreen(text, boxCenterX - w * 0.5f, y, color, scale, fontID, style);
+}
+
+float TextManager::GetTextWidth(const std::string& text, float scale, FontID fontID)
+{
+    if (!m_font) return 0;
+    (void)fontID;
+    const std::vector<FontChar>& chars = m_font->GetChars();
+    float width = 0;
+    for (size_t i = 0; i < text.length(); ++i) {
+        unsigned char c = (unsigned char)text[i];
+        if (c >= chars.size()) continue;
+        width += chars[c].xAdvance * scale;
+    }
+    return width;
 }
 
 void TextManager::DrawTextToWorld(const std::string& text, float worldX, float worldY, D3DCOLOR color, float scale, FontID fontID, FontStyle style)

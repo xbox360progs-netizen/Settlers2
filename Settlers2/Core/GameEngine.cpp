@@ -174,7 +174,7 @@ bool GameEngine::Initialize()
         m_textManager->SetFontAtlas(FONT_MENU, m_bitmapFont->GetTexture());
 
         if (m_spriteRenderer) {
-            m_spriteRenderer->SetTextureSlot(1, m_bitmapFont->GetTexture());
+            m_spriteRenderer->SetTextureSlot(12, m_bitmapFont->GetTexture());
         }
 
         OutputDebugStringA("[GameEngine::Initialize] Font texture loaded into TextManager\n");

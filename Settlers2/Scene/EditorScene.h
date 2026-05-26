@@ -131,6 +131,10 @@ EditorScene();
     // Weight menu for D-pad weight selection
     UI::WeightMenu* m_weightMenu;
     bool m_weightMenuPlacementMode;
+
+    // Button hint textures for GridMenu
+    GridMenu::TileUV m_buttonAUV;
+    GridMenu::TileUV m_buttonBUV;
 };
 
 } // namespace Scene

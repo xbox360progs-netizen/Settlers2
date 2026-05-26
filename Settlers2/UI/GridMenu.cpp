@@ -47,8 +47,8 @@ GridMenu::GridMenu()
     , m_itemsPerPage(kItemsPerPage)
     , m_visible(false), m_selectionMade(false)
     , m_inputDelayTimer(0.0f)
-    , m_menuWidth(704.0f)
-    , m_menuHeight(768.0f)
+        , m_menuWidth(600.0f)
+        , m_menuHeight(600.0f)
     , m_cellWidth(kBaseCellSize)
     , m_cellHeight(kBaseCellSize)
     , m_screenX(0.0f), m_screenY(0.0f)
@@ -248,6 +248,7 @@ void GridMenu::NextWindow()
     if (next != m_atlasStart) {
         m_atlasStart = next;
         UpdateTileWindow();
+        m_currentPage = m_atlasStart / m_windowStep;
     }
 }
 
@@ -262,6 +263,7 @@ void GridMenu::PrevWindow()
     if (prev != m_atlasStart) {
         m_atlasStart = prev;
         UpdateTileWindow();
+        m_currentPage = m_atlasStart / m_windowStep;
     }
 }
 
@@ -405,10 +407,10 @@ void GridMenu::Render()
         return;
     }
 
-    char debugMsg[256];
-    sprintf(debugMsg, "[GridMenu::Render] atlasTexture=%p, tileUVs.size()=%d, selectedIndex=%d, visible=%d, screenX=%.1f, screenY=%.1f\n",
-            m_atlasTexture, (int)m_tileUVs.size(), m_selectedIndex, m_visible, m_screenX, m_screenY);
-    OutputDebugStringA(debugMsg);
+//    char debugMsg[256];
+//    sprintf(debugMsg, "[GridMenu::Render] atlasTexture=%p, tileUVs.size()=%d, selectedIndex=%d, visible=%d, screenX=%.1f, screenY=%.1f\n",
+//            m_atlasTexture, (int)m_tileUVs.size(), m_selectedIndex, m_visible, m_screenX, m_screenY);
+//    OutputDebugStringA(debugMsg);
 
     float menuLeft = m_screenX - (m_menuWidth * 0.5f);
     float menuTop = m_screenY - (m_menuHeight * 0.5f);
@@ -421,13 +423,13 @@ void GridMenu::Render()
     float gridOffsetX = (m_menuWidth - gridWidth) * 0.5f;
     float gridOffsetY = (m_menuHeight - gridHeight) * 0.5f;
 
-    sprintf(debugMsg, "[GridMenu::Render] menuDims=%.1fx%.1f, menuLeft=%.1f, menuTop=%.1f, cellSpacingX=%.1f cellSpacingY=%.1f, totalSprites=%d gridOff=%.1f,%.1f\n",
-            m_menuWidth, m_menuHeight, menuLeft, menuTop, cellSpacingX, cellSpacingY, totalSprites, gridOffsetX, gridOffsetY);
-    OutputDebugStringA(debugMsg);
+//    sprintf(debugMsg, "[GridMenu::Render] menuDims=%.1fx%.1f, menuLeft=%.1f, menuTop=%.1f, cellSpacingX=%.1f cellSpacingY=%.1f, totalSprites=%d gridOff=%.1f,%.1f\n",
+//            m_menuWidth, m_menuHeight, menuLeft, menuTop, cellSpacingX, cellSpacingY, totalSprites, gridOffsetX, gridOffsetY);
+//    OutputDebugStringA(debugMsg);
 
     // 1. Background (menu_background_cell from maptiles) - full menu area (depth=150, behind cells, UI layer)
     if (m_backgroundTexture) {
-        OutputDebugStringA("[GridMenu::Render] Submitting background command to queue\n");
+//        OutputDebugStringA("[GridMenu::Render] Submitting background command to queue\n");
         Graphics::RenderCommand cmd = {};
         cmd.x = menuLeft;
         cmd.y = menuTop;
@@ -448,9 +450,9 @@ void GridMenu::Render()
         OutputDebugStringA("[GridMenu::Render] WARNING: Background texture is NULL, skipping background render\n");
     }
 
-    // 2. Cell backgrounds (menu_cell from maptiles) - 4x4 grid (depth=120, behind icons, UI layer)
+    // 2. Cell backgrounds (menu_cell from maptiles) - 4x4 grid (depth=90, behind selection, UI layer)
     if (m_cellBackgroundTexture) {
-        OutputDebugStringA("[GridMenu::Render] Submitting cell background commands to queue\n");
+//        OutputDebugStringA("[GridMenu::Render] Submitting cell background commands to queue\n");
         for (int row = 0; row < kGridRows; ++row) {
             for (int col = 0; col < kGridCols; ++col) {
                 int localIndex = row * kGridCols + col;
@@ -471,8 +473,8 @@ void GridMenu::Render()
                 cmd.textureID = m_cellSlot;
                 cmd.blendMode = 1;
                 cmd.layer = LAYER_UI;
-                cmd.depth = 120;
-                cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, m_cellSlot, 120);
+                cmd.depth = 90;
+                cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, m_cellSlot, 90);
 
                 m_renderQueue->Submit(cmd);
             }
@@ -481,10 +483,10 @@ void GridMenu::Render()
         OutputDebugStringA("[GridMenu::Render] WARNING: Cell background texture is NULL, skipping cell backgrounds\n");
     }
 
-    // 3. Icons from atlas (visible window) (depth=100, UI layer)
+    // 3. Icons from atlas (visible window) (depth=80, UI layer)
     if (m_atlasTexture && !m_tileUVs.empty()) {
-        sprintf(debugMsg, "[GridMenu::Render] Submitting %d icon commands to queue\n", totalSprites);
-        OutputDebugStringA(debugMsg);
+//        sprintf(debugMsg, "[GridMenu::Render] Submitting %d icon commands to queue\n", totalSprites);
+//        OutputDebugStringA(debugMsg);
         for (int i = 0; i < totalSprites; i++) {
             int row = i / kGridCols;
             int col = i % kGridCols;
@@ -504,8 +506,8 @@ void GridMenu::Render()
             cmd.textureID = m_atlasSlot;
             cmd.blendMode = 1;
             cmd.layer = LAYER_UI;
-            cmd.depth = 100;
-            cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, m_atlasSlot, 100);
+            cmd.depth = 80;
+            cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, m_atlasSlot, 80);
 
             m_renderQueue->Submit(cmd);
         }
@@ -518,7 +520,7 @@ void GridMenu::Render()
         }
     }
 
-    // 4. Selected cell highlight (depth=90, on top of everything else)
+    // 4. Selected cell highlight (depth=120, on top of cell bg)
     if (m_selectedIndex >= 0 && m_selectedIndex < totalSprites) {
         int selRow = m_selectedIndex / kGridCols;
         int selCol = m_selectedIndex % kGridCols;
@@ -542,8 +544,8 @@ void GridMenu::Render()
         cmd.textureID = m_cellSlot;
         cmd.blendMode = 1;
         cmd.layer = LAYER_UI;
-        cmd.depth = 90;
-        cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, m_cellSlot, 90);
+        cmd.depth = 120;
+        cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, m_cellSlot, 120);
         m_renderQueue->Submit(cmd);
 
         // White glow behind selected icon
@@ -585,8 +587,8 @@ void GridMenu::Render()
             iconCmd.textureID = m_atlasSlot;
             iconCmd.blendMode = 1;
             iconCmd.layer = LAYER_UI;
-            iconCmd.depth = 80;
-            iconCmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, m_atlasSlot, 80);
+            iconCmd.depth = 100;
+            iconCmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, m_atlasSlot, 100);
             m_renderQueue->Submit(iconCmd);
         }
     }

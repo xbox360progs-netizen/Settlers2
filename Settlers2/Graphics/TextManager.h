@@ -55,7 +55,11 @@ public:
     void DrawTextToScreen(const std::string& text, float x, float y, D3DCOLOR color = 0xFFFFFFFF, float scale = 0.10f, FontID fontID = FONT_MENU, FontStyle style = FONT_STYLE_NORMAL);
     void DrawTextToWorld(const std::string& text, float worldX, float worldY, D3DCOLOR color = 0xFFFFFFFF, float scale = 0.1f, FontID fontID = FONT_MENU, FontStyle style = FONT_STYLE_NORMAL);
 
+    // Centered within the given box (centers text at boxCenterX)
+    void DrawTextCenteredToScreen(const std::string& text, float boxCenterX, float y, D3DCOLOR color = 0xFFFFFFFF, float scale = 0.10f, FontID fontID = FONT_MENU, FontStyle style = FONT_STYLE_NORMAL);
+
 private:
+    float GetTextWidth(const std::string& text, float scale, FontID fontID);
     void PushLetterCommand(LPDIRECT3DTEXTURE9 texture, float x, float y, float w, float h, float u0, float v0, float u1, float v1, D3DCOLOR color, float depth, bool isUI);
 
     BitmapFont* m_font;

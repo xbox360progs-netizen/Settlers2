@@ -6,6 +6,7 @@
 #include <d3dx9math.h>
 
 class TextManager;
+namespace Input { class Gamepad; }
 
 using Graphics::SpriteRenderer;
 
@@ -17,7 +18,7 @@ public:
     ~WeightMenu();
 
     bool Initialize(SpriteRenderer* renderer, TextManager* textManager);
-    void Update(float deltaTime);
+    void Update(Input::Gamepad* input, float deltaTime);
     void Render();
     void Open(BYTE activeWeight);
     void Close();

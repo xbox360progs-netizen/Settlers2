@@ -133,4 +133,6 @@ public:
     void NextPage();
     void PrevPage();
     void ConfirmSelection();
+    int GetCurrentPage() const { return m_currentPage; }
+    int GetTotalPages() const { return m_totalPages; }
 };

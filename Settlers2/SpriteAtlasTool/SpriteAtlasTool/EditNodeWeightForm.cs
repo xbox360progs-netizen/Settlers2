@@ -127,7 +127,7 @@ namespace SpriteAtlasTool
             float halfW = HALF_NODE_W * m_scale;
             float halfH = HALF_NODE_H * m_scale;
             sx = m_drawX + nx * nodeW + ((ny % 2 == 0) ? halfW : 0.0f);
-            sy = m_drawY + ny * halfH + halfH;
+            sy = m_drawY + ny * halfH;
         }
 
         private bool IsPointInDiamond(float px, float py, float cx, float cy, float hw, float hh)
