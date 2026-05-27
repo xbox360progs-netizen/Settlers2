@@ -86,6 +86,10 @@ EditorScene::EditorScene()
     , m_resourceMenuGroupIndex(-1)
     , m_resourceMenuShowingGroups(true)
     , m_resourcesInitialized(false)
+    , m_saveLoadMenuActive(false)
+    , m_saveLoadMenuSection(0)
+    , m_saveLoadMenuSelection(0)
+    , m_saveLoadMenuPendingSlot(0)
 {
 }
 
@@ -738,6 +742,19 @@ void EditorScene::UpdateCamera(Input::Gamepad* gamepad, float deltaTime) {
 void EditorScene::UpdateMapEditor(float deltaTime, Input::Gamepad* gamepad) {
     m_mapEditor->Update(deltaTime);
 
+    // Open save/load menu with Start
+    if (!m_saveLoadMenuActive && gamepad->IsButtonPressed(Input::GP_Start)) {
+        m_saveLoadMenuActive = true;
+        m_saveLoadMenuSection = 0;
+        m_saveLoadMenuSelection = 0;
+    }
+
+    // If menu is active, handle it instead of normal editor input
+    if (m_saveLoadMenuActive) {
+        UpdateSaveLoadMenu(gamepad);
+        return;
+    }
+
     if (m_currentLayer == World::Resources) {
         if (gamepad->IsButtonPressed(Input::GP_DPadUp)) {
             m_resourceAmount += 5;
@@ -760,9 +777,11 @@ void EditorScene::UpdateMapEditor(float deltaTime, Input::Gamepad* gamepad) {
 
             const World::ResourceNode& existingNode = m_mapEditor->GetMap()->GetResourceNode(tx, ty);
             if (existingNode.type != World::ResourceType_None) {
-                m_activeResourceType = existingNode.type;
-                m_resourceAmount = existingNode.amount;
-                m_currentState = STATE_INPUT_AMOUNT;
+                m_mapEditor->GetMap()->SetResourceNode(tx, ty, existingNode.type, m_resourceAmount, true);
+                char buf[128];
+                sprintf_s(buf, "[Editor] Resource updated at (%d,%d): %s amount=%d\n",
+                    tx, ty, World::ResourceTypeToString(existingNode.type), m_resourceAmount);
+                OutputDebugStringA(buf);
             } else if (m_activeResourceType != World::ResourceType_None) {
                 bool canPlace = true;
                 int placeX = tx;
@@ -792,6 +811,232 @@ void EditorScene::UpdateMapEditor(float deltaTime, Input::Gamepad* gamepad) {
                 m_mapEditor->PaintCurrentTile();
             }
         }
+    }
+}
+
+void EditorScene::UpdateSaveLoadMenu(Input::Gamepad* gamepad) {
+    const int kMainItems = 4;     // Save, Load, Main Menu, Close
+    const int kSlotItems = SAVE_SLOT_COUNT + 1; // 10 slots + Back
+
+    switch (m_saveLoadMenuSection) {
+    case 0: // Main menu
+        if (gamepad->IsButtonPressed(Input::GP_DPadUp))
+            m_saveLoadMenuSelection = (m_saveLoadMenuSelection - 1 + kMainItems) % kMainItems;
+        if (gamepad->IsButtonPressed(Input::GP_DPadDown))
+            m_saveLoadMenuSelection = (m_saveLoadMenuSelection + 1) % kMainItems;
+        if (gamepad->IsButtonPressed(Input::GP_A)) {
+            switch (m_saveLoadMenuSelection) {
+            case 0: m_saveLoadMenuSection = 1; m_saveLoadMenuSelection = 0; break;
+            case 1: m_saveLoadMenuSection = 2; m_saveLoadMenuSelection = 0; break;
+            case 2: RequestSceneSwitch("MenuScene"); break;
+            case 3: m_saveLoadMenuActive = false; break;
+            }
+        }
+        if (gamepad->IsButtonPressed(Input::GP_B))
+            m_saveLoadMenuActive = false;
+        break;
+
+    case 1: // Save slots
+        if (gamepad->IsButtonPressed(Input::GP_DPadUp)) {
+            m_saveLoadMenuSelection--;
+            if (m_saveLoadMenuSelection < 0) m_saveLoadMenuSelection = kSlotItems - 1;
+        }
+        if (gamepad->IsButtonPressed(Input::GP_DPadDown))
+            m_saveLoadMenuSelection = (m_saveLoadMenuSelection + 1) % kSlotItems;
+        if (gamepad->IsButtonPressed(Input::GP_A)) {
+            if (m_saveLoadMenuSelection < SAVE_SLOT_COUNT) {
+                m_saveLoadMenuPendingSlot = m_saveLoadMenuSelection;
+                char slotPath[256];
+                sprintf_s(slotPath, "game:\\Media\\Maps\\slot_%02d.bin", m_saveLoadMenuSelection + 1);
+                HANDLE hCheck = CreateFileA(slotPath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+                bool slotExists = (hCheck != INVALID_HANDLE_VALUE);
+                if (slotExists) CloseHandle(hCheck);
+                if (slotExists) {
+                    m_saveLoadMenuSection = 3; // confirm overwrite
+                    m_saveLoadMenuSelection = 0; // 0=Yes, 1=No
+                } else {
+                    m_mapEditor->SaveMap(slotPath);
+                    m_saveLoadMenuSelection = 0;
+                }
+            } else {
+                m_saveLoadMenuSection = 0;
+                m_saveLoadMenuSelection = 1; // "Load" is at index 1
+            }
+        }
+        if (gamepad->IsButtonPressed(Input::GP_B)) {
+            m_saveLoadMenuSection = 0;
+            m_saveLoadMenuSelection = 1;
+        }
+        break;
+
+    case 2: // Load list
+        {
+            WIN32_FIND_DATAA ffd;
+            HANDLE hFind = FindFirstFileA("game:\\Media\\Maps\\*.bin", &ffd);
+            if (hFind == INVALID_HANDLE_VALUE) {
+                if (gamepad->IsButtonPressed(Input::GP_A) || gamepad->IsButtonPressed(Input::GP_B)) {
+                    m_saveLoadMenuSection = 0;
+                    m_saveLoadMenuSelection = 2;
+                }
+                break;
+            }
+
+            struct { char path[260]; char name[64]; } files[SAVE_SLOT_COUNT];
+            int fileCount = 0;
+            do {
+                if (!(ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) && fileCount < SAVE_SLOT_COUNT) {
+                    sprintf_s(files[fileCount].path, "game:\\Media\\Maps\\%s", ffd.cFileName);
+                    strcpy_s(files[fileCount].name, ffd.cFileName);
+                    fileCount++;
+                }
+            } while (FindNextFileA(hFind, &ffd) != 0);
+            FindClose(hFind);
+
+            int items = fileCount + 1;
+            if (gamepad->IsButtonPressed(Input::GP_DPadUp)) {
+                m_saveLoadMenuSelection--;
+                if (m_saveLoadMenuSelection < 0) m_saveLoadMenuSelection = items - 1;
+            }
+            if (gamepad->IsButtonPressed(Input::GP_DPadDown))
+                m_saveLoadMenuSelection = (m_saveLoadMenuSelection + 1) % items;
+            if (gamepad->IsButtonPressed(Input::GP_A)) {
+                if (m_saveLoadMenuSelection < fileCount) {
+                    m_mapEditor->LoadMap(files[m_saveLoadMenuSelection].path);
+                    m_saveLoadMenuActive = false;
+                } else {
+                    m_saveLoadMenuSection = 0;
+                    m_saveLoadMenuSelection = 2;
+                }
+            }
+            if (gamepad->IsButtonPressed(Input::GP_B)) {
+                m_saveLoadMenuSection = 0;
+                m_saveLoadMenuSelection = 2;
+            }
+        }
+        break;
+
+    case 3: // Confirm overwrite
+        if (gamepad->IsButtonPressed(Input::GP_DPadLeft) || gamepad->IsButtonPressed(Input::GP_DPadRight))
+            m_saveLoadMenuSelection = 1 - m_saveLoadMenuSelection;
+        if (gamepad->IsButtonPressed(Input::GP_A)) {
+            if (m_saveLoadMenuSelection == 0) {
+                char slotPath[256];
+                sprintf_s(slotPath, "game:\\Media\\Maps\\slot_%02d.bin", m_saveLoadMenuPendingSlot + 1);
+                m_mapEditor->SaveMap(slotPath);
+            }
+            m_saveLoadMenuSection = 1;
+            m_saveLoadMenuSelection = 0;
+        }
+        if (gamepad->IsButtonPressed(Input::GP_B)) {
+            m_saveLoadMenuSection = 1;
+            m_saveLoadMenuSelection = 0;
+        }
+        break;
+    }
+}
+
+void EditorScene::RenderSaveLoadMenu(Graphics::RenderQueue* renderQueue) {
+    if (!m_saveLoadMenuActive || !m_textManager) return;
+
+    // Draw semi-transparent overlay
+    Graphics::RenderCommand overlay = {};
+    overlay.x = 0.0f; overlay.y = 0.0f;
+    overlay.width = 1280.0f; overlay.height = 720.0f;
+    overlay.u0 = 0.0f; overlay.v0 = 0.0f; overlay.u1 = 1.0f; overlay.v1 = 1.0f;
+    overlay.color = 0x80000000;
+    overlay.textureID = 0;
+    overlay.shaderID = SHADER_UI;
+    overlay.blendMode = 1;
+    overlay.layer = LAYER_UI;
+    overlay.depth = 200;
+    overlay.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, 0, 200);
+    renderQueue->Submit(overlay);
+
+    float startX = 340.0f;
+    float startY = 100.0f;
+    float lineH = 36.0f;
+
+    D3DCOLOR titleColor = 0xFFFFCC00;
+    D3DCOLOR normalColor = 0xFFFFFFFF;
+    D3DCOLOR selColor = 0xFF00FF00;
+    D3DCOLOR emptyColor = 0xFF888888;
+
+    if (m_saveLoadMenuSection == 0) {
+        // Main menu
+        m_textManager->DrawTextToScreen("=== MENU ===", startX, startY, titleColor, 0.30f);
+        const char* items[] = { "Save", "Load", "Main Menu", "Close" };
+        for (int i = 0; i < 4; ++i) {
+            float y = startY + 50.0f + i * lineH;
+            D3DCOLOR c = (i == m_saveLoadMenuSelection) ? selColor : normalColor;
+            m_textManager->DrawTextToScreen(items[i], startX + 20.0f, y, c, 0.25f);
+        }
+
+    } else if (m_saveLoadMenuSection == 1) {
+        // Save slots
+        m_textManager->DrawTextToScreen("=== SAVE ===", startX, startY, titleColor, 0.30f);
+        for (int i = 0; i < SAVE_SLOT_COUNT; ++i) {
+            char slotPath[256];
+            sprintf_s(slotPath, "game:\\Media\\Maps\\slot_%02d.bin", i + 1);
+            HANDLE hCheck = CreateFileA(slotPath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+            bool exists = (hCheck != INVALID_HANDLE_VALUE);
+            if (exists) CloseHandle(hCheck);
+            char display[128];
+            if (exists) {
+                sprintf_s(display, "Slot %02d: %s", i + 1, slotPath + strlen("game:\\Media\\Maps\\"));
+            } else {
+                sprintf_s(display, "Slot %02d", i + 1);
+            }
+            float y = startY + 50.0f + i * lineH;
+            D3DCOLOR c = (i == m_saveLoadMenuSelection) ? selColor : (exists ? normalColor : emptyColor);
+            m_textManager->DrawTextToScreen(display, startX + 20.0f, y, c, 0.20f);
+        }
+        // Back button
+        {
+            float y = startY + 50.0f + SAVE_SLOT_COUNT * lineH;
+            D3DCOLOR c = (SAVE_SLOT_COUNT == m_saveLoadMenuSelection) ? selColor : normalColor;
+            m_textManager->DrawTextToScreen("Back", startX + 20.0f, y, c, 0.25f);
+        }
+
+    } else if (m_saveLoadMenuSection == 2) {
+        // Load list
+        m_textManager->DrawTextToScreen("=== LOAD ===", startX, startY, titleColor, 0.30f);
+
+        WIN32_FIND_DATAA ffd;
+        HANDLE hFind = FindFirstFileA("game:\\Media\\Maps\\*.bin", &ffd);
+        if (hFind == INVALID_HANDLE_VALUE) {
+            m_textManager->DrawTextToScreen("No saves found", startX + 20.0f, startY + 50.0f, emptyColor, 0.25f);
+            m_textManager->DrawTextToScreen("Press A or B to go back", startX + 20.0f, startY + 90.0f, normalColor, 0.20f);
+        } else {
+            struct { char name[64]; } files[SAVE_SLOT_COUNT];
+            int fileCount = 0;
+            do {
+                if (!(ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) && fileCount < SAVE_SLOT_COUNT) {
+                    strcpy_s(files[fileCount].name, ffd.cFileName);
+                    fileCount++;
+                }
+            } while (FindNextFileA(hFind, &ffd) != 0);
+            FindClose(hFind);
+
+            for (int i = 0; i < fileCount; ++i) {
+                float y = startY + 50.0f + i * lineH;
+                D3DCOLOR c = (i == m_saveLoadMenuSelection) ? selColor : normalColor;
+                m_textManager->DrawTextToScreen(files[i].name, startX + 20.0f, y, c, 0.20f);
+            }
+            // Back
+            {
+                float y = startY + 50.0f + fileCount * lineH;
+                D3DCOLOR c = (fileCount == m_saveLoadMenuSelection) ? selColor : normalColor;
+                m_textManager->DrawTextToScreen("Back", startX + 20.0f, y, c, 0.25f);
+            }
+        }
+
+    } else if (m_saveLoadMenuSection == 3) {
+        // Confirm overwrite
+        char buf[128];
+        sprintf_s(buf, "Overwrite slot %02d?", m_saveLoadMenuPendingSlot + 1);
+        m_textManager->DrawTextToScreen(buf, startX, startY + 50.0f, titleColor, 0.30f);
+        m_textManager->DrawTextToScreen("Yes", startX + 40.0f, startY + 110.0f, m_saveLoadMenuSelection == 0 ? selColor : normalColor, 0.25f);
+        m_textManager->DrawTextToScreen("No", startX + 200.0f, startY + 110.0f, m_saveLoadMenuSelection == 1 ? selColor : normalColor, 0.25f);
     }
 }
 
@@ -887,22 +1132,22 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
             char resInfo[256];
             if (m_currentState == STATE_INPUT_AMOUNT) {
                 if (World::IsDepositResource(m_activeResourceType)) {
-                    sprintf_s(resInfo, "Deposit at (%d,%d): %s [%d]  D-pad: adjust  Y: save  B: cancel",
+                    sprintf_s(resInfo, "Deposit at (%d,%d): %s [%d]  D-pad: adjust  Y: save  B: cancel  X: remove",
                         m_phantomTileX, m_phantomTileY,
                         World::ResourceTypeToString(m_activeResourceType), m_resourceAmount);
                 } else {
-                    sprintf_s(resInfo, "Editing at (%d,%d): %s [%d]  D-pad: adjust  Y: save  B: cancel",
+                    sprintf_s(resInfo, "Editing at (%d,%d): %s [%d]  D-pad: adjust  Y: save  B: cancel  X: remove",
                         m_phantomTileX, m_phantomTileY,
                         World::ResourceTypeToString(m_activeResourceType), m_resourceAmount);
                 }
             } else if (m_currentState == STATE_PLACING) {
-                sprintf_s(resInfo, "Place: %s [%d]  D-pad: adjust  A: place  B: cancel",
+                sprintf_s(resInfo, "Place: %s [%d]  D-pad: adjust  A: place  X: remove  B: cancel",
                     World::ResourceTypeToString(m_activeResourceType), m_resourceAmount);
             } else if (m_activeResourceType != World::ResourceType_None) {
                 sprintf_s(resInfo, "Resource: %s [%d]  D-pad: adjust  A: place  X: remove",
                     World::ResourceTypeToString(m_activeResourceType), m_resourceAmount);
             } else {
-                sprintf_s(resInfo, "Press RB to select resource type, then A to place on tile");
+                sprintf_s(resInfo, "Press RB to select resource type, then A to place on tile. X: remove");
             }
             m_textManager->DrawTextToScreen(resInfo, 10.0f, 720.0f - 60.0f, 0xFFFFCC00, 0.22f);
         }
@@ -1036,6 +1281,9 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
             }
         }
     }
+
+    // Save/Load menu overlay (on top of everything)
+    RenderSaveLoadMenu(renderQueue);
 }
 
 void EditorScene::RenderOverlay() {

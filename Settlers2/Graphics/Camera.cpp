@@ -48,8 +48,8 @@ void Camera::Update()
         &m_proj,
         0.0f,
         m_screenWidth,
-        0.0f,
         m_screenHeight,
+        0.0f,
         -1.0f,
         1.0f);
 
@@ -144,7 +144,7 @@ void Camera::Zoom(float dz, float centerScreenX, float centerScreenY)
     
     // Точка в мире после зума должна быть той же
     float newWorldX = m_posX + centerScreenX / m_zoom;
-    float newWorldY = m_posY + centerScreenY / m_zoom;
+    float newWorldY = m_posY + (m_screenHeight - centerScreenY) / m_zoom;
     
     // Корректируем позицию камеры
     m_posX += worldX - newWorldX;
@@ -167,7 +167,7 @@ void Camera::Reset()
 void Camera::ScreenToWorld(float sx,float sy,float& wx,float& wy) const
 {
     wx = m_posX + sx / m_zoom;
-    wy = m_posY + sy / m_zoom;
+    wy = m_posY + (m_screenHeight - sy) / m_zoom;
 }
 
 //
@@ -176,7 +176,7 @@ void Camera::ScreenToWorld(float sx,float sy,float& wx,float& wy) const
 void Camera::WorldToScreen(float wx,float wy,float& sx,float& sy) const
 {
     sx = (wx - m_posX) * m_zoom;
-    sy = (wy - m_posY) * m_zoom;
+    sy = m_screenHeight - (wy - m_posY) * m_zoom;
 }
 
 void Camera::GetWorldCenter(float& wx, float& wy) const

@@ -185,6 +185,15 @@ void MapEditor::SetCursorWorldPosition(float x, float y) {
     CoordinateSystem& coords = CoordinateSystem::GetInstance();
     if (m_currentLayer == World::Ground) {
         coords.WorldToGroundTile(x, y, m_cursorTileX, m_cursorTileY);
+    } else if (m_map) {
+        // Snap to nearest cell center for consistent placement
+        int bestX, bestY;
+        if (m_map->GetTileAt(x, y, m_currentLayer, bestX, bestY)) {
+            m_cursorTileX = bestX;
+            m_cursorTileY = bestY;
+        } else {
+            coords.WorldToNodeTile(x, y, m_cursorTileX, m_cursorTileY);
+        }
     } else {
         coords.WorldToNodeTile(x, y, m_cursorTileX, m_cursorTileY);
     }
@@ -729,8 +738,12 @@ void MapEditor::RenderCursor() {
         cursorW = CoordinateSystem::GetInstance().GetNodeWidth();
         cursorH = CoordinateSystem::GetInstance().GetNodeHeight();
         
-        // NodeTileToWorld returns tile top-left corner — render cursor there
-        // (no offset needed since cursorW/cursorH match tile dimensions exactly)
+        // Apply sprite pivot offset (same as object rendering) so cursor
+        // aligns with where objects are placed
+        if (cursorRegion) {
+            cursorWorldX -= cursorRegion->pivotX;
+            cursorWorldY -= cursorRegion->pivotY;
+        }
     }
 
     Graphics::RenderCommand cmd = {};

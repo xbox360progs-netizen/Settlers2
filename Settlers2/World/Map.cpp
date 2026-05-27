@@ -180,12 +180,14 @@ bool Map::GetTileUnderMouse(float screenX, float screenY, Camera* camera, LayerT
             }
 
             // Get world position of this tile's anchor (matches cursor and object rendering)
-            float tileCenterX, tileCenterY;
-            coords.NodeTileToWorld(checkX, checkY, tileCenterX, tileCenterY);
+            float tileAnchorX, tileAnchorY;
+            coords.NodeTileToWorld(checkX, checkY, tileAnchorX, tileAnchorY);
 
-            // Calculate distance from click point to tile anchor
-            float distX = worldX - tileCenterX;
-            float distY = worldY - tileCenterY;
+            // Use cell center for distance comparison (staggered grid cells overlap at corners)
+            float cellCenterX = tileAnchorX + coords.GetNodeWidth() * 0.5f;
+            float cellCenterY = tileAnchorY + coords.GetNodeHeight() * 0.5f;
+            float distX = worldX - cellCenterX;
+            float distY = worldY - cellCenterY;
             float dist = sqrtf(distX * distX + distY * distY);
 
             // Track closest tile
@@ -249,12 +251,14 @@ bool Map::GetTileAt(float worldX, float worldY, LayerType layer, int& tileX, int
             }
 
             // Get world position of this tile's anchor (matches cursor and object rendering)
-            float tileCenterX, tileCenterY;
-            coords.NodeTileToWorld(checkX, checkY, tileCenterX, tileCenterY);
+            float tileAnchorX, tileAnchorY;
+            coords.NodeTileToWorld(checkX, checkY, tileAnchorX, tileAnchorY);
 
-            // Calculate distance from point to tile anchor
-            float distX = worldX - tileCenterX;
-            float distY = worldY - tileCenterY;
+            // Use cell center for distance comparison (staggered grid cells overlap at corners)
+            float cellCenterX = tileAnchorX + coords.GetNodeWidth() * 0.5f;
+            float cellCenterY = tileAnchorY + coords.GetNodeHeight() * 0.5f;
+            float distX = worldX - cellCenterX;
+            float distY = worldY - cellCenterY;
             float dist = sqrtf(distX * distX + distY * distY);
 
             // Track closest tile

@@ -154,6 +154,15 @@ EditorScene();
     // Button hint textures for GridMenu
     GridMenu::TileUV m_buttonAUV;
     GridMenu::TileUV m_buttonBUV;
+
+    // Save/Load menu
+    bool m_saveLoadMenuActive;
+    int m_saveLoadMenuSection;   // 0=main, 1=save, 2=load, 3=confirm
+    int m_saveLoadMenuSelection;
+    int m_saveLoadMenuPendingSlot; // slot index for confirm overwrite
+    static const int SAVE_SLOT_COUNT = 10;
+    void UpdateSaveLoadMenu(Input::Gamepad* gamepad);
+    void RenderSaveLoadMenu(Graphics::RenderQueue* renderQueue);
 };
 
 } // namespace Scene
