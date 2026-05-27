@@ -352,7 +352,41 @@ void EditorScene::Unload() {
 }
 
 void EditorScene::Update(float deltaTime) {
-    // FPS calculation
+    UpdateFPS();
+
+    if (!m_inputManager) return;
+
+    Input::Gamepad* gamepad = m_inputManager->GetGamepad();
+    if (!gamepad) return;
+
+    bool menuActive = (m_gridMenu && m_gridMenu->IsVisible()) || (m_radialMenu && m_radialMenu->IsVisible());
+
+    UpdateMenus(gamepad, deltaTime);
+
+    if (m_inputController) {
+        UpdateInputController(deltaTime);
+        UpdateResourcePlacementFSM();
+    }
+
+    // GridMenu resource selection must happen after FSM to prevent
+    // processing the same A press as a placement
+    if (HandleGridMenuResourceSelection(gamepad))
+        return;
+
+    if (!menuActive && m_camera) {
+        UpdateCamera(gamepad, deltaTime);
+    }
+
+    if (m_inputController && m_camera && m_mapEditor) {
+        UpdateCursorAndTiles();
+    }
+
+    if (m_mapEditor && !menuActive) {
+        UpdateMapEditor(deltaTime, gamepad);
+    }
+}
+
+void EditorScene::UpdateFPS() {
     DWORD now = GetTickCount();
     m_frameCount++;
     if (now - m_lastFpsTime >= 1000) {
@@ -360,525 +394,456 @@ void EditorScene::Update(float deltaTime) {
         m_frameCount = 0;
         m_lastFpsTime = now;
     }
+}
 
-	if (!m_inputManager) return;
+void EditorScene::UpdateMenus(Input::Gamepad* gamepad, float deltaTime) {
+    bool anyMenuActive = (m_gridMenu && m_gridMenu->IsVisible()) || (m_radialMenu && m_radialMenu->IsVisible());
 
-	Input::Gamepad* gamepad = m_inputManager->GetGamepad();
-	if (!gamepad) return;
+    if (m_weightMenuVisible && m_weightMenu) {
+        m_weightMenu->Update(gamepad, deltaTime);
+        m_weightMenuVisible = m_weightMenu->IsVisible();
+        if (m_weightMenuVisible) {
+            bool selected = false;
+            if (m_weightMenuPlacementMode) {
+                if (gamepad->IsButtonPressed(Input::GP_DPadUp)) {
+                    m_activeWeight = World::Weight_Block;
+                    selected = true;
+                } else if (gamepad->IsButtonPressed(Input::GP_DPadDown)) {
+                    m_activeWeight = World::Weight_Land;
+                    selected = true;
+                }
+            } else {
+                if (gamepad->IsButtonPressed(Input::GP_DPadUp)) {
+                    m_activeWeight = World::Weight_Block;
+                    selected = true;
+                } else if (gamepad->IsButtonPressed(Input::GP_DPadDown)) {
+                    m_activeWeight = World::Weight_Deep;
+                    selected = true;
+                } else if (gamepad->IsButtonPressed(Input::GP_DPadLeft)) {
+                    m_activeWeight = World::Weight_Shallow;
+                    selected = true;
+                } else if (gamepad->IsButtonPressed(Input::GP_DPadRight)) {
+                    m_activeWeight = World::Weight_Land;
+                    selected = true;
+                }
+            }
 
-	bool menuActive = (m_gridMenu && m_gridMenu->IsVisible()) || (m_radialMenu && m_radialMenu->IsVisible());
+            if (selected) {
+                m_editorMode = m_weightMenuPlacementMode ? MODE_PLACEMENT : MODE_WEIGHTS;
+                m_weightMenuPlacementMode = false;
+                m_weightMenu->Close();
+                m_weightMenuVisible = false;
+            }
+        }
+    }
 
-	// === MENU INPUT (priority over camera when menu is open) ===
-	// Toggle RadialMenu with LB - only when GridMenu is NOT visible
-	if (gamepad->IsButtonPressed(Input::GP_LB)) {
-		if (m_gridMenu && m_gridMenu->IsVisible()) {
-			// GridMenu is active, don't show RadialMenu
-		} else if (m_radialMenu) {
-			if (m_radialMenu->IsVisible()) {
-				m_radialMenu->Hide();
-			} else {
-				m_radialMenu->Show(640.0f, 360.0f);
-			}
-		}
-	}
+    if (gamepad->IsButtonPressed(Input::GP_LB)) {
+        if (m_gridMenu && m_gridMenu->IsVisible()) {
+            // GridMenu active, ignore LB
+        } else if (m_radialMenu) {
+            if (m_radialMenu->IsVisible()) {
+                m_radialMenu->Hide();
+            } else {
+                m_radialMenu->Show(640.0f, 360.0f);
+            }
+        }
+    }
 
-	// Handle D-pad input for weight selection when Nodes menu is visible
-	if (m_weightMenuVisible && m_weightMenu) {
-		m_weightMenu->Update(gamepad, deltaTime);
-		m_weightMenuVisible = m_weightMenu->IsVisible();
-		if (!m_weightMenuVisible) {
-			// Menu was closed by B button (handled internally in WeightMenu::Update)
-		} else {
-			bool selected = false;
-			if (m_weightMenuPlacementMode) {
-				// Placement mode: Up=Occupied, Down=Free
-				if (gamepad->IsButtonPressed(Input::GP_DPadUp)) {
-					m_activeWeight = World::Weight_Block;
-					selected = true;
-				}
-				else if (gamepad->IsButtonPressed(Input::GP_DPadDown)) {
-					m_activeWeight = World::Weight_Land;
-					selected = true;
-				}
-			} else {
-				if (gamepad->IsButtonPressed(Input::GP_DPadUp)) {
-					m_activeWeight = World::Weight_Block;
-					selected = true;
-				}
-				else if (gamepad->IsButtonPressed(Input::GP_DPadDown)) {
-					m_activeWeight = World::Weight_Deep;
-					selected = true;
-				}
-				else if (gamepad->IsButtonPressed(Input::GP_DPadLeft)) {
-					m_activeWeight = World::Weight_Shallow;
-					selected = true;
-				}
-				else if (gamepad->IsButtonPressed(Input::GP_DPadRight)) {
-					m_activeWeight = World::Weight_Land;
-					selected = true;
-				}
-			}
-
-			if (selected) {
-				m_editorMode = m_weightMenuPlacementMode ? MODE_PLACEMENT : MODE_WEIGHTS;
-				m_weightMenuPlacementMode = false;
-				m_weightMenu->Close();
-				m_weightMenuVisible = false;
-			}
-		}
-	}
-
-	if (!menuActive && !m_weightMenuVisible) {
-		// Toggle GridMenu with RB (blocked for Nodes layer — WeightMenu used instead)
-		if (gamepad->IsButtonPressed(Input::GP_RB)) {
-			if (m_currentLayer == World::Nodes || m_currentLayer == World::Placement) {
-				if (m_weightMenu) {
-					if (m_weightMenuVisible) {
-						m_weightMenu->Close();
-						m_weightMenuVisible = false;
-					} else {
-						m_weightMenuPlacementMode = (m_currentLayer == World::Placement);
-						m_weightMenu->SetPlacementMode(m_weightMenuPlacementMode);
-						m_weightMenu->Open(m_activeWeight);
-						m_weightMenuVisible = true;
-					}
-				}
-			} else if (m_currentLayer == World::Resources && m_currentState == STATE_IDLE) {
-				// (blocked during STATE_PLACING / STATE_INPUT_AMOUNT to avoid interrupting the flow)
-				if (!m_gridMenu) {
-					m_gridMenu = new GridMenu();
-					if (m_gridMenu->Initialize()) {
-						m_gridMenu->SetTextureSlots(6, 7, 8);
-						LoadResourceGroupIcons();
-					}
-					m_gridMenu->Show(640.0f, 330.0f);
-				} else if (m_gridMenu->IsVisible()) {
-					m_gridMenu->Hide();
-				} else {
-					LoadResourceGroupIcons();
-					m_gridMenu->Show(640.0f, 330.0f);
-				}
-			} else {
-        if (!m_gridMenu) {
-                m_gridMenu = new GridMenu();
-                if (m_gridMenu->Initialize()) {
-                    m_gridMenu->SetTextureSlots(6, 7, 8);
-                    // Load atlas based on current layer
+    if (!anyMenuActive && !m_weightMenuVisible) {
+        if (gamepad->IsButtonPressed(Input::GP_RB)) {
+            if (m_currentLayer == World::Nodes || m_currentLayer == World::Placement) {
+                if (m_weightMenu) {
+                    if (m_weightMenuVisible) {
+                        m_weightMenu->Close();
+                        m_weightMenuVisible = false;
+                    } else {
+                        m_weightMenuPlacementMode = (m_currentLayer == World::Placement);
+                        m_weightMenu->SetPlacementMode(m_weightMenuPlacementMode);
+                        m_weightMenu->Open(m_activeWeight);
+                        m_weightMenuVisible = true;
+                    }
+                }
+            } else if (m_currentLayer == World::Resources && m_currentState == STATE_IDLE) {
+                if (!m_gridMenu) {
+                    m_gridMenu = new GridMenu();
+                    if (m_gridMenu->Initialize()) {
+                        m_gridMenu->SetTextureSlots(6, 7, 8);
+                        LoadResourceGroupIcons();
+                    }
+                    m_gridMenu->Show(640.0f, 330.0f);
+                } else if (m_gridMenu->IsVisible()) {
+                    m_gridMenu->Hide();
+                } else {
+                    LoadResourceGroupIcons();
+                    m_gridMenu->Show(640.0f, 330.0f);
+                }
+            } else {
+                if (!m_gridMenu) {
+                    m_gridMenu = new GridMenu();
+                    if (m_gridMenu->Initialize()) {
+                        m_gridMenu->SetTextureSlots(6, 7, 8);
+                        if (m_currentLayer == World::Objects) {
+                            m_objectGroupIndex = 0;
+                            LoadGridMenuGroup(kObjectGroupNames[m_objectGroupIndex]);
+                            if (m_mapEditor) m_mapEditor->SetObjectGroup(kObjectGroupNames[m_objectGroupIndex]);
+                        } else {
+                            LoadGridMenuAtlas("ground");
+                        }
+                    }
+                    m_gridMenu->Show(640.0f, 330.0f);
+                } else if (m_gridMenu->IsVisible()) {
+                    m_gridMenu->Hide();
+                } else {
                     if (m_currentLayer == World::Objects) {
-                        m_objectGroupIndex = 0;
                         LoadGridMenuGroup(kObjectGroupNames[m_objectGroupIndex]);
                         if (m_mapEditor) m_mapEditor->SetObjectGroup(kObjectGroupNames[m_objectGroupIndex]);
                     } else {
                         LoadGridMenuAtlas("ground");
                     }
+                    m_gridMenu->Show(640.0f, 330.0f);
                 }
-                m_gridMenu->Show(640.0f, 330.0f);
-			} else if (m_gridMenu->IsVisible()) {
-				m_gridMenu->Hide();
-        } else {
-                // Show GridMenu with appropriate group/atlas for current layer
-                if (m_currentLayer == World::Objects) {
-                    LoadGridMenuGroup(kObjectGroupNames[m_objectGroupIndex]);
-                    if (m_mapEditor) m_mapEditor->SetObjectGroup(kObjectGroupNames[m_objectGroupIndex]);
-                } else {
-                    LoadGridMenuAtlas("ground");
-                }
-                m_gridMenu->Show(640.0f, 330.0f);
             }
-		}
-	}
-	}
-
-	// Update InputController for button events
-	if (m_inputController) {
-		m_inputController->Update();
-
-		// For MODE_WEIGHTS: compute tile at camera center (screen center), not from stick cursor
-		if (m_editorMode == MODE_WEIGHTS && !m_weightMenuVisible) {
-			float centerWorldX, centerWorldY;
-			m_camera->GetWorldCenter(centerWorldX, centerWorldY);
-
-			if (m_mapEditor && m_mapEditor->GetMap()) {
-				int tileX, tileY;
-				if (m_mapEditor->GetMap()->GetTileAt(centerWorldX, centerWorldY, m_currentLayer, tileX, tileY)) {
-					m_selectedTileX = tileX;
-					m_selectedTileY = tileY;
-					m_hasSelection = true;
-					float tileWorldX, tileWorldY;
-					CoordinateSystem::GetInstance().NodeTileToWorld(tileX, tileY, tileWorldX, tileWorldY);
-					char buf[256];
-					sprintf_s(buf, "[WEIGHT] Center world=(%.0f,%.0f) tile=(%d,%d) tileWorld=(%.0f,%.0f) layer=%d\n",
-						centerWorldX, centerWorldY, tileX, tileY, tileWorldX, tileWorldY, m_currentLayer);
-					OutputDebugStringA(buf);
-				}
-			}
-		} else {
-			// Get world cursor position from stick for object placement
-			float worldX, worldY;
-			m_inputController->GetWorldCursor(worldX, worldY);
-
-			// Get tile at world coordinates directly (no camera round-trip)
-			if (m_mapEditor && m_mapEditor->GetMap()) {
-				int tileX, tileY;
-                if (m_mapEditor->GetMap()->GetTileAt(worldX, worldY, m_currentLayer, tileX, tileY)) {
-                    // Update phantom tile position when in PLACING or DEPOSIT_PREVIEW state
-                    if (m_currentState == STATE_PLACING) {
-                        m_phantomTileX = tileX;
-                        m_phantomTileY = tileY;
-                    }
-                }
-			}
-		}
-
-		// FSM: Handle resource placement state machine
-		switch (m_currentState) {
-			case STATE_IDLE:
-				// Normal camera movement and tile painting
-				// Handle weight painting in MODE_WEIGHTS
-				if (m_editorMode == MODE_WEIGHTS && !m_weightMenuVisible) {
-					if (m_inputController->IsButtonAPressed()) {
-						if (m_mapEditor && m_mapEditor->GetMap() && m_hasSelection) {
-							m_mapEditor->GetMap()->SetNodeWeight(m_selectedTileX, m_selectedTileY, m_activeWeight);
-							char buf[256];
-							sprintf_s(buf, "[WEIGHT] PAINT tile=(%d,%d) weight=%d\n",
-								m_selectedTileX, m_selectedTileY, m_activeWeight);
-							OutputDebugStringA(buf);
-						}
-					}
-				}
-				break;
-				
-			case STATE_SELECTING:
-				// GridMenu is open, waiting for selection
-				break;
-				
-            case STATE_PLACING:
-                // Phantom resource follows cursor
-                // A button: Place resource then enter edit mode
-                if (m_inputController->IsButtonAPressed()) {
-                    if (m_mapEditor && m_mapEditor->GetMap()) {
-                        bool canPlace = true;
-                        int placeX = m_phantomTileX;
-                        int placeY = m_phantomTileY;
-                        // Validate mine/stone deposits: only on mountains
-                        if (World::ResourceRequiresMountain(m_activeResourceType)) {
-                            m_mapEditor->RebuildObjectInteractionZones();
-                            if (!m_mapEditor->FindMountainObjectForResource(m_phantomTileX, m_phantomTileY, placeX, placeY)) {
-                                OutputDebugStringA("[Editor] Deposits can only be placed on mountains!\n");
-                                canPlace = false;
-                            }
-                        }
-                        if (canPlace) {
-                            m_phantomTileX = placeX;
-                            m_phantomTileY = placeY;
-                            m_mapEditor->GetMap()->SetResourceNode(placeX, placeY, m_activeResourceType, m_resourceAmount, true);
-                            m_currentState = STATE_INPUT_AMOUNT;
-                        }
-                    }
-                }
-                // B button: complete / cancel placement
-                if (m_inputController->IsButtonBPressed()) {
-                    m_currentState = STATE_IDLE;
-                    m_activeResourceType = World::ResourceType_None;
-                }
-                break;
-
-            case STATE_INPUT_AMOUNT:
-                // Amount editing mode: D-pad adjusts m_resourceAmount above
-                // A — confirm and save (uses frozen phantom position from STATE_PLACING)
-                if (m_inputController->IsButtonYPressed()) {
-                    if (m_mapEditor && m_mapEditor->GetMap()) {
-                        m_mapEditor->GetMap()->SetResourceNode(m_phantomTileX, m_phantomTileY, m_activeResourceType, m_resourceAmount, true);
-                        char buf[128];
-                        sprintf_s(buf, "[Editor] Saved resource %s at (%d,%d) amount=%d\n",
-                            World::ResourceTypeToString(m_activeResourceType), m_phantomTileX, m_phantomTileY, m_resourceAmount);
-                        OutputDebugStringA(buf);
-                    }
-                    m_currentState = STATE_IDLE;
-                }
-                // B — cancel (clears active resource type to stop further placement)
-                if (m_inputController->IsButtonBPressed()) {
-                    m_currentState = STATE_IDLE;
-                    m_activeResourceType = World::ResourceType_None;
-                    OutputDebugStringA("[Editor] Resource edit cancelled\n");
-                }
-                break;
         }
-	}
+    }
 
-	// === CAMERA CONTROL (only when menu is NOT active and not in PLACING state) ===
-	if (!menuActive && m_camera) {
-		float moveSpeed = 500.0f * deltaTime; // pixels per second
-		float stickX, stickY;
-		gamepad->GetLeftStick(stickX, stickY);
-		
-		// Block camera movement right after menu closes until stick returns to neutral
-		if (m_blockCameraUntilStickNeutral) {
-			if (fabsf(stickX) <= 0.1f && fabsf(stickY) <= 0.1f) {
-				m_blockCameraUntilStickNeutral = false;
-			}
-		} else if (fabsf(stickX) > 0.1f || fabsf(stickY) > 0.1f) {
-			m_camera->Move(stickX * moveSpeed, stickY * moveSpeed);
-		}
-		
-		// Right stick: zoom camera
-		float rightX, rightY;
-		gamepad->GetRightStick(rightX, rightY);
-		if (fabsf(rightY) > 0.1f) {
-			float zoomSpeed = 1.0f * deltaTime;
-			m_camera->Zoom(rightY * zoomSpeed);
-		}
-		
-		m_camera->Update();
-		
-		if (m_shaderManager) {
-			m_shaderManager->UpdateGlobalMatrices(&m_camera->GetViewMatrix(), &m_camera->GetProjectionMatrix());
-		}
-	}
+    if (m_gridMenu && m_gridMenu->IsVisible()) {
+        m_gridMenu->Update(gamepad, deltaTime);
 
-	// When GridMenu is visible, update it and handle selection
-	if (m_gridMenu && m_gridMenu->IsVisible()) {
-		m_gridMenu->Update(gamepad, deltaTime);
-		if (gamepad->IsButtonPressed(Input::GP_A)) {
-			int selectedIndex = m_gridMenu->GetSelectedSpriteIndex();
-			if (selectedIndex >= 0 && m_mapEditor) {
-            if (m_currentLayer == World::Resources) {
-                // Resource layer: first select resource group, then concrete resource.
-                const std::tr1::shared_ptr<SpriteAtlas>& maptiles = TextureRegistry::instance().getAtlas("maptiles");
-                if (maptiles) {
-                    const SpriteRegion* region = maptiles->GetRegion(selectedIndex);
-                    if (region) {
-                        if (m_resourceMenuShowingGroups) {
-                            for (int i = 0; i < kResourceMenuGroupCount; ++i) {
-                                if (region->name == kResourceMenuGroups[i].iconName) {
-                                    m_resourceMenuGroupIndex = i;
-                                    LoadResourceGroupResources(i);
-                                    char buf[128];
-                                    sprintf_s(buf, "[EditorScene] Selected resource group: %s\n", kResourceMenuGroups[i].iconName);
-                                    OutputDebugStringA(buf);
-                                    return;
-                                }
-                            }
-                        } else {
-                            for (int i = 1; i < World::ResourceType_Count; ++i) {
-                                World::ResourceType rt = static_cast<World::ResourceType>(i);
-                                if (region->name == World::ResourceTypeToIconName(rt)) {
-                                    m_activeResourceType = rt;
-                                    m_resourceAmount = World::GetDefaultResourceAmount(rt);
-                                    m_currentState = STATE_PLACING;
-                                    m_depositConfirmPending = false;
-                                    m_depositBuildingSpriteIdx = -1;
-                                    const char* buildingName = World::ResourceTypeToBuildingSpriteName(rt);
-                                    m_depositBuildingSpriteIdx = (buildingName && buildingName[0])
-                                        ? (int)maptiles->GetIndex(buildingName)
-                                        : -1;
-                                    if (m_depositBuildingSpriteIdx < 0) {
-                                        m_depositBuildingSpriteIdx = selectedIndex;
-                                    }
-                                    char buf[160];
-                                    sprintf_s(buf, "[EditorScene] Selected resource type: %s, amount: %d (mountain=%d, buildingIdx=%d)\n",
-                                        World::ResourceTypeToString(rt), m_resourceAmount,
-                                        World::ResourceRequiresMountain(rt), m_depositBuildingSpriteIdx);
-                                    OutputDebugStringA(buf);
-                                    m_gridMenu->Hide();
-                                    return;
-                                }
-                            }
-                        }
-                    }
+        if (gamepad->IsButtonPressed(Input::GP_A)) {
+            int selectedIndex = m_gridMenu->GetSelectedSpriteIndex();
+            if (selectedIndex >= 0 && m_mapEditor) {
+                if (m_currentLayer != World::Resources) {
+                    m_mapEditor->SetTileByIndex(selectedIndex);
+                    m_gridMenu->Hide();
                 }
-				} else {
-					m_mapEditor->SetTileByIndex(selectedIndex);
-				}
-			}
-			if (m_currentLayer != World::Resources) m_gridMenu->Hide();
-		}
-		if (gamepad->IsButtonPressed(Input::GP_B)) {
+            }
+        }
+
+        if (gamepad->IsButtonPressed(Input::GP_B)) {
             if (m_currentLayer == World::Resources && !m_resourceMenuShowingGroups) {
                 LoadResourceGroupIcons();
             } else {
-			    m_gridMenu->Hide();
+                m_gridMenu->Hide();
             }
-		}
-		// Y button - cycle object groups (only in Objects layer)
-		if (gamepad->IsButtonPressed(Input::GP_Y) && m_currentLayer == World::Objects) {
+        }
+
+        if (gamepad->IsButtonPressed(Input::GP_Y) && m_currentLayer == World::Objects) {
             CycleObjectGroup();
-		}
-		// Shoulder triggers to navigate pages (all layers use SetTileData)
-		if (gamepad->IsButtonPressed(Input::GP_LB)) {
-			m_gridMenu->PrevPage();
-		}
-		if (gamepad->IsButtonPressed(Input::GP_RB)) {
-			m_gridMenu->NextPage();
-		}
-	}
+        }
 
-	// Also update RadialMenu if visible
-	if (m_radialMenu && m_radialMenu->IsVisible()) {
-    m_radialMenu->Update(gamepad);
-
-    // Block camera if radial menu was just closed (via A confirm or B cancel)
-    if (!m_radialMenu->IsVisible()) {
-        m_blockCameraUntilStickNeutral = true;
+        if (gamepad->IsButtonPressed(Input::GP_LB)) {
+            m_gridMenu->PrevPage();
+        }
+        if (gamepad->IsButtonPressed(Input::GP_RB)) {
+            m_gridMenu->NextPage();
+        }
     }
 
-    if (m_radialMenu->HasSelection()) {
-        int selectedType = m_radialMenu->GetSelectedTypeId();
-        m_currentLayer = static_cast<World::LayerType>(selectedType);
-        
-        if (m_currentLayer != World::Objects) {
-            m_yButtonWasPressed = false;
+    if (m_radialMenu && m_radialMenu->IsVisible()) {
+        m_radialMenu->Update(gamepad);
+
+        if (!m_radialMenu->IsVisible()) {
+            m_blockCameraUntilStickNeutral = true;
         }
 
-        // Update map editor visibility and layer sync
-        if (m_mapEditor) {
-            m_mapEditor->SetLayer(m_currentLayer);
+        if (m_radialMenu->HasSelection()) {
+            int selectedType = m_radialMenu->GetSelectedTypeId();
+            m_currentLayer = static_cast<World::LayerType>(selectedType);
 
-            // Cancel any active resource placement/editing when switching layer
-            bool wasResourceLayer = (m_currentState != STATE_IDLE
-                || m_activeResourceType != World::ResourceType_None);
-            m_currentState = STATE_IDLE;
-            m_activeResourceType = World::ResourceType_None;
-            m_depositConfirmPending = false;
-            m_depositBuildingSpriteIdx = -1;
-
-            switch (m_currentLayer) {
-                case World::Ground:
-                    m_mapEditor->SetShowObjects(false);
-                    m_mapEditor->SetShowOverlay(false);
-                    m_mapEditor->SetShowResourceIcons(false);
-                    break;
-                case World::Objects:
-                    m_mapEditor->SetShowObjects(true);
-                    m_mapEditor->SetShowOverlay(false);
-                    m_mapEditor->SetShowResourceIcons(false);
-                    break;
-                case World::Resources:
-                    m_mapEditor->SetShowObjects(true);
-                    m_mapEditor->SetShowOverlay(true);
-                    m_mapEditor->SetShowResourceIcons(true);
-                    // Auto-assign resources for trees on first activation
-                    if (!m_resourcesInitialized) {
-                        m_mapEditor->AutoAssignResourcesForTrees();
-                        m_resourcesInitialized = true;
-                    }
-                    break;
-                case World::Overlay:
-                    m_mapEditor->SetShowObjects(true);
-                    m_mapEditor->SetShowOverlay(true);
-                    m_mapEditor->SetShowResourceIcons(false);
-                    break;
-                default:
-                    m_mapEditor->SetShowObjects(true);
-                    m_mapEditor->SetShowOverlay(true);
-                    m_mapEditor->SetShowResourceIcons(false);
-                    break;
+            if (m_currentLayer != World::Objects) {
+                m_yButtonWasPressed = false;
             }
 
-            if (m_currentLayer == World::Objects) {
-                m_mapEditor->SetObjectGroup(kObjectGroupNames[m_objectGroupIndex]);
-            }
-        }
+            if (m_mapEditor) {
+                m_mapEditor->SetLayer(m_currentLayer);
 
-        // Update sprite slot 8 with the active layer's atlas for preview
-        if (m_spriteRenderer) {
-            TextureRegistry& reg = TextureRegistry::instance();
-            const char* atlasName = (m_currentLayer == World::Objects)
-                ? "maptiles" : "ground";
-            std::tr1::shared_ptr<SpriteAtlas> atlas = reg.getAtlas(atlasName);
-            if (atlas) {
-                m_spriteRenderer->SetTextureSlot(8, atlas->GetTexture());
+                m_currentState = STATE_IDLE;
+                m_activeResourceType = World::ResourceType_None;
+                m_depositConfirmPending = false;
+                m_depositBuildingSpriteIdx = -1;
+
+                switch (m_currentLayer) {
+                    case World::Ground:
+                        m_mapEditor->SetShowObjects(false);
+                        m_mapEditor->SetShowOverlay(false);
+                        m_mapEditor->SetShowResourceIcons(false);
+                        break;
+                    case World::Objects:
+                        m_mapEditor->SetShowObjects(true);
+                        m_mapEditor->SetShowOverlay(false);
+                        m_mapEditor->SetShowResourceIcons(false);
+                        break;
+                    case World::Resources:
+                        m_mapEditor->SetShowObjects(true);
+                        m_mapEditor->SetShowOverlay(true);
+                        m_mapEditor->SetShowResourceIcons(true);
+                        if (!m_resourcesInitialized) {
+                            m_mapEditor->AutoAssignResourcesForTrees();
+                            m_resourcesInitialized = true;
+                        }
+                        break;
+                    case World::Overlay:
+                        m_mapEditor->SetShowObjects(true);
+                        m_mapEditor->SetShowOverlay(true);
+                        m_mapEditor->SetShowResourceIcons(false);
+                        break;
+                    default:
+                        m_mapEditor->SetShowObjects(true);
+                        m_mapEditor->SetShowOverlay(true);
+                        m_mapEditor->SetShowResourceIcons(false);
+                        break;
+                }
+
+                if (m_currentLayer == World::Objects) {
+                    m_mapEditor->SetObjectGroup(kObjectGroupNames[m_objectGroupIndex]);
+                }
+            }
+
+            if (m_spriteRenderer) {
+                TextureRegistry& reg = TextureRegistry::instance();
+                const char* atlasName = (m_currentLayer == World::Objects) ? "maptiles" : "ground";
+                std::tr1::shared_ptr<SpriteAtlas> atlas = reg.getAtlas(atlasName);
+                if (atlas) {
+                    m_spriteRenderer->SetTextureSlot(8, atlas->GetTexture());
+                }
             }
         }
     }
 }
 
-	// Update MapEditor (camera movement, painting) only when no menu active
-	if (m_mapEditor && !menuActive) {
-		m_mapEditor->Update(deltaTime);
+void EditorScene::UpdateInputController(float deltaTime) {
+    m_inputController->Update(deltaTime);
+}
 
-		if (m_currentLayer == World::Resources) {
-			// Resources layer: D-pad up/down to adjust amount
-			if (gamepad->IsButtonPressed(Input::GP_DPadUp)) {
-				m_resourceAmount += 5;
-				if (m_resourceAmount > 999) m_resourceAmount = 999;
-				char buf[64];
-				sprintf_s(buf, "[EditorScene] Resource amount: %d\n", m_resourceAmount);
-				OutputDebugStringA(buf);
-			}
-			if (gamepad->IsButtonPressed(Input::GP_DPadDown)) {
-				m_resourceAmount -= 5;
-				if (m_resourceAmount < 1) m_resourceAmount = 1;
-				char buf[64];
-				sprintf_s(buf, "[EditorScene] Resource amount: %d\n", m_resourceAmount);
-				OutputDebugStringA(buf);
-			}
+void EditorScene::UpdateCursorAndTiles() {
+    if (m_editorMode == MODE_WEIGHTS && !m_weightMenuVisible) {
+        float centerWorldX, centerWorldY;
+        m_camera->GetWorldCenter(centerWorldX, centerWorldY);
+        if (m_mapEditor && m_mapEditor->GetMap()) {
+            int tileX, tileY;
+            if (m_mapEditor->GetMap()->GetTileAt(centerWorldX, centerWorldY, m_currentLayer, tileX, tileY)) {
+                m_selectedTileX = tileX;
+                m_selectedTileY = tileY;
+                m_hasSelection = true;
+            }
+        }
+    } else {
+        float offsetX, offsetY;
+        m_inputController->GetCursorOffset(offsetX, offsetY);
 
-			// X button - remove resource at cursor
-			if (gamepad->IsButtonPressed(Input::GP_X)) {
-				int tx = m_mapEditor->GetCursorTileX();
-				int ty = m_mapEditor->GetCursorTileY();
-				m_mapEditor->GetMap()->SetResourceNode(tx, ty, World::ResourceType_None, 0, false);
-				char buf[128];
-				sprintf_s(buf, "[EditorScene] Removed resource at (%d,%d)\n", tx, ty);
-				OutputDebugStringA(buf);
-			}
+        float camX, camY;
+        m_camera->GetWorldCenter(camX, camY);
 
-			// A button - place/edit resource at cursor (only in IDLE state, otherwise FSM handles it)
-			if (gamepad->IsButtonPressed(Input::GP_A) && m_currentState == STATE_IDLE) {
-				int tx = m_mapEditor->GetCursorTileX();
-				int ty = m_mapEditor->GetCursorTileY();
+        float worldX = camX + offsetX;
+        float worldY = camY + offsetY;
 
-				// Check: if tile already has a resource, load it for editing
-				const World::ResourceNode& existingNode = m_mapEditor->GetMap()->GetResourceNode(tx, ty);
-				if (existingNode.type != World::ResourceType_None) {
-					m_activeResourceType = existingNode.type;
-					m_resourceAmount = existingNode.amount;
-					m_currentState = STATE_INPUT_AMOUNT;
-					char buf[128];
-					sprintf_s(buf, "[Editor] Edit resource %s amount=%d at (%d,%d). D-pad to adjust, A to confirm, B to cancel\n",
-						World::ResourceTypeToString(m_activeResourceType), m_resourceAmount, tx, ty);
-					OutputDebugStringA(buf);
-				} else if (m_activeResourceType != World::ResourceType_None) {
-					// Check: deposit resources only on mountains
-					bool canPlace = true;
-					int placeX = tx;
-					int placeY = ty;
-					if (World::ResourceRequiresMountain(m_activeResourceType)) {
-						m_mapEditor->RebuildObjectInteractionZones();
-						if (!m_mapEditor->FindMountainObjectForResource(tx, ty, placeX, placeY)) {
-							OutputDebugStringA("[Editor] Deposits can only be placed on mountains!\n");
-							canPlace = false;
-						}
-					}
+        m_mapEditor->SetCursorWorldPosition(worldX, worldY);
 
-					if (canPlace) {
-						m_mapEditor->GetMap()->SetResourceNode(placeX, placeY, m_activeResourceType, m_resourceAmount, true);
-						char buf[128];
-						sprintf_s(buf, "[EditorScene] Placed resource %s at (%d,%d) amount=%d\n",
-							World::ResourceTypeToString(m_activeResourceType), placeX, placeY, m_resourceAmount);
-						OutputDebugStringA(buf);
-					}
-				}
-			}
-		} else {
-			// X button - delete object at cursor
-			if (gamepad->IsButtonPressed(Input::GP_X)) {
-				m_mapEditor->DeleteObjectAt(m_mapEditor->GetCursorTileX(), m_mapEditor->GetCursorTileY());
-			}
+        if (m_mapEditor && m_mapEditor->GetMap()) {
+            int tileX, tileY;
+            if (m_mapEditor->GetMap()->GetTileAt(worldX, worldY, m_currentLayer, tileX, tileY)) {
+                if (m_currentState == STATE_PLACING) {
+                    m_phantomTileX = tileX;
+                    m_phantomTileY = tileY;
+                }
+            }
+        }
+    }
+}
 
-			// A button - paint current tile on each press (not held, to avoid accidental placement after menu close)
-			if (gamepad->IsButtonPressed(Input::GP_A)) {
-				if (m_currentLayer != World::Placement || m_editorMode == MODE_PLACEMENT) {
-					if (m_currentLayer == World::Placement) {
-						m_mapEditor->SetPlacementOccupied(m_activeWeight == World::Weight_Block);
-					}
-					m_mapEditor->PaintCurrentTile();
-				}
-			}
-		}
-	}
+void EditorScene::UpdateResourcePlacementFSM() {
+    switch (m_currentState) {
+        case STATE_IDLE:
+            if (m_editorMode == MODE_WEIGHTS && !m_weightMenuVisible) {
+                if (m_inputController->IsButtonAPressed()) {
+                    if (m_mapEditor && m_mapEditor->GetMap() && m_hasSelection) {
+                        m_mapEditor->GetMap()->SetNodeWeight(m_selectedTileX, m_selectedTileY, m_activeWeight);
+                    }
+                }
+            }
+            break;
 
+        case STATE_SELECTING:
+            break;
+
+        case STATE_PLACING:
+            if (m_inputController->IsButtonAPressed()) {
+                if (m_mapEditor && m_mapEditor->GetMap()) {
+                    bool canPlace = true;
+                    int placeX = m_phantomTileX;
+                    int placeY = m_phantomTileY;
+                    if (World::ResourceRequiresMountain(m_activeResourceType)) {
+                        m_mapEditor->RebuildObjectInteractionZones();
+                        if (!m_mapEditor->FindMountainObjectForResource(m_phantomTileX, m_phantomTileY, placeX, placeY)) {
+                            OutputDebugStringA("[Editor] Deposits can only be placed on mountains!\n");
+                            canPlace = false;
+                        }
+                    }
+                    if (canPlace) {
+                        m_phantomTileX = placeX;
+                        m_phantomTileY = placeY;
+                        m_mapEditor->GetMap()->SetResourceNode(placeX, placeY, m_activeResourceType, m_resourceAmount, true);
+                        m_currentState = STATE_INPUT_AMOUNT;
+                    }
+                }
+            }
+            if (m_inputController->IsButtonBPressed()) {
+                m_currentState = STATE_IDLE;
+                m_activeResourceType = World::ResourceType_None;
+            }
+            break;
+
+        case STATE_INPUT_AMOUNT:
+            if (m_inputController->IsButtonYPressed()) {
+                if (m_mapEditor && m_mapEditor->GetMap()) {
+                    m_mapEditor->GetMap()->SetResourceNode(m_phantomTileX, m_phantomTileY, m_activeResourceType, m_resourceAmount, true);
+                }
+                m_currentState = STATE_IDLE;
+            }
+            if (m_inputController->IsButtonBPressed()) {
+                m_currentState = STATE_IDLE;
+                m_activeResourceType = World::ResourceType_None;
+                OutputDebugStringA("[Editor] Resource edit cancelled\n");
+            }
+            break;
+    }
+}
+
+void EditorScene::UpdateCamera(Input::Gamepad* gamepad, float deltaTime) {
+    float moveSpeed = 500.0f * deltaTime;
+    float stickX, stickY;
+    gamepad->GetLeftStick(stickX, stickY);
+
+    if (m_blockCameraUntilStickNeutral) {
+        if (fabsf(stickX) <= 0.1f && fabsf(stickY) <= 0.1f) {
+            m_blockCameraUntilStickNeutral = false;
+        }
+    } else if (fabsf(stickX) > 0.1f || fabsf(stickY) > 0.1f) {
+        m_camera->Move(stickX * moveSpeed, stickY * moveSpeed);
+    }
+
+    float rightX, rightY;
+    gamepad->GetRightStick(rightX, rightY);
+    if (fabsf(rightY) > 0.1f) {
+        m_camera->Zoom(rightY * 1.0f * deltaTime);
+    }
+
+    m_camera->Update();
+
+    if (m_shaderManager) {
+        m_shaderManager->UpdateGlobalMatrices(&m_camera->GetViewMatrix(), &m_camera->GetProjectionMatrix());
+    }
+}
+
+void EditorScene::UpdateMapEditor(float deltaTime, Input::Gamepad* gamepad) {
+    m_mapEditor->Update(deltaTime);
+
+    if (m_currentLayer == World::Resources) {
+        if (gamepad->IsButtonPressed(Input::GP_DPadUp)) {
+            m_resourceAmount += 5;
+            if (m_resourceAmount > 999) m_resourceAmount = 999;
+        }
+        if (gamepad->IsButtonPressed(Input::GP_DPadDown)) {
+            m_resourceAmount -= 5;
+            if (m_resourceAmount < 1) m_resourceAmount = 1;
+        }
+
+        if (gamepad->IsButtonPressed(Input::GP_X)) {
+            int tx = m_mapEditor->GetCursorTileX();
+            int ty = m_mapEditor->GetCursorTileY();
+            m_mapEditor->GetMap()->SetResourceNode(tx, ty, World::ResourceType_None, 0, false);
+        }
+
+        if (gamepad->IsButtonPressed(Input::GP_A) && m_currentState == STATE_IDLE) {
+            int tx = m_mapEditor->GetCursorTileX();
+            int ty = m_mapEditor->GetCursorTileY();
+
+            const World::ResourceNode& existingNode = m_mapEditor->GetMap()->GetResourceNode(tx, ty);
+            if (existingNode.type != World::ResourceType_None) {
+                m_activeResourceType = existingNode.type;
+                m_resourceAmount = existingNode.amount;
+                m_currentState = STATE_INPUT_AMOUNT;
+            } else if (m_activeResourceType != World::ResourceType_None) {
+                bool canPlace = true;
+                int placeX = tx;
+                int placeY = ty;
+                if (World::ResourceRequiresMountain(m_activeResourceType)) {
+                    m_mapEditor->RebuildObjectInteractionZones();
+                    if (!m_mapEditor->FindMountainObjectForResource(tx, ty, placeX, placeY)) {
+                        OutputDebugStringA("[Editor] Deposits can only be placed on mountains!\n");
+                        canPlace = false;
+                    }
+                }
+                if (canPlace) {
+                    m_mapEditor->GetMap()->SetResourceNode(placeX, placeY, m_activeResourceType, m_resourceAmount, true);
+                }
+            }
+        }
+    } else {
+        if (gamepad->IsButtonPressed(Input::GP_X)) {
+            m_mapEditor->DeleteObjectAt(m_mapEditor->GetCursorTileX(), m_mapEditor->GetCursorTileY());
+        }
+
+        if (gamepad->IsButtonPressed(Input::GP_A)) {
+            if (m_currentLayer != World::Placement || m_editorMode == MODE_PLACEMENT) {
+                if (m_currentLayer == World::Placement) {
+                    m_mapEditor->SetPlacementOccupied(m_activeWeight == World::Weight_Block);
+                }
+                m_mapEditor->PaintCurrentTile();
+            }
+        }
+    }
+}
+
+bool EditorScene::HandleGridMenuResourceSelection(Input::Gamepad* gamepad) {
+    if (!m_gridMenu || !m_gridMenu->IsVisible() || m_currentLayer != World::Resources)
+        return false;
+
+    if (!gamepad->IsButtonPressed(Input::GP_A))
+        return false;
+
+    int selectedIndex = m_gridMenu->GetSelectedSpriteIndex();
+    if (selectedIndex < 0 || !m_mapEditor)
+        return false;
+
+    const std::tr1::shared_ptr<SpriteAtlas>& maptiles = TextureRegistry::instance().getAtlas("maptiles");
+    if (!maptiles)
+        return false;
+
+    const SpriteRegion* region = maptiles->GetRegion(selectedIndex);
+    if (!region)
+        return false;
+
+    if (m_resourceMenuShowingGroups) {
+        for (int i = 0; i < kResourceMenuGroupCount; ++i) {
+            if (region->name == kResourceMenuGroups[i].iconName) {
+                m_resourceMenuGroupIndex = i;
+                LoadResourceGroupResources(i);
+                return true;
+            }
+        }
+    } else {
+        for (int i = 1; i < World::ResourceType_Count; ++i) {
+            World::ResourceType rt = static_cast<World::ResourceType>(i);
+            if (region->name == World::ResourceTypeToIconName(rt)) {
+                m_activeResourceType = rt;
+                m_resourceAmount = World::GetDefaultResourceAmount(rt);
+                m_currentState = STATE_PLACING;
+                m_depositConfirmPending = false;
+                m_depositBuildingSpriteIdx = -1;
+                const char* buildingName = World::ResourceTypeToBuildingSpriteName(rt);
+                m_depositBuildingSpriteIdx = (buildingName && buildingName[0])
+                    ? (int)maptiles->GetIndex(buildingName)
+                    : -1;
+                if (m_depositBuildingSpriteIdx < 0) {
+                    m_depositBuildingSpriteIdx = selectedIndex;
+                }
+                m_gridMenu->Hide();
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 void EditorScene::Render(Graphics::RenderQueue* renderQueue) {

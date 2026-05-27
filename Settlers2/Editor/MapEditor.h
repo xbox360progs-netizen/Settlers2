@@ -62,6 +62,7 @@ public:
     void SetPlacementOccupied(bool occupied) { m_placementOccupied = occupied; }
     bool IsPlacementOccupied() const { return m_placementOccupied; }
     World::LayerType GetLayer() const { return m_currentLayer; }
+    void SetCursorWorldPosition(float x, float y);
 
     void AutoAssignResourcesForTrees();
     void RebuildObjectInteractionZones();

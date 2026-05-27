@@ -174,23 +174,6 @@ void MapEditor::Initialize(World::Map* map, Renderer* renderer,
 }
 
 void MapEditor::Update(float deltaTime) {
-    UpdateCamera(deltaTime);
-
-    if (m_pCamera) {
-        m_cameraX = m_pCamera->GetPosX();
-        m_cameraY = m_pCamera->GetPosY();
-        m_zoomLevel = m_pCamera->GetZoom();
-        m_pCamera->GetWorldCenter(m_worldCenterX, m_worldCenterY);
-
-        // Hard-bind cursor to camera: compute tile at camera center, ONE place
-        CoordinateSystem& coords = CoordinateSystem::GetInstance();
-        if (m_currentLayer == World::Ground) {
-            coords.WorldToGroundTile(m_worldCenterX, m_worldCenterY, m_cursorTileX, m_cursorTileY);
-        } else {
-            coords.WorldToNodeTile(m_worldCenterX, m_worldCenterY, m_cursorTileX, m_cursorTileY);
-        }
-    }
-
     HandleInput();
 
     if (m_tilePalette) {
@@ -198,10 +181,20 @@ void MapEditor::Update(float deltaTime) {
     }
 }
 
-void MapEditor::RenderGeometry() {
-    if (m_pCamera) {
-        m_pCamera->Update();
+void MapEditor::SetCursorWorldPosition(float x, float y) {
+    CoordinateSystem& coords = CoordinateSystem::GetInstance();
+    if (m_currentLayer == World::Ground) {
+        coords.WorldToGroundTile(x, y, m_cursorTileX, m_cursorTileY);
+    } else {
+        coords.WorldToNodeTile(x, y, m_cursorTileX, m_cursorTileY);
     }
+}
+
+void MapEditor::RenderGeometry() {
+    // Camera update handled exclusively in EditorScene::Update() to prevent double update
+    // if (m_pCamera) {
+    //     m_pCamera->Update();
+    // }
 
     if (m_pDevice) {
         m_pDevice->SetVertexShader(NULL);
@@ -735,8 +728,9 @@ void MapEditor::RenderCursor() {
         CoordinateSystem::GetInstance().NodeTileToWorld(m_cursorTileX, m_cursorTileY, cursorWorldX, cursorWorldY);
         cursorW = CoordinateSystem::GetInstance().GetNodeWidth();
         cursorH = CoordinateSystem::GetInstance().GetNodeHeight();
-        cursorWorldX -= 59.5f;
-        cursorWorldY -= 37.0f;
+        
+        // NodeTileToWorld returns tile top-left corner — render cursor there
+        // (no offset needed since cursorW/cursorH match tile dimensions exactly)
     }
 
     Graphics::RenderCommand cmd = {};

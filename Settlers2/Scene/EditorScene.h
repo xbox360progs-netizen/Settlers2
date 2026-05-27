@@ -77,7 +77,20 @@ EditorScene();
     void LoadResourceGroupIcons();
     void LoadResourceGroupResources(int groupIndex);
 
+    // Returns true if a selection was made (GridMenu hidden, state changed)
+    bool HandleGridMenuResourceSelection(Input::Gamepad* gamepad);
+
+    // Update methods
+    void UpdateFPS();
+    void UpdateMenus(Input::Gamepad* gamepad, float deltaTime);
+    void UpdateInputController(float deltaTime);
+    void UpdateCursorAndTiles();
+    void UpdateResourcePlacementFSM();
+    void UpdateCamera(Input::Gamepad* gamepad, float deltaTime);
+    void UpdateMapEditor(float deltaTime, Input::Gamepad* gamepad);
+
     Renderer* m_renderer;
+
     SpriteRenderer* m_spriteRenderer;
     Input::InputManager* m_inputManager;
     BinFileManager* m_binFileManager;

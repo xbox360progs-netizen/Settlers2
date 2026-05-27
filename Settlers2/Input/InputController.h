@@ -2,12 +2,9 @@
 
 #include "../Graphics/Camera.h"
 #include "Gamepad.h"
-#include <d3dx9math.h>
 
 namespace Logic {
 
-// InputController translates input (mouse/gamepad) to world coordinates
-// and handles basic input events for game logic
 class InputController
 {
 public:
@@ -15,13 +12,10 @@ public:
     ~InputController();
 
     void Initialize(Camera* camera, Input::Gamepad* gamepad);
-    void Update();
+    void Update(float deltaTime);
 
-    // Get world position from screen position
-    void ScreenToWorld(float screenX, float screenY, float& worldX, float& worldY) const;
-
-    // Get current world cursor position
-    void GetWorldCursor(float& worldX, float& worldY) const;
+    // Get cursor offset from camera center
+    void GetCursorOffset(float& offsetX, float& offsetY) const;
 
     // Check if input is active (gamepad connected or mouse active)
     bool IsActive() const { return m_camera != nullptr && m_gamepad != nullptr; }
@@ -40,8 +34,8 @@ private:
     Camera* m_camera;
     Input::Gamepad* m_gamepad;
 
-    float m_cursorWorldX;
-    float m_cursorWorldY;
+    float m_cursorOffsetX;
+    float m_cursorOffsetY;
 };
 
 } // namespace Logic
