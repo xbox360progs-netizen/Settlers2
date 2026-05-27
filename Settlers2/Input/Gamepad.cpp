@@ -91,7 +91,7 @@ void Gamepad::Update()
         {
             float scale = (lMag - DEADZONE) / (1.0f - DEADZONE);
             m_leftStickX = lx * scale;
-            m_leftStickY = -ly * scale;  // Инвертируем ось Y
+            m_leftStickY = ly * scale;
         }
         else
         {
@@ -104,7 +104,7 @@ void Gamepad::Update()
         {
             float scale = (rMag - DEADZONE) / (1.0f - DEADZONE);
             m_rightStickX = rx * scale;
-            m_rightStickY = -ry * scale;  // Инвертируем ось Y
+            m_rightStickY = ry * scale;
         }
         else
         {

@@ -30,13 +30,8 @@ void Camera::Initialize(float screenWidth, float screenHeight, ShaderManager* pS
 //
 void Camera::Update()
 {
-    float halfW = m_screenWidth  * 0.5f;
-    float halfH = m_screenHeight * 0.5f;
-
     D3DXMATRIX translate;
-    D3DXMATRIX center;
     D3DXMATRIX scale;
-    D3DXMATRIX uncenter;
 
     if (m_pShaderManager) {
         D3DXMATRIX identity;
@@ -45,21 +40,16 @@ void Camera::Update()
     }
 
     D3DXMatrixTranslation(&translate, -m_posX, -m_posY, 0.0f);
-    D3DXMatrixTranslation(&center, -halfW, -halfH, 0.0f);
     D3DXMatrixScaling(&scale, m_zoom, m_zoom, 1.0f);
-    D3DXMatrixTranslation(&uncenter, halfW, halfH, 0.0f);
 
-    m_view = translate * center * scale * uncenter;
-
-    float viewHalfW = halfW / m_zoom;
-    float viewHalfH = halfH / m_zoom;
+    m_view = translate * scale;
 
     D3DXMatrixOrthoOffCenterLH(
         &m_proj,
-        m_posX - viewHalfW,
-        m_posX + viewHalfW,
-        m_posY + viewHalfH,
-        m_posY - viewHalfH,
+        0.0f,
+        m_screenWidth,
+        0.0f,
+        m_screenHeight,
         -1.0f,
         1.0f);
 
@@ -127,8 +117,8 @@ void Camera::Zoom(float dz)
     ScreenToWorld(halfW, halfH, worldX, worldY);
     
     // Точка в мире после зума должна быть той же
-    float newWorldX = (halfW - halfW) / m_zoom + halfW + m_posX;
-    float newWorldY = (halfH - halfH) / m_zoom + halfH + m_posY;
+    float newWorldX = m_posX + halfW / m_zoom;
+    float newWorldY = m_posY + halfH / m_zoom;
     
     // Корректируем позицию камеры
     m_posX += worldX - newWorldX;
@@ -148,16 +138,13 @@ void Camera::Zoom(float dz, float centerScreenX, float centerScreenY)
     if(m_zoom > 4.0f)  m_zoom = 4.0f;
     
     // Корректируем позицию камеры чтобы зум был от центра (centerScreenX, centerScreenY)
-    float halfW = m_screenWidth * 0.5f;
-    float halfH = m_screenHeight * 0.5f;
-    
     // Точка в мире до зума
     float worldX, worldY;
     ScreenToWorld(centerScreenX, centerScreenY, worldX, worldY);
     
     // Точка в мире после зума должна быть той же
-    float newWorldX = (centerScreenX - halfW) / m_zoom + halfW + m_posX;
-    float newWorldY = (centerScreenY - halfH) / m_zoom + halfH + m_posY;
+    float newWorldX = m_posX + centerScreenX / m_zoom;
+    float newWorldY = m_posY + centerScreenY / m_zoom;
     
     // Корректируем позицию камеры
     m_posX += worldX - newWorldX;
@@ -179,11 +166,8 @@ void Camera::Reset()
 //
 void Camera::ScreenToWorld(float sx,float sy,float& wx,float& wy) const
 {
-    float halfW = m_screenWidth*0.5f;
-    float halfH = m_screenHeight*0.5f;
-
-    wx = (sx - halfW)/m_zoom + halfW + m_posX;
-    wy = (sy - halfH)/m_zoom + halfH + m_posY;
+    wx = m_posX + sx / m_zoom;
+    wy = m_posY + sy / m_zoom;
 }
 
 //
@@ -191,17 +175,12 @@ void Camera::ScreenToWorld(float sx,float sy,float& wx,float& wy) const
 //
 void Camera::WorldToScreen(float wx,float wy,float& sx,float& sy) const
 {
-    float halfW = m_screenWidth*0.5f;
-    float halfH = m_screenHeight*0.5f;
-
-    sx = (wx - m_posX - halfW)*m_zoom + halfW;
-    sy = (wy - m_posY - halfH)*m_zoom + halfH;
+    sx = (wx - m_posX) * m_zoom;
+    sy = (wy - m_posY) * m_zoom;
 }
 
 void Camera::GetWorldCenter(float& wx, float& wy) const
 {
-    float halfW = m_screenWidth * 0.5f;
-    float halfH = m_screenHeight * 0.5f;
-    wx = halfW + m_posX;
-    wy = halfH + m_posY;
+    wx = m_posX + m_screenWidth * 0.5f / m_zoom;
+    wy = m_posY + m_screenHeight * 0.5f / m_zoom;
 }
