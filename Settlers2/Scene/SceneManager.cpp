@@ -209,15 +209,15 @@ void SceneManager::Render()
     m_frameRendered = true;
 
     if (!m_currentScene || !m_isSceneReady || !m_bSceneGraphicsReady) {
-        char buf[256];
-        sprintf(buf, "[SceneManager] Render SKIP: scene=%p ready=%d gfx=%d\n",
-                m_currentScene, m_isSceneReady, m_bSceneGraphicsReady);
-        OutputDebugStringA(buf);
+//        char buf[256];
+//        sprintf(buf, "[SceneManager] Render SKIP: scene=%p ready=%d gfx=%d\n",
+//                m_currentScene, m_isSceneReady, m_bSceneGraphicsReady);
+//        OutputDebugStringA(buf);
         return;
     }
 
     if (m_renderQueue) {
-        OutputDebugStringA("[SceneManager] Render: BeginFrame on renderQueue\n");
+//        OutputDebugStringA("[SceneManager] Render: BeginFrame on renderQueue\n");
         m_renderQueue->BeginFrame();
     } else {
         OutputDebugStringA("[SceneManager] Render: m_renderQueue IS NULL!\n");
@@ -225,15 +225,15 @@ void SceneManager::Render()
 
     EnterCriticalSection(&m_cs);
     if (m_currentScene) {
-        OutputDebugStringA("[SceneManager] Render: calling scene->Render()\n");
+//        OutputDebugStringA("[SceneManager] Render: calling scene->Render()\n");
         m_currentScene->Render(m_renderQueue);
     }
     LeaveCriticalSection(&m_cs);
 
     if (m_renderQueue) {
-        char buf[256];
-        sprintf(buf, "[SceneManager] Render: after scene Render, cmdCount=%d\n", m_renderQueue->GetCommandCount());
-        OutputDebugStringA(buf);
+//        char buf[256];
+//        sprintf(buf, "[SceneManager] Render: after scene Render, cmdCount=%d\n", m_renderQueue->GetCommandCount());
+//        OutputDebugStringA(buf);
     }
 }
 

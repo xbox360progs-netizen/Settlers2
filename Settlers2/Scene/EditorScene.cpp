@@ -223,6 +223,13 @@ void EditorScene::Load() {
 		}
 	}
 
+	// Streets atlas for Roads layer — slot 16
+	LPDIRECT3DTEXTURE9 streetsTex = registry.getTextureOrLoad("streets");
+	if (streetsTex && m_spriteRenderer) {
+		m_spriteRenderer->SetTextureSlot(16, streetsTex);
+		OutputDebugStringA("[EditorScene] Streets atlas loaded and bound to slot 16\n");
+	}
+
 	// UI atlas (loaded by LoadingScene) — slot 14 for cursor, button hints, menu sprites
 	std::tr1::shared_ptr<SpriteAtlas> uiAtlas = registry.getAtlas("ui");
 	LPDIRECT3DTEXTURE9 uiTex = (uiAtlas ? uiAtlas->GetTexture() : NULL);
@@ -531,6 +538,21 @@ void EditorScene::UpdateMenus(Input::Gamepad* gamepad, float deltaTime) {
                     LoadResourceGroupIcons();
                     m_gridMenu->Show(640.0f, 330.0f);
                 }
+            } else if (m_currentLayer == World::Roads) {
+                if (!m_gridMenu) {
+                    m_gridMenu = new GridMenu();
+                    if (m_gridMenu->Initialize()) {
+                        m_gridMenu->SetTextureSlots(6, 7, 8);
+                        LoadGridMenuAtlas("streets");
+                    }
+                    m_gridMenu->Show(640.0f, 330.0f);
+                } else if (m_gridMenu->IsVisible()) {
+                    m_gridMenu->Hide();
+                } else {
+                    TextureRegistry::instance().refreshTexture("ui");
+                    LoadGridMenuAtlas("streets");
+                    m_gridMenu->Show(640.0f, 330.0f);
+                }
             } else {
                 if (!m_gridMenu) {
                     m_gridMenu = new GridMenu();
@@ -575,7 +597,7 @@ void EditorScene::UpdateMenus(Input::Gamepad* gamepad, float deltaTime) {
 
     // Update cursor preview with currently highlighted sprite
     if (m_mapEditor) {
-        if (m_gridMenu->IsVisible() && (m_currentLayer == World::Ground || m_currentLayer == World::Objects)) {
+        if (m_gridMenu->IsVisible() && (m_currentLayer == World::Ground || m_currentLayer == World::Objects || m_currentLayer == World::Roads)) {
             int previewIdx = m_gridMenu->GetSelectedSpriteIndex();
             m_mapEditor->SetCursorPreview(previewIdx);
         } else {
@@ -871,12 +893,33 @@ void EditorScene::UpdateMapEditor(float deltaTime, Input::Gamepad* gamepad) {
             }
         }
     } else {
+        // Cancel road building with B
+        if (gamepad->IsButtonPressed(Input::GP_B)) {
+            if (m_currentLayer == World::Roads && m_mapEditor->GetRoadBuildState() == Editor::ROAD_PLACING) {
+                m_mapEditor->CancelRoad();
+                OutputDebugStringA("[Editor] Road building cancelled\n");
+            }
+        }
+
         if (gamepad->IsButtonPressed(Input::GP_X)) {
             m_mapEditor->DeleteObjectAt(m_mapEditor->GetCursorTileX(), m_mapEditor->GetCursorTileY());
         }
 
         if (gamepad->IsButtonPressed(Input::GP_A)) {
-            if (m_currentLayer != World::Placement || m_editorMode == MODE_PLACEMENT) {
+            if (m_currentLayer == World::Roads) {
+                if (m_mapEditor->GetRoadBuildState() == Editor::ROAD_IDLE) {
+                    int tx = m_mapEditor->GetCursorTileX();
+                    int ty = m_mapEditor->GetCursorTileY();
+                    m_mapEditor->StartRoad(tx, ty);
+                    if (m_mapEditor->GetRoadBuildState() == Editor::ROAD_PLACING) {
+                        char buf[128];
+                        sprintf_s(buf, "[Editor] Road started at (%d,%d), move cursor to set end point, A to confirm, B to cancel\n", tx, ty);
+                        OutputDebugStringA(buf);
+                    }
+                } else {
+                    m_mapEditor->CommitRoad();
+                }
+            } else if (m_currentLayer != World::Placement || m_editorMode == MODE_PLACEMENT) {
                 if (m_currentLayer == World::Placement) {
                     m_mapEditor->SetPlacementOccupied(m_activeWeight == World::Weight_Block);
                 }
@@ -1398,8 +1441,15 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
         int tileIdx = m_mapEditor->GetCurrentTileIndex();
         if (tileIdx >= 0) {
             TextureRegistry& reg = TextureRegistry::instance();
-            const char* atlasName = (m_currentLayer == World::Objects)
-                ? "maptiles" : "ground";
+            const char* atlasName = "ground";
+            WORD texSlot = 8;
+            if (m_currentLayer == World::Objects) {
+                atlasName = "maptiles";
+                texSlot = 8;
+            } else if (m_currentLayer == World::Roads) {
+                atlasName = "streets";
+                texSlot = 16;
+            }
             std::tr1::shared_ptr<SpriteAtlas> atlas = reg.getAtlas(atlasName);
             if (atlas && tileIdx < (int)atlas->GetRegionCount()) {
                 const SpriteRegion* region = atlas->GetRegion(tileIdx);
@@ -1413,11 +1463,11 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
                     cmd.u1 = region->u1; cmd.v1 = region->v1;
                     cmd.color = 0xFFFFFFFF;
                     cmd.shaderID = SHADER_UI;
-                    cmd.textureID = 8;
+                    cmd.textureID = texSlot;
                     cmd.blendMode = 1;
                     cmd.layer = LAYER_UI;
                     cmd.depth = 200;
-                    cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, 8, 200);
+                    cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, texSlot, 200);
                     renderQueue->Submit(cmd);
                 }
             }

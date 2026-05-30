@@ -4,6 +4,7 @@
 #include "../Graphics/TileRenderer.h"
 #include "../Graphics/SpriteRenderer.h"
 #include "../Logic/WeightMap.h"
+#include "../Logic/AStar.h"
 #include "../Graphics/Renderer.h"
 #include "../Graphics/TextureRegistry.h"
 #include "../Graphics/SpriteAtlas.h"
@@ -37,6 +38,11 @@ enum BrushSize {
     BrushSize_Small = 3,
     BrushSize_Medium = 5,
     BrushSize_Large = 7
+};
+
+enum RoadBuildState {
+    ROAD_IDLE,
+    ROAD_PLACING
 };
 
 class MapEditor {
@@ -95,6 +101,14 @@ public:
 
     UI::TilePalette* GetTilePalette() { return m_tilePalette; }
 	World::TileType GetObjectTypeByIndex(int index);
+
+    // Road building (A* pathfinding)
+    void StartRoad(int x, int y);
+    void UpdateRoadPreview(int cursorX, int cursorY);
+    void CommitRoad();
+    void CancelRoad();
+    RoadBuildState GetRoadBuildState() const { return m_roadBuildState; }
+    const std::vector<std::pair<int,int>>& GetRoadPreviewPath() const { return m_roadPreviewPath; }
 private:
     static void OnTileSelected(World::TileType type, void* userData);
 
@@ -146,12 +160,14 @@ private:
     std::tr1::shared_ptr<SpriteAtlas> m_groundAtlas;
     std::tr1::shared_ptr<SpriteAtlas> m_objectAtlas;
     LPDIRECT3DTEXTURE9 m_dotTexture;
+    LPDIRECT3DTEXTURE9 m_roadTexture;
+    std::tr1::shared_ptr<SpriteAtlas> m_roadAtlas;
 
     int m_cursorTileX;
     int m_cursorTileY;
     bool m_placingTile;
     int m_previewSpriteIndex;
-    int m_activeSpriteIndex; // New: Stores the persistent active sprite index
+    int m_activeSpriteIndex;
 
     TextManager* m_textManager;
 
@@ -166,7 +182,7 @@ private:
     void RenderActiveTile();
     bool m_placementOccupied;
     bool m_showResourceIcons;
-    int m_resourceIconIndices[World::ResourceType_Count]; // Cached sprite indices for resource icons (indexed by ResourceType)
+    int m_resourceIconIndices[World::ResourceType_Count];
     void RenderGridLayer();
     void RenderResources();
     void RenderCursor();
@@ -174,6 +190,16 @@ private:
     void ClearPlacementFootprint(int tx, int ty, World::TileLayer* objectsLayer);
     void ClearObjectInteractionZone(int tx, int ty, World::TileLayer* objectsLayer);
     void MarkObjectInteractionZone(int tx, int ty, const World::Tile& objectTile, const SpriteRegion* region);
+
+    RoadBuildState m_roadBuildState;
+    int m_roadStartX;
+    int m_roadStartY;
+    std::vector<std::pair<int,int>> m_roadPreviewPath;
+
+    // Road sprite helpers (Rule 15)
+    static int CalcRoadPattern(int x, int y, World::TileLayer* roadsLayer);
+    void RebuildRoadSprite(int x, int y);
+    void UpdateRoadNeighbors(int x, int y);
 };
 
 } // namespace Editor

@@ -16,6 +16,9 @@
 
 namespace Editor {
 
+// Forward declarations
+static int CalcPatternAt(int x, int y, World::TileLayer* roadsLayer, const std::vector<std::pair<int,int>>& previewPath);
+
 MapEditor::MapEditor()
     : m_map(0)
     , m_tileRenderer(0)
@@ -40,6 +43,11 @@ MapEditor::MapEditor()
     , m_groundTexture(0)
     , m_groundAtlas(0)
     , m_dotTexture(0)
+    , m_roadTexture(0)
+    , m_roadAtlas(0)
+    , m_roadBuildState(ROAD_IDLE)
+    , m_roadStartX(-1)
+    , m_roadStartY(-1)
     , m_cursorTileX(0)
     , m_cursorTileY(0)
     , m_placingTile(false)
@@ -105,6 +113,16 @@ void MapEditor::Initialize(World::Map* map, Renderer* renderer,
     std::tr1::shared_ptr<SpriteAtlas> uiAtlas = registry.getAtlas("ui");
     if (uiAtlas && m_spriteRenderer) {
         m_spriteRenderer->SetTextureSlot(4, uiAtlas->GetTexture());
+    }
+
+    // Load roads atlas
+    m_roadTexture = registry.getTextureOrLoad("streets");
+    m_roadAtlas = registry.getAtlas("streets");
+    if (m_roadAtlas && m_spriteRenderer) {
+        m_spriteRenderer->SetTextureSlot(16, m_roadAtlas->GetTexture());
+        char buf[128];
+        sprintf_s(buf, "[MapEditor] Roads atlas loaded: %d sprites\n", m_roadAtlas->GetRegionCount());
+        OutputDebugStringA(buf);
     }
 
     // Создаём простую белую точку для весовой карты (используется в RenderWeightMap)
@@ -203,6 +221,11 @@ void MapEditor::SetCursorWorldPosition(float x, float y) {
         }
     } else {
         coords.WorldToNodeTile(x, y, m_cursorTileX, m_cursorTileY);
+    }
+
+    // Auto-update A* road preview when cursor moves during road building
+    if (m_roadBuildState == ROAD_PLACING) {
+        UpdateRoadPreview(m_cursorTileX, m_cursorTileY);
     }
 }
 
@@ -607,6 +630,109 @@ void MapEditor::RenderGridLayer() {
         }
     }
 
+    // Always render placed road sprites (visible on all layers)
+    {
+        World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
+        if (roadsLayer && m_roadAtlas) {
+            CoordinateSystem& coords = CoordinateSystem::GetInstance();
+            for (int y = 0; y < NODES_H; ++y) {
+                for (int x = 0; x < NODES_W; ++x) {
+                    const World::Tile& tile = roadsLayer->GetTile(x, y);
+                    if (tile.u1 <= tile.u0 || tile.v1 <= tile.v0) continue;
+                    if (tile.regionIndex < 0 || tile.atlasName != "streets") continue;
+
+                    float wx, wy;
+                    coords.NodeTileToWorld(x, y, wx, wy);
+
+                    const SpriteRegion* region = m_roadAtlas->GetRegion(tile.regionIndex);
+                    if (!region) continue;
+
+                    Graphics::RenderCommand cmd = {};
+                    cmd.x = wx - region->pivotX;
+                    cmd.y = wy - region->pivotY;
+                    cmd.width = (float)region->width;
+                    cmd.height = (float)region->height;
+                    cmd.u0 = region->u0;
+                    cmd.v0 = region->v0;
+                    cmd.u1 = region->u1;
+                    cmd.v1 = region->v1;
+                    cmd.color = 0xFFFFFFFF;
+                    cmd.textureID = 16;
+                    cmd.shaderID = SHADER_TERRAIN;
+                    cmd.blendMode = 0;
+                    cmd.layer = LAYER_WORLD;
+                    cmd.depth = static_cast<WORD>(0.96f * 65535.0f);
+                    m_renderQueue->Submit(cmd);
+                }
+            }
+        }
+    }
+
+    // Render road preview path (A* pathfinding preview)
+    // Shows correct sprites using same street_X formula as committed roads
+    if (m_roadBuildState == ROAD_PLACING && !m_roadPreviewPath.empty() && m_roadAtlas) {
+        CoordinateSystem& coords = CoordinateSystem::GetInstance();
+        World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
+
+        for (size_t i = 1; i < m_roadPreviewPath.size(); ++i) {
+            int px = m_roadPreviewPath[i].first;
+            int py = m_roadPreviewPath[i].second;
+
+            int pattern = CalcPatternAt(px, py, roadsLayer, m_roadPreviewPath);
+
+            char groupBuf[16];
+            const char* groupName = groupBuf;
+            switch (pattern) {
+                case 0:  groupName = "street_1"; break;
+                case 1:  groupName = "street_1"; break;
+                case 2:  groupName = "street_2"; break;
+                case 3:  sprintf_s(groupBuf, "street_%d", 3); break;
+                case 4:  groupName = "street_1"; break;
+                case 5:  groupName = "street_1"; break;
+                case 6:  sprintf_s(groupBuf, "street_%d", 6); break;
+                case 7:  sprintf_s(groupBuf, "street_%d", 7); break;
+                case 8:  groupName = "street_2"; break;
+                case 9:  sprintf_s(groupBuf, "street_%d", 9); break;
+                case 10: groupName = "street_2"; break;
+                case 11: sprintf_s(groupBuf, "street_%d", 11); break;
+                case 12: sprintf_s(groupBuf, "street_%d", 12); break;
+                case 13: sprintf_s(groupBuf, "street_%d", 13); break;
+                case 14: sprintf_s(groupBuf, "street_%d", 14); break;
+                case 15: sprintf_s(groupBuf, "street_%d", 15); break;
+            }
+
+            const std::vector<uint32_t>* group = m_roadAtlas->GetGroup(groupName);
+            if (!group || group->empty()) {
+                group = m_roadAtlas->GetGroup("street_1");
+                if (!group || group->empty()) continue;
+            }
+
+            uint32_t regionIdx = (*group)[0];
+            const SpriteRegion* region = m_roadAtlas->GetRegion(regionIdx);
+            if (!region) continue;
+
+            float wx, wy;
+            coords.NodeTileToWorld(px, py, wx, wy);
+
+            Graphics::RenderCommand cmd = {};
+            cmd.x = wx - region->pivotX;
+            cmd.y = wy - region->pivotY;
+            cmd.width = (float)region->width;
+            cmd.height = (float)region->height;
+            cmd.u0 = region->u0;
+            cmd.v0 = region->v0;
+            cmd.u1 = region->u1;
+            cmd.v1 = region->v1;
+            cmd.color = D3DCOLOR_ARGB(160, 255, 255, 255);
+            cmd.textureID = 16;
+            cmd.shaderID = SHADER_TERRAIN;
+            cmd.blendMode = 1;
+            cmd.layer = LAYER_WORLD;
+            cmd.depth = static_cast<WORD>(0.955f * 65535.0f);
+            m_renderQueue->Submit(cmd);
+        }
+    }
+
     if (m_currentLayer == World::Roads) {
         World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
         if (roadsLayer) {
@@ -617,15 +743,13 @@ void MapEditor::RenderGridLayer() {
             for (int y = 0; y < NODES_H; ++y) {
                 for (int x = 0; x < NODES_W; ++x) {
                     const World::Tile& tile = roadsLayer->GetTile(x, y);
+                    bool occupied = (tile.u1 > tile.u0 && tile.v1 > tile.v0);
+                    if (occupied) continue;
 
                     float wx, wy;
                     coords.NodeTileToWorld(x, y, wx, wy);
 
-                    bool occupied = (tile.u1 > tile.u0 && tile.v1 > tile.v0);
-                    DWORD dotColor = occupied
-                        ? D3DCOLOR_ARGB(180, 50, 100, 255)
-                        : D3DCOLOR_ARGB(120, 100, 100, 100);
-
+                    DWORD dotColor = D3DCOLOR_ARGB(120, 100, 100, 100);
                     Graphics::RenderCommand cmd = {};
                     cmd.x = wx - dotW * 0.5f;
                     cmd.y = wy - dotH * 0.5f;
@@ -720,6 +844,41 @@ void MapEditor::RenderGridLayer() {
 void MapEditor::RenderCursor() {
     if (!m_renderQueue || !m_groundAtlas) return;
 
+    // Roads layer: show streetCursor sprite instead of the brush preview
+    if (m_currentLayer == World::Roads && m_roadAtlas) {
+        const std::vector<uint32_t>* cursorGroup = m_roadAtlas->GetGroup("streetCursor");
+        if (cursorGroup && !cursorGroup->empty()) {
+            uint32_t regionIdx = (*cursorGroup)[0];
+            const SpriteRegion* previewRegion = m_roadAtlas->GetRegion(regionIdx);
+            if (previewRegion) {
+                float cursorWorldX, cursorWorldY;
+                CoordinateSystem::GetInstance().NodeTileToWorld(m_cursorTileX, m_cursorTileY, cursorWorldX, cursorWorldY);
+                float cursorW = static_cast<float>(previewRegion->width);
+                float cursorH = static_cast<float>(previewRegion->height);
+                cursorWorldX -= previewRegion->pivotX;
+                cursorWorldY -= previewRegion->pivotY;
+
+                Graphics::RenderCommand cmd = {};
+                cmd.x = cursorWorldX;
+                cmd.y = cursorWorldY;
+                cmd.width = cursorW;
+                cmd.height = cursorH;
+                cmd.u0 = previewRegion->u0;
+                cmd.v0 = previewRegion->v0;
+                cmd.u1 = previewRegion->u1;
+                cmd.v1 = previewRegion->v1;
+                cmd.color = 0xFFFFFFFF;
+                cmd.textureID = 16;
+                cmd.shaderID = SHADER_TERRAIN;
+                cmd.blendMode = 1;
+                cmd.layer = LAYER_EFFECTS;
+                cmd.depth = static_cast<WORD>(0.99f * 65535.0f);
+                m_renderQueue->Submit(cmd);
+                return;
+            }
+        }
+    }
+
     int spriteToRender = m_previewSpriteIndex;
     if (spriteToRender < 0) {
         spriteToRender = m_activeSpriteIndex;
@@ -727,7 +886,15 @@ void MapEditor::RenderCursor() {
 
     // If a sprite is selected (preview or active), render it
     if (spriteToRender >= 0) {
-        SpriteAtlas* atlas = (m_currentLayer == World::Objects) ? m_objectAtlas.get() : m_groundAtlas.get();
+        SpriteAtlas* atlas = nullptr;
+        WORD texID = 0;
+        if (m_currentLayer == World::Objects) {
+            atlas = m_objectAtlas.get();
+            texID = 9;
+        } else {
+            atlas = m_groundAtlas.get();
+            texID = 0;
+        }
         if (atlas && spriteToRender < (int)atlas->GetRegionCount()) {
             const SpriteRegion* previewRegion = atlas->GetRegion(spriteToRender);
             if (previewRegion) {
@@ -758,7 +925,7 @@ void MapEditor::RenderCursor() {
                 cmd.u1 = previewRegion->u1;
                 cmd.v1 = previewRegion->v1;
                 cmd.color = 0xFFFFFFFF;
-                cmd.textureID = (m_currentLayer == World::Objects) ? 9 : 0;
+                cmd.textureID = texID;
                 cmd.shaderID = SHADER_TERRAIN;
                 cmd.blendMode = 1;
                 cmd.layer = LAYER_EFFECTS;
@@ -828,10 +995,15 @@ void MapEditor::RenderCursor() {
 }
 
 void MapEditor::SetLayer(World::LayerType layer) {
+    if (layer != World::Roads) CancelRoad();
     m_currentLayer = layer;
     m_placingTile = false;
     m_currentTileIndex = -1;
     m_activeSpriteIndex = -1;
+    if (layer == World::Roads && m_roadAtlas && m_roadAtlas->GetRegionCount() > 0) {
+        m_currentTileIndex = 0;
+        m_activeSpriteIndex = 0;
+    }
 }
 
 void MapEditor::SetTileByIndex(int index) {
@@ -1196,8 +1368,274 @@ void MapEditor::PaintCurrentTile() {
     }
 }
 
+void MapEditor::StartRoad(int x, int y) {
+    if (!m_map || !m_roadAtlas) return;
+    if (x < 0 || x >= NODES_W || y < 0 || y >= NODES_H) return;
+
+    // Check start node is passable (allow starting from existing roads)
+    BYTE weight = m_map->GetNodeWeight(x, y);
+    if (weight == World::Weight_Deep || weight == World::Weight_Block) return;
+    World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
+    if (!roadsLayer) return;
+
+    m_roadBuildState = ROAD_PLACING;
+    m_roadStartX = x;
+    m_roadStartY = y;
+    m_roadPreviewPath.clear();
+    UpdateRoadPreview(x, y);
+}
+
+void MapEditor::UpdateRoadPreview(int cursorX, int cursorY) {
+    if (m_roadBuildState != ROAD_PLACING) return;
+    if (!m_map || !m_roadAtlas) return;
+    if (cursorX < 0 || cursorX >= NODES_W || cursorY < 0 || cursorY >= NODES_H) return;
+
+    // If cursor is over an impassable node, find nearest passable neighbour
+    int endX = cursorX, endY = cursorY;
+    {
+        BYTE w = m_map->GetNodeWeight(endX, endY);
+        if (w == World::Weight_Deep || w == World::Weight_Block) {
+            const int dx[8] = {0,1,1,1,0,-1,-1,-1};
+            const int dy[8] = {-1,-1,0,1,1,1,0,-1};
+            bool found = false;
+            for (int d = 0; d < 8; ++d) {
+                int nx = cursorX + dx[d];
+                int ny = cursorY + dy[d];
+                if (nx < 0 || nx >= NODES_W || ny < 0 || ny >= NODES_H) continue;
+                BYTE nw = m_map->GetNodeWeight(nx, ny);
+                if (nw != World::Weight_Deep && nw != World::Weight_Block) {
+                    endX = nx; endY = ny; found = true; break;
+                }
+            }
+            if (!found) return;
+        }
+    }
+
+    // Also verify start is still valid
+    BYTE startW = m_map->GetNodeWeight(m_roadStartX, m_roadStartY);
+    if (startW == World::Weight_Deep || startW == World::Weight_Block) {
+        CancelRoad();
+        return;
+    }
+
+    if (m_roadStartX == endX && m_roadStartY == endY) {
+        m_roadPreviewPath.clear();
+        m_roadPreviewPath.push_back(std::make_pair(m_roadStartX, m_roadStartY));
+        return;
+    }
+
+    struct RoadPassable {
+        World::Map* map;
+        RoadPassable(World::Map* m) : map(m) {}
+        bool operator()(int x, int y) {
+            BYTE w = map->GetNodeWeight(x, y);
+            return !(w == World::Weight_Deep || w == World::Weight_Block);
+        }
+    };
+    struct RoadCost {
+        World::Map* map;
+        RoadCost(World::Map* m) : map(m) {}
+        float operator()(int x, int y) {
+            World::TileLayer* roadsLayer = map->GetLayer(World::Roads);
+            if (roadsLayer) {
+                const World::Tile& t = roadsLayer->GetTile(x, y);
+                if (t.regionIndex >= 0) return 0.3f;
+            }
+            return 1.0f;
+        }
+    };
+
+    Logic::IsoNeighbors isoNeighbors;
+    Logic::AStar::FindPath(
+        m_roadStartX, m_roadStartY, endX, endY,
+        NODES_W, NODES_H,
+        RoadPassable(m_map),
+        RoadCost(m_map),
+        isoNeighbors,
+        m_roadPreviewPath
+    );
+
+    // Ensure start is first (AStar already does this, but be safe)
+    if (!m_roadPreviewPath.empty() &&
+        (m_roadPreviewPath[0].first != m_roadStartX || m_roadPreviewPath[0].second != m_roadStartY)) {
+        m_roadPreviewPath.insert(m_roadPreviewPath.begin(), std::make_pair(m_roadStartX, m_roadStartY));
+    }
+}
+
+void MapEditor::CommitRoad() {
+    if (m_roadBuildState != ROAD_PLACING) return;
+    if (!m_map || !m_roadAtlas) return;
+
+    World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
+    if (!roadsLayer) return;
+
+    // Mark all preview nodes as roads (just set flags, RebuildRoadSprite will pick correct sprite)
+    for (size_t i = 0; i < m_roadPreviewPath.size(); ++i) {
+        int px = m_roadPreviewPath[i].first;
+        int py = m_roadPreviewPath[i].second;
+        if (px < 0 || px >= NODES_W || py < 0 || py >= NODES_H) continue;
+
+        World::Tile& tile = roadsLayer->GetTile(px, py);
+        if (tile.regionIndex >= 0) continue;
+
+        tile.regionIndex = 0;
+        tile.atlasName = "streets";
+        tile.walkable = true;
+        tile.buildable = false;
+
+        m_map->SetNodeWeight(px, py, World::Weight_Land);
+    }
+
+    // Rebuild sprites for all placed nodes and their neighbors (Rule 15)
+    for (size_t i = 0; i < m_roadPreviewPath.size(); ++i) {
+        int px = m_roadPreviewPath[i].first;
+        int py = m_roadPreviewPath[i].second;
+        RebuildRoadSprite(px, py);
+        UpdateRoadNeighbors(px, py);
+    }
+
+    char buf[128];
+    sprintf_s(buf, "[MapEditor] Road committed: %d nodes\n", m_roadPreviewPath.size());
+    OutputDebugStringA(buf);
+
+    CancelRoad();
+}
+
+void MapEditor::CancelRoad() {
+    m_roadBuildState = ROAD_IDLE;
+    m_roadStartX = -1;
+    m_roadStartY = -1;
+    m_roadPreviewPath.clear();
+}
+
+// Helper: check if a node at (nx,ny) is a road (committed OR in previewPath)
+static bool IsNodeRoad(int nx, int ny, World::TileLayer* roadsLayer, const std::vector<std::pair<int,int>>& previewPath) {
+    if (nx < 0 || ny < 0) return false;
+    if (roadsLayer && roadsLayer->GetTile(nx, ny).regionIndex >= 0) return true;
+    for (size_t k = 0; k < previewPath.size(); ++k) {
+        if (previewPath[k].first == nx && previewPath[k].second == ny) return true;
+    }
+    return false;
+}
+
+// Calculate pattern considering both committed roads and preview path
+static int CalcPatternAt(int x, int y, World::TileLayer* roadsLayer, const std::vector<std::pair<int,int>>& previewPath) {
+    int pattern = 0;
+    bool evenRow = (y % 2 == 0);
+    if (evenRow) {
+        if (IsNodeRoad(x+1, y-1, roadsLayer, previewPath)) pattern |= 1; // NE
+        if (IsNodeRoad(x+1, y+1, roadsLayer, previewPath)) pattern |= 2; // SE
+        if (IsNodeRoad(x, y+1, roadsLayer, previewPath))   pattern |= 4; // SW
+        if (IsNodeRoad(x, y-1, roadsLayer, previewPath))   pattern |= 8; // NW
+    } else {
+        if (IsNodeRoad(x, y-1, roadsLayer, previewPath))   pattern |= 1; // NE
+        if (IsNodeRoad(x, y+1, roadsLayer, previewPath))   pattern |= 2; // SE
+        if (IsNodeRoad(x-1, y+1, roadsLayer, previewPath)) pattern |= 4; // SW
+        if (IsNodeRoad(x-1, y-1, roadsLayer, previewPath)) pattern |= 8; // NW
+    }
+    return pattern;
+}
+
+int MapEditor::CalcRoadPattern(int x, int y, World::TileLayer* roadsLayer) {
+    std::vector<std::pair<int,int>> empty;
+    return CalcPatternAt(x, y, roadsLayer, empty);
+}
+
+void MapEditor::RebuildRoadSprite(int x, int y) {
+    if (!m_roadAtlas) return;
+    World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
+    if (!roadsLayer) return;
+    if (x < 0 || x >= NODES_W || y < 0 || y >= NODES_H) return;
+
+    World::Tile& tile = roadsLayer->GetTile(x, y);
+    bool hasRoad = (tile.regionIndex >= 0);
+    if (!hasRoad) return;
+
+    int pattern = CalcRoadPattern(x, y, roadsLayer);
+
+    // street_X = pattern value, with fallbacks for missing groups.
+    // / axis (NE-SW): patterns 1,4,5 → street_1
+    // \ axis (SE-NW): patterns 2,8,10 → street_2
+    // All other pattern values → street_{pattern}
+    char groupBuf[16];
+    const char* groupName = groupBuf;
+    uint32_t spriteIdx = 0;
+
+    switch (pattern) {
+        case 0:  groupName = "street_1"; break;
+        case 1:  groupName = "street_1"; break;
+        case 2:  groupName = "street_2"; break;
+        case 3:  sprintf_s(groupBuf, "street_%d", 3); break;
+        case 4:  groupName = "street_1"; break;
+        case 5:  groupName = "street_1"; break;
+        case 6:  sprintf_s(groupBuf, "street_%d", 6); break;
+        case 7:  sprintf_s(groupBuf, "street_%d", 7); break;
+        case 8:  groupName = "street_2"; break;
+        case 9:  sprintf_s(groupBuf, "street_%d", 9); break;
+        case 10: groupName = "street_2"; break;
+        case 11: sprintf_s(groupBuf, "street_%d", 11); break;
+        case 12: sprintf_s(groupBuf, "street_%d", 12); break;
+        case 13: sprintf_s(groupBuf, "street_%d", 13); break;
+        case 14: sprintf_s(groupBuf, "street_%d", 14); break;
+        case 15: sprintf_s(groupBuf, "street_%d", 15); break;
+    }
+
+    const std::vector<uint32_t>* group = m_roadAtlas->GetGroup(groupName);
+    if (!group || group->empty()) {
+        group = m_roadAtlas->GetGroup("street_1");
+        if (!group || group->empty()) return;
+        spriteIdx = 0;
+    }
+
+    // Clamp spriteIdx to valid range
+    if (spriteIdx >= group->size()) spriteIdx = 0;
+    uint32_t regionIdx = (*group)[spriteIdx];
+
+    const SpriteRegion* region = m_roadAtlas->GetRegion(regionIdx);
+    if (!region) return;
+
+    tile.u0 = region->u0;
+    tile.v0 = region->v0;
+    tile.u1 = region->u1;
+    tile.v1 = region->v1;
+    tile.regionIndex = (int)regionIdx;
+    tile.atlasName = "streets";
+    tile.walkable = true;
+    tile.buildable = false;
+}
+
+void MapEditor::UpdateRoadNeighbors(int x, int y) {
+    // Rebuild sprite for all 4 isometric staggered neighbors
+    bool evenRow = (y % 2 == 0);
+
+    // NW + NE on row above
+    if (y - 1 >= 0) {
+        RebuildRoadSprite(evenRow ? x : (x - 1), y - 1); // NW
+        RebuildRoadSprite(evenRow ? (x + 1) : x, y - 1); // NE
+    }
+
+    // SW + SE on row below
+    if (y + 1 < NODES_H) {
+        RebuildRoadSprite(evenRow ? x : (x - 1), y + 1); // SW
+        RebuildRoadSprite(evenRow ? (x + 1) : x, y + 1); // SE
+    }
+}
+
 void MapEditor::DeleteObjectAt(int x, int y) {
     if (!m_map) return;
+
+    // Roads layer — clear road tile and update neighbors
+    if (m_currentLayer == World::Roads) {
+        World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
+        if (!roadsLayer) return;
+        if (x < 0 || x >= roadsLayer->GetWidth() || y < 0 || y >= roadsLayer->GetHeight()) return;
+        World::Tile& tile = roadsLayer->GetTile(x, y);
+        if (tile.regionIndex < 0) return;
+        tile = World::Tile();
+        UpdateRoadNeighbors(x, y);
+        return;
+    }
+
     World::TileLayer* objectsLayer = m_map->GetLayer(World::Objects);
     if (!objectsLayer) return;
     if (x < 0 || x >= objectsLayer->GetWidth() || y < 0 || y >= objectsLayer->GetHeight()) return;

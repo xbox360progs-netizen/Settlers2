@@ -59,7 +59,7 @@ HRESULT SpriteRenderer::Initialize(LPDIRECT3DDEVICE9 device, ShaderManager* shad
     hr = device->CreateVertexDeclaration(decl, &m_vertexDecl);
     if (FAILED(hr)) return hr;
 
-    OutputDebugStringA("[SpriteRenderer] Initialized\n");
+//    OutputDebugStringA("[SpriteRenderer] Initialized\n");
     return S_OK;
 }
 
@@ -105,20 +105,20 @@ void SpriteRenderer::EndFrame() {
 
 int SpriteRenderer::Execute(const BatchBuilder& builder) {
     char dbg[512];
-    OutputDebugStringA("[SpriteRenderer] Execute ENTRY\n");
+//    OutputDebugStringA("[SpriteRenderer] Execute ENTRY\n");
 
     uint32_t vertexCount = builder.GetVertexCount();
     uint32_t indexCount = builder.GetIndexCount();
     uint32_t batchCount = builder.GetBatchCount();
-    sprintf(dbg, "[SpriteRenderer] Execute: vtx=%u idx=%u batch=%u\n", vertexCount, indexCount, batchCount);
-    OutputDebugStringA(dbg);
+//    sprintf(dbg, "[SpriteRenderer] Execute: vtx=%u idx=%u batch=%u\n", vertexCount, indexCount, batchCount);
+//    OutputDebugStringA(dbg);
 
     void* pData = NULL;
     HRESULT hr = m_vertexBuffer->Lock(0, vertexCount * sizeof(SpriteVertex), &pData, 0);
     if (SUCCEEDED(hr) && pData) {
         memcpy(pData, builder.GetVertices(), vertexCount * sizeof(SpriteVertex));
         m_vertexBuffer->Unlock();
-        OutputDebugStringA("[SpriteRenderer] VB locked+copy OK\n");
+//        OutputDebugStringA("[SpriteRenderer] VB locked+copy OK\n");
     } else {
         sprintf(dbg, "[SpriteRenderer] VB LOCK FAILED: hr=0x%08x pData=%p\n", hr, pData);
         OutputDebugStringA(dbg);
@@ -128,7 +128,7 @@ int SpriteRenderer::Execute(const BatchBuilder& builder) {
     if (SUCCEEDED(hr) && pData) {
         memcpy(pData, builder.GetIndices(), indexCount * sizeof(uint16_t));
         m_indexBuffer->Unlock();
-        OutputDebugStringA("[SpriteRenderer] IB locked+copy OK\n");
+//        OutputDebugStringA("[SpriteRenderer] IB locked+copy OK\n");
     } else {
         sprintf(dbg, "[SpriteRenderer] IB LOCK FAILED: hr=0x%08x pData=%p\n", hr, pData);
         OutputDebugStringA(dbg);
@@ -145,16 +145,16 @@ int SpriteRenderer::Execute(const BatchBuilder& builder) {
     // Отключаем блэндинг по умолчанию
     m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
 
-    sprintf(dbg, "[SpriteRenderer] Execute: shaderManager=%p, currentShaderID=%d\n",
-            m_pShaderManager, m_pShaderManager ? m_pShaderManager->GetCurrentShaderID() : -99);
-    OutputDebugStringA(dbg);
+//    sprintf(dbg, "[SpriteRenderer] Execute: shaderManager=%p, currentShaderID=%d\n",
+//            m_pShaderManager, m_pShaderManager ? m_pShaderManager->GetCurrentShaderID() : -99);
+//    OutputDebugStringA(dbg);
 
     for (uint32_t i = 0; i < batchCount; i++) {
         const RenderBatch& batch = builder.GetBatches()[i];
 
-        sprintf(dbg, "[SpriteRenderer] Batch %d: shader=%d tex=%d blend=%d startIdx=%d idxCount=%d\n",
-                i, batch.shaderID, batch.textureID, batch.blendMode, batch.startIndex, batch.indexCount);
-        OutputDebugStringA(dbg);
+//        sprintf(dbg, "[SpriteRenderer] Batch %d: shader=%d tex=%d blend=%d startIdx=%d idxCount=%d\n",
+//                i, batch.shaderID, batch.textureID, batch.blendMode, batch.startIndex, batch.indexCount);
+//        OutputDebugStringA(dbg);
 
         // 1. Устанавливаем блэндинг
         if (batch.blendMode == 0) {
@@ -168,26 +168,26 @@ int SpriteRenderer::Execute(const BatchBuilder& builder) {
         // 2. Управление шейдерами - ПРОСТОЕ И НАДЕЖНОЕ
         ShaderID currentShader = m_pShaderManager ? m_pShaderManager->GetCurrentShaderID() : SHADER_INVALID;
         
-        sprintf(dbg, "[SpriteRenderer]   currentShader=%d, batchShader=%d\n", (int)currentShader, (int)batch.shaderID);
-        OutputDebugStringA(dbg);
+//        sprintf(dbg, "[SpriteRenderer]   currentShader=%d, batchShader=%d\n", (int)currentShader, (int)batch.shaderID);
+//        OutputDebugStringA(dbg);
 
         if (m_pShaderManager && currentShader != (ShaderID)batch.shaderID) {
             // Завершаем текущий шейдер если он активен
             if (currentShader != SHADER_INVALID) {
-                OutputDebugStringA("[SpriteRenderer]   ending previous shader\n");
+//                OutputDebugStringA("[SpriteRenderer]   ending previous shader\n");
                 m_pShaderManager->EndPass();
                 m_pShaderManager->EndShader();
             }
             
             // Активируем новый шейдер ТОЛЬКО ЕСЛИ ОН ВАЛИДЕН
             if ((ShaderID)batch.shaderID != SHADER_INVALID && m_pShaderManager->HasShader((ShaderID)batch.shaderID)) {
-                OutputDebugStringA("[SpriteRenderer]   calling SetShader()\n");
+//                OutputDebugStringA("[SpriteRenderer]   calling SetShader()\n");
                 SetShader(batch.shaderID);
             } else {
                 // Если шейдер невалиден, сбрасываем активный шейдер
-                sprintf(dbg, "[SpriteRenderer]   shader INVALID or not loaded: shaderID=%d hasShader=%d\n",
-                        batch.shaderID, m_pShaderManager ? m_pShaderManager->HasShader((ShaderID)batch.shaderID) : 0);
-                OutputDebugStringA(dbg);
+//                sprintf(dbg, "[SpriteRenderer]   shader INVALID or not loaded: shaderID=%d hasShader=%d\n",
+ //                       batch.shaderID, m_pShaderManager ? m_pShaderManager->HasShader((ShaderID)batch.shaderID) : 0);
+ //               OutputDebugStringA(dbg);
                 if (m_pShaderManager) {
                     m_pShaderManager->SetActiveShader(SHADER_INVALID);
                 }
@@ -200,16 +200,16 @@ int SpriteRenderer::Execute(const BatchBuilder& builder) {
 
         // 4. Выполняем отрисовку
         bool hasActiveShader = m_pShaderManager && m_pShaderManager->GetActiveShader();
-        sprintf(dbg, "[SpriteRenderer]   hasActiveShader=%d\n", hasActiveShader);
-        OutputDebugStringA(dbg);
+//        sprintf(dbg, "[SpriteRenderer]   hasActiveShader=%d\n", hasActiveShader);
+//        OutputDebugStringA(dbg);
 
         if (hasActiveShader) {
-            OutputDebugStringA("[SpriteRenderer]   >>> BeginPass(0)\n");
+//            OutputDebugStringA("[SpriteRenderer]   >>> BeginPass(0)\n");
             m_pShaderManager->BeginPass(0);
             
             uint32_t primitiveCount = batch.indexCount / 3;
-            sprintf(dbg, "[SpriteRenderer]   >>> DrawIndexedPrimitive prims=%d\n", primitiveCount);
-            OutputDebugStringA(dbg);
+//            sprintf(dbg, "[SpriteRenderer]   >>> DrawIndexedPrimitive prims=%d\n", primitiveCount);
+//            OutputDebugStringA(dbg);
             
             hr = m_pDevice->DrawIndexedPrimitive(
                 D3DPT_TRIANGLELIST,
@@ -219,10 +219,10 @@ int SpriteRenderer::Execute(const BatchBuilder& builder) {
                 batch.startIndex,
                 primitiveCount);
                 
-            sprintf(dbg, "[SpriteRenderer]   <<< DrawIndexedPrimitive hr=0x%08x\n", hr);
-            OutputDebugStringA(dbg);
+//            sprintf(dbg, "[SpriteRenderer]   <<< DrawIndexedPrimitive hr=0x%08x\n", hr);
+//            OutputDebugStringA(dbg);
             
-            OutputDebugStringA("[SpriteRenderer]   <<< EndPass()\n");
+//            OutputDebugStringA("[SpriteRenderer]   <<< EndPass()\n");
             m_pShaderManager->EndPass();
             m_drawCalls++;
         } else {
@@ -232,18 +232,18 @@ int SpriteRenderer::Execute(const BatchBuilder& builder) {
 
     // ФИНАЛЬНАЯ ОЧИСТКА - только если есть активный шейдер
     ShaderID finalShader = m_pShaderManager ? m_pShaderManager->GetCurrentShaderID() : SHADER_INVALID;
-    sprintf(dbg, "[SpriteRenderer] final cleanup: currentShaderID=%d\n", (int)finalShader);
-    OutputDebugStringA(dbg);
+//    sprintf(dbg, "[SpriteRenderer] final cleanup: currentShaderID=%d\n", (int)finalShader);
+//    OutputDebugStringA(dbg);
     
     if (m_pShaderManager && finalShader != SHADER_INVALID) {
-        OutputDebugStringA("[SpriteRenderer] final EndShader()\n");
+//        OutputDebugStringA("[SpriteRenderer] final EndShader()\n");
         m_pShaderManager->EndShader();
     }
 
     m_pDevice->SetTexture(0, NULL);
 
-    sprintf(dbg, "[SpriteRenderer] Execute END: drawCalls=%d\n", m_drawCalls);
-    OutputDebugStringA(dbg);
+//    sprintf(dbg, "[SpriteRenderer] Execute END: drawCalls=%d\n", m_drawCalls);
+//    OutputDebugStringA(dbg);
 
     return 0;
 }

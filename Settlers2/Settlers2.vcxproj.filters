@@ -218,6 +218,9 @@
     <ClInclude Include="Logic\WeightMap.h">
       <Filter>Logic</Filter>
     </ClInclude>
+    <ClInclude Include="Logic\AStar.h">
+      <Filter>Logic</Filter>
+    </ClInclude>
     <ClInclude Include="Logic\IsoGrid.h">
       <Filter>Logic</Filter>
     </ClInclude>

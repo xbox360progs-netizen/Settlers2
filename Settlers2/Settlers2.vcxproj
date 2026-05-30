@@ -281,6 +281,7 @@
     <ClInclude Include="Input\InputManager.h" />
     <ClInclude Include="Input\ScreenKeyboard.h" />
     <ClInclude Include="Logic\CoordinateSystem.h" />
+    <ClInclude Include="Logic\AStar.h" />
     <ClInclude Include="Logic\IsoGrid.h" />
     <ClInclude Include="Logic\MapConstants.h" />
     <ClInclude Include="Logic\WeightMap.h" />
