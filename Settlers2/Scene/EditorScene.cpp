@@ -1236,7 +1236,7 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
         D3DXMATRIX viewProj = m_camera->GetViewMatrix() * m_camera->GetProjectionMatrix();
         m_shaderManager->SetFrameViewProj(&viewProj);
     }
-/*
+
     // Background via render queue (slot 10, LAYER_UI so it renders on top of world tiles)
     if (m_bgEditorTexture.GetTexture() && m_spriteRenderer) {
         m_spriteRenderer->SetTextureSlot(10, m_bgEditorTexture.GetTexture());
@@ -1253,7 +1253,6 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
         cmd.depth = 255;
         renderQueue->Submit(cmd);
     }
-*/
     // Render world content
     m_mapEditor->RenderGeometry();
     m_mapEditor->RenderUI();
