@@ -81,9 +81,9 @@ private:
   // Input handling
   void ProcessInput(float deltaTime);
   void ExecuteMenuItem();
-
-  // Загрузка текстур из INI файла
+  void ResetTextureState(); // Добавляем метод сброса состояния
   void LoadTextures();
+
 };
 
 #endif // SETTLERS2_SETTLERS2_SCENE_MENU_SCENE_H

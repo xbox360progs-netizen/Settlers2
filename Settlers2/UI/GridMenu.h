@@ -8,6 +8,7 @@
 class Camera;
 class SpriteAtlas;
 class Renderer;
+class TextManager;
 namespace Input { class Gamepad; }
 
 using Graphics::SpriteRenderer;
@@ -80,6 +81,12 @@ private:
 
     float m_cellSpacingX;
     float m_cellSpacingY;
+    float m_cellPadding;
+    float m_cellVisualWidth;
+    float m_cellVisualHeight;
+
+    std::vector<std::string> m_cellLabels;
+    TextManager* m_textManager;
 
 public:
     GridMenu();
@@ -99,6 +106,10 @@ public:
     void SetTileUVs(const std::vector<TileUV>& tileUVs);
     void SetIconAtlas(std::shared_ptr<SpriteAtlas> atlas);
     void SetCellSpacing(float x, float y) { m_cellSpacingX = x; m_cellSpacingY = y; }
+    void SetCellPadding(float padding) { m_cellPadding = padding; }
+    void SetCellVisualSize(float w, float h) { m_cellVisualWidth = w; m_cellVisualHeight = h; }
+    void SetCellLabels(const std::vector<std::string>& labels) { m_cellLabels = labels; }
+    void SetTextManager(TextManager* tm) { m_textManager = tm; }
     void SetSpriteRenderer(SpriteRenderer* spriteRenderer);
     void SetRenderer(class Renderer* renderer);
     void SetRenderQueue(Graphics::RenderQueue* renderQueue) { m_renderQueue = renderQueue; }

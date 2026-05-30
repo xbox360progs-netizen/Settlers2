@@ -18,7 +18,7 @@
 namespace Graphics {
 
 ShaderManager::ShaderManager()
-    : m_pDevice(NULL), m_pActiveShader(NULL), m_pActiveEffect(NULL), m_numPasses(0), m_currentShaderID(SHADER_INVALID), m_hasFrameViewProj(false)
+    : m_pDevice(NULL), m_pActiveShader(NULL), m_pActiveEffect(NULL), m_numPasses(0), m_currentShaderID(SHADER_INVALID), m_hasFrameViewProj(false), m_shaderBegan(false)
 {
     for (int i = 0; i < SHADER_COUNT; ++i) {
         D3DXMatrixIdentity(&m_shaderMatrices[i]);
@@ -47,6 +47,7 @@ void ShaderManager::Shutdown() {
     m_effects.clear();
     m_pActiveShader = NULL;
     m_pActiveEffect = NULL;
+    m_shaderBegan = false;
     DeleteCriticalSection(&m_cs);
 }
 
@@ -134,8 +135,22 @@ HRESULT ShaderManager::LoadShader(ShaderID id, const char* filepath, const char*
 }
 
 bool ShaderManager::SetActiveShader(ShaderID id) {
+    if (id == SHADER_INVALID) {
+        m_pActiveShader = NULL;
+        m_pActiveEffect = NULL;
+        m_currentShaderID = SHADER_INVALID;
+        m_shaderBegan = false;
+        return true;
+    }
+
     if (!ValidateShader(id)) {
-        OutputDebugStringA("[ShaderManager] ERROR: Invalid shader ID\n");
+        char buf[256];
+        sprintf(buf, "[ShaderManager] ERROR: Invalid shader ID=%d (valid range 0-%d)\n", (int)id, SHADER_COUNT-1);
+        OutputDebugStringA(buf);
+        if (m_effects.find(id) == m_effects.end()) {
+            sprintf(buf, "[ShaderManager] ERROR: Shader %d not loaded in m_effects map\n", (int)id);
+            OutputDebugStringA(buf);
+        }
         return false;
     }
 
@@ -164,6 +179,7 @@ void ShaderManager::BeginShader() {
     if (!m_pActiveEffect) return;
     m_pActiveEffect->SetTechnique(m_pActiveShader->hTechnique);
     m_pActiveEffect->Begin(&m_numPasses, 0);
+    m_shaderBegan = true;
 }
 
 void ShaderManager::BeginPass(UINT pass) {
@@ -179,6 +195,7 @@ void ShaderManager::EndPass() {
 void ShaderManager::EndShader() {
     if (!m_pActiveEffect) return;
     m_pActiveEffect->End();
+    m_shaderBegan = false;
 }
 
 void ShaderManager::Commit() {
@@ -211,6 +228,7 @@ void ShaderManager::SetTexture(const char* paramName, LPDIRECT3DBASETEXTURE9 pTe
 }
 
 void ShaderManager::OnLostDevice() {
+    m_shaderBegan = false;
     for (std::map<ShaderID, ID3DXEffect*>::iterator it = m_effects.begin(); it != m_effects.end(); ++it) {
         if (it->second) {
             it->second->OnLostDevice();
@@ -301,6 +319,7 @@ void ShaderManager::EndCurrent() {
         m_pActiveEffect->End();
         m_pActiveEffect = NULL;
         m_pActiveShader = NULL;
+        m_shaderBegan = false;
     }
 }
 

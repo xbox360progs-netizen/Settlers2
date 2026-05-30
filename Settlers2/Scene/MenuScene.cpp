@@ -56,27 +56,23 @@ void MenuScene::Load() {
   }
 }
 
-void MenuScene::LoadTextures() {
+void MenuScene::ResetTextureState() {
     TextureRegistry& registry = TextureRegistry::instance();
-    
-    // Main thread should NOT do file I/O or D3D operations - background thread handles this
-    // Simply retrieve already-loaded texture from cache
     LPDIRECT3DTEXTURE9 tex = registry.getTexture("menu_background");
     
     if (tex) {
         m_backgroundTexture.SetTexture(tex);
-    } else {
-        // If background thread hasn't loaded it yet, use not-found texture
-        OutputDebugStringA("[MenuScene] Warning: menu_background not loaded yet by background thread\n");
-        tex = registry.getNotFoundTexture();
-        if (tex) {
-            m_backgroundTexture.SetTexture(tex);
+        if (m_spriteRenderer) {
+            m_spriteRenderer->SetTextureSlot(0, tex);
         }
+        OutputDebugStringA("[MenuScene] Texture state reset from memory\n");
+    } else {
+        OutputDebugStringA("[MenuScene] ERROR: menu_background not found in TextureRegistry!\n");
     }
+}
 
-    if (m_spriteRenderer && m_backgroundTexture.GetTexture()) {
-        m_spriteRenderer->SetTextureSlot(0, m_backgroundTexture.GetTexture());
-    }
+void MenuScene::LoadTextures() {
+    ResetTextureState();
 }
 
 void MenuScene::Initialize(LPDIRECT3DDEVICE9 device, SpriteRenderer* spriteRenderer) {
@@ -115,6 +111,7 @@ void MenuScene::Unload() {
 
 void MenuScene::OnEnter() {
   ClearExitRequest();
+  ResetTextureState(); // Сбрасываем и актуализируем текстуру при входе
 }
 
 void MenuScene::OnExit() {
@@ -242,14 +239,112 @@ void MenuScene::Render(RenderQueue* renderQueue) {
     bgCmd.textureID = 0;
     renderQueue->Submit(bgCmd);
 
-    // Menu text - add text rendering commands
-    if (m_textManager) {
-        float startY = 280.0f;
-        float spacingY = 80.0f;
+    // UI atlas sprites for menu
+    TextureRegistry& reg = TextureRegistry::instance();
+    std::tr1::shared_ptr<SpriteAtlas> uiAtlas = reg.getAtlas("ui");
+    LPDIRECT3DTEXTURE9 uiTex = uiAtlas ? uiAtlas->GetTexture() : NULL;
+    if (uiTex && m_spriteRenderer) {
+        m_spriteRenderer->SetTextureSlot(5, uiTex);
+    }
+
+    // Render menu_Grid as decorative frame
+    if (uiAtlas) {
+        uint32_t gridIdx = uiAtlas->GetIndex("menu_Grid");
+        if (gridIdx != 0xFFFFFFFF) {
+            const SpriteRegion* gridReg = uiAtlas->GetRegion(gridIdx);
+            if (gridReg) {
+                Graphics::RenderCommand gridCmd = {};
+                gridCmd.x = 100.0f; gridCmd.y = 170.0f;
+                gridCmd.width = 400.0f; gridCmd.height = 340.0f;
+                gridCmd.u0 = gridReg->u0; gridCmd.v0 = gridReg->v0;
+                gridCmd.u1 = gridReg->u1; gridCmd.v1 = gridReg->v1;
+                gridCmd.color = 0xFFFFFFFF;
+                gridCmd.shaderID = SHADER_UI;
+                gridCmd.blendMode = 1;
+                gridCmd.depth = 899;
+                gridCmd.layer = LAYER_UI;
+                gridCmd.textureID = 5;
+                gridCmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, 5, 899);
+                renderQueue->Submit(gridCmd);
+            }
+        }
+    }
+
+    // Menu items with button_A sprite for selected item
+    if (m_textManager && m_spriteRenderer) {
+        float startY = 208.0f;
+        float spacingY = 70.0f;
         for (int i = 0; i < m_menuCount; ++i) {
             DWORD itemColor = (i == m_selectedIndex) ? 0xFFFFD700 : 0xFFFFFFFF;
-            float itemX = (i == m_selectedIndex) ? 140.0f : 100.0f;
+            float itemX = (i == m_selectedIndex) ? 180.0f : 140.0f;
             m_textManager->DrawString(m_menuItems[i], itemX, startY + (i * spacingY), itemColor, 0.3f);
+
+            // Render button_A sprite next to selected item
+            if (i == m_selectedIndex && uiAtlas) {
+                uint32_t btnIdx = uiAtlas->GetIndex("button_A");
+                if (btnIdx != 0xFFFFFFFF) {
+                    const SpriteRegion* btnReg = uiAtlas->GetRegion(btnIdx);
+                    if (btnReg) {
+                        Graphics::RenderCommand btnCmd = {};
+                        btnCmd.x = 140.0f; btnCmd.y = startY + (i * spacingY) - 4.0f;
+                        btnCmd.width = 32.0f; btnCmd.height = 32.0f;
+                        btnCmd.u0 = btnReg->u0; btnCmd.v0 = btnReg->v0;
+                        btnCmd.u1 = btnReg->u1; btnCmd.v1 = btnReg->v1;
+                        btnCmd.color = 0xFFFFFFFF;
+                        btnCmd.shaderID = SHADER_UI;
+                        btnCmd.blendMode = 1;
+                        btnCmd.depth = 898;
+                        btnCmd.layer = LAYER_UI;
+                        btnCmd.textureID = 5;
+                        btnCmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, 5, 898);
+                        renderQueue->Submit(btnCmd);
+                    }
+                }
+            }
+        }
+
+        // Render button hints at bottom of screen
+        if (uiAtlas) {
+            uint32_t backIdx = uiAtlas->GetIndex("button_back");
+            uint32_t startIdx = uiAtlas->GetIndex("button_start");
+            if (backIdx != 0xFFFFFFFF) {
+                const SpriteRegion* backReg = uiAtlas->GetRegion(backIdx);
+                if (backReg) {
+                    Graphics::RenderCommand cmd = {};
+                    cmd.x = 20.0f; cmd.y = 660.0f;
+                    cmd.width = 28.0f; cmd.height = 28.0f;
+                    cmd.u0 = backReg->u0; cmd.v0 = backReg->v0;
+                    cmd.u1 = backReg->u1; cmd.v1 = backReg->v1;
+                    cmd.color = 0xFFFFFFFF;
+                    cmd.shaderID = SHADER_UI;
+                    cmd.blendMode = 1;
+                    cmd.depth = 898;
+                    cmd.layer = LAYER_UI;
+                    cmd.textureID = 5;
+                    cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, 5, 898);
+                    renderQueue->Submit(cmd);
+                }
+            }
+            m_textManager->DrawString("Back", 52.0f, 664.0f, 0xFF888888, 0.22f);
+            if (startIdx != 0xFFFFFFFF) {
+                const SpriteRegion* startReg = uiAtlas->GetRegion(startIdx);
+                if (startReg) {
+                    Graphics::RenderCommand cmd = {};
+                    cmd.x = 120.0f; cmd.y = 660.0f;
+                    cmd.width = 40.0f; cmd.height = 28.0f;
+                    cmd.u0 = startReg->u0; cmd.v0 = startReg->v0;
+                    cmd.u1 = startReg->u1; cmd.v1 = startReg->v1;
+                    cmd.color = 0xFFFFFFFF;
+                    cmd.shaderID = SHADER_UI;
+                    cmd.blendMode = 1;
+                    cmd.depth = 898;
+                    cmd.layer = LAYER_UI;
+                    cmd.textureID = 5;
+                    cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, 5, 898);
+                    renderQueue->Submit(cmd);
+                }
+            }
+            m_textManager->DrawString("Select", 165.0f, 664.0f, 0xFF888888, 0.22f);
         }
     }
 }

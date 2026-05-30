@@ -53,7 +53,7 @@ public:
     void SetBrushSize(BrushSize size) { m_brushSize = size; }
     void SetCurrentTileType(World::TileType type) { m_currentTileType = type; }
     void SetTileByIndex(int index);
-    void SetLayer(World::LayerType layer) { m_currentLayer = layer; m_placingTile = false; m_currentTileIndex = -1; }
+    void SetLayer(World::LayerType layer);
     void SetSpriteRenderer(SpriteRenderer* sr) { m_spriteRenderer = sr; }
     void SetCamera(Camera* pCamera) { m_pCamera = pCamera; }
     void SetRenderQueue(Graphics::RenderQueue* rq) { m_renderQueue = rq; if (m_textManager) m_textManager->SetRenderQueue(rq); }
@@ -63,6 +63,7 @@ public:
     bool IsPlacementOccupied() const { return m_placementOccupied; }
     World::LayerType GetLayer() const { return m_currentLayer; }
     void SetCursorWorldPosition(float x, float y);
+    void SetCursorPreview(int index) { m_previewSpriteIndex = index; }
 
     void AutoAssignResourcesForTrees();
     void RebuildObjectInteractionZones();
@@ -149,6 +150,8 @@ private:
     int m_cursorTileX;
     int m_cursorTileY;
     bool m_placingTile;
+    int m_previewSpriteIndex;
+    int m_activeSpriteIndex; // New: Stores the persistent active sprite index
 
     TextManager* m_textManager;
 

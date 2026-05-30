@@ -309,12 +309,12 @@ void RadialMenu::RenderIcons(Graphics::RenderQueue* renderQueue)
         float centerX = m_screenX + cosf(angle) * ringRadius;
         float centerY = m_screenY - sinf(angle) * ringRadius;
 
-        std::tr1::shared_ptr<SpriteAtlas> maptiles = TextureRegistry::instance().getAtlas("maptiles");
-        if (!maptiles) continue;
+        std::tr1::shared_ptr<SpriteAtlas> ui = TextureRegistry::instance().getAtlas("ui");
+        if (!ui) continue;
 
-        uint32_t spriteIndex = maptiles->GetIndex(m_items[i].spriteName.c_str());
+        uint32_t spriteIndex = ui->GetIndex(m_items[i].spriteName.c_str());
         if (spriteIndex == 0xFFFFFFFF) continue;
-        const SpriteRegion* region = maptiles->GetRegion(spriteIndex);
+        const SpriteRegion* region = ui->GetRegion(spriteIndex);
         if (!region) continue;
 
         const float drawX = centerX - (region->width * 0.5f);
@@ -340,11 +340,11 @@ void RadialMenu::RenderIcons(Graphics::RenderQueue* renderQueue)
 
     const MenuItem* centerItem = GetCenterItem();
     if (centerItem && !centerItem->spriteName.empty()) {
-        std::tr1::shared_ptr<SpriteAtlas> maptiles = TextureRegistry::instance().getAtlas("maptiles");
-        if (maptiles) {
-            uint32_t centerSpriteIndex = maptiles->GetIndex(centerItem->spriteName.c_str());
+        std::tr1::shared_ptr<SpriteAtlas> ui = TextureRegistry::instance().getAtlas("ui");
+        if (ui) {
+            uint32_t centerSpriteIndex = ui->GetIndex(centerItem->spriteName.c_str());
             if (centerSpriteIndex != 0xFFFFFFFF) {
-                const SpriteRegion* centerRegion = maptiles->GetRegion(centerSpriteIndex);
+                const SpriteRegion* centerRegion = ui->GetRegion(centerSpriteIndex);
                 if (centerRegion) {
                     const float centerDrawX = m_screenX - (centerRegion->width * 0.5f);
                     const float centerDrawY = m_screenY - (centerRegion->height * 0.5f);
@@ -397,17 +397,17 @@ void RadialMenu::RenderIconsDirect(LPDIRECT3DDEVICE9 device, Graphics::ShaderMan
 
     const float ringRadius = ((m_innerRadius + m_outerRadius) * 0.5f) * (kMenuSize * 0.5f) * 1.0f;
 
-    std::tr1::shared_ptr<SpriteAtlas> maptiles = registry.getAtlas("maptiles");
+    std::tr1::shared_ptr<SpriteAtlas> ui = registry.getAtlas("ui");
 
     for (int i = 0; i < (int)m_items.size(); i++) {
-        if (!maptiles || m_items[i].spriteName.empty()) continue;
+        if (!ui || m_items[i].spriteName.empty()) continue;
 
-        uint32_t spriteIndex = maptiles->GetIndex(m_items[i].spriteName.c_str());
+        uint32_t spriteIndex = ui->GetIndex(m_items[i].spriteName.c_str());
         if (spriteIndex == 0xFFFFFFFF) continue;
-        const SpriteRegion* region = maptiles->GetRegion(spriteIndex);
+        const SpriteRegion* region = ui->GetRegion(spriteIndex);
         if (!region) continue;
 
-        LPDIRECT3DTEXTURE9 tex = maptiles->GetTexture();
+        LPDIRECT3DTEXTURE9 tex = ui->GetTexture();
         if (!tex) continue;
         device->SetTexture(0, tex);
 
@@ -433,12 +433,12 @@ void RadialMenu::RenderIconsDirect(LPDIRECT3DDEVICE9 device, Graphics::ShaderMan
     }
 
     const MenuItem* centerItem = GetCenterItem();
-    if (centerItem && !centerItem->spriteName.empty() && maptiles) {
-        uint32_t centerSpriteIndex = maptiles->GetIndex(centerItem->spriteName.c_str());
+    if (centerItem && !centerItem->spriteName.empty() && ui) {
+        uint32_t centerSpriteIndex = ui->GetIndex(centerItem->spriteName.c_str());
         if (centerSpriteIndex != 0xFFFFFFFF) {
-            const SpriteRegion* centerRegion = maptiles->GetRegion(centerSpriteIndex);
+            const SpriteRegion* centerRegion = ui->GetRegion(centerSpriteIndex);
             if (centerRegion) {
-                LPDIRECT3DTEXTURE9 centerTex = maptiles->GetTexture();
+                LPDIRECT3DTEXTURE9 centerTex = ui->GetTexture();
                 if (centerTex) {
                     device->SetTexture(0, centerTex);
                 }

@@ -329,6 +329,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\GameEngine.cpp" />
+    <ClCompile Include="Core\LanguageManager.cpp" />
     <ClCompile Include="Core\ThreadSync.cpp" />
     <ClCompile Include="Graphics\BatchBuilder.cpp" />
     <ClCompile Include="Graphics\BinFileManager.cpp" />

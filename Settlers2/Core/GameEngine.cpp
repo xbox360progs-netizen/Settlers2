@@ -153,7 +153,7 @@ bool GameEngine::Initialize()
 
 	m_bitmapFont = new BitmapFont(m_renderer->GetDevice());
 	m_bitmapFont->Init(m_renderer, m_renderer->GetShaderManager());
-	if (!m_bitmapFont->LoadFromFile(L"game:\\Media\\Fonts\\debug_font.fnt"))
+	if (!m_bitmapFont->LoadFromFile(L"game:\\Media\\Fonts\\English.fnt"))
 	{
 		OutputDebugStringA("[GameEngine::Initialize] Warning: Failed to load bitmap font file\n");
 	}
@@ -174,7 +174,7 @@ bool GameEngine::Initialize()
         m_textManager->SetFontAtlas(FONT_MENU, m_bitmapFont->GetTexture());
 
         if (m_spriteRenderer) {
-            m_spriteRenderer->SetTextureSlot(12, m_bitmapFont->GetTexture());
+            m_spriteRenderer->SetTextureSlot(15, m_bitmapFont->GetTexture());
         }
 
         OutputDebugStringA("[GameEngine::Initialize] Font texture loaded into TextManager\n");

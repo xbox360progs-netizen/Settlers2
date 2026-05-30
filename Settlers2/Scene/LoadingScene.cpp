@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "LoadingScene.h"
+#include "SceneManager.h" // Добавляем этот заголовок
 #include "../Graphics/TextureRegistry.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/ShaderManager.h"
@@ -91,6 +92,19 @@ void LoadingScene::Load()
 
     std::cout << "[LoadingScene] TextureRegistry initialized" << std::endl;
     std::cout.flush();
+
+    // Check if target scene is already loaded to skip loading
+    SceneManager* mgr = GetSceneManager();
+    if (mgr) {
+        Scene* target = mgr->GetScene(m_targetScene);
+        if (target && target->IsLoaded()) {
+            std::cout << "[LoadingScene] Target scene " << m_targetScene << " already loaded, skipping loading." << std::endl;
+            std::cout.flush();
+            m_loadingComplete = true;
+            m_loadStarted = true; // Prevents loading tasks
+            return; // Skip rest of Load()
+        }
+    }
 
     // Clear previous tasks
     m_loadTasks.clear();
@@ -284,6 +298,12 @@ void LoadingScene::SetupLoadTasks()
     AddLoadTask([this]() {
         LoadAtlasOrTexture("maptiles", "game:\\Media\\Textures\\AtlasTextures\\maptiles.png");
     }, "Load Texture: maptiles", 0.5f);
+
+    // ===== UI ATLAS (cursor, button hints, menu sprites) =====
+    AddLoadTask([this]() {
+        TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "UI");
+        LoadAtlasOrTexture("ui", "game:\\Media\\Textures\\UI\\UI.png");
+    }, "Load Texture: UI", 0.5f);
 }
 void LoadingScene::AddLoadTask(std::function<void()> task, const std::string& name, float weight)
 {
@@ -388,12 +408,14 @@ void LoadingScene::Update(float deltaTime)
     // Check if loading is complete
     LONG isComplete = InterlockedExchangeAdd(&m_isLoadComplete, 0);
     if (!m_loadingComplete && isComplete && m_currentRenderProgress >= 0.99f) {
+        OutputDebugStringA("[LoadingScene] Creating next scene...\n");
         CreateNextScene();
     }
 }
 
 void LoadingScene::Render(Graphics::RenderQueue* renderQueue)
 {
+    OutputDebugStringA("[LoadingScene] Render start\n");
 	if (!renderQueue) return;
 
 	if (m_renderer && m_renderer->GetDevice()) {

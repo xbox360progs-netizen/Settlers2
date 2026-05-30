@@ -251,22 +251,13 @@
     <ClInclude Include="Graphics\CommonVertex.h">
       <Filter>Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\DebugOverlay.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\FallbackResources.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\GPUDebug.h">
       <Filter>Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\Light.h">
       <Filter>Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\LightOptimizer.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Passes.h">
       <Filter>Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\PostFX.h">
@@ -325,6 +316,12 @@
     </ClInclude>
     <ClInclude Include="World\Components\Resource.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\Resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\BatchBuilder.h">
+      <Filter>Graphics</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -472,6 +469,9 @@
     <ClCompile Include="Core\GameEngine.cpp">
       <Filter>Core</Filter>
     </ClCompile>
+    <ClCompile Include="Core\LanguageManager.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
     <ClCompile Include="Graphics\Quad.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
@@ -499,22 +499,13 @@
     <ClCompile Include="UI\GridMenu.cpp">
       <Filter>UI</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\DebugOverlay.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
     <ClCompile Include="Graphics\FallbackResources.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\GPUDebug.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\Light.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\LightOptimizer.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Passes.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\PostFX.cpp">
@@ -533,9 +524,6 @@
       <Filter>Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\RenderTargetManager.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\ShadowSystem.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\Xbox360EDRAM.cpp">
@@ -561,6 +549,12 @@
     </ClCompile>
     <ClCompile Include="UI\TilePalette.cpp">
       <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\SpriteShadow.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\BatchBuilder.cpp">
+      <Filter>Graphics</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -88,6 +88,8 @@ public:
     }
 
     ShaderID GetCurrentShaderID() const { return m_currentShaderID; }
+    
+    bool IsShaderBegan() const { return m_shaderBegan; }
 
     void CommitChanges();
     bool ValidateShader(ShaderID id) const;
@@ -115,6 +117,8 @@ private:
     HRESULT LoadInternal(ShaderID id, const char* path, const char* technique);
 
     CRITICAL_SECTION m_cs;
+    
+    bool m_shaderBegan;  // Track if BeginShader was called
 };
 
 }

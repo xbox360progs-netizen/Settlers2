@@ -87,17 +87,14 @@ void BinFileManager::Clear()
 
 AtlasPtr BinFileManager::LoadAtlas(const std::string& binFilePath, const std::string& name)
 {
-    // Проверяем, загружен ли уже такой атлас
     if (HasAtlas(name)) {
         return GetAtlas(name);
-    }; 
+    }
     
-    // Конвертируем путь в wide string для WinAPI
     std::wstring wBinPath(binFilePath.begin(), binFilePath.end());
     char pathA[512];
     WideCharToMultiByte(CP_ACP, 0, wBinPath.c_str(), -1, pathA, 512, NULL, NULL);
     
-    // Открываем .bin файл
     HANDLE hFile = CreateFileA(
         pathA,
         GENERIC_READ,
@@ -109,32 +106,47 @@ AtlasPtr BinFileManager::LoadAtlas(const std::string& binFilePath, const std::st
     );
     
     if (hFile == INVALID_HANDLE_VALUE) {
+        char debugMsg[512];
+        sprintf(debugMsg, "[BinFileManager] Failed to open file: %s\n", pathA);
+        OutputDebugStringA(debugMsg);
         return NULL;
     }
     
-    // Получаем размер файла
     DWORD fileSize = GetFileSize(hFile, NULL);
-    if (fileSize == 0 || fileSize > kMaxFileSize) { // Защита от огромных файлов
+    if (fileSize == 0 || fileSize > kMaxFileSize) {
         CloseHandle(hFile);
+        OutputDebugStringA("[BinFileManager] Invalid file size\n");
         return NULL;
     }
     
-    // Читаем файл в память
-    BYTE* buffer = new BYTE[fileSize];
+    BYTE* buffer = new(std::nothrow) BYTE[fileSize]; 
+    if (!buffer) {
+        CloseHandle(hFile);
+        OutputDebugStringA("[BinFileManager] Memory allocation failed\n");
+        return NULL;
+    }
+    
     DWORD bytesRead = 0;
     if (!ReadFile(hFile, buffer, fileSize, &bytesRead, NULL) || bytesRead != fileSize) {
         delete[] buffer;
         CloseHandle(hFile);
+        OutputDebugStringA("[BinFileManager] Failed to read file\n");
         return NULL;
     }
     
     CloseHandle(hFile);
     
-    // Создаем атлас
-    AtlasPtr atlas(new SpriteAtlas(name));
+    AtlasPtr atlas(new(std::nothrow) SpriteAtlas(name));
+    if (!atlas) {
+        delete[] buffer;
+        OutputDebugStringA("[BinFileManager] Failed to create atlas\n");
+        return NULL;
+    }
     
-    // Парсим данные из .bin файла
-    if (ParseBinFile(buffer, fileSize, atlas.get())) {
+    bool parseSuccess = ParseBinFile(buffer, fileSize, atlas.get());
+    delete[] buffer; 
+    
+    if (parseSuccess) {
         // Load PNG texture
         std::string pngPath = binFilePath;
         size_t dotPos = pngPath.rfind('.');
@@ -154,25 +166,22 @@ AtlasPtr BinFileManager::LoadAtlas(const std::string& binFilePath, const std::st
         std::wstring wPngPath(pngPath.begin(), pngPath.end());
         
         // Load through our stable method
-        if (FAILED(loader.Load(wPngPath.c_str(), &pD3DTex))) {
+        if (SUCCEEDED(loader.Load(wPngPath.c_str(), &pD3DTex))) {
+            // Set texture to atlas
+            atlas->SetTexture(pD3DTex);
+            
+            // Release local reference since atlas owns the texture now
+            pD3DTex->Release();
+            
+            m_loadedAtlases[name] = atlas;
+            return atlas;
+        } else {
             OutputDebugStringA("[BinFileManager] Failed to load PNG texture for atlas\n");
-            delete[] buffer;
-            return NULL;
+            return NULL; 
         }
-        
-        // Set texture to atlas
-        atlas->SetTexture(pD3DTex);
-        
-        // Release local reference since atlas owns the texture now
-        pD3DTex->Release();
-        
-        m_loadedAtlases[name] = atlas;
-        delete[] buffer;
-        return atlas;
     }
     
-    delete[] buffer;
-//    delete atlas;
+    OutputDebugStringA("[BinFileManager] ParseBinFile FAILED\n");
     return NULL;
 }
 

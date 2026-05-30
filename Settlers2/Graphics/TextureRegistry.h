@@ -40,6 +40,9 @@ public:
     std::tr1::shared_ptr<class SpriteAtlas> getAtlas(const std::string& name);
     void unregisterAtlas(const std::string& name);
 
+    // Refresh a specific texture by reloading it if invalid
+    bool refreshTexture(const std::string& name);
+
 private:
     TextureRegistry()
         : m_notFoundTexture(nullptr)

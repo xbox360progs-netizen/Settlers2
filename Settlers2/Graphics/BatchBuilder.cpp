@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "BatchBuilder.h"
+#include "ShaderManager.h"
 
 namespace Graphics {
 
@@ -44,10 +45,17 @@ void BatchBuilder::BuildBatches(const RenderCommand* commands, uint32_t commandC
 
     for (uint32_t i = 0; i < commandCount; i++) {
         const RenderCommand& cmd = commands[i];
+        WORD shaderID = cmd.shaderID;
+        if (shaderID >= SHADER_COUNT) {
+            char buf[256];
+            sprintf(buf, "[BatchBuilder] WARNING: invalid shaderID=%u in RenderCommand, clamping to SHADER_SPRITE\n", shaderID);
+            OutputDebugStringA(buf);
+            shaderID = SHADER_SPRITE;
+        }
 
         bool needsNewBatch = (m_batchCount == 0)
             || (cmd.textureID != m_currentTexture)
-            || (cmd.shaderID != m_currentShader)
+            || (shaderID != m_currentShader)
             || (cmd.blendMode != m_currentBlend);
 
         if (needsNewBatch) {
@@ -58,13 +66,13 @@ void BatchBuilder::BuildBatches(const RenderCommand* commands, uint32_t commandC
 
             currentBatch = &m_batches[m_batchCount++];
             currentBatch->textureID = cmd.textureID;
-            currentBatch->shaderID = cmd.shaderID;
+            currentBatch->shaderID = shaderID;
             currentBatch->blendMode = cmd.blendMode;
             currentBatch->startIndex = m_indexWritePos;
             currentBatch->indexCount = 0;
 
             m_currentTexture = cmd.textureID;
-            m_currentShader = cmd.shaderID;
+            m_currentShader = shaderID;
             m_currentBlend = cmd.blendMode;
         }
 
@@ -96,13 +104,14 @@ void BatchBuilder::BuildBatches(const RenderCommand* commands, uint32_t commandC
         dst[3].color = cmd.color;
         dst[3].padding[0] = 0; dst[3].padding[1] = 0;
 
+        // ИСПРАВЛЕНО: используем uint16_t* для индексов
         uint16_t* idx = m_indexPool + m_indexWritePos;
-        idx[0] = baseIdx + 0;
-        idx[1] = baseIdx + 1;
-        idx[2] = baseIdx + 2;
-        idx[3] = baseIdx + 2;
-        idx[4] = baseIdx + 1;
-        idx[5] = baseIdx + 3;
+        idx[0] = (uint16_t)(baseIdx + 0);
+        idx[1] = (uint16_t)(baseIdx + 1);
+        idx[2] = (uint16_t)(baseIdx + 2);
+        idx[3] = (uint16_t)(baseIdx + 2);
+        idx[4] = (uint16_t)(baseIdx + 1);
+        idx[5] = (uint16_t)(baseIdx + 3);
 
         m_vertexWritePos += 4;
         m_indexWritePos += 6;

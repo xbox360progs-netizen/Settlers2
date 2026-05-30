@@ -1,4 +1,4 @@
-float4x4 WorldViewProjection;
+float4x4 WorldViewProjection : register(c16); // Явно задали регистр c16
 float4 MenuParams : register(c4);
 float4 CenterParams : register(c5);
 

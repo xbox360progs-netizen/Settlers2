@@ -1,7 +1,12 @@
 // UI.fx
-float4x4 gScreenProj : register(c0); // Ортогональная матрица (экран)
+float4x4 gScreenProj : register(c4); // Ортогональная матрица (экран) - сдвинули с c0 на c4
+texture g_texture; // Явное объявление текстуры
 
-sampler2D texSampler : register(s0);
+sampler2D texSampler : register(s0) {
+    Texture = <g_texture>;
+    MinFilter = LINEAR; MagFilter = LINEAR; MipFilter = LINEAR;
+    AddressU = CLAMP; AddressV = CLAMP;
+};
 
 struct VS_INPUT {
     float3 pos   : POSITION;
@@ -25,9 +30,8 @@ VS_OUTPUT VS_Main(VS_INPUT input) {
 }
 
 float4 PS_Main(VS_OUTPUT input) : COLOR0 {
-    float4 col = tex2D(texSampler, input.uv) * input.color;
-    clip(col.a < 0.1f ? -1 : 1); // Отсекаем прозрачные пиксели для четкости
-    return col;
+    float4 texColor = tex2D(texSampler, input.uv);
+    return texColor * input.color;
 }
 
 technique UITech {

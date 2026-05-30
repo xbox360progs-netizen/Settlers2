@@ -43,6 +43,7 @@ MapEditor::MapEditor()
     , m_cursorTileX(0)
     , m_cursorTileY(0)
     , m_placingTile(false)
+    , m_previewSpriteIndex(-1)
 	, m_showObjects(true)
     , m_showOverlay(true)
 , m_showNodes(true)
@@ -98,6 +99,12 @@ void MapEditor::Initialize(World::Map* map, Renderer* renderer,
     m_objectAtlas   = registry.getAtlas("maptiles");
     if (m_spriteRenderer && m_objectAtlas) {
         m_spriteRenderer->SetTextureSlot(9, m_objectAtlas->GetTexture());
+    }
+
+    // UI atlas for cursor rendering — slot 4 (slot 12 is used by font)
+    std::tr1::shared_ptr<SpriteAtlas> uiAtlas = registry.getAtlas("ui");
+    if (uiAtlas && m_spriteRenderer) {
+        m_spriteRenderer->SetTextureSlot(4, uiAtlas->GetTexture());
     }
 
     // Создаём простую белую точку для весовой карты (используется в RenderWeightMap)
@@ -211,11 +218,11 @@ void MapEditor::RenderGeometry() {
         m_pDevice->SetTexture(0, NULL);
     }
 
-    // Bind font texture to slot 12 for world-space text rendering
+    // Bind font texture to slot 15 for world-space text rendering
     if (m_textManager && m_spriteRenderer) {
         LPDIRECT3DTEXTURE9 fontTex = m_textManager->GetFontTexture(FONT_MENU);
         if (fontTex) {
-            m_spriteRenderer->SetTextureSlot(12, fontTex);
+            m_spriteRenderer->SetTextureSlot(15, fontTex);
         }
     }
 
@@ -430,8 +437,8 @@ void MapEditor::RenderGridLayer() {
             cmd.color = 0xFFFFFFFF;
             cmd.textureID = groundTexID;
             cmd.shaderID = SHADER_TERRAIN;
-            cmd.blendMode = 0;
-            cmd.layer = 0;
+            cmd.blendMode = 1;
+            cmd.layer = LAYER_TERRAIN;
             cmd.depth = static_cast<WORD>(0.95f * 65535.0f);
             m_renderQueue->Submit(cmd);
         }
@@ -470,7 +477,7 @@ void MapEditor::RenderGridLayer() {
                     cmd.textureID = 2;
                     cmd.shaderID = SHADER_TERRAIN;
                     cmd.blendMode = 1;
-                    cmd.layer = 0;
+                    cmd.layer = LAYER_EFFECTS;
                     cmd.depth = static_cast<WORD>(0.97f * 65535.0f);
                     m_renderQueue->Submit(cmd);
                 }
@@ -517,7 +524,7 @@ void MapEditor::RenderGridLayer() {
                     cmd.textureID = 2;
                     cmd.shaderID = SHADER_TERRAIN;
                     cmd.blendMode = 1;
-                    cmd.layer = 0;
+                    cmd.layer = LAYER_EFFECTS;
                     cmd.depth = static_cast<WORD>(0.97f * 65535.0f);
                     m_renderQueue->Submit(cmd);
                 }
@@ -526,7 +533,9 @@ void MapEditor::RenderGridLayer() {
     }
 
     if (m_currentLayer == World::Resources) {
-        if (m_objectAtlas) {
+        TextureRegistry& registry = TextureRegistry::instance();
+        std::tr1::shared_ptr<SpriteAtlas> uiAtl = registry.getAtlas("ui");
+        if (uiAtl) {
             // Cache resource icon indices on first access
             if (m_resourceIconIndices[World::ResourceType_Wood] < 0) {
                 // ResourceIcons group order is atlas-defined; map enum values by sprite name instead.
@@ -534,7 +543,7 @@ void MapEditor::RenderGridLayer() {
                     World::ResourceType rt = static_cast<World::ResourceType>(i);
                     const char* iconName = World::ResourceTypeToIconName(rt);
                     if (iconName && iconName[0]) {
-                        uint32_t idx = m_objectAtlas->GetIndex(iconName);
+                        uint32_t idx = uiAtl->GetIndex(iconName);
                         m_resourceIconIndices[i] = (idx != 0xFFFFFFFF) ? (int)idx : -1;
                     }
                 }
@@ -556,7 +565,7 @@ void MapEditor::RenderGridLayer() {
                     int iconIdx = m_resourceIconIndices[rn.type];
                     if (iconIdx < 0) continue;
 
-                    const SpriteRegion* iconRegion = m_objectAtlas->GetRegion(iconIdx);
+                    const SpriteRegion* iconRegion = uiAtl->GetRegion(iconIdx);
                     if (!iconRegion) continue;
 
                     float iconW = (float)iconRegion->width;
@@ -577,10 +586,10 @@ void MapEditor::RenderGridLayer() {
                     cmd.u1 = iconRegion->u1;
                     cmd.v1 = iconRegion->v1;
                     cmd.color = 0xFFFFFFFF;
-                    cmd.textureID = 9;
+                    cmd.textureID = 4;
                     cmd.shaderID = SHADER_TERRAIN;
                     cmd.blendMode = 1;
-                    cmd.layer = 0;
+                    cmd.layer = LAYER_UI;
                     cmd.depth = static_cast<WORD>(0.99f * 65535.0f);
                     m_renderQueue->Submit(cmd);
 
@@ -630,7 +639,7 @@ void MapEditor::RenderGridLayer() {
                     cmd.textureID = 2;
                     cmd.shaderID = SHADER_TERRAIN;
                     cmd.blendMode = 1;
-                    cmd.layer = 0;
+                    cmd.layer = LAYER_EFFECTS;
                     cmd.depth = static_cast<WORD>(0.97f * 65535.0f);
                     m_renderQueue->Submit(cmd);
                 }
@@ -699,7 +708,7 @@ void MapEditor::RenderGridLayer() {
                     cmd.textureID = texSlot;
                     cmd.shaderID = SHADER_TERRAIN;
                     cmd.blendMode = 0;
-                    cmd.layer = 0;
+                    cmd.layer = LAYER_WORLD;
                     cmd.depth = static_cast<WORD>(0.96f * 65535.0f);
                     m_renderQueue->Submit(cmd);
                 }
@@ -711,13 +720,70 @@ void MapEditor::RenderGridLayer() {
 void MapEditor::RenderCursor() {
     if (!m_renderQueue || !m_groundAtlas) return;
 
-    LPDIRECT3DTEXTURE9 maptilesTex = m_objectAtlas ? m_objectAtlas->GetTexture() : NULL;
-    if (!maptilesTex) return;
+    int spriteToRender = m_previewSpriteIndex;
+    if (spriteToRender < 0) {
+        spriteToRender = m_activeSpriteIndex;
+    }
 
-    const char* cursorName = (m_currentLayer == World::Ground) ? "background_cursor_red" : "street_PathCursor";
-    uint32_t cursorIdx = m_objectAtlas ? m_objectAtlas->GetIndex(cursorName) : 0xFFFFFFFF;
-    const SpriteRegion* cursorRegion = (cursorIdx != 0xFFFFFFFF && m_objectAtlas) ? m_objectAtlas->GetRegion(cursorIdx) : NULL;
+    // If a sprite is selected (preview or active), render it
+    if (spriteToRender >= 0) {
+        SpriteAtlas* atlas = (m_currentLayer == World::Objects) ? m_objectAtlas.get() : m_groundAtlas.get();
+        if (atlas && spriteToRender < (int)atlas->GetRegionCount()) {
+            const SpriteRegion* previewRegion = atlas->GetRegion(spriteToRender);
+            if (previewRegion) {
+                float cursorWorldX, cursorWorldY;
+                float cursorW, cursorH;
+
+                if (m_currentLayer == World::Ground) {
+                    CoordinateSystem::GetInstance().GroundTileToWorld(m_cursorTileX, m_cursorTileY, cursorWorldX, cursorWorldY);
+                    cursorW = static_cast<float>(previewRegion->width);
+                    cursorH = static_cast<float>(previewRegion->height);
+                    cursorWorldX += 119.0f - previewRegion->pivotX;
+                    cursorWorldY += 74.0f - previewRegion->pivotY;
+                } else {
+                    CoordinateSystem::GetInstance().NodeTileToWorld(m_cursorTileX, m_cursorTileY, cursorWorldX, cursorWorldY);
+                    cursorW = static_cast<float>(previewRegion->width);
+                    cursorH = static_cast<float>(previewRegion->height);
+                    cursorWorldX -= previewRegion->pivotX;
+                    cursorWorldY -= previewRegion->pivotY;
+                }
+
+                Graphics::RenderCommand cmd = {};
+                cmd.x = cursorWorldX;
+                cmd.y = cursorWorldY;
+                cmd.width = cursorW;
+                cmd.height = cursorH;
+                cmd.u0 = previewRegion->u0;
+                cmd.v0 = previewRegion->v0;
+                cmd.u1 = previewRegion->u1;
+                cmd.v1 = previewRegion->v1;
+                cmd.color = 0xFFFFFFFF;
+                cmd.textureID = (m_currentLayer == World::Objects) ? 9 : 0;
+                cmd.shaderID = SHADER_TERRAIN;
+                cmd.blendMode = 1;
+                cmd.layer = LAYER_EFFECTS;
+                cmd.depth = static_cast<WORD>(0.99f * 65535.0f);
+                m_renderQueue->Submit(cmd);
+                return; // Return so we don't draw the fallback outline
+            }
+        }
+    }
+
+    // Fallback: render cursor outline
+    TextureRegistry& reg = TextureRegistry::instance();
+    std::tr1::shared_ptr<SpriteAtlas> uiAtlas = reg.getAtlas("ui");
+    LPDIRECT3DTEXTURE9 uiTex = uiAtlas ? uiAtlas->GetTexture() : NULL;
+    if (!uiTex) return;
+
+    const char* cursorName = (m_currentLayer == World::Ground) ? "background_cursor_red" : "cursor";
+    const SpriteRegion* cursorRegion = NULL;
     float u0 = 0.0f, v0 = 0.0f, u1 = 1.0f, v1 = 1.0f;
+    if (uiAtlas) {
+        uint32_t cursorIdx = uiAtlas->GetIndex(cursorName);
+        if (cursorIdx != 0xFFFFFFFF) {
+            cursorRegion = uiAtlas->GetRegion(cursorIdx);
+        }
+    }
     if (cursorRegion) {
         u0 = cursorRegion->u0; v0 = cursorRegion->v0;
         u1 = cursorRegion->u1; v1 = cursorRegion->v1;
@@ -737,9 +803,6 @@ void MapEditor::RenderCursor() {
         CoordinateSystem::GetInstance().NodeTileToWorld(m_cursorTileX, m_cursorTileY, cursorWorldX, cursorWorldY);
         cursorW = CoordinateSystem::GetInstance().GetNodeWidth();
         cursorH = CoordinateSystem::GetInstance().GetNodeHeight();
-        
-        // Apply sprite pivot offset (same as object rendering) so cursor
-        // aligns with where objects are placed
         if (cursorRegion) {
             cursorWorldX -= cursorRegion->pivotX;
             cursorWorldY -= cursorRegion->pivotY;
@@ -756,16 +819,24 @@ void MapEditor::RenderCursor() {
     cmd.u1 = u1;
     cmd.v1 = v1;
     cmd.color = 0xFFFFFFFF;
-    cmd.textureID = 9;
+    cmd.textureID = 4;
     cmd.shaderID = SHADER_TERRAIN;
     cmd.blendMode = 1;
-    cmd.layer = 0;
+    cmd.layer = LAYER_FOREGROUND;
     cmd.depth = static_cast<WORD>(0.99f * 65535.0f);
     m_renderQueue->Submit(cmd);
 }
 
+void MapEditor::SetLayer(World::LayerType layer) {
+    m_currentLayer = layer;
+    m_placingTile = false;
+    m_currentTileIndex = -1;
+    m_activeSpriteIndex = -1;
+}
+
 void MapEditor::SetTileByIndex(int index) {
     m_currentTileIndex = index;
+    m_activeSpriteIndex = index; // Update active index
     m_placingTile = true;
 }
 
@@ -1333,7 +1404,7 @@ void MapEditor::RenderWeightMap() {
             cmd.textureID = 2;
             cmd.shaderID = SHADER_TERRAIN;
             cmd.blendMode = 1;
-            cmd.layer = 0;
+            cmd.layer = LAYER_EFFECTS;
             cmd.depth = static_cast<WORD>(0.98f * 65535.0f);
             m_renderQueue->Submit(cmd);
         }

@@ -2,8 +2,8 @@
 // Unified register layout for global constants and instance data
 // Xbox 360 compatible: uses vs_2_0/ps_2_0 shader profiles
 
-// === GLOBAL CONSTANTS (c0-c10) ===
-float4x4 matOrtho : register(c0);
+// === GLOBAL CONSTANTS (c12-c20) ===
+float4x4 matOrtho : register(c12); // Сдвинули с c0 на c12
 float4 g_GlobalTime : register(c4); // Time, can be used for animations
 float4 g_GlobalColor : register(c5); // Global tint color
 

@@ -50,16 +50,28 @@ void RenderFrame::BeginFrame() {
     }
 
     m_batchBuilder.BeginFrame();
+
+    if (m_spriteRenderer) {
+        m_spriteRenderer->BeginFrame();
+    }
 }
 
 void RenderFrame::Execute() {
-    if (!m_initialized) return;
+    if (!m_initialized) {
+        OutputDebugStringA("[RenderFrame] Execute SKIP: not initialized\n");
+        return;
+    }
 
     int cmdCount = 0;
 
     if (m_renderQueue) {
         m_renderQueue->Sort();
         cmdCount = m_renderQueue->GetCommandCount();
+        char buf[256];
+        sprintf(buf, "[RenderFrame] Execute: renderQueue=%p, cmdCount=%d\n", m_renderQueue, cmdCount);
+        OutputDebugStringA(buf);
+    } else {
+        OutputDebugStringA("[RenderFrame] Execute: m_renderQueue IS NULL!\n");
     }
 
     if (cmdCount > 0) {
@@ -69,8 +81,15 @@ void RenderFrame::Execute() {
     }
 
     int batchCount = m_batchBuilder.GetBatchCount();
+    char buf2[256];
+    sprintf(buf2, "[RenderFrame] Execute: batchCount=%d, spriteRenderer=%p\n", batchCount, m_spriteRenderer);
+    OutputDebugStringA(buf2);
+
     if (m_spriteRenderer && batchCount > 0) {
+        OutputDebugStringA("[RenderFrame] Execute: calling SpriteRenderer::Execute()\n");
         m_spriteRenderer->Execute(m_batchBuilder);
+    } else {
+        OutputDebugStringA("[RenderFrame] Execute: SKIP SpriteRenderer (NULL or no batches)\n");
     }
 
     if (m_debugOverlay) {

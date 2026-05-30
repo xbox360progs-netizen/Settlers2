@@ -103,9 +103,9 @@ void TextManager::PushLetterCommand(LPDIRECT3DTEXTURE9 texture, float x, float y
     cmd.v1 = v1;
     cmd.color = color;
     cmd.shaderID = isUI ? SHADER_UI : SHADER_WORLD;
-    cmd.textureID = 12;
+    cmd.textureID = 15;
     cmd.blendMode = 1;
-    cmd.layer = isUI ? LAYER_UI : LAYER_FOREGROUND;
+    cmd.layer = isUI ? LAYER_UI : LAYER_EFFECTS;
     cmd.depth = (WORD)(depth * 1000.0f);
     m_renderQueue->Submit(cmd);
 }

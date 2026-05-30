@@ -62,8 +62,11 @@ void WeightMenu::Render()
 {
     if (!m_isVisible || !m_renderQueue) return;
 
-    // Background (2x size, from maptiles menu_background_cell UV)
+    // Background (2x size, menu_Grid from UI atlas)
     if (m_backgroundTexture) {
+        char buf[128];
+        sprintf(buf, "[GPU Debug] WeightMenu Rendering. bgSlot: %d, tex: %p\n", m_bgSlot, m_backgroundTexture);
+        OutputDebugStringA(buf);
         Graphics::RenderCommand cmd = {};
         cmd.x = m_position.x - 300.0f;
         cmd.y = m_position.y - 300.0f;
@@ -76,8 +79,8 @@ void WeightMenu::Render()
         cmd.textureID = m_bgSlot;
         cmd.blendMode = 1;
         cmd.layer = LAYER_UI;
-        cmd.depth = 90;
-        cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, m_bgSlot, 90);
+        cmd.depth = 70;
+        cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, m_bgSlot, 70);
         m_renderQueue->Submit(cmd);
     }
 
@@ -95,8 +98,8 @@ void WeightMenu::Render()
         cmd.textureID = m_dpadSlot;
         cmd.blendMode = 1;
         cmd.layer = LAYER_UI;
-        cmd.depth = 80;
-        cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, m_dpadSlot, 80);
+        cmd.depth = 90;
+        cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, m_dpadSlot, 90);
         m_renderQueue->Submit(cmd);
     }
 

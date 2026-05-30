@@ -3,7 +3,7 @@
 //--------------------------------------------------------------------------------------
 
 // Matrix transformation (World-View-Projection)
-float4x4 WVP : register(c0);
+float4x4 WVP : register(c8); // Сдвинули на c8
 
 // Sprite texture - MUST match parameter name "g_texture" from C++ code
 texture g_texture;

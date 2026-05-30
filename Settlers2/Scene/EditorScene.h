@@ -43,6 +43,9 @@ enum EditorMode
 };
 
 class EditorScene : public Scene {
+	private:
+    void ResetShaderState();
+
 public:
 EditorScene();
     virtual ~EditorScene();
@@ -100,6 +103,7 @@ EditorScene();
     RadialMenu* m_radialMenu;
     GridMenu* m_gridMenu;
     Texture m_groundTexture;
+    Texture m_bgEditorTexture;
     Editor::MapEditor* m_mapEditor;
     World::LayerType m_currentLayer;
 
