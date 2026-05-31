@@ -1,0 +1,58 @@
+sprite 0 : x=13 y=40 w=79 h=51 pivotX=3.503246E-44 pivotY=0
+sprite 1 : x=0 y=0 w=0 h=0 pivotX=0 pivotY=0
+sprite 2 : x=0 y=0 w=115 h=101 pivotX=1.331234E-43 pivotY=0
+sprite 3 : x=92 y=40 w=79 h=52 pivotX=3.643376E-44 pivotY=0
+sprite 4 : x=0 y=0 w=0 h=0 pivotX=0 pivotY=0
+sprite 5 : x=0 y=0 w=115 h=101 pivotX=1.331234E-43 pivotY=0
+sprite 6 : x=176 y=40 w=79 h=52 pivotX=3.643376E-44 pivotY=0
+sprite 7 : x=0 y=0 w=0 h=0 pivotX=0 pivotY=0
+sprite 8 : x=0 y=0 w=115 h=101 pivotX=1.331234E-43 pivotY=0
+sprite 9 : x=2 y=39 w=81 h=53 pivotX=3.643376E-44 pivotY=0
+sprite 10 : x=0 y=0 w=0 h=0 pivotX=0 pivotY=0
+sprite 11 : x=0 y=0 w=115 h=101 pivotX=1.331234E-43 pivotY=0
+sprite 12 : x=84 y=40 w=76 h=53 pivotX=3.643376E-44 pivotY=0
+sprite 13 : x=0 y=0 w=0 h=0 pivotX=0 pivotY=0
+sprite 14 : x=0 y=0 w=115 h=101 pivotX=1.331234E-43 pivotY=0
+sprite 15 : x=161 y=41 w=79 h=52 pivotX=3.643376E-44 pivotY=0
+sprite 16 : x=0 y=0 w=0 h=0 pivotX=0 pivotY=0
+sprite 17 : x=0 y=0 w=115 h=101 pivotX=1.331234E-43 pivotY=0
+sprite 18 : x=243 y=40 w=79 h=52 pivotX=3.643376E-44 pivotY=0
+sprite 19 : x=0 y=0 w=0 h=0 pivotX=0 pivotY=0
+sprite 20 : x=0 y=0 w=115 h=101 pivotX=1.331234E-43 pivotY=0
+sprite 21 : x=67 y=40 w=43 h=52 pivotX=3.222986E-44 pivotY=0
+sprite 22 : x=0 y=0 w=0 h=0 pivotX=0 pivotY=0
+sprite 23 : x=0 y=0 w=115 h=101 pivotX=1.331234E-43 pivotY=0
+sprite 24 : x=110 y=40 w=44 h=52 pivotX=3.363116E-44 pivotY=0
+sprite 25 : x=0 y=0 w=0 h=0 pivotX=0 pivotY=0
+sprite 26 : x=0 y=0 w=115 h=101 pivotX=1.331234E-43 pivotY=0
+sprite 27 : x=13 y=91 w=78 h=29 pivotX=2.802597E-45 pivotY=0
+sprite 28 : x=0 y=0 w=0 h=0 pivotX=0 pivotY=0
+sprite 29 : x=0 y=0 w=115 h=101 pivotX=1.331234E-43 pivotY=0
+sprite 30 : x=92 y=93 w=79 h=31 pivotX=2.802597E-45 pivotY=0
+sprite 31 : x=0 y=0 w=0 h=0 pivotX=0 pivotY=0
+sprite 32 : x=0 y=0 w=115 h=101 pivotX=1.331234E-43 pivotY=0
+sprite 33 : x=172 y=93 w=81 h=51 pivotX=3.503246E-44 pivotY=0
+sprite 34 : x=0 y=0 w=0 h=0 pivotX=0 pivotY=0
+sprite 35 : x=0 y=0 w=115 h=101 pivotX=1.331234E-43 pivotY=0
+street_3 : [7,8]
+street_6 : [9,10]
+street_7 : [11,12]
+street_9 : [13,14]
+street_11 : [15,16]
+street_12 : [17,18]
+street_13 : [19,20]
+street_14 : [21,22]
+street_15 : [23,24]
+streetCursor : [25,26]
+FlagStreets : [27]
+street_4 : [0,1,2]
+street_5 : [0,1,2]
+street_8 : [3,4,5,6]
+street_10 : [4,5,6]
+street_end_n : [30,31]
+street_end_s : [28,29]
+street_end_e : [34,35]
+street_end_w : [32,33]
+street_1 : [0,1,2]
+street_2 : [3,4,5,6]
+

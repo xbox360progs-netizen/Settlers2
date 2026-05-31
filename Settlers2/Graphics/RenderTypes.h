@@ -50,8 +50,8 @@ inline unsigned __int64 BuildSortKey(BYTE layer, BYTE blend, WORD shader, WORD t
     return ((unsigned __int64)layer << 56)
          | ((unsigned __int64)blend << 48)
          | ((unsigned __int64)shader << 32)
-         | ((unsigned __int64)texture << 16)
-         | ((unsigned __int64)depth);
+         | ((unsigned __int64)depth << 16)
+         | ((unsigned __int64)texture);
 }
 
 }

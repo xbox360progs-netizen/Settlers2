@@ -611,10 +611,10 @@ void MapEditor::RenderGridLayer() {
                     cmd.v1 = iconRegion->v1;
                     cmd.color = 0xFFFFFFFF;
                     cmd.textureID = 4;
-                    cmd.shaderID = SHADER_TERRAIN;
+                    cmd.shaderID = SHADER_WORLD;
                     cmd.blendMode = 1;
-                    cmd.layer = LAYER_UI;
-                    cmd.depth = static_cast<WORD>(0.99f * 65535.0f);
+                    cmd.layer = LAYER_EFFECTS;
+                    cmd.depth = 600;
                     m_renderQueue->Submit(cmd);
 
                     // Отображение количества ресурса в жиле
@@ -662,7 +662,7 @@ void MapEditor::RenderGridLayer() {
                     cmd.shaderID = SHADER_TERRAIN;
                     cmd.blendMode = 0;
                     cmd.layer = LAYER_WORLD;
-                    cmd.depth = static_cast<WORD>(0.96f * 65535.0f);
+                    cmd.depth = static_cast<WORD>(30000 + y * 400);
                     m_renderQueue->Submit(cmd);
                 }
             }
@@ -696,7 +696,7 @@ void MapEditor::RenderGridLayer() {
                     cmd.shaderID = SHADER_TERRAIN;
                     cmd.blendMode = 1;
                     cmd.layer = LAYER_WORLD;
-                    cmd.depth = static_cast<WORD>(0.97f * 65535.0f);
+                    cmd.depth = static_cast<WORD>(30010 + fy * 400);
                     m_renderQueue->Submit(cmd);
                 }
             }
@@ -723,7 +723,7 @@ void MapEditor::RenderGridLayer() {
                 case 2:  groupName = "street_2"; break;
                 case 3:  sprintf_s(groupBuf, "street_%d", 3); break;
                 case 4:  groupName = "street_1"; break;
-                case 5:  groupName = "street_1"; break;
+                case 5:  groupName = "street_5"; break;
                 case 6:  sprintf_s(groupBuf, "street_%d", 6); break;
                 case 7:  sprintf_s(groupBuf, "street_%d", 7); break;
                 case 8:  groupName = "street_2"; break;
@@ -763,48 +763,66 @@ void MapEditor::RenderGridLayer() {
             cmd.shaderID = SHADER_TERRAIN;
             cmd.blendMode = 1;
             cmd.layer = LAYER_WORLD;
-            cmd.depth = static_cast<WORD>(0.955f * 65535.0f);
+            cmd.depth = static_cast<WORD>(30000 + py * 400);
             m_renderQueue->Submit(cmd);
         }
     }
 
     if (m_currentLayer == World::Roads) {
-        World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
-        if (roadsLayer) {
-            CoordinateSystem& coords = CoordinateSystem::GetInstance();
-            float dotW = coords.GetNodeWidth() * 0.25f;
-            float dotH = coords.GetNodeHeight() * 0.25f;
+    World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
+    if (roadsLayer) {
+        CoordinateSystem& coords = CoordinateSystem::GetInstance();
+        float dotW = coords.GetNodeWidth() * 0.25f;
+        float dotH = coords.GetNodeHeight() * 0.25f;
 
-            for (int y = 0; y < NODES_H; ++y) {
-                for (int x = 0; x < NODES_W; ++x) {
-                    const World::Tile& tile = roadsLayer->GetTile(x, y);
-                    bool occupied = (tile.u1 > tile.u0 && tile.v1 > tile.v0);
-                    if (occupied) continue;
-
-                    float wx, wy;
-                    coords.NodeTileToWorld(x, y, wx, wy);
-
-                    DWORD dotColor = D3DCOLOR_ARGB(120, 100, 100, 100);
-                    Graphics::RenderCommand cmd = {};
-                    cmd.x = wx - dotW * 0.5f;
-                    cmd.y = wy - dotH * 0.5f;
-                    cmd.width = dotW;
-                    cmd.height = dotH;
-                    cmd.u0 = 0.0f;
-                    cmd.v0 = 0.0f;
-                    cmd.u1 = 1.0f;
-                    cmd.v1 = 1.0f;
-                    cmd.color = dotColor;
-                    cmd.textureID = 2;
-                    cmd.shaderID = SHADER_TERRAIN;
-                    cmd.blendMode = 1;
-                    cmd.layer = LAYER_EFFECTS;
-                    cmd.depth = static_cast<WORD>(0.97f * 65535.0f);
-                    m_renderQueue->Submit(cmd);
+        for (int y = 0; y < NODES_H; ++y) {
+            for (int x = 0; x < NODES_W; ++x) {
+                // Проверяем занятость узла (Placement + Objects)
+                bool occupied = false;
+                World::TileLayer* placementLayer = m_map->GetLayer(World::Placement);
+                World::TileLayer* objectsLayer = m_map->GetLayer(World::Objects);
+                if (objectsLayer) {
+                    const World::Tile& ot = objectsLayer->GetTile(x, y);
+                    occupied = (ot.u1 > ot.u0 && ot.v1 > ot.v0);
                 }
+                if (!occupied && placementLayer) {
+                    const World::Tile& pt = placementLayer->GetTile(x, y);
+                    if (pt.regionIndex >= 0 && pt.atlasName != "streets") {
+                        occupied = true;
+                    }
+                }
+
+                const World::Tile& tile = roadsLayer->GetTile(x, y);
+                bool hasRoad = (tile.u1 > tile.u0 && tile.v1 > tile.v0);
+                if (hasRoad) continue; // Уже есть дорога, не рисуем точку
+
+                float wx, wy;
+                coords.NodeTileToWorld(x, y, wx, wy);
+
+                DWORD dotColor = occupied ? 
+                    D3DCOLOR_ARGB(120, 255, 0, 0) : // Красный - занято
+                    D3DCOLOR_ARGB(120, 100, 100, 100); // Серый - свободно
+
+                Graphics::RenderCommand cmd = {};
+                cmd.x = wx - dotW * 0.5f;
+                cmd.y = wy - dotH * 0.5f;
+                cmd.width = dotW;
+                cmd.height = dotH;
+                cmd.u0 = 0.0f;
+                cmd.v0 = 0.0f;
+                cmd.u1 = 1.0f;
+                cmd.v1 = 1.0f;
+                cmd.color = dotColor;
+                cmd.textureID = 2;
+                cmd.shaderID = SHADER_TERRAIN;
+                cmd.blendMode = 1;
+                cmd.layer = LAYER_EFFECTS;
+                cmd.depth = static_cast<WORD>(0.97f * 65535.0f);
+                m_renderQueue->Submit(cmd);
             }
         }
     }
+}
 
     {
         World::TileLayer* objectsLayer = m_map->GetLayer(World::Objects);
@@ -868,7 +886,7 @@ void MapEditor::RenderGridLayer() {
                     cmd.shaderID = SHADER_TERRAIN;
                     cmd.blendMode = 0;
                     cmd.layer = LAYER_WORLD;
-                    cmd.depth = static_cast<WORD>(0.96f * 65535.0f);
+                    cmd.depth = static_cast<WORD>(30010 + y * 400);
                     m_renderQueue->Submit(cmd);
                 }
             }
@@ -1425,7 +1443,7 @@ void MapEditor::UpdateRoadPreview(int cursorX, int cursorY) {
     if (!m_map || !m_roadAtlas) return;
     if (cursorX < 0 || cursorX >= NODES_W || cursorY < 0 || cursorY >= NODES_H) return;
 
-    // If cursor is over an impassable node, find nearest passable neighbour
+    // Если курсор над непроходимой клеткой, ищем ближайшую проходимую
     int endX = cursorX, endY = cursorY;
     {
         BYTE w = m_map->GetNodeWeight(endX, endY);
@@ -1446,7 +1464,7 @@ void MapEditor::UpdateRoadPreview(int cursorX, int cursorY) {
         }
     }
 
-    // Also verify start is still valid
+    // Также проверяем, что начальная точка всё ещё валидна
     BYTE startW = m_map->GetNodeWeight(m_roadStartX, m_roadStartY);
     if (startW == World::Weight_Deep || startW == World::Weight_Block) {
         CancelRoad();
@@ -1459,21 +1477,31 @@ void MapEditor::UpdateRoadPreview(int cursorX, int cursorY) {
         return;
     }
 
+    // Структура для проверки проходимости
     struct RoadPassable {
         World::Map* map;
         RoadPassable(World::Map* m) : map(m) {}
         bool operator()(int x, int y) {
+            // Проверка веса узла
             BYTE w = map->GetNodeWeight(x, y);
             if (w == World::Weight_Deep || w == World::Weight_Block) return false;
-            // Also check Placement layer: can't build road on occupied cell
+            
+            // Проверка Placement + Objects слоёв - нельзя строить дорогу на занятой клетке
             World::TileLayer* placementLayer = map->GetLayer(World::Placement);
+            World::TileLayer* objectsLayer = map->GetLayer(World::Objects);
+            if (objectsLayer) {
+                const World::Tile& ot = objectsLayer->GetTile(x, y);
+                if (ot.u1 > ot.u0 && ot.v1 > ot.v0) return false;
+            }
             if (placementLayer) {
                 const World::Tile& pt = placementLayer->GetTile(x, y);
-                if (pt.regionIndex >= 0) return false;
+                if (pt.regionIndex >= 0) return false; // Занято объектом
             }
             return true;
         }
     };
+    
+    // Структура для расчета стоимости
     struct RoadCost {
         World::Map* map;
         RoadCost(World::Map* m) : map(m) {}
@@ -1481,7 +1509,7 @@ void MapEditor::UpdateRoadPreview(int cursorX, int cursorY) {
             World::TileLayer* roadsLayer = map->GetLayer(World::Roads);
             if (roadsLayer) {
                 const World::Tile& t = roadsLayer->GetTile(x, y);
-                if (t.regionIndex >= 0) return 0.3f;
+                if (t.regionIndex >= 0) return 0.3f; // Уже есть дорога - дешевле пройти
             }
             return 1.0f;
         }
@@ -1497,7 +1525,7 @@ void MapEditor::UpdateRoadPreview(int cursorX, int cursorY) {
         m_roadPreviewPath
     );
 
-    // Ensure start is first (AStar already does this, but be safe)
+    // Убеждаемся, что начальная точка первая
     if (!m_roadPreviewPath.empty() &&
         (m_roadPreviewPath[0].first != m_roadStartX || m_roadPreviewPath[0].second != m_roadStartY)) {
         m_roadPreviewPath.insert(m_roadPreviewPath.begin(), std::make_pair(m_roadStartX, m_roadStartY));
@@ -1514,13 +1542,24 @@ void MapEditor::CommitRoad() {
 
     World::TileLayer* placementLayer = m_map->GetLayer(World::Placement);
 
-    // Mark all preview nodes as roads
+    // Проверяем каждый узел пути на предмет занятости
     for (size_t i = 0; i < m_roadPreviewPath.size(); ++i) {
         int px = m_roadPreviewPath[i].first;
         int py = m_roadPreviewPath[i].second;
         if (px < 0 || px >= NODES_W || py < 0 || py >= NODES_H) continue;
 
-        // 1. Always remove flag if it exists at this position
+        // Проверяем Placement + Objects слои перед установкой дороги
+        World::TileLayer* objectsLayer = m_map->GetLayer(World::Objects);
+        if (objectsLayer) {
+            const World::Tile& ot = objectsLayer->GetTile(px, py);
+            if (ot.u1 > ot.u0 && ot.v1 > ot.v0) continue;
+        }
+        if (placementLayer) {
+            const World::Tile& pt = placementLayer->GetTile(px, py);
+            if (pt.regionIndex >= 0) continue; // Занято объектом — пропускаем
+        }
+
+        // Удаляем флаг, если он есть в этой позиции
         for (size_t f = 0; f < m_roadFlags.size(); ++f) {
             if (m_roadFlags[f].first == px && m_roadFlags[f].second == py) {
                 m_roadFlags.erase(m_roadFlags.begin() + f);
@@ -1530,7 +1569,7 @@ void MapEditor::CommitRoad() {
 
         World::Tile& tile = roadsLayer->GetTile(px, py);
         if (tile.regionIndex < 0) {
-            // 2. If it's not a road, make it one
+            // Если это не дорога, делаем её дорогой
             tile.regionIndex = 0;
             tile.atlasName = "streets";
             tile.walkable = true;
@@ -1538,7 +1577,7 @@ void MapEditor::CommitRoad() {
 
             m_map->SetNodeWeight(px, py, World::Weight_Land);
 
-            // 3. Mark road cell in Placement layer as occupied
+            // Отмечаем клетку дороги в Placement слое как занятую
             if (placementLayer) {
                 World::Tile& pt = placementLayer->GetTile(px, py);
                 pt.regionIndex = 0;
@@ -1548,7 +1587,7 @@ void MapEditor::CommitRoad() {
                 pt.buildable = false;
             }
         } else {
-            // 4. If it's already a road, still ensure placement is updated (in case it was somehow cleared)
+            // Если уже дорога, обновляем Placement слой
             if (placementLayer) {
                 World::Tile& pt = placementLayer->GetTile(px, py);
                 if (pt.regionIndex < 0) {
@@ -1562,10 +1601,24 @@ void MapEditor::CommitRoad() {
         }
     }
 
-    // Rebuild sprites for all placed nodes and their neighbors
+    // Перестраиваем спрайты для всех установленных узлов и их соседей
     for (size_t i = 0; i < m_roadPreviewPath.size(); ++i) {
         int px = m_roadPreviewPath[i].first;
         int py = m_roadPreviewPath[i].second;
+        
+        // Проверяем Objects + Placement слои перед перестройкой
+        World::TileLayer* objectsLayer = m_map->GetLayer(World::Objects);
+        if (objectsLayer) {
+            const World::Tile& ot = objectsLayer->GetTile(px, py);
+            if (ot.u1 > ot.u0 && ot.v1 > ot.v0) continue;
+        }
+        if (placementLayer) {
+            const World::Tile& pt = placementLayer->GetTile(px, py);
+            if (pt.regionIndex >= 0 && pt.atlasName != "streets") {
+                continue;
+            }
+        }
+        
         RebuildRoadSprite(px, py);
         UpdateRoadNeighbors(px, py);
     }
@@ -1680,40 +1733,74 @@ void MapEditor::RebuildRoadSprite(int x, int y) {
 
     int pattern = CalcRoadPattern(x, y, roadsLayer);
 
-    // street_X = pattern value, with fallbacks for missing groups.
-    char groupBuf[16];
-    const char* groupName = groupBuf;
-    uint32_t spriteIdx = 0;
-
-    switch (pattern) {
-        case 0:  groupName = "street_1"; break;
-        case 1:  groupName = "street_1"; break;
-        case 2:  groupName = "street_2"; break;
-        case 3:  sprintf_s(groupBuf, "street_%d", 3); break;
-        case 4:  groupName = "street_1"; break;
-        case 5:  groupName = "street_1"; break;
-        case 6:  sprintf_s(groupBuf, "street_%d", 6); break;
-        case 7:  sprintf_s(groupBuf, "street_%d", 7); break;
-        case 8:  groupName = "street_2"; break;
-        case 9:  sprintf_s(groupBuf, "street_%d", 9); break;
-        case 10: groupName = "street_2"; break;
-        case 11: sprintf_s(groupBuf, "street_%d", 11); break;
-        case 12: sprintf_s(groupBuf, "street_%d", 12); break;
-        case 13: sprintf_s(groupBuf, "street_%d", 13); break;
-        case 14: sprintf_s(groupBuf, "street_%d", 14); break;
-        case 15: sprintf_s(groupBuf, "street_%d", 15); break;
+    // Считаем количество подключений
+    int connectionCount = 0;
+    int temp = pattern;
+    while (temp) {
+        connectionCount += temp & 1;
+        temp >>= 1;
     }
 
+    // Определяем имя группы
+    const char* groupName = nullptr;
+    
+    if (connectionCount == 1) {
+        switch (pattern) {
+            case 1:  groupName = "street_end_s"; break; // NE only → / конец
+            case 2:  groupName = "street_end_w"; break; // SE only → \ конец
+            case 4:  groupName = "street_end_n"; break; // SW only → / конец
+            case 8:  groupName = "street_end_e"; break; // NW only → \ конец
+            default: groupName = "street_1"; break;
+        }
+    } else {
+        // Два или больше подключений - определяем по направлению
+        switch (pattern) {
+            case 0:  groupName = "street_1"; break;
+            case 1:  groupName = "street_1"; break;
+            case 2:  groupName = "street_2"; break; // Это горизонтальная дорога!
+            case 3:  groupName = "street_3"; break;
+            case 4:  groupName = "street_1"; break;
+            case 5:  groupName = "street_5"; break;
+            case 6:  groupName = "street_6"; break;
+            case 7:  groupName = "street_7"; break;
+            case 8:  groupName = "street_2"; break; // Это тоже горизонтальная дорога!
+            case 9:  groupName = "street_9"; break;
+            case 10: groupName = "street_2"; break; // И это горизонтальная дорога!
+            case 11: groupName = "street_11"; break;
+            case 12: groupName = "street_12"; break;
+            case 13: groupName = "street_13"; break;
+            case 14: groupName = "street_14"; break;
+            case 15: groupName = "street_15"; break;
+            default: groupName = "street_1"; break;
+        }
+    }
+
+    // Если всё ещё не определили, смотрим на паттерн
+    if (!groupName) {
+        // Горизонтальные дороги (восток-запад)
+        if (pattern == 2 || pattern == 8 || pattern == 10) {
+            groupName = "street_2";
+        } else {
+            groupName = "street_1";
+        }
+    }
+
+    // Получаем группу спрайтов
     const std::vector<uint32_t>* group = m_roadAtlas->GetGroup(groupName);
+    
+    // Fallback если группа не найдена
     if (!group || group->empty()) {
         group = m_roadAtlas->GetGroup("street_1");
         if (!group || group->empty()) return;
-        spriteIdx = 0;
     }
 
-    // Clamp spriteIdx to valid range
-    if (spriteIdx >= group->size()) spriteIdx = 0;
-    uint32_t regionIdx = (*group)[spriteIdx];
+    // Выбираем случайный спрайт из группы
+    uint32_t regionIdx;
+    if (group->size() > 0) {
+        regionIdx = (*group)[rand() % group->size()];
+    } else {
+        return;
+    }
 
     const SpriteRegion* region = m_roadAtlas->GetRegion(regionIdx);
     if (!region) return;

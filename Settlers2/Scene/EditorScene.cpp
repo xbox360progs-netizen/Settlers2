@@ -162,7 +162,7 @@ void EditorScene::Load() {
 	if (m_camera) {
 		m_camera->Initialize(1280.0f, 720.0f, m_shaderManager);
 		m_camera->SetPosition(300.0f, 300.0f);
-		m_camera->Zoom(1.5f);
+		m_camera->Zoom(0.0f); // stays at default 1.0f
 		OutputDebugStringA("[EditorScene] Camera initialized and bound to ShaderManager\n");
 	}
 
@@ -764,6 +764,8 @@ void EditorScene::HandleRadialMenuSelection() {
         m_yButtonWasPressed = false;
     }
 
+    m_editorMode = MODE_TERRAIN;
+
     if (m_mapEditor) {
         m_mapEditor->SetLayer(m_currentLayer);
 
@@ -834,6 +836,7 @@ void EditorScene::UpdateCursorAndTiles() {
                 m_selectedTileY = tileY;
                 m_hasSelection = true;
             }
+            m_mapEditor->SetCursorWorldPosition(centerWorldX, centerWorldY);
         }
     } else {
         float offsetX, offsetY;
@@ -1416,7 +1419,7 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
     if (m_textManager) {
         char fpsText[64];
         sprintf(fpsText, "FPS: %d", m_fps);
-        m_textManager->DrawTextToScreen(fpsText, 10.0f, 720.0f - 60.0f, 0xFF00FF00, 0.25f);
+        m_textManager->DrawTextToScreen(fpsText, 650.0f, 720.0f - 60.0f, 0xFF00FF00, 0.25f);
 
         static const char* layerNames[] = {
             "Roads", "Nodes", "Placement", "Resources", "Ground", "Objects", "Overlay"
@@ -1452,7 +1455,7 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
             } else {
                 sprintf_s(resInfo, "Press RB to select resource type, then A to place on tile. X: remove");
             }
-            m_textManager->DrawTextToScreen(resInfo, 10.0f, 720.0f - 60.0f, 0xFFFFCC00, 0.22f);
+            m_textManager->DrawTextToScreen(resInfo, 150.0f, 50.0f, 0xFF0000FF, 0.22f);
         }
     }
 
