@@ -1,11 +1,13 @@
 #ifndef SETTLERS2_SCENE_EDITOR_SCENE_H
 #define SETTLERS2_SCENE_EDITOR_SCENE_H
 
+#include <vector>
 #include "Scene.h"
 #include "../Logic/MapConstants.h"
 #include "../Graphics/Camera.h"
 #include "../UI/RadialMenu.h"
 #include "../UI/GridMenu.h"
+#include "../UI/WeightMenu.h"
 #include "../Graphics/SpriteRenderer.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/TextManager.h"
@@ -13,11 +15,8 @@
 #include "../World/Map.h"
 #include "../World/ResourceNode.h"
 #include "../Graphics/Renderer.h"
-#include "../Graphics/BinFileManager.h"
 #include "../Input/InputManager.h"
 #include "../Input/InputController.h"
-#include "../UI/WeightMenu.h"
-#include "../Graphics/RenderQueue.h"
 
 using Graphics::SpriteRenderer;
 
@@ -43,11 +42,37 @@ enum EditorMode
 };
 
 class EditorScene : public Scene {
-	private:
+private:
+    // Weight menu related
+    bool m_weightMenuVisible;
+    UI::WeightMenu* m_weightMenu;
+    bool m_weightMenuPlacementMode;
+    BYTE m_activeWeight;
+
+    // Private methods
     void ResetShaderState();
+    void UpdateWeightMenu(Input::Gamepad* gamepad, float deltaTime);
+    void UpdateLBButton(Input::Gamepad* gamepad);
+    void UpdateRBButton(Input::Gamepad* gamepad, bool anyMenuActive);
+    void UpdateGridMenu(Input::Gamepad* gamepad, float deltaTime);
+    void UpdateRadialMenu(Input::Gamepad* gamepad);
+    void HandleRBButtonAction();
+    void HandleWeightMenuToggle();
+    void HandleResourceMenuToggle();
+    void HandleRoadMenuToggle();
+    void HandleDefaultMenuToggle();
+    void CreateResourceGridMenu();
+    void CreateRoadGridMenu();
+    void CreateDefaultGridMenu();
+    void HandleGridMenuInput(Input::Gamepad* gamepad);
+    void HandleGridMenuAButton();
+    void HandleGridMenuBButton();
+    void HandleGridMenuYButton();
+    void HandleRoadSelection(int selectedIndex);
+    void HandleRadialMenuSelection();
 
 public:
-EditorScene();
+    EditorScene();
     virtual ~EditorScene();
     virtual void Load();
     virtual void Unload();
@@ -63,19 +88,15 @@ EditorScene();
     void SetBinFileManager(BinFileManager* binFileManager) { m_binFileManager = binFileManager; }
     void SetTextManager(class TextManager* textManager) { m_textManager = textManager; }
     void SetShaderManager(class ShaderManager* shaderManager) { m_shaderManager = shaderManager; }
+    
     // Bind three textures to GridMenu externally (no loading here)
     void BindGridMenuTextures(LPDIRECT3DTEXTURE9 bgTexture, LPDIRECT3DTEXTURE9 cellTexture, LPDIRECT3DTEXTURE9 atlasTexture);
 
     // Load an atlas by name into GridMenu (textures + UVs)
     void LoadGridMenuAtlas(const char* atlasName);
-
-    // Load a maptiles group into GridMenu (filter sprites by group)
     void LoadGridMenuGroup(const char* groupName);
-
-    // Cycle through maptiles groups for object placement
-    void CycleObjectGroup();
-
-    // Load resource icons into GridMenu
+    void LoadUIAtlasGroup(const char* groupName, const std::vector<std::string>& filterNames);
+	void LoadUIAtlasGroup(const char* groupName);
     void LoadResourceIcons();
     void LoadResourceGroupIcons();
     void LoadResourceGroupResources(int groupIndex);
@@ -91,9 +112,12 @@ EditorScene();
     void UpdateResourcePlacementFSM();
     void UpdateCamera(Input::Gamepad* gamepad, float deltaTime);
     void UpdateMapEditor(float deltaTime, Input::Gamepad* gamepad);
+    void CycleObjectGroup();
+    void UpdateSaveLoadMenu(Input::Gamepad* gamepad);
+    void RenderSaveLoadMenu(Graphics::RenderQueue* renderQueue);
 
+    // Public member variables
     Renderer* m_renderer;
-
     SpriteRenderer* m_spriteRenderer;
     Input::InputManager* m_inputManager;
     BinFileManager* m_binFileManager;
@@ -148,12 +172,6 @@ EditorScene();
     // Editor mode (Terrain, Weights, Resources)
     EditorMode m_editorMode;
     bool m_resourcesInitialized;
-    bool m_weightMenuVisible;
-    BYTE m_activeWeight;
-
-    // Weight menu for D-pad weight selection
-    UI::WeightMenu* m_weightMenu;
-    bool m_weightMenuPlacementMode;
 
     // Button hint textures for GridMenu
     GridMenu::TileUV m_buttonAUV;
@@ -165,8 +183,6 @@ EditorScene();
     int m_saveLoadMenuSelection;
     int m_saveLoadMenuPendingSlot; // slot index for confirm overwrite
     static const int SAVE_SLOT_COUNT = 10;
-    void UpdateSaveLoadMenu(Input::Gamepad* gamepad);
-    void RenderSaveLoadMenu(Graphics::RenderQueue* renderQueue);
 };
 
 } // namespace Scene

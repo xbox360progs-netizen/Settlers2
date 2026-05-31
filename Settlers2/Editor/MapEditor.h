@@ -42,11 +42,17 @@ enum BrushSize {
 
 enum RoadBuildState {
     ROAD_IDLE,
-    ROAD_PLACING
+    ROAD_PLACING,
+    ROAD_FLAG
 };
 
 class MapEditor {
 public:
+    static const int GRID_WIDTH = 20;
+    static const int GRID_HEIGHT = 20;
+    static const int NODES_W = 40;
+    static const int NODES_H = 80;
+
     MapEditor();
     ~MapEditor();
 
@@ -74,6 +80,9 @@ public:
     void AutoAssignResourcesForTrees();
     void RebuildObjectInteractionZones();
     void SetShowResourceIcons(bool show) { m_showResourceIcons = show; }
+    void SetShowObjects(bool show) { m_showObjects = show; }
+    void SetShowOverlay(bool show) { m_showOverlay = show; }
+    void SetShowNodes(bool show) { m_showNodes = show; }
 
     World::TileType GetCurrentTileType() const { return m_currentTileType; }
     int GetCurrentTileIndex() const { return m_currentTileIndex; }
@@ -90,17 +99,13 @@ public:
     void DeleteObjectAt(int x, int y);
     bool IsPlacementFootprintFree(int tx, int ty, const SpriteRegion* region) const;
     bool FindMountainObjectForResource(int x, int y, int& mountainX, int& mountainY) const;
-	bool CanPlaceObject(int x, int y, World::TileType objectType);
-
-	void MapEditor::SetShowObjects(bool show) { m_showObjects = show; }
-	void MapEditor::SetShowOverlay(bool show) { m_showOverlay = show; }
-	void MapEditor::SetShowNodes(bool show) { m_showNodes = show; }
+    bool CanPlaceObject(int x, int y, World::TileType objectType);
 
     bool SaveMap(const std::string& filename);
     bool LoadMap(const std::string& filename);
 
     UI::TilePalette* GetTilePalette() { return m_tilePalette; }
-	World::TileType GetObjectTypeByIndex(int index);
+    World::TileType GetObjectTypeByIndex(int index);
 
     // Road building (A* pathfinding)
     void StartRoad(int x, int y);
@@ -109,6 +114,14 @@ public:
     void CancelRoad();
     RoadBuildState GetRoadBuildState() const { return m_roadBuildState; }
     const std::vector<std::pair<int,int>>& GetRoadPreviewPath() const { return m_roadPreviewPath; }
+
+    // Road flag nodes
+    void ToggleFlag(int x, int y);
+    bool IsRoadFlagMode() const { return m_roadBuildState == ROAD_FLAG; }
+    void SetRoadFlagMode(bool on);
+    const std::vector<std::pair<int,int>>& GetRoadFlags() const { return m_roadFlags; }
+    void SetRoadFlags(const std::vector<std::pair<int,int>>& flags) { m_roadFlags = flags; }
+
 private:
     static void OnTileSelected(World::TileType type, void* userData);
 
@@ -117,9 +130,10 @@ private:
     void UpdateCamera(float deltaTime);
     void RenderGrid();
     void RenderTilePreview();
-    void CacheNodePositions();	
+    void CacheNodePositions();
 
-World::Map* m_map;
+    // Member variables
+    World::Map* m_map;
     TileRenderer* m_tileRenderer;
     ::Renderer* m_renderer;
     Input::InputManager* m_inputManager;
@@ -142,14 +156,7 @@ World::Map* m_map;
     float m_zoomLevel;
     float m_worldCenterX, m_worldCenterY;
 
-    public:
-    static const int GRID_WIDTH = 20;
-    static const int GRID_HEIGHT = 20;
-    static const int NODES_W = 40;
-    static const int NODES_H = 80;
-
-private:
-	const char* m_currentObjectAtlasName;
+    const char* m_currentObjectAtlasName;
     const char* m_currentObjectGroupName;
 
     int m_hoveredTileX, m_hoveredTileY;
@@ -171,18 +178,26 @@ private:
 
     TextManager* m_textManager;
 
-	bool m_showObjects;
+    bool m_showObjects;
     bool m_showOverlay;
     bool m_showNodes;
+    bool m_placementOccupied;
+    bool m_showResourceIcons;
+
+    int m_resourceIconIndices[World::ResourceType_Count];
 
     NodePos m_nodesCache[NODES_H][NODES_W];
     NodePos m_groundCache[GRID_HEIGHT][GRID_WIDTH];
 
+    RoadBuildState m_roadBuildState;
+    int m_roadStartX;
+    int m_roadStartY;
+    std::vector<std::pair<int,int>> m_roadPreviewPath;
+    std::vector<std::pair<int,int>> m_roadFlags;
+
+    // Private methods
     void InitializeMap();
     void RenderActiveTile();
-    bool m_placementOccupied;
-    bool m_showResourceIcons;
-    int m_resourceIconIndices[World::ResourceType_Count];
     void RenderGridLayer();
     void RenderResources();
     void RenderCursor();
@@ -190,11 +205,6 @@ private:
     void ClearPlacementFootprint(int tx, int ty, World::TileLayer* objectsLayer);
     void ClearObjectInteractionZone(int tx, int ty, World::TileLayer* objectsLayer);
     void MarkObjectInteractionZone(int tx, int ty, const World::Tile& objectTile, const SpriteRegion* region);
-
-    RoadBuildState m_roadBuildState;
-    int m_roadStartX;
-    int m_roadStartY;
-    std::vector<std::pair<int,int>> m_roadPreviewPath;
 
     // Road sprite helpers (Rule 15)
     static int CalcRoadPattern(int x, int y, World::TileLayer* roadsLayer);

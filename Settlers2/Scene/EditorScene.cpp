@@ -442,6 +442,14 @@ void EditorScene::UpdateFPS() {
 void EditorScene::UpdateMenus(Input::Gamepad* gamepad, float deltaTime) {
     bool anyMenuActive = (m_gridMenu && m_gridMenu->IsVisible()) || (m_radialMenu && m_radialMenu->IsVisible());
 
+    UpdateWeightMenu(gamepad, deltaTime);
+    UpdateLBButton(gamepad);
+    UpdateRBButton(gamepad, anyMenuActive);
+    UpdateGridMenu(gamepad, deltaTime);
+    UpdateRadialMenu(gamepad);
+}
+
+void EditorScene::UpdateWeightMenu(Input::Gamepad* gamepad, float deltaTime) {
     if (m_weightMenuVisible && m_weightMenu) {
         m_weightMenu->Update(gamepad, deltaTime);
         m_weightMenuVisible = m_weightMenu->IsVisible();
@@ -479,7 +487,9 @@ void EditorScene::UpdateMenus(Input::Gamepad* gamepad, float deltaTime) {
             }
         }
     }
+}
 
+void EditorScene::UpdateLBButton(Input::Gamepad* gamepad) {
     if (gamepad->IsButtonPressed(Input::GP_LB)) {
         if (m_gridMenu && !m_gridMenu->IsVisible() && m_mapEditor) {
             m_mapEditor->SetCursorPreview(-1);
@@ -495,148 +505,244 @@ void EditorScene::UpdateMenus(Input::Gamepad* gamepad, float deltaTime) {
             }
         }
     }
+}
 
+void EditorScene::UpdateRBButton(Input::Gamepad* gamepad, bool anyMenuActive) {
     if (!anyMenuActive && !m_weightMenuVisible) {
         if (gamepad->IsButtonPressed(Input::GP_RB)) {
-
-			ResetShaderState();
-
-            if (m_currentLayer == World::Nodes || m_currentLayer == World::Placement) {
-                if (m_weightMenu) {
-                    if (m_weightMenuVisible) {
-                        m_weightMenu->Close();
-                        m_weightMenuVisible = false;
-                    } else {
-                        TextureRegistry::instance().refreshTexture("ui");
-                        // Update UI texture slots after refresh
-                        std::tr1::shared_ptr<SpriteAtlas> uiAtl = TextureRegistry::instance().getAtlas("ui");
-                        LPDIRECT3DTEXTURE9 uiTex = uiAtl ? uiAtl->GetTexture() : NULL;
-                        if (m_spriteRenderer) {
-                            m_spriteRenderer->SetTextureSlot(6, uiTex);
-                            m_spriteRenderer->SetTextureSlot(7, uiTex);
-                            m_spriteRenderer->SetTextureSlot(13, uiTex);
-                            m_spriteRenderer->SetTextureSlot(14, uiTex);
-                        }
-                        m_weightMenuPlacementMode = (m_currentLayer == World::Placement);
-                        m_weightMenu->SetPlacementMode(m_weightMenuPlacementMode);
-                        m_weightMenu->Open(m_activeWeight);
-                        m_weightMenuVisible = true;
-                    }
-                }
-            } else if (m_currentLayer == World::Resources && m_currentState == STATE_IDLE) {
-                if (!m_gridMenu) {
-                    m_gridMenu = new GridMenu();
-                    if (m_gridMenu->Initialize()) {
-                        m_gridMenu->SetTextureSlots(6, 7, 8);
-                        LoadResourceGroupIcons();
-                    }
-                    m_gridMenu->Show(640.0f, 330.0f);
-                } else if (m_gridMenu->IsVisible()) {
-                    m_gridMenu->Hide();
-                } else {
-                    TextureRegistry::instance().refreshTexture("ui");
-                    LoadResourceGroupIcons();
-                    m_gridMenu->Show(640.0f, 330.0f);
-                }
-            } else if (m_currentLayer == World::Roads) {
-                if (!m_gridMenu) {
-                    m_gridMenu = new GridMenu();
-                    if (m_gridMenu->Initialize()) {
-                        m_gridMenu->SetTextureSlots(6, 7, 8);
-                        LoadGridMenuAtlas("streets");
-                    }
-                    m_gridMenu->Show(640.0f, 330.0f);
-                } else if (m_gridMenu->IsVisible()) {
-                    m_gridMenu->Hide();
-                } else {
-                    TextureRegistry::instance().refreshTexture("ui");
-                    LoadGridMenuAtlas("streets");
-                    m_gridMenu->Show(640.0f, 330.0f);
-                }
-            } else {
-                if (!m_gridMenu) {
-                    m_gridMenu = new GridMenu();
-                    if (m_gridMenu->Initialize()) {
-                        m_gridMenu->SetTextureSlots(6, 7, 8);
-                        if (m_currentLayer == World::Objects) {
-                            m_objectGroupIndex = 0;
-                            LoadGridMenuGroup(kObjectGroupNames[m_objectGroupIndex]);
-                            if (m_mapEditor) m_mapEditor->SetObjectGroup(kObjectGroupNames[m_objectGroupIndex]);
-                        } else {
-                            LoadGridMenuAtlas("ground");
-                        }
-                    }
-                    m_gridMenu->Show(640.0f, 330.0f);
-                } else if (m_gridMenu->IsVisible()) {
-                    m_gridMenu->Hide();
-                } else {
-                    TextureRegistry::instance().refreshTexture("ui");
-                    if (m_currentLayer == World::Objects) {
-                        LoadGridMenuGroup(kObjectGroupNames[m_objectGroupIndex]);
-                        if (m_mapEditor) m_mapEditor->SetObjectGroup(kObjectGroupNames[m_objectGroupIndex]);
-                    } else {
-                        LoadGridMenuAtlas("ground");
-                    }
-                    m_gridMenu->Show(640.0f, 330.0f);
-                }
-            }
+            ResetShaderState();
+            HandleRBButtonAction();
         }
     }
+}
 
+void EditorScene::HandleRBButtonAction() {
+    if (m_currentLayer == World::Nodes || m_currentLayer == World::Placement) {
+        HandleWeightMenuToggle();
+    } else if (m_currentLayer == World::Resources && m_currentState == STATE_IDLE) {
+        HandleResourceMenuToggle();
+    } else if (m_currentLayer == World::Roads) {
+        HandleRoadMenuToggle();
+    } else {
+        HandleDefaultMenuToggle();
+    }
+}
+
+void EditorScene::HandleWeightMenuToggle() {
+    if (m_weightMenu) {
+        if (m_weightMenuVisible) {
+            m_weightMenu->Close();
+            m_weightMenuVisible = false;
+        } else {
+            TextureRegistry::instance().refreshTexture("ui");
+            std::tr1::shared_ptr<SpriteAtlas> uiAtl = TextureRegistry::instance().getAtlas("ui");
+            LPDIRECT3DTEXTURE9 uiTex = uiAtl ? uiAtl->GetTexture() : NULL;
+            if (m_spriteRenderer) {
+                m_spriteRenderer->SetTextureSlot(6, uiTex);
+                m_spriteRenderer->SetTextureSlot(7, uiTex);
+                m_spriteRenderer->SetTextureSlot(13, uiTex);
+                m_spriteRenderer->SetTextureSlot(14, uiTex);
+            }
+            m_weightMenuPlacementMode = (m_currentLayer == World::Placement);
+            m_weightMenu->SetPlacementMode(m_weightMenuPlacementMode);
+            m_weightMenu->Open(m_activeWeight);
+            m_weightMenuVisible = true;
+        }
+    }
+}
+
+void EditorScene::HandleResourceMenuToggle() {
+    if (!m_gridMenu) {
+        CreateResourceGridMenu();
+    } else if (m_gridMenu->IsVisible()) {
+        m_gridMenu->Hide();
+    } else {
+        TextureRegistry::instance().refreshTexture("ui");
+        LoadResourceGroupIcons();
+        m_gridMenu->Show(640.0f, 330.0f);
+    }
+}
+
+void EditorScene::HandleRoadMenuToggle() {
+    if (!m_gridMenu) {
+        CreateRoadGridMenu();
+    } else if (m_gridMenu->IsVisible()) {
+        m_gridMenu->Hide();
+    } else {
+        TextureRegistry::instance().refreshTexture("ui");
+        std::vector<std::string> roadIcons;
+        roadIcons.push_back("icon_Streets");
+        roadIcons.push_back("icon_Flags");
+        LoadUIAtlasGroup("Streets_Flags", roadIcons);
+        m_gridMenu->Show(640.0f, 330.0f);
+    }
+}
+
+void EditorScene::HandleDefaultMenuToggle() {
+    if (!m_gridMenu) {
+        CreateDefaultGridMenu();
+    } else if (m_gridMenu->IsVisible()) {
+        m_gridMenu->Hide();
+    } else {
+        TextureRegistry::instance().refreshTexture("ui");
+        if (m_currentLayer == World::Objects) {
+            LoadGridMenuGroup(kObjectGroupNames[m_objectGroupIndex]);
+            if (m_mapEditor) m_mapEditor->SetObjectGroup(kObjectGroupNames[m_objectGroupIndex]);
+        } else {
+            LoadGridMenuAtlas("ground");
+        }
+        m_gridMenu->Show(640.0f, 330.0f);
+    }
+}
+
+void EditorScene::CreateResourceGridMenu() {
+    m_gridMenu = new GridMenu();
+    if (m_gridMenu->Initialize()) {
+        m_gridMenu->SetTextureSlots(6, 7, 8);
+        LoadResourceGroupIcons();
+    }
+    m_gridMenu->Show(640.0f, 330.0f);
+}
+
+void EditorScene::CreateRoadGridMenu() {
+    m_gridMenu = new GridMenu();
+    if (m_gridMenu->Initialize()) {
+        m_gridMenu->SetTextureSlots(6, 7, 8);
+        std::vector<std::string> roadIcons;
+        roadIcons.push_back("icon_Streets");
+        roadIcons.push_back("icon_Flags");
+        LoadUIAtlasGroup("Streets_Flags", roadIcons);
+    }
+    m_gridMenu->Show(640.0f, 330.0f);
+}
+
+void EditorScene::CreateDefaultGridMenu() {
+    m_gridMenu = new GridMenu();
+    if (m_gridMenu->Initialize()) {
+        m_gridMenu->SetTextureSlots(6, 7, 8);
+        if (m_currentLayer == World::Objects) {
+            m_objectGroupIndex = 0;
+            LoadGridMenuGroup(kObjectGroupNames[m_objectGroupIndex]);
+            if (m_mapEditor) m_mapEditor->SetObjectGroup(kObjectGroupNames[m_objectGroupIndex]);
+        } else {
+            LoadGridMenuAtlas("ground");
+        }
+    }
+    m_gridMenu->Show(640.0f, 330.0f);
+}
+
+void EditorScene::UpdateGridMenu(Input::Gamepad* gamepad, float deltaTime) {
     if (m_gridMenu && !m_gridMenu->IsVisible() && m_mapEditor) {
         m_mapEditor->SetCursorPreview(-1);
     }
 
     if (m_gridMenu && m_gridMenu->IsVisible()) {
-    if (!m_spriteRenderer) {
-        OutputDebugStringA("[EditorScene] WARNING: spriteRenderer is NULL during GridMenu update\n");
-        return;
-    }
-    
-    m_gridMenu->Update(gamepad, deltaTime);
-
-    // Update cursor preview with currently highlighted sprite
-    if (m_mapEditor) {
-        if (m_gridMenu->IsVisible() && (m_currentLayer == World::Ground || m_currentLayer == World::Objects || m_currentLayer == World::Roads)) {
-            int previewIdx = m_gridMenu->GetSelectedSpriteIndex();
-            m_mapEditor->SetCursorPreview(previewIdx);
-        } else {
-            m_mapEditor->SetCursorPreview(-1);
-        }
-    }
-
-        if (gamepad->IsButtonPressed(Input::GP_A)) {
-            int selectedIndex = m_gridMenu->GetSelectedSpriteIndex();
-            if (selectedIndex >= 0 && m_mapEditor) {
-                if (m_currentLayer != World::Resources) {
-                    m_mapEditor->SetTileByIndex(selectedIndex);
-                    m_gridMenu->Hide();
-                    m_mapEditor->SetCursorPreview(-1);
-                }
-            }
+        if (!m_spriteRenderer) {
+            OutputDebugStringA("[EditorScene] WARNING: spriteRenderer is NULL during GridMenu update\n");
+            return;
         }
 
-        if (gamepad->IsButtonPressed(Input::GP_B)) {
-            if (m_currentLayer == World::Resources && !m_resourceMenuShowingGroups) {
-                LoadResourceGroupIcons();
+        m_gridMenu->Update(gamepad, deltaTime);
+
+        // Update cursor preview with currently highlighted sprite
+        if (m_mapEditor) {
+            if (m_gridMenu->IsVisible() && (m_currentLayer == World::Ground || m_currentLayer == World::Objects || m_currentLayer == World::Roads)) {
+                int previewIdx = m_gridMenu->GetSelectedSpriteIndex();
+                m_mapEditor->SetCursorPreview(previewIdx);
             } else {
-                m_gridMenu->Hide();
                 m_mapEditor->SetCursorPreview(-1);
             }
         }
 
-        if (gamepad->IsButtonPressed(Input::GP_Y) && m_currentLayer == World::Objects) {
-            CycleObjectGroup();
-        }
+        HandleGridMenuInput(gamepad);
+    }
+}
 
-        if (gamepad->IsButtonPressed(Input::GP_LB)) {
-            m_gridMenu->PrevPage();
-        }
-        if (gamepad->IsButtonPressed(Input::GP_RB)) {
-            m_gridMenu->NextPage();
-        }
+void EditorScene::HandleGridMenuInput(Input::Gamepad* gamepad) {
+    if (gamepad->IsButtonPressed(Input::GP_A)) {
+        HandleGridMenuAButton();
     }
 
+    if (gamepad->IsButtonPressed(Input::GP_B)) {
+        HandleGridMenuBButton();
+    }
+
+    if (gamepad->IsButtonPressed(Input::GP_Y)) {
+        HandleGridMenuYButton();
+    }
+
+    if (gamepad->IsButtonPressed(Input::GP_LB)) {
+        m_gridMenu->PrevPage();
+    }
+    if (gamepad->IsButtonPressed(Input::GP_RB)) {
+        m_gridMenu->NextPage();
+    }
+}
+
+void EditorScene::HandleGridMenuAButton() {
+    if (m_gridMenu && m_gridMenu->IsVisible()) {
+        int selectedIndex = m_gridMenu->GetSelectedSpriteIndex();
+        if (selectedIndex >= 0 && m_mapEditor) {
+            if (m_currentLayer == World::Roads) {
+                HandleRoadSelection(selectedIndex);
+            } else if (m_currentLayer != World::Resources) {
+                m_mapEditor->SetTileByIndex(selectedIndex);
+                m_gridMenu->Hide();
+                m_mapEditor->SetCursorPreview(-1);
+            }
+        }
+    }
+}
+
+void EditorScene::HandleRoadSelection(int selectedIndex) {
+    if (!m_mapEditor) return;
+    
+    TextureRegistry& registry = TextureRegistry::instance();
+    std::tr1::shared_ptr<SpriteAtlas> uiAtl = registry.getAtlas("ui");
+    if (!uiAtl) return;
+
+    // Получаем имя выбранной иконки
+    const SpriteRegion* selectedRegion = uiAtl->GetRegion(selectedIndex);
+    if (!selectedRegion) return;
+
+    // Определяем, что было выбрано
+    if (selectedRegion->name == "icon_Streets") {
+        m_mapEditor->SetRoadFlagMode(false);
+        OutputDebugStringA("[EditorScene] Road building mode selected\n");
+    } else if (selectedRegion->name == "icon_Flags") {
+        m_mapEditor->SetRoadFlagMode(true);
+        OutputDebugStringA("[EditorScene] Flag placement mode selected\n");
+    }
+    
+    // Скрываем меню
+    if (m_gridMenu) {
+        m_gridMenu->Hide();
+    }
+    m_mapEditor->SetCursorPreview(-1);
+}
+
+void EditorScene::HandleGridMenuBButton() {
+    if (m_currentLayer == World::Resources && !m_resourceMenuShowingGroups) {
+        LoadResourceGroupIcons();
+    } else {
+        m_gridMenu->Hide();
+        m_mapEditor->SetCursorPreview(-1);
+    }
+}
+
+void EditorScene::HandleGridMenuYButton() {
+    if (m_currentLayer == World::Objects) {
+        CycleObjectGroup();
+    } else if (m_currentLayer == World::Roads) {
+        Editor::RoadBuildState state = m_mapEditor->GetRoadBuildState();
+        if (state == Editor::ROAD_IDLE || state == Editor::ROAD_FLAG) {
+            m_mapEditor->SetRoadFlagMode(state != Editor::ROAD_FLAG);
+            OutputDebugStringA(state == Editor::ROAD_FLAG ? "[Editor] Road building mode\n" : "[Editor] Flag placement mode\n");
+        }
+    }
+}
+
+void EditorScene::UpdateRadialMenu(Input::Gamepad* gamepad) {
     if (m_radialMenu && m_radialMenu->IsVisible()) {
         m_radialMenu->Update(gamepad);
 
@@ -645,66 +751,70 @@ void EditorScene::UpdateMenus(Input::Gamepad* gamepad, float deltaTime) {
         }
 
         if (m_radialMenu->HasSelection()) {
-            int selectedType = m_radialMenu->GetSelectedTypeId();
-            m_currentLayer = static_cast<World::LayerType>(selectedType);
+            HandleRadialMenuSelection();
+        }
+    }
+}
 
-            if (m_currentLayer != World::Objects) {
-                m_yButtonWasPressed = false;
-            }
+void EditorScene::HandleRadialMenuSelection() {
+    int selectedType = m_radialMenu->GetSelectedTypeId();
+    m_currentLayer = static_cast<World::LayerType>(selectedType);
 
-            if (m_mapEditor) {
-                m_mapEditor->SetLayer(m_currentLayer);
+    if (m_currentLayer != World::Objects) {
+        m_yButtonWasPressed = false;
+    }
 
-                m_currentState = STATE_IDLE;
-                m_activeResourceType = World::ResourceType_None;
-                m_depositConfirmPending = false;
-                m_depositBuildingSpriteIdx = -1;
+    if (m_mapEditor) {
+        m_mapEditor->SetLayer(m_currentLayer);
 
-                switch (m_currentLayer) {
-                    case World::Ground:
-                        m_mapEditor->SetShowObjects(false);
-                        m_mapEditor->SetShowOverlay(false);
-                        m_mapEditor->SetShowResourceIcons(false);
-                        break;
-                    case World::Objects:
-                        m_mapEditor->SetShowObjects(true);
-                        m_mapEditor->SetShowOverlay(false);
-                        m_mapEditor->SetShowResourceIcons(false);
-                        break;
-                    case World::Resources:
-                        m_mapEditor->SetShowObjects(true);
-                        m_mapEditor->SetShowOverlay(true);
-                        m_mapEditor->SetShowResourceIcons(true);
-                        if (!m_resourcesInitialized) {
-                            m_mapEditor->AutoAssignResourcesForTrees();
-                            m_resourcesInitialized = true;
-                        }
-                        break;
-                    case World::Overlay:
-                        m_mapEditor->SetShowObjects(true);
-                        m_mapEditor->SetShowOverlay(true);
-                        m_mapEditor->SetShowResourceIcons(false);
-                        break;
-                    default:
-                        m_mapEditor->SetShowObjects(true);
-                        m_mapEditor->SetShowOverlay(true);
-                        m_mapEditor->SetShowResourceIcons(false);
-                        break;
+        m_currentState = STATE_IDLE;
+        m_activeResourceType = World::ResourceType_None;
+        m_depositConfirmPending = false;
+        m_depositBuildingSpriteIdx = -1;
+
+        switch (m_currentLayer) {
+            case World::Ground:
+                m_mapEditor->SetShowObjects(false);
+                m_mapEditor->SetShowOverlay(false);
+                m_mapEditor->SetShowResourceIcons(false);
+                break;
+            case World::Objects:
+                m_mapEditor->SetShowObjects(true);
+                m_mapEditor->SetShowOverlay(false);
+                m_mapEditor->SetShowResourceIcons(false);
+                break;
+            case World::Resources:
+                m_mapEditor->SetShowObjects(true);
+                m_mapEditor->SetShowOverlay(true);
+                m_mapEditor->SetShowResourceIcons(true);
+                if (!m_resourcesInitialized) {
+                    m_mapEditor->AutoAssignResourcesForTrees();
+                    m_resourcesInitialized = true;
                 }
+                break;
+            case World::Overlay:
+                m_mapEditor->SetShowObjects(true);
+                m_mapEditor->SetShowOverlay(true);
+                m_mapEditor->SetShowResourceIcons(false);
+                break;
+            default:
+                m_mapEditor->SetShowObjects(true);
+                m_mapEditor->SetShowOverlay(true);
+                m_mapEditor->SetShowResourceIcons(false);
+                break;
+        }
 
-                if (m_currentLayer == World::Objects) {
-                    m_mapEditor->SetObjectGroup(kObjectGroupNames[m_objectGroupIndex]);
-                }
-            }
+        if (m_currentLayer == World::Objects) {
+            m_mapEditor->SetObjectGroup(kObjectGroupNames[m_objectGroupIndex]);
+        }
+    }
 
-            if (m_spriteRenderer) {
-                TextureRegistry& reg = TextureRegistry::instance();
-                const char* atlasName = (m_currentLayer == World::Objects) ? "maptiles" : "ground";
-                std::tr1::shared_ptr<SpriteAtlas> atlas = reg.getAtlas(atlasName);
-                if (atlas) {
-                    m_spriteRenderer->SetTextureSlot(8, atlas->GetTexture());
-                }
-            }
+    if (m_spriteRenderer) {
+        TextureRegistry& reg = TextureRegistry::instance();
+        const char* atlasName = (m_currentLayer == World::Objects) ? "maptiles" : "ground";
+        std::tr1::shared_ptr<SpriteAtlas> atlas = reg.getAtlas(atlasName);
+        if (atlas) {
+            m_spriteRenderer->SetTextureSlot(8, atlas->GetTexture());
         }
     }
 }
@@ -907,7 +1017,10 @@ void EditorScene::UpdateMapEditor(float deltaTime, Input::Gamepad* gamepad) {
 
         if (gamepad->IsButtonPressed(Input::GP_A)) {
             if (m_currentLayer == World::Roads) {
-                if (m_mapEditor->GetRoadBuildState() == Editor::ROAD_IDLE) {
+                Editor::RoadBuildState rs = m_mapEditor->GetRoadBuildState();
+                if (rs == Editor::ROAD_FLAG) {
+                    m_mapEditor->ToggleFlag(m_mapEditor->GetCursorTileX(), m_mapEditor->GetCursorTileY());
+                } else if (rs == Editor::ROAD_IDLE) {
                     int tx = m_mapEditor->GetCursorTileX();
                     int ty = m_mapEditor->GetCursorTileY();
                     m_mapEditor->StartRoad(tx, ty);
@@ -1303,7 +1416,7 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
     if (m_textManager) {
         char fpsText[64];
         sprintf(fpsText, "FPS: %d", m_fps);
-        m_textManager->DrawTextToScreen(fpsText, 10.0f, 10.0f, 0xFF00FF00, 0.25f);
+        m_textManager->DrawTextToScreen(fpsText, 10.0f, 720.0f - 60.0f, 0xFF00FF00, 0.25f);
 
         static const char* layerNames[] = {
             "Roads", "Nodes", "Placement", "Resources", "Ground", "Objects", "Overlay"
@@ -1315,7 +1428,7 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
         }
         char layerText[64];
         sprintf(layerText, "Layer: %s", layerName);
-        m_textManager->DrawTextToScreen(layerText, 1280.0f - 280.0f, 720.0f - 30.0f, 0xFFFFFFFF, 0.25f);
+        m_textManager->DrawTextToScreen(layerText, 200, 720.0f - 60.0f, 0xFFFFFFFF, 0.25f);
 
         // Show resource info when Resources layer is active
         if (m_currentLayer == World::Resources) {
@@ -1734,8 +1847,100 @@ void EditorScene::LoadGridMenuGroup(const char* groupName) {
     OutputDebugStringA(buf);
 }
 
+
+
 void EditorScene::LoadResourceIcons() {
     LoadResourceGroupIcons();
+}
+
+void EditorScene::LoadUIAtlasGroup(const char* groupName) {
+    std::vector<std::string> emptyFilters;
+    LoadUIAtlasGroup(groupName, emptyFilters);
+}
+
+void EditorScene::LoadUIAtlasGroup(const char* groupName, const std::vector<std::string>& filterNames) {
+    if (!m_gridMenu) return;
+
+    TextureRegistry& registry = TextureRegistry::instance();
+    std::tr1::shared_ptr<SpriteAtlas> uiAtl = registry.getAtlas("ui");
+    if (!uiAtl) {
+        OutputDebugStringA("[EditorScene] UI atlas not found\n");
+        return;
+    }
+
+    // Устанавливаем текстуры для GridMenu
+    LPDIRECT3DTEXTURE9 uiTex = uiAtl->GetTexture();
+    m_gridMenu->SetTextures(uiTex, uiTex, uiTex);
+    m_gridMenu->SetIconAtlas(uiAtl);
+
+    if (m_spriteRenderer) {
+        m_spriteRenderer->SetTextureSlot(6, uiTex);  // background
+        m_spriteRenderer->SetTextureSlot(7, uiTex);  // cell
+        m_spriteRenderer->SetTextureSlot(8, uiTex);  // atlas/icons
+    }
+
+    // Загружаем UV координаты для фона и ячеек
+    GridMenu::TileUV bgUV = {0,0,1,1}, cellUV = {0,0,1,1};
+    uint32_t bgIdx = uiAtl->GetIndex("menu_Grid");
+    if (bgIdx != 0xFFFFFFFF) {
+        const SpriteRegion* reg = uiAtl->GetRegion(bgIdx);
+        if (reg) { 
+            bgUV.u0 = reg->u0; bgUV.v0 = reg->v0; 
+            bgUV.u1 = reg->u1; bgUV.v1 = reg->v1; 
+        }
+    }
+    
+    uint32_t cellIdx = uiAtl->GetIndex("menu_cell");
+    if (cellIdx != 0xFFFFFFFF) {
+        const SpriteRegion* reg = uiAtl->GetRegion(cellIdx);
+        if (reg) { 
+            cellUV.u0 = reg->u0; cellUV.v0 = reg->v0; 
+            cellUV.u1 = reg->u1; cellUV.v1 = reg->v1; 
+        }
+    }
+    
+    m_gridMenu->SetBackgroundUV(bgUV);
+    m_gridMenu->SetCellUV(cellUV);
+
+    // Собираем иконки по фильтру
+    std::vector<GridMenu::TileUV> uvs;
+    std::vector<int> globalIndices;
+    std::vector<std::string> labels;
+
+    for (size_t i = 0; i < filterNames.size(); ++i) {
+        const std::string& iconName = filterNames[i];
+        uint32_t spriteIdx = uiAtl->GetIndex(iconName.c_str());
+        
+        if (spriteIdx == 0xFFFFFFFF) {
+            char buf[128];
+            sprintf_s(buf, "[EditorScene] Icon '%s' not found in UI atlas\n", iconName.c_str());
+            OutputDebugStringA(buf);
+            continue;
+        }
+
+        const SpriteRegion* reg = uiAtl->GetRegion(spriteIdx);
+        if (!reg) continue;
+
+        GridMenu::TileUV tu = {reg->u0, reg->v0, reg->u1, reg->v1};
+        uvs.push_back(tu);
+        globalIndices.push_back((int)spriteIdx);
+        labels.push_back(reg->name.empty() ? "" : LanguageManager::instance().GetString(reg->name));
+    }
+
+    if (uvs.empty()) {
+        OutputDebugStringA("[EditorScene] No matching icons found in UI atlas\n");
+        return;
+    }
+
+    m_gridMenu->SetTileData(uvs, globalIndices);
+    m_gridMenu->SetCellLabels(labels);
+    m_gridMenu->SetSpriteRenderer(m_spriteRenderer);
+    m_gridMenu->ResetSelection();
+    
+    // Устанавливаем параметры отображения
+    m_gridMenu->SetCellSpacing(139.0f, 94.0f);
+    m_gridMenu->SetCellVisualSize(117.0f, 72.0f);
+    m_gridMenu->SetCellPadding(15.0f);
 }
 
 void EditorScene::LoadResourceGroupIcons() {

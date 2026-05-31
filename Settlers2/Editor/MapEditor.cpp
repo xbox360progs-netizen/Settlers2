@@ -366,12 +366,13 @@ void MapEditor::RenderTilePreview() {
 
 bool MapEditor::SaveMap(const std::string& filename) {
     if (!m_map) return false;
-    return MapSerializer::Save(*m_map, filename);
+    return MapSerializer::Save(*m_map, filename, &m_roadFlags);
 }
 
 bool MapEditor::LoadMap(const std::string& filename) {
     if (!m_map) return false;
-    return MapSerializer::Load(*m_map, filename);
+    m_roadFlags.clear();
+    return MapSerializer::Load(*m_map, filename, &m_roadFlags);
 }
 
 void MapEditor::UpdateCamera(float deltaTime) {
@@ -662,6 +663,40 @@ void MapEditor::RenderGridLayer() {
                     cmd.blendMode = 0;
                     cmd.layer = LAYER_WORLD;
                     cmd.depth = static_cast<WORD>(0.96f * 65535.0f);
+                    m_renderQueue->Submit(cmd);
+                }
+            }
+        }
+    }
+
+    // Render road flags (FlagStreets) on top of roads
+    if (m_roadAtlas && !m_roadFlags.empty()) {
+        CoordinateSystem& coords = CoordinateSystem::GetInstance();
+        const std::vector<uint32_t>* flagGroup = m_roadAtlas->GetGroup("FlagStreets");
+        if (flagGroup && !flagGroup->empty()) {
+            uint32_t flagIdx = (*flagGroup)[0];
+            const SpriteRegion* flagRegion = m_roadAtlas->GetRegion(flagIdx);
+            if (flagRegion) {
+                for (size_t fi = 0; fi < m_roadFlags.size(); ++fi) {
+                    int fx = m_roadFlags[fi].first;
+                    int fy = m_roadFlags[fi].second;
+                    float wx, wy;
+                    coords.NodeTileToWorld(fx, fy, wx, wy);
+                    Graphics::RenderCommand cmd = {};
+                    cmd.x = wx - flagRegion->pivotX;
+                    cmd.y = wy - flagRegion->pivotY;
+                    cmd.width = (float)flagRegion->width;
+                    cmd.height = (float)flagRegion->height;
+                    cmd.u0 = flagRegion->u0;
+                    cmd.v0 = flagRegion->v0;
+                    cmd.u1 = flagRegion->u1;
+                    cmd.v1 = flagRegion->v1;
+                    cmd.color = 0xFFFFFFFF;
+                    cmd.textureID = 16;
+                    cmd.shaderID = SHADER_TERRAIN;
+                    cmd.blendMode = 1;
+                    cmd.layer = LAYER_WORLD;
+                    cmd.depth = static_cast<WORD>(0.97f * 65535.0f);
                     m_renderQueue->Submit(cmd);
                 }
             }
@@ -1429,7 +1464,14 @@ void MapEditor::UpdateRoadPreview(int cursorX, int cursorY) {
         RoadPassable(World::Map* m) : map(m) {}
         bool operator()(int x, int y) {
             BYTE w = map->GetNodeWeight(x, y);
-            return !(w == World::Weight_Deep || w == World::Weight_Block);
+            if (w == World::Weight_Deep || w == World::Weight_Block) return false;
+            // Also check Placement layer: can't build road on occupied cell
+            World::TileLayer* placementLayer = map->GetLayer(World::Placement);
+            if (placementLayer) {
+                const World::Tile& pt = placementLayer->GetTile(x, y);
+                if (pt.regionIndex >= 0) return false;
+            }
+            return true;
         }
     };
     struct RoadCost {
@@ -1462,6 +1504,7 @@ void MapEditor::UpdateRoadPreview(int cursorX, int cursorY) {
     }
 }
 
+
 void MapEditor::CommitRoad() {
     if (m_roadBuildState != ROAD_PLACING) return;
     if (!m_map || !m_roadAtlas) return;
@@ -1469,24 +1512,57 @@ void MapEditor::CommitRoad() {
     World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
     if (!roadsLayer) return;
 
-    // Mark all preview nodes as roads (just set flags, RebuildRoadSprite will pick correct sprite)
+    World::TileLayer* placementLayer = m_map->GetLayer(World::Placement);
+
+    // Mark all preview nodes as roads
     for (size_t i = 0; i < m_roadPreviewPath.size(); ++i) {
         int px = m_roadPreviewPath[i].first;
         int py = m_roadPreviewPath[i].second;
         if (px < 0 || px >= NODES_W || py < 0 || py >= NODES_H) continue;
 
+        // 1. Always remove flag if it exists at this position
+        for (size_t f = 0; f < m_roadFlags.size(); ++f) {
+            if (m_roadFlags[f].first == px && m_roadFlags[f].second == py) {
+                m_roadFlags.erase(m_roadFlags.begin() + f);
+                break;
+            }
+        }
+
         World::Tile& tile = roadsLayer->GetTile(px, py);
-        if (tile.regionIndex >= 0) continue;
+        if (tile.regionIndex < 0) {
+            // 2. If it's not a road, make it one
+            tile.regionIndex = 0;
+            tile.atlasName = "streets";
+            tile.walkable = true;
+            tile.buildable = false;
 
-        tile.regionIndex = 0;
-        tile.atlasName = "streets";
-        tile.walkable = true;
-        tile.buildable = false;
+            m_map->SetNodeWeight(px, py, World::Weight_Land);
 
-        m_map->SetNodeWeight(px, py, World::Weight_Land);
+            // 3. Mark road cell in Placement layer as occupied
+            if (placementLayer) {
+                World::Tile& pt = placementLayer->GetTile(px, py);
+                pt.regionIndex = 0;
+                pt.type = World::None;
+                pt.atlasName = "streets";
+                pt.walkable = true;
+                pt.buildable = false;
+            }
+        } else {
+            // 4. If it's already a road, still ensure placement is updated (in case it was somehow cleared)
+            if (placementLayer) {
+                World::Tile& pt = placementLayer->GetTile(px, py);
+                if (pt.regionIndex < 0) {
+                    pt.regionIndex = 0;
+                    pt.type = World::None;
+                    pt.atlasName = "streets";
+                    pt.walkable = true;
+                    pt.buildable = false;
+                }
+            }
+        }
     }
 
-    // Rebuild sprites for all placed nodes and their neighbors (Rule 15)
+    // Rebuild sprites for all placed nodes and their neighbors
     for (size_t i = 0; i < m_roadPreviewPath.size(); ++i) {
         int px = m_roadPreviewPath[i].first;
         int py = m_roadPreviewPath[i].second;
@@ -1495,7 +1571,7 @@ void MapEditor::CommitRoad() {
     }
 
     char buf[128];
-    sprintf_s(buf, "[MapEditor] Road committed: %d nodes\n", m_roadPreviewPath.size());
+    sprintf_s(buf, "[MapEditor] Road committed: %d nodes\n", (int)m_roadPreviewPath.size());
     OutputDebugStringA(buf);
 
     CancelRoad();
@@ -1506,6 +1582,57 @@ void MapEditor::CancelRoad() {
     m_roadStartX = -1;
     m_roadStartY = -1;
     m_roadPreviewPath.clear();
+}
+
+void MapEditor::ToggleFlag(int x, int y) {
+    if (!m_map || !m_roadAtlas) return;
+    if (x < 0 || x >= NODES_W || y < 0 || y >= NODES_H) return;
+
+    World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
+    if (!roadsLayer) return;
+
+    bool isRoad = (roadsLayer->GetTile(x, y).regionIndex >= 0);
+    if (!isRoad) {
+        for (size_t k = 0; k < m_roadPreviewPath.size(); ++k) {
+            if (m_roadPreviewPath[k].first == x && m_roadPreviewPath[k].second == y) {
+                isRoad = true;
+                break;
+            }
+        }
+    }
+    if (!isRoad) return;
+
+    // If flag already exists at this position, remove it
+    for (size_t i = 0; i < m_roadFlags.size(); ++i) {
+        if (m_roadFlags[i].first == x && m_roadFlags[i].second == y) {
+            m_roadFlags.erase(m_roadFlags.begin() + i);
+            char buf[128];
+            sprintf_s(buf, "[MapEditor] Flag removed at (%d,%d)\n", x, y);
+            OutputDebugStringA(buf);
+            return;
+        }
+    }
+
+    // Place new flag
+    m_roadFlags.push_back(std::make_pair(x, y));
+    char buf[128];
+    sprintf_s(buf, "[MapEditor] Flag placed at (%d,%d)\n", x, y);
+    OutputDebugStringA(buf);
+}
+
+void MapEditor::SetRoadFlagMode(bool on) {
+    if (on) {
+        m_roadBuildState = ROAD_FLAG;
+        m_roadStartX = -1;
+        m_roadStartY = -1;
+        m_roadPreviewPath.clear();
+        OutputDebugStringA("[MapEditor] Flag placement mode ON\n");
+    } else {
+        if (m_roadBuildState == ROAD_FLAG) {
+            m_roadBuildState = ROAD_IDLE;
+            OutputDebugStringA("[MapEditor] Flag placement mode OFF\n");
+        }
+    }
 }
 
 // Helper: check if a node at (nx,ny) is a road (committed OR in previewPath)
@@ -1554,9 +1681,6 @@ void MapEditor::RebuildRoadSprite(int x, int y) {
     int pattern = CalcRoadPattern(x, y, roadsLayer);
 
     // street_X = pattern value, with fallbacks for missing groups.
-    // / axis (NE-SW): patterns 1,4,5 → street_1
-    // \ axis (SE-NW): patterns 2,8,10 → street_2
-    // All other pattern values → street_{pattern}
     char groupBuf[16];
     const char* groupName = groupBuf;
     uint32_t spriteIdx = 0;
@@ -1633,6 +1757,21 @@ void MapEditor::DeleteObjectAt(int x, int y) {
         if (tile.regionIndex < 0) return;
         tile = World::Tile();
         UpdateRoadNeighbors(x, y);
+
+        // Clear Placement layer cell
+        World::TileLayer* placementLayer = m_map->GetLayer(World::Placement);
+        if (placementLayer) {
+            World::Tile& pt = placementLayer->GetTile(x, y);
+            pt = World::Tile();
+        }
+
+        // Also remove any flag at this position
+        for (size_t i = 0; i < m_roadFlags.size(); ++i) {
+            if (m_roadFlags[i].first == x && m_roadFlags[i].second == y) {
+                m_roadFlags.erase(m_roadFlags.begin() + i);
+                break;
+            }
+        }
         return;
     }
 
@@ -2031,6 +2170,5 @@ World::TileType MapEditor::GetObjectTypeByIndex(int index) {
     }
     return World::Tree;
 }
-
 
 } // namespace Editor

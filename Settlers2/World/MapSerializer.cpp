@@ -8,13 +8,13 @@
 #pragma pack(push, 1)
 struct Header {
     char magic[4];   // "SMAP"
-    int version;     // 1
+    int version;     // 2 (added road flags support)
     int groundW, groundH;
     int otherW, otherH;
 };
 #pragma pack(pop)
 
-static const int CURRENT_VERSION = 1;
+static const int CURRENT_VERSION = 2;
 
 // Вспомогательные функции для буферизации
 static void Append(std::vector<BYTE>& buf, const void* data, size_t size) {
@@ -37,7 +37,7 @@ struct BufferReader {
     }
 };
 
-bool MapSerializer::Save(const World::Map& map, const std::string& path)
+bool MapSerializer::Save(const World::Map& map, const std::string& path, const std::vector<std::pair<int,int>>* flags)
 {
     std::vector<BYTE> buffer;
     buffer.reserve(1024 * 1024); // Резерв 1МБ
@@ -113,6 +113,19 @@ bool MapSerializer::Save(const World::Map& map, const std::string& path)
         }
     }
 
+    // Road flags
+    if (flags) {
+        int fcount = (int)flags->size();
+        Append(buffer, &fcount, sizeof(fcount));
+        for (size_t i = 0; i < flags->size(); ++i) {
+            Append(buffer, &(*flags)[i].first, sizeof(int));
+            Append(buffer, &(*flags)[i].second, sizeof(int));
+        }
+    } else {
+        int fcount = -1; // no flags section
+        Append(buffer, &fcount, sizeof(fcount));
+    }
+
     HANDLE hFile = CreateFileA(path.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hFile == INVALID_HANDLE_VALUE) return false;
     DWORD written = 0;
@@ -121,7 +134,7 @@ bool MapSerializer::Save(const World::Map& map, const std::string& path)
     return success;
 }
 
-bool MapSerializer::Load(World::Map& map, const std::string& path)
+bool MapSerializer::Load(World::Map& map, const std::string& path, std::vector<std::pair<int,int>>* flags)
 {
     HANDLE hFile = CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hFile == INVALID_HANDLE_VALUE) return false;
@@ -135,7 +148,9 @@ bool MapSerializer::Load(World::Map& map, const std::string& path)
     BufferReader reader(buffer);
     Header hdr;
     if (!reader.Read(&hdr, sizeof(hdr))) return false;
-    if (memcmp(hdr.magic, "SMAP", 4) != 0 || hdr.version != CURRENT_VERSION) return false;
+    if (memcmp(hdr.magic, "SMAP", 4) != 0) return false;
+    // Support version 1 (no flags) and version 2 (with flags)
+    if (hdr.version != 1 && hdr.version != CURRENT_VERSION) return false;
 
     map.Clear();
     map.InitializeWeights(World::Weight_Land);
@@ -206,6 +221,21 @@ bool MapSerializer::Load(World::Map& map, const std::string& path)
         reader.Read(&vis, 1);
         map.SetResourceNode(x, y, static_cast<World::ResourceType>(rt), amount, vis != 0);
         map.SetNodeWeight(x, y, weight);
+    }
+
+    // Road flags (version 2+)
+    if (hdr.version >= 2 && flags) {
+        int fcount;
+        if (reader.Read(&fcount, sizeof(fcount))) {
+            if (fcount >= 0) {
+                flags->clear();
+                for (int i = 0; i < fcount; ++i) {
+                    int fx, fy;
+                    if (!reader.Read(&fx, sizeof(fx)) || !reader.Read(&fy, sizeof(fy))) break;
+                    flags->push_back(std::make_pair(fx, fy));
+                }
+            }
+        }
     }
     return true;
 }
