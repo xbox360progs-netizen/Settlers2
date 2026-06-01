@@ -3,6 +3,7 @@
 #include <iostream>
 #include "SceneManager.h"
 #include "LoadingScene.h"
+#include "EditorScene.h"
 #include "../Graphics/TextureLoader.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/TextureRegistry.h"
@@ -34,7 +35,8 @@ static std::wstring ToWideString(const std::string& s) {
 MenuScene::MenuScene()
   : Scene("MenuScene"), m_backgroundPath(""), m_text("Settlers 2: Main Menu"),
     m_selectedIndex(0), m_device(NULL), m_spriteRenderer(NULL), m_renderer(NULL), m_gamepad(NULL),
-    m_textManager(NULL), m_binFileManager(NULL), m_textureLoader(NULL), m_menuCount(4), m_stickTimer(0.0f) {
+    m_textManager(NULL), m_binFileManager(NULL), m_textureLoader(NULL), m_menuCount(4), m_stickTimer(0.0f),
+    m_menuState(MENU_STATE_MAIN) {
   m_menuItems[0] = "New Game";
   m_menuItems[1] = "Map Editor";
   m_menuItems[2] = "Settings";
@@ -120,13 +122,15 @@ void MenuScene::OnExit() {
 void MenuScene::ProcessInput(float deltaTime) {
   if (!m_gamepad) return;
 
+  int itemCount = (m_menuState == MENU_STATE_MAIN) ? m_menuCount : MAP_SIZE_COUNT;
+
   if (m_gamepad->IsButtonPressed(Input::GP_DPadUp)) {
     m_selectedIndex--;
-    if (m_selectedIndex < 0) m_selectedIndex = m_menuCount - 1;
+    if (m_selectedIndex < 0) m_selectedIndex = itemCount - 1;
   }
   if (m_gamepad->IsButtonPressed(Input::GP_DPadDown)) {
     m_selectedIndex++;
-    if (m_selectedIndex >= m_menuCount) m_selectedIndex = 0;
+    if (m_selectedIndex >= itemCount) m_selectedIndex = 0;
   }
 
   float lx, ly;
@@ -136,12 +140,12 @@ void MenuScene::ProcessInput(float deltaTime) {
     if (m_stickTimer <= 0.0f) {
       if (ly > 0) {
         m_selectedIndex++;
-        if (m_selectedIndex >= m_menuCount) m_selectedIndex = 0;
+        if (m_selectedIndex >= itemCount) m_selectedIndex = 0;
       } else {
         m_selectedIndex--;
-        if (m_selectedIndex < 0) m_selectedIndex = m_menuCount - 1;
+        if (m_selectedIndex < 0) m_selectedIndex = itemCount - 1;
       }
-      m_stickTimer = 0.2f; 
+      m_stickTimer = 0.2f;
     }
   } else {
     m_stickTimer = 0.0f;
@@ -150,9 +154,21 @@ void MenuScene::ProcessInput(float deltaTime) {
   if (m_gamepad->IsButtonPressed(Input::GP_A)) {
     ExecuteMenuItem();
   }
+  if (m_gamepad->IsButtonPressed(Input::GP_B)) {
+    if (m_menuState == MENU_STATE_SIZE_SELECT) {
+      m_menuState = MENU_STATE_MAIN;
+      m_selectedIndex = 1;
+    }
+  }
 }
 
 void MenuScene::ExecuteMenuItem() {
+  if (m_menuState == MENU_STATE_SIZE_SELECT) {
+    int size = MAP_SIZES[m_selectedIndex];
+    LaunchEditorWithSize(size, size);
+    return;
+  }
+
   std::cout << "[MenuScene] ExecuteMenuItem called, selectedIndex = " << m_selectedIndex << std::endl;
   
   SceneManager* sceneMgr = GetSceneManager();
@@ -161,7 +177,6 @@ void MenuScene::ExecuteMenuItem() {
   switch (m_selectedIndex) {
     case 0: // New Game
       std::cout << "[MenuScene] New Game selected" << std::endl;
-      // Set target scene in LoadingScene before switching
       if (sceneMgr) {
         std::cout << "[MenuScene] Calling GetScene(\"Loading\")..." << std::endl;
         Scene* rawScene = sceneMgr->GetScene("Loading");
@@ -173,39 +188,15 @@ void MenuScene::ExecuteMenuItem() {
           if (loadingScene) {
             loadingScene->SetTargetScene("Game");
             std::cout << "[MenuScene] Set target scene to 'Game'" << std::endl;
-          } else {
-            std::cout << "[MenuScene] ERROR: static_cast failed!" << std::endl;
           }
-        } else {
-          std::cout << "[MenuScene] ERROR: GetScene returned NULL!" << std::endl;
         }
       }
       std::cout << "[MenuScene] Calling RequestSceneSwitch(\"Loading\")..." << std::endl;
       RequestSceneSwitch("Loading");
       break;
     case 1: // Map Editor
-      std::cout << "[MenuScene] Map Editor selected" << std::endl;
-      // Set target scene in LoadingScene before switching
-      if (sceneMgr) {
-        std::cout << "[MenuScene] Calling GetScene(\"Loading\")..." << std::endl;
-        Scene* rawScene = sceneMgr->GetScene("Loading");
-        std::cout << "[MenuScene] rawScene = " << (rawScene ? "VALID" : "NULL") << std::endl;
-        if (rawScene) {
-          std::cout << "[MenuScene] Attempting static_cast to LoadingScene..." << std::endl;
-          LoadingScene* loadingScene = static_cast<LoadingScene*>(rawScene);
-          std::cout << "[MenuScene] loadingScene = " << (loadingScene ? "VALID" : "NULL") << std::endl;
-          if (loadingScene) {
-            loadingScene->SetTargetScene("Editor");
-            std::cout << "[MenuScene] Set target scene to 'Editor'" << std::endl;
-          } else {
-            std::cout << "[MenuScene] ERROR: static_cast failed!" << std::endl;
-          }
-        } else {
-          std::cout << "[MenuScene] ERROR: GetScene returned NULL!" << std::endl;
-        }
-      }
-      std::cout << "[MenuScene] Calling RequestSceneSwitch(\"Loading\")..." << std::endl;
-      RequestSceneSwitch("Loading");
+      m_menuState = MENU_STATE_SIZE_SELECT;
+      m_selectedIndex = 0;
       break;
     case 2: // Settings
       break;
@@ -213,6 +204,23 @@ void MenuScene::ExecuteMenuItem() {
       RequestExit();
       break;
   }
+}
+
+void MenuScene::LaunchEditorWithSize(int gridW, int gridH) {
+  SceneManager* sceneMgr = GetSceneManager();
+  EditorScene::s_mapGridWidth = gridW;
+  EditorScene::s_mapGridHeight = gridH;
+
+  if (sceneMgr) {
+    Scene* rawScene = sceneMgr->GetScene("Loading");
+    if (rawScene) {
+      LoadingScene* loadingScene = static_cast<LoadingScene*>(rawScene);
+      if (loadingScene) {
+        loadingScene->SetTargetScene("Editor");
+      }
+    }
+  }
+  RequestSceneSwitch("Loading");
 }
 
 void MenuScene::Update(float deltaTime) {
@@ -272,32 +280,68 @@ void MenuScene::Render(RenderQueue* renderQueue) {
 
     // Menu items with button_A sprite for selected item
     if (m_textManager && m_spriteRenderer) {
-        float startY = 208.0f;
-        float spacingY = 70.0f;
-        for (int i = 0; i < m_menuCount; ++i) {
-            DWORD itemColor = (i == m_selectedIndex) ? 0xFFFFD700 : 0xFFFFFFFF;
-            float itemX = (i == m_selectedIndex) ? 180.0f : 140.0f;
-            m_textManager->DrawString(m_menuItems[i], itemX, startY + (i * spacingY), itemColor, 0.3f);
+        if (m_menuState == MENU_STATE_SIZE_SELECT) {
+            // Title
+            m_textManager->DrawString("Select Map Size", 140.0f, 170.0f, 0xFFFFD700, 0.35f);
 
-            // Render button_A sprite next to selected item
-            if (i == m_selectedIndex && uiAtlas) {
-                uint32_t btnIdx = uiAtlas->GetIndex("button_A");
-                if (btnIdx != 0xFFFFFFFF) {
-                    const SpriteRegion* btnReg = uiAtlas->GetRegion(btnIdx);
-                    if (btnReg) {
-                        Graphics::RenderCommand btnCmd = {};
-                        btnCmd.x = 140.0f; btnCmd.y = startY + (i * spacingY) - 4.0f;
-                        btnCmd.width = 32.0f; btnCmd.height = 32.0f;
-                        btnCmd.u0 = btnReg->u0; btnCmd.v0 = btnReg->v0;
-                        btnCmd.u1 = btnReg->u1; btnCmd.v1 = btnReg->v1;
-                        btnCmd.color = 0xFFFFFFFF;
-                        btnCmd.shaderID = SHADER_UI;
-                        btnCmd.blendMode = 1;
-                        btnCmd.depth = 898;
-                        btnCmd.layer = LAYER_UI;
-                        btnCmd.textureID = 5;
-                        btnCmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, 5, 898);
-                        renderQueue->Submit(btnCmd);
+            float startY = 230.0f;
+            float spacingY = 70.0f;
+            for (int i = 0; i < MAP_SIZE_COUNT; ++i) {
+                char sizeText[32];
+                sprintf_s(sizeText, "%d x %d", MAP_SIZES[i], MAP_SIZES[i]);
+                DWORD itemColor = (i == m_selectedIndex) ? 0xFFFFD700 : 0xFFFFFFFF;
+                float itemX = (i == m_selectedIndex) ? 180.0f : 140.0f;
+                m_textManager->DrawString(sizeText, itemX, startY + (i * spacingY), itemColor, 0.3f);
+
+                if (i == m_selectedIndex && uiAtlas) {
+                    uint32_t btnIdx = uiAtlas->GetIndex("button_A");
+                    if (btnIdx != 0xFFFFFFFF) {
+                        const SpriteRegion* btnReg = uiAtlas->GetRegion(btnIdx);
+                        if (btnReg) {
+                            Graphics::RenderCommand btnCmd = {};
+                            btnCmd.x = 140.0f; btnCmd.y = startY + (i * spacingY) - 4.0f;
+                            btnCmd.width = 32.0f; btnCmd.height = 32.0f;
+                            btnCmd.u0 = btnReg->u0; btnCmd.v0 = btnReg->v0;
+                            btnCmd.u1 = btnReg->u1; btnCmd.v1 = btnReg->v1;
+                            btnCmd.color = 0xFFFFFFFF;
+                            btnCmd.shaderID = SHADER_UI;
+                            btnCmd.blendMode = 1;
+                            btnCmd.depth = 898;
+                            btnCmd.layer = LAYER_UI;
+                            btnCmd.textureID = 5;
+                            btnCmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, 5, 898);
+                            renderQueue->Submit(btnCmd);
+                        }
+                    }
+                }
+            }
+        } else {
+            float startY = 208.0f;
+            float spacingY = 70.0f;
+            for (int i = 0; i < m_menuCount; ++i) {
+                DWORD itemColor = (i == m_selectedIndex) ? 0xFFFFD700 : 0xFFFFFFFF;
+                float itemX = (i == m_selectedIndex) ? 180.0f : 140.0f;
+                m_textManager->DrawString(m_menuItems[i], itemX, startY + (i * spacingY), itemColor, 0.3f);
+
+                if (i == m_selectedIndex && uiAtlas) {
+                    uint32_t btnIdx = uiAtlas->GetIndex("button_A");
+                    if (btnIdx != 0xFFFFFFFF) {
+                        const SpriteRegion* btnReg = uiAtlas->GetRegion(btnIdx);
+                        if (btnReg) {
+                            Graphics::RenderCommand btnCmd = {};
+                            btnCmd.x = 140.0f; btnCmd.y = startY + (i * spacingY) - 4.0f;
+                            btnCmd.width = 32.0f; btnCmd.height = 32.0f;
+                            btnCmd.u0 = btnReg->u0; btnCmd.v0 = btnReg->v0;
+                            btnCmd.u1 = btnReg->u1; btnCmd.v1 = btnReg->v1;
+                            btnCmd.color = 0xFFFFFFFF;
+                            btnCmd.shaderID = SHADER_UI;
+                            btnCmd.blendMode = 1;
+                            btnCmd.depth = 898;
+                            btnCmd.layer = LAYER_UI;
+                            btnCmd.textureID = 5;
+                            btnCmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, 5, 898);
+                            renderQueue->Submit(btnCmd);
+                        }
                     }
                 }
             }

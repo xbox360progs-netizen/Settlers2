@@ -48,10 +48,10 @@ enum RoadBuildState {
 
 class MapEditor {
 public:
-    static const int GRID_WIDTH = 20;
-    static const int GRID_HEIGHT = 20;
-    static const int NODES_W = 40;
-    static const int NODES_H = 80;
+    int m_gridWidth;
+    int m_gridHeight;
+    int m_nodesW;
+    int m_nodesH;
 
     MapEditor();
     ~MapEditor();
@@ -186,8 +186,8 @@ private:
 
     int m_resourceIconIndices[World::ResourceType_Count];
 
-    NodePos m_nodesCache[NODES_H][NODES_W];
-    NodePos m_groundCache[GRID_HEIGHT][GRID_WIDTH];
+    std::vector<std::vector<NodePos>> m_nodesCache;
+    std::vector<std::vector<NodePos>> m_groundCache;
 
     RoadBuildState m_roadBuildState;
     int m_roadStartX;

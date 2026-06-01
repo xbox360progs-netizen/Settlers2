@@ -177,6 +177,10 @@ public:
     GridMenu::TileUV m_buttonAUV;
     GridMenu::TileUV m_buttonBUV;
 
+    // Map size (set by MenuScene before transition)
+    static int s_mapGridWidth;
+    static int s_mapGridHeight;
+
     // Save/Load menu
     bool m_saveLoadMenuActive;
     int m_saveLoadMenuSection;   // 0=main, 1=save, 2=load, 3=confirm

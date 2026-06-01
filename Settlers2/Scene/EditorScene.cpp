@@ -42,6 +42,9 @@ struct ResourceMenuGroupDef {
     int count;
 };
 
+int EditorScene::s_mapGridWidth = 20;
+int EditorScene::s_mapGridHeight = 20;
+
 static const ResourceMenuGroupDef kResourceMenuGroups[] = {
     { "icon_resource_wood",  { World::ResourceType_Wood, World::ResourceType_RealWood, World::ResourceType_ExoticWood }, 3 },
     { "icon_resource_stone", { World::ResourceType_Stone, World::ResourceType_Marble, World::ResourceType_Granite }, 3 },
@@ -223,11 +226,11 @@ void EditorScene::Load() {
 		}
 	}
 
-	// Streets atlas for Roads layer — slot 16
+	// Streets atlas for Roads layer — slot 3
 	LPDIRECT3DTEXTURE9 streetsTex = registry.getTextureOrLoad("streets");
 	if (streetsTex && m_spriteRenderer) {
-		m_spriteRenderer->SetTextureSlot(16, streetsTex);
-		OutputDebugStringA("[EditorScene] Streets atlas loaded and bound to slot 16\n");
+		m_spriteRenderer->SetTextureSlot(3, streetsTex);
+		OutputDebugStringA("[EditorScene] Streets atlas loaded and bound to slot 3\n");
 	}
 
 	// UI atlas (loaded by LoadingScene) — slot 14 for cursor, button hints, menu sprites
@@ -364,7 +367,7 @@ void EditorScene::Load() {
 	// Initialize MapEditor
 	if (!m_mapEditor && m_renderer && m_inputManager) {
 		m_mapEditor = new Editor::MapEditor();
-		World::Map* map = new World::Map(Editor::MapEditor::GRID_WIDTH, Editor::MapEditor::GRID_HEIGHT, Editor::MapEditor::GRID_WIDTH * 2, Editor::MapEditor::GRID_HEIGHT * 4);
+		World::Map* map = new World::Map(s_mapGridWidth, s_mapGridHeight, s_mapGridWidth * 2, s_mapGridHeight * 4);
 		m_mapEditor->Initialize(map, m_renderer, m_inputManager, m_renderer->GetDevice());
 		m_mapEditor->SetSpriteRenderer(m_spriteRenderer);
 		m_mapEditor->SetCamera(m_camera);
@@ -1564,7 +1567,7 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
                 texSlot = 8;
             } else if (m_currentLayer == World::Roads) {
                 atlasName = "streets";
-                texSlot = 16;
+                texSlot = 3;
             }
             std::tr1::shared_ptr<SpriteAtlas> atlas = reg.getAtlas(atlasName);
             if (atlas && tileIdx < (int)atlas->GetRegionCount()) {

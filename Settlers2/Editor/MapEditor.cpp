@@ -97,6 +97,12 @@ void MapEditor::Initialize(World::Map* map, Renderer* renderer,
     CoordinateSystem::GetInstance().Initialize(groundWidth, groundHeight);
     // ============================================================================
 
+    // Сохраняем размеры карты
+    m_gridWidth = groundWidth;
+    m_gridHeight = groundHeight;
+    m_nodesW = groundWidth * 2;
+    m_nodesH = groundHeight * 4;
+
     // Кешируем позиции узлов (для быстрого доступа при рендеринге/выборе)
     CacheNodePositions();
 
@@ -119,7 +125,7 @@ void MapEditor::Initialize(World::Map* map, Renderer* renderer,
     m_roadTexture = registry.getTextureOrLoad("streets");
     m_roadAtlas = registry.getAtlas("streets");
     if (m_roadAtlas && m_spriteRenderer) {
-        m_spriteRenderer->SetTextureSlot(16, m_roadAtlas->GetTexture());
+        m_spriteRenderer->SetTextureSlot(3, m_roadAtlas->GetTexture());
         char buf[128];
         sprintf_s(buf, "[MapEditor] Roads atlas loaded: %d sprites\n", m_roadAtlas->GetRegionCount());
         OutputDebugStringA(buf);
@@ -144,10 +150,10 @@ void MapEditor::Initialize(World::Map* map, Renderer* renderer,
     }
 
     // Инициализируем весовую карту (по умолчанию – глубокая вода)
-    m_weightMap = new Logic::WeightMap(GRID_WIDTH, GRID_HEIGHT);
-    for (int y = 0; y < GRID_HEIGHT; ++y)
+    m_weightMap = new Logic::WeightMap(m_gridWidth, m_gridHeight);
+    for (int y = 0; y < m_gridHeight; ++y)
     {
-        for (int x = 0; x < GRID_WIDTH; ++x)
+        for (int x = 0; x < m_gridWidth; ++x)
         {
             m_weightMap->SetWeight(x, y, Logic::WEIGHT_DEEP_WATER);
         }
@@ -300,26 +306,26 @@ void MapEditor::PaintArea(int centerX, int centerY) {
 
     int brushRadius = static_cast<int>(m_brushSize) / 2;
     World::LayerType layer = World::Ground;
-    int gridW = GRID_WIDTH;
-    int gridH = GRID_HEIGHT;
+    int gridW = m_gridWidth;
+    int gridH = m_gridHeight;
 
 switch (m_currentMode) {
         case EditMode_PaintGround:
             layer = World::Ground;
-            gridW = GRID_WIDTH;
-            gridH = GRID_HEIGHT;
+            gridW = m_gridWidth;
+            gridH = m_gridHeight;
             break;
         case EditMode_PaintObjects: {
             layer = World::Objects;
             World::TileLayer* objectsLayer = m_map->GetLayer(World::Objects);
-            gridW = objectsLayer ? objectsLayer->GetWidth() : NODES_W;
-            gridH = objectsLayer ? objectsLayer->GetHeight() : NODES_H;
+            gridW = objectsLayer ? objectsLayer->GetWidth() : m_nodesW;
+            gridH = objectsLayer ? objectsLayer->GetHeight() : m_nodesH;
             break;
         }
         case EditMode_Erase:
             layer = World::Ground;
-            gridW = GRID_WIDTH;
-            gridH = GRID_HEIGHT;
+            gridW = m_gridWidth;
+            gridH = m_gridHeight;
             break;
         default:
             return;
@@ -434,10 +440,34 @@ void MapEditor::RenderGridLayer() {
     World::TileLayer* groundLayer = m_map->GetLayer(World::Ground);
     if (!groundLayer) return;
 
+    // Viewport culling: compute visible tile bounds
+    int visNodeMinX = 0, visNodeMinY = 0, visNodeMaxX = m_nodesW - 1, visNodeMaxY = m_nodesH - 1;
+    int visGroundMinX = 0, visGroundMinY = 0, visGroundMaxX = m_gridWidth - 1, visGroundMaxY = m_gridHeight - 1;
+    if (m_pCamera) {
+        float wTLx, wTLy, wBRx, wBRy;
+        m_pCamera->ScreenToWorld(0.0f, 0.0f, wTLx, wTLy);
+        m_pCamera->ScreenToWorld(m_pCamera->GetScreenWidth(), m_pCamera->GetScreenHeight(), wBRx, wBRy);
+        CoordinateSystem& coords = CoordinateSystem::GetInstance();
+        int nx1, ny1, nx2, ny2;
+        coords.WorldToNodeTile(wTLx, wTLy, nx1, ny1);
+        coords.WorldToNodeTile(wBRx, wBRy, nx2, ny2);
+        visNodeMinX = max(0, min(nx1, nx2) - 1);
+        visNodeMinY = max(0, min(ny1, ny2) - 1);
+        visNodeMaxX = min(m_nodesW - 1, max(nx1, nx2) + 1);
+        visNodeMaxY = min(m_nodesH - 1, max(ny1, ny2) + 1);
+        int gx1, gy1, gx2, gy2;
+        coords.WorldToGroundTile(wTLx, wTLy, gx1, gy1);
+        coords.WorldToGroundTile(wBRx, wBRy, gx2, gy2);
+        visGroundMinX = max(0, min(gx1, gx2) - 1);
+        visGroundMinY = max(0, min(gy1, gy2) - 1);
+        visGroundMaxX = min(m_gridWidth - 1, max(gx1, gx2) + 1);
+        visGroundMaxY = min(m_gridHeight - 1, max(gy1, gy2) + 1);
+    }
+
     WORD groundTexID = 0;
 
-    for (int y = 0; y < groundLayer->GetHeight(); ++y) {
-        for (int x = 0; x < groundLayer->GetWidth(); ++x) {
+    for (int y = visGroundMinY; y <= visGroundMaxY; ++y) {
+        for (int x = visGroundMinX; x <= visGroundMaxX; ++x) {
             float wx, wy;
             CoordinateSystem::GetInstance().GroundTileToWorld(x, y, wx, wy);
 
@@ -476,8 +506,8 @@ void MapEditor::RenderGridLayer() {
             float dotW = coords.GetNodeWidth() * 0.25f;
             float dotH = coords.GetNodeHeight() * 0.25f;
 
-            for (int y = 0; y < overlayLayer->GetHeight(); ++y) {
-                for (int x = 0; x < overlayLayer->GetWidth(); ++x) {
+            for (int y = visNodeMinY; y <= visNodeMaxY; ++y) {
+                for (int x = visNodeMinX; x <= visNodeMaxX; ++x) {
                     const World::Tile& tile = overlayLayer->GetTile(x, y);
 
                     float wx, wy;
@@ -517,8 +547,8 @@ void MapEditor::RenderGridLayer() {
             float dotW = coords.GetNodeWidth() * 0.25f;
             float dotH = coords.GetNodeHeight() * 0.25f;
 
-            for (int y = 0; y < NODES_H; ++y) {
-                for (int x = 0; x < NODES_W; ++x) {
+            for (int y = visNodeMinY; y <= visNodeMaxY; ++y) {
+                for (int x = visNodeMinX; x <= visNodeMaxX; ++x) {
                     float wx, wy;
                     coords.NodeTileToWorld(x, y, wx, wy);
 
@@ -577,8 +607,8 @@ void MapEditor::RenderGridLayer() {
             float nodeW = coords.GetNodeWidth();
 
             // Render resource icons centered above each tile that has a resource node
-            for (int y = 0; y < NODES_H; ++y) {
-                for (int x = 0; x < NODES_W; ++x) {
+            for (int y = visNodeMinY; y <= visNodeMaxY; ++y) {
+                for (int x = visNodeMinX; x <= visNodeMaxX; ++x) {
                     const World::ResourceNode& rn = m_map->GetResourceNode(x, y);
                     if (rn.type == World::ResourceType_None || !rn.isVisible) continue;
 
@@ -636,8 +666,8 @@ void MapEditor::RenderGridLayer() {
         World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
         if (roadsLayer && m_roadAtlas) {
             CoordinateSystem& coords = CoordinateSystem::GetInstance();
-            for (int y = 0; y < NODES_H; ++y) {
-                for (int x = 0; x < NODES_W; ++x) {
+            for (int y = visNodeMinY; y <= visNodeMaxY; ++y) {
+                for (int x = visNodeMinX; x <= visNodeMaxX; ++x) {
                     const World::Tile& tile = roadsLayer->GetTile(x, y);
                     if (tile.u1 <= tile.u0 || tile.v1 <= tile.v0) continue;
                     if (tile.regionIndex < 0 || tile.atlasName != "streets") continue;
@@ -658,7 +688,7 @@ void MapEditor::RenderGridLayer() {
                     cmd.u1 = region->u1;
                     cmd.v1 = region->v1;
                     cmd.color = 0xFFFFFFFF;
-                    cmd.textureID = 16;
+                    cmd.textureID = 3;
                     cmd.shaderID = SHADER_TERRAIN;
                     cmd.blendMode = 0;
                     cmd.layer = LAYER_WORLD;
@@ -692,7 +722,7 @@ void MapEditor::RenderGridLayer() {
                     cmd.u1 = flagRegion->u1;
                     cmd.v1 = flagRegion->v1;
                     cmd.color = 0xFFFFFFFF;
-                    cmd.textureID = 16;
+                    cmd.textureID = 3;
                     cmd.shaderID = SHADER_TERRAIN;
                     cmd.blendMode = 1;
                     cmd.layer = LAYER_WORLD;
@@ -759,7 +789,7 @@ void MapEditor::RenderGridLayer() {
             cmd.u1 = region->u1;
             cmd.v1 = region->v1;
             cmd.color = D3DCOLOR_ARGB(160, 255, 255, 255);
-            cmd.textureID = 16;
+            cmd.textureID = 3;
             cmd.shaderID = SHADER_TERRAIN;
             cmd.blendMode = 1;
             cmd.layer = LAYER_WORLD;
@@ -775,8 +805,8 @@ void MapEditor::RenderGridLayer() {
         float dotW = coords.GetNodeWidth() * 0.25f;
         float dotH = coords.GetNodeHeight() * 0.25f;
 
-        for (int y = 0; y < NODES_H; ++y) {
-            for (int x = 0; x < NODES_W; ++x) {
+        for (int y = visNodeMinY; y <= visNodeMaxY; ++y) {
+            for (int x = visNodeMinX; x <= visNodeMaxX; ++x) {
                 // Проверяем занятость узла (Placement + Objects)
                 bool occupied = false;
                 World::TileLayer* placementLayer = m_map->GetLayer(World::Placement);
@@ -849,8 +879,8 @@ void MapEditor::RenderGridLayer() {
                 }
             }
 
-            for (int y = 0; y < objectsLayer->GetHeight(); ++y) {
-                for (int x = 0; x < objectsLayer->GetWidth(); ++x) {
+            for (int y = visNodeMinY; y <= visNodeMaxY; ++y) {
+                for (int x = visNodeMinX; x <= visNodeMaxX; ++x) {
                     const World::Tile& tile = objectsLayer->GetTile(x, y);
                     if (tile.u1 <= tile.u0 || tile.v1 <= tile.v0) continue;
 
@@ -921,7 +951,7 @@ void MapEditor::RenderCursor() {
                 cmd.u1 = previewRegion->u1;
                 cmd.v1 = previewRegion->v1;
                 cmd.color = 0xFFFFFFFF;
-                cmd.textureID = 16;
+                cmd.textureID = 3;
                 cmd.shaderID = SHADER_TERRAIN;
                 cmd.blendMode = 1;
                 cmd.layer = LAYER_EFFECTS;
@@ -1398,7 +1428,7 @@ void MapEditor::PaintCurrentTile() {
             for (int dx = 0; dx <= maxDx; dx++) {
                 int nx = tileX * 2 + dx;
                 int ny = tileY * 4 + dy;
-                if (nx >= 0 && nx < NODES_W && ny >= 0 && ny < NODES_H) {
+                if (nx >= 0 && nx < m_nodesW && ny >= 0 && ny < m_nodesH) {
                     m_map->SetNodeWeight(nx, ny, World::Weight_Land);
                 }
             }
@@ -1408,7 +1438,7 @@ void MapEditor::PaintCurrentTile() {
         for (size_t wi = 0; wi < region->nodeWeightEntries.size(); ++wi) {
             int nx = tileX * 2 + region->nodeWeightEntries[wi].nx;
             int ny = tileY * 4 + region->nodeWeightEntries[wi].ny;
-            if (nx >= 0 && nx < NODES_W && ny >= 0 && ny < NODES_H) {
+            if (nx >= 0 && nx < m_nodesW && ny >= 0 && ny < m_nodesH) {
                 m_map->SetNodeWeight(nx, ny, region->nodeWeightEntries[wi].weight);
             }
         }
@@ -1423,7 +1453,7 @@ void MapEditor::PaintCurrentTile() {
 
 void MapEditor::StartRoad(int x, int y) {
     if (!m_map || !m_roadAtlas) return;
-    if (x < 0 || x >= NODES_W || y < 0 || y >= NODES_H) return;
+    if (x < 0 || x >= m_nodesW || y < 0 || y >= m_nodesH) return;
 
     // Check start node is passable (allow starting from existing roads)
     BYTE weight = m_map->GetNodeWeight(x, y);
@@ -1441,7 +1471,7 @@ void MapEditor::StartRoad(int x, int y) {
 void MapEditor::UpdateRoadPreview(int cursorX, int cursorY) {
     if (m_roadBuildState != ROAD_PLACING) return;
     if (!m_map || !m_roadAtlas) return;
-    if (cursorX < 0 || cursorX >= NODES_W || cursorY < 0 || cursorY >= NODES_H) return;
+    if (cursorX < 0 || cursorX >= m_nodesW || cursorY < 0 || cursorY >= m_nodesH) return;
 
     // Если курсор над непроходимой клеткой, ищем ближайшую проходимую
     int endX = cursorX, endY = cursorY;
@@ -1454,7 +1484,7 @@ void MapEditor::UpdateRoadPreview(int cursorX, int cursorY) {
             for (int d = 0; d < 8; ++d) {
                 int nx = cursorX + dx[d];
                 int ny = cursorY + dy[d];
-                if (nx < 0 || nx >= NODES_W || ny < 0 || ny >= NODES_H) continue;
+                if (nx < 0 || nx >= m_nodesW || ny < 0 || ny >= m_nodesH) continue;
                 BYTE nw = m_map->GetNodeWeight(nx, ny);
                 if (nw != World::Weight_Deep && nw != World::Weight_Block) {
                     endX = nx; endY = ny; found = true; break;
@@ -1518,7 +1548,7 @@ void MapEditor::UpdateRoadPreview(int cursorX, int cursorY) {
     Logic::IsoNeighbors isoNeighbors;
     Logic::AStar::FindPath(
         m_roadStartX, m_roadStartY, endX, endY,
-        NODES_W, NODES_H,
+        m_nodesW, m_nodesH,
         RoadPassable(m_map),
         RoadCost(m_map),
         isoNeighbors,
@@ -1546,7 +1576,7 @@ void MapEditor::CommitRoad() {
     for (size_t i = 0; i < m_roadPreviewPath.size(); ++i) {
         int px = m_roadPreviewPath[i].first;
         int py = m_roadPreviewPath[i].second;
-        if (px < 0 || px >= NODES_W || py < 0 || py >= NODES_H) continue;
+        if (px < 0 || px >= m_nodesW || py < 0 || py >= m_nodesH) continue;
 
         // Проверяем Placement + Objects слои перед установкой дороги
         World::TileLayer* objectsLayer = m_map->GetLayer(World::Objects);
@@ -1639,7 +1669,7 @@ void MapEditor::CancelRoad() {
 
 void MapEditor::ToggleFlag(int x, int y) {
     if (!m_map || !m_roadAtlas) return;
-    if (x < 0 || x >= NODES_W || y < 0 || y >= NODES_H) return;
+    if (x < 0 || x >= m_nodesW || y < 0 || y >= m_nodesH) return;
 
     World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
     if (!roadsLayer) return;
@@ -1725,7 +1755,7 @@ void MapEditor::RebuildRoadSprite(int x, int y) {
     if (!m_roadAtlas) return;
     World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
     if (!roadsLayer) return;
-    if (x < 0 || x >= NODES_W || y < 0 || y >= NODES_H) return;
+    if (x < 0 || x >= m_nodesW || y < 0 || y >= m_nodesH) return;
 
     World::Tile& tile = roadsLayer->GetTile(x, y);
     bool hasRoad = (tile.regionIndex >= 0);
@@ -1826,7 +1856,7 @@ void MapEditor::UpdateRoadNeighbors(int x, int y) {
     }
 
     // SW + SE on row below
-    if (y + 1 < NODES_H) {
+    if (y + 1 < m_nodesH) {
         RebuildRoadSprite(evenRow ? x : (x - 1), y + 1); // SW
         RebuildRoadSprite(evenRow ? (x + 1) : x, y + 1); // SE
     }
@@ -2015,16 +2045,18 @@ void MapEditor::RenderActiveTile() {
 void MapEditor::CacheNodePositions() {
     CoordinateSystem& coords = CoordinateSystem::GetInstance();
 
-    // Cache Nodes (Layer 1)
-    for (int ny = 0; ny < NODES_H; ++ny) {
-        for (int nx = 0; nx < NODES_W; ++nx) {
+    m_nodesCache.resize(m_nodesH);
+    for (int ny = 0; ny < m_nodesH; ++ny) {
+        m_nodesCache[ny].resize(m_nodesW);
+        for (int nx = 0; nx < m_nodesW; ++nx) {
             coords.NodeTileToWorld(nx, ny, m_nodesCache[ny][nx].worldX, m_nodesCache[ny][nx].worldY);
         }
     }
 
-    // Cache Ground tiles (Layer 0)
-    for (int gy = 0; gy < GRID_HEIGHT; ++gy) {
-        for (int gx = 0; gx < GRID_WIDTH; ++gx) {
+    m_groundCache.resize(m_gridHeight);
+    for (int gy = 0; gy < m_gridHeight; ++gy) {
+        m_groundCache[gy].resize(m_gridWidth);
+        for (int gx = 0; gx < m_gridWidth; ++gx) {
             coords.GroundTileToWorld(gx, gy, m_groundCache[gy][gx].worldX, m_groundCache[gy][gx].worldY);
         }
     }
@@ -2046,12 +2078,39 @@ void MapEditor::RenderWeightMap() {
     if (!m_dotTexture) return;
     if (!m_map) return;
 
+    // Viewport culling for weight map
+    int visNX0 = 0, visNY0 = 0, visNX1 = m_nodesW - 1, visNY1 = m_nodesH - 1;
+    if (m_pCamera) {
+        float wTLx, wTLy, wBRx, wBRy;
+        m_pCamera->ScreenToWorld(0.0f, 0.0f, wTLx, wTLy);
+        m_pCamera->ScreenToWorld(m_pCamera->GetScreenWidth(), m_pCamera->GetScreenHeight(), wBRx, wBRy);
+        CoordinateSystem& cs = CoordinateSystem::GetInstance();
+        int nxa, nya, nxb, nyb;
+        cs.WorldToNodeTile(wTLx, wTLy, nxa, nya);
+        cs.WorldToNodeTile(wBRx, wBRy, nxb, nyb);
+        visNX0 = max(0, min(nxa, nxb) - 1);
+        visNY0 = max(0, min(nya, nyb) - 1);
+        visNX1 = min(m_nodesW - 1, max(nxa, nxb) + 1);
+        visNY1 = min(m_nodesH - 1, max(nya, nyb) + 1);
+    }
+
+    // Budget: decimate dots at low zoom to avoid overflow
+    const int MAX_WEIGHT_COMMANDS = 8000;
+    int visNX = visNX1 - visNX0 + 1;
+    int visNY = visNY1 - visNY0 + 1;
+    int totalVisible = visNX * visNY;
+    int step = 1;
+    if (totalVisible > MAX_WEIGHT_COMMANDS) {
+        while (step * step * MAX_WEIGHT_COMMANDS < totalVisible) ++step;
+    }
+
     CoordinateSystem& wCoords = CoordinateSystem::GetInstance();
     float dotW = wCoords.GetNodeWidth() * 0.25f;
     float dotH = wCoords.GetNodeHeight() * 0.25f;
 
-    for (int ny = 0; ny < NODES_H; ++ny) {
-        for (int nx = 0; nx < NODES_W; ++nx) {
+    int remaining = MAX_WEIGHT_COMMANDS;
+    for (int ny = visNY0; ny <= visNY1 && remaining > 0; ny += step) {
+        for (int nx = visNX0; nx <= visNX1 && remaining > 0; nx += step) {
             BYTE w = m_map->GetNodeWeight(nx, ny);
             const NodePos& pos = m_nodesCache[ny][nx];
 
@@ -2071,6 +2130,7 @@ void MapEditor::RenderWeightMap() {
             cmd.layer = LAYER_EFFECTS;
             cmd.depth = static_cast<WORD>(0.98f * 65535.0f);
             m_renderQueue->Submit(cmd);
+            --remaining;
         }
     }
 }
@@ -2147,8 +2207,23 @@ void MapEditor::RenderResources() {
     CoordinateSystem& coords = CoordinateSystem::GetInstance();
     float nodeW = coords.GetNodeWidth();
 
-    for (int y = 0; y < NODES_H; ++y) {
-        for (int x = 0; x < NODES_W; ++x) {
+    int visNX0 = 0, visNY0 = 0, visNX1 = m_nodesW - 1, visNY1 = m_nodesH - 1;
+    if (m_pCamera) {
+        float wTLx, wTLy, wBRx, wBRy;
+        m_pCamera->ScreenToWorld(0.0f, 0.0f, wTLx, wTLy);
+        m_pCamera->ScreenToWorld(m_pCamera->GetScreenWidth(), m_pCamera->GetScreenHeight(), wBRx, wBRy);
+        CoordinateSystem& cs = CoordinateSystem::GetInstance();
+        int nxa, nya, nxb, nyb;
+        cs.WorldToNodeTile(wTLx, wTLy, nxa, nya);
+        cs.WorldToNodeTile(wBRx, wBRy, nxb, nyb);
+        visNX0 = max(0, min(nxa, nxb) - 1);
+        visNY0 = max(0, min(nya, nyb) - 1);
+        visNX1 = min(m_nodesW - 1, max(nxa, nxb) + 1);
+        visNY1 = min(m_nodesH - 1, max(nya, nyb) + 1);
+    }
+
+    for (int y = visNY0; y <= visNY1; ++y) {
+        for (int x = visNX0; x <= visNX1; ++x) {
             const World::ResourceNode& rn = m_map->GetResourceNode(x, y);
             if (rn.type == World::ResourceType_None || !rn.isVisible) continue;
 

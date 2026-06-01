@@ -130,6 +130,6 @@ public:
     }
 
     bool IsInBounds(int x, int y) const {
-        return x >= 0 && x < 20 && y >= 0 && y < 20;
+        return x >= 0 && x < m_groundW && y >= 0 && y < m_groundH;
     }
 };

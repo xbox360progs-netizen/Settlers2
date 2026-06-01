@@ -105,7 +105,7 @@ void Camera::Zoom(float dz)
     float oldZoom = m_zoom;
     m_zoom += dz;
 
-    if(m_zoom < 0.25f) m_zoom = 0.25f;
+    if(m_zoom < 0.3f) m_zoom = 0.3f;
     if(m_zoom > 4.0f)  m_zoom = 4.0f;
     
     // Корректируем позицию камеры чтобы зум был от центра экрана
@@ -134,7 +134,7 @@ void Camera::Zoom(float dz, float centerScreenX, float centerScreenY)
     float oldZoom = m_zoom;
     m_zoom += dz;
 
-    if(m_zoom < 0.25f) m_zoom = 0.25f;
+    if(m_zoom < 0.3f) m_zoom = 0.3f;
     if(m_zoom > 4.0f)  m_zoom = 4.0f;
     
     // Корректируем позицию камеры чтобы зум был от центра (centerScreenX, centerScreenY)
