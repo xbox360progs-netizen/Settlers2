@@ -412,6 +412,7 @@
     <ClCompile Include="World\Systems\RenderSystem.cpp" />
     <ClCompile Include="World\TileLayer.cpp" />
     <ClCompile Include="Editor\MapEditor.cpp" />
+    <ClCompile Include="Game\UnitManager.cpp" />
     <ClCompile Include="UI\TilePalette.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

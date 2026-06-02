@@ -177,6 +177,67 @@ namespace SpriteAtlasTool
             this.btnAutoCollider.Text = "AutoCollider";
             this.btnAutoCollider.UseVisualStyleBackColor = true;
             this.btnAutoCollider.Click += new System.EventHandler(this.btnAutoCollider_Click);
+            // Entrance controls (to the right of collision group box)
+            this.lblEntrance = new System.Windows.Forms.Label();
+            this.lblEntrance.AutoSize = true;
+            this.lblEntrance.Location = new System.Drawing.Point(285, 12);
+            this.lblEntrance.Name = "lblEntrance";
+            this.lblEntrance.Size = new System.Drawing.Size(90, 13);
+            this.lblEntrance.Text = "Entrance (X, Y):";
+            this.Controls.Add(this.lblEntrance);
+
+            this.numEntranceX = new System.Windows.Forms.NumericUpDown();
+            this.numEntranceX.Location = new System.Drawing.Point(285, 30);
+            this.numEntranceX.Minimum = -20;
+            this.numEntranceX.Maximum = 20;
+            this.numEntranceX.Name = "numEntranceX";
+            this.numEntranceX.Size = new System.Drawing.Size(50, 20);
+            this.numEntranceX.TabIndex = 6;
+            this.numEntranceX.ValueChanged += new System.EventHandler(this.ValuesChanged);
+            this.Controls.Add(this.numEntranceX);
+
+            this.numEntranceY = new System.Windows.Forms.NumericUpDown();
+            this.numEntranceY.Location = new System.Drawing.Point(345, 30);
+            this.numEntranceY.Minimum = -20;
+            this.numEntranceY.Maximum = 20;
+            this.numEntranceY.Name = "numEntranceY";
+            this.numEntranceY.Size = new System.Drawing.Size(50, 20);
+            this.numEntranceY.TabIndex = 7;
+            this.numEntranceY.ValueChanged += new System.EventHandler(this.ValuesChanged);
+            this.Controls.Add(this.numEntranceY);
+
+            // Select Entrance button
+            this.btnSelectEntrance = new System.Windows.Forms.Button();
+            this.btnSelectEntrance.Location = new System.Drawing.Point(285, 55);
+            this.btnSelectEntrance.Name = "btnSelectEntrance";
+            this.btnSelectEntrance.Size = new System.Drawing.Size(110, 23);
+            this.btnSelectEntrance.TabIndex = 8;
+            this.btnSelectEntrance.Text = "Select Entrance";
+            this.btnSelectEntrance.UseVisualStyleBackColor = true;
+            this.btnSelectEntrance.Click += new System.EventHandler(this.btnSelectEntrance_Click);
+            this.Controls.Add(this.btnSelectEntrance);
+
+            // Entrance info label
+            this.lblEntranceInfo = new System.Windows.Forms.Label();
+            this.lblEntranceInfo.AutoSize = true;
+            this.lblEntranceInfo.Location = new System.Drawing.Point(285, 82);
+            this.lblEntranceInfo.Name = "lblEntranceInfo";
+            this.lblEntranceInfo.Size = new System.Drawing.Size(100, 13);
+            this.lblEntranceInfo.Text = "Click grid to set tile";
+            this.Controls.Add(this.lblEntranceInfo);
+
+            // Is Building checkbox
+            this.chkIsBuilding = new System.Windows.Forms.CheckBox();
+            this.chkIsBuilding.AutoSize = true;
+            this.chkIsBuilding.Location = new System.Drawing.Point(285, 100);
+            this.chkIsBuilding.Name = "chkIsBuilding";
+            this.chkIsBuilding.Size = new System.Drawing.Size(84, 17);
+            this.chkIsBuilding.TabIndex = 9;
+            this.chkIsBuilding.Text = "Is Building";
+            this.toolTip1.SetToolTip(this.chkIsBuilding, "Marks this sprite as a gameplay building");
+            this.chkIsBuilding.UseVisualStyleBackColor = true;
+            this.Controls.Add(this.chkIsBuilding);
+
             // После btnCancel
             this.btnSelectTiles = new System.Windows.Forms.Button();
             this.btnSelectTiles.Location = new System.Drawing.Point(12, 270);
@@ -227,5 +288,11 @@ namespace SpriteAtlasTool
 
         private Button btnAutoCollider;
         private Button btnResetCollision;
+        private NumericUpDown numEntranceX;
+        private NumericUpDown numEntranceY;
+        private Label lblEntrance;
+        private CheckBox chkIsBuilding;
+        private Button btnSelectEntrance;
+        private Label lblEntranceInfo;
     }
 }

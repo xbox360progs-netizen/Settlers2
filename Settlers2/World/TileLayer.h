@@ -14,6 +14,7 @@ enum LayerType
     Ground,
     Objects,
     Overlay,
+    Buildings,
     LayerCount
 };
 

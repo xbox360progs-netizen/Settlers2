@@ -26,6 +26,7 @@ public:
 
     virtual void Load();
     virtual void Unload();
+    virtual void OnExit();
     virtual void Update(float deltaTime);
     virtual void Render(Graphics::RenderQueue* renderQueue) override;
 

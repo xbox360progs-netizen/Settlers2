@@ -141,6 +141,20 @@ void LoadingScene::StartAsyncLoading()
     std::cout.flush();
 }
 
+void LoadingScene::OnExit()
+{
+    m_loadStarted = false;
+    m_loadingComplete = false;
+    m_isLoadComplete = 0;
+    m_targetProgressPercentage = 0;
+    m_currentRenderProgress = 0.0f;
+    m_currentTaskIndex = 0;
+    m_completedWeight = 0.0f;
+    m_totalWeight = 0.0f;
+    m_loadTasks.clear();
+    m_loaded = false;
+}
+
 void LoadingScene::Unload()
 {
     // Wait for loading thread to complete if still running

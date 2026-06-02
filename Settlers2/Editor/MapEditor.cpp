@@ -45,6 +45,8 @@ MapEditor::MapEditor()
     , m_dotTexture(0)
     , m_roadTexture(0)
     , m_roadAtlas(0)
+    , m_buildingsTexture(0)
+    , m_buildingsAtlas(0)
     , m_roadBuildState(ROAD_IDLE)
     , m_roadStartX(-1)
     , m_roadStartY(-1)
@@ -54,12 +56,14 @@ MapEditor::MapEditor()
     , m_previewSpriteIndex(-1)
 	, m_showObjects(true)
     , m_showOverlay(true)
-, m_showNodes(true)
+    , m_showBuildings(true)
+    , m_showNodes(true)
  	, m_currentObjectAtlasName("maptiles")
     , m_currentObjectGroupName("Tree")
     , m_pCamera(nullptr)
     , m_placementOccupied(true)
     , m_showResourceIcons(false)
+    , m_showCursor(true)
     , m_textManager(nullptr)
 {
     for (int i = 0; i < World::ResourceType_Count; ++i) m_resourceIconIndices[i] = -1;
@@ -128,6 +132,16 @@ void MapEditor::Initialize(World::Map* map, Renderer* renderer,
         m_spriteRenderer->SetTextureSlot(3, m_roadAtlas->GetTexture());
         char buf[128];
         sprintf_s(buf, "[MapEditor] Roads atlas loaded: %d sprites\n", m_roadAtlas->GetRegionCount());
+        OutputDebugStringA(buf);
+    }
+
+    // Load buildings atlas
+    m_buildingsTexture = registry.getTextureOrLoad("Buildings");
+    m_buildingsAtlas = registry.getAtlas("Buildings");
+    if (m_buildingsAtlas && m_spriteRenderer) {
+        m_spriteRenderer->SetTextureSlot(1, m_buildingsAtlas->GetTexture());
+        char buf[128];
+        sprintf_s(buf, "[MapEditor] Buildings atlas loaded: %d sprites\n", m_buildingsAtlas->GetRegionCount());
         OutputDebugStringA(buf);
     }
 
@@ -274,13 +288,12 @@ void MapEditor::RenderGeometry() {
 }
 
 void MapEditor::RenderUI() {
-    RenderCursor();
-    // Amount text is now rendered in RenderGridLayer alongside icons
-//    if (m_showResourceIcons) {
-//        RenderResources();
-//    }
-//    RenderTilePreview();
-//    RenderActiveTile();
+    if (m_showCursor) {
+        RenderCursor();
+    }
+    if (m_showResourceIcons) {
+        RenderResources();
+    }
 }
 void MapEditor::HandleInput() {
     if (!m_inputManager) return;
@@ -316,10 +329,11 @@ switch (m_currentMode) {
             gridH = m_gridHeight;
             break;
         case EditMode_PaintObjects: {
-            layer = World::Objects;
-            World::TileLayer* objectsLayer = m_map->GetLayer(World::Objects);
-            gridW = objectsLayer ? objectsLayer->GetWidth() : m_nodesW;
-            gridH = objectsLayer ? objectsLayer->GetHeight() : m_nodesH;
+            layer = m_currentLayer;
+            World::TileLayer* targetLayer = m_map->GetLayer(m_currentLayer);
+            if (!targetLayer) return;
+            gridW = targetLayer->GetWidth();
+            gridH = targetLayer->GetHeight();
             break;
         }
         case EditMode_Erase:
@@ -336,7 +350,7 @@ for (int y = centerY - brushRadius; y <= centerY + brushRadius; ++y) {
             if (x >= 0 && x < gridW && y >= 0 && y < gridH) {
                 if (m_currentMode == EditMode_Erase) {
                     m_map->SetTileType(layer, x, y, World::None);
-                } else if (m_currentLayer == World::Ground || m_currentLayer == World::Objects) {
+                } else if (m_currentLayer == World::Ground || m_currentLayer == World::Objects || m_currentLayer == World::Buildings) {
                     int oldCursorX = m_cursorTileX;
                     int oldCursorY = m_cursorTileY;
                     m_cursorTileX = x;
@@ -922,6 +936,43 @@ void MapEditor::RenderGridLayer() {
             }
         }
     }
+
+    // Render Buildings layer sprites
+    {
+        World::TileLayer* buildingsLayer = m_map->GetLayer(World::Buildings);
+        if (buildingsLayer && m_buildingsAtlas) {
+            CoordinateSystem& coords = CoordinateSystem::GetInstance();
+            for (int y = visNodeMinY; y <= visNodeMaxY; ++y) {
+                for (int x = visNodeMinX; x <= visNodeMaxX; ++x) {
+                    const World::Tile& tile = buildingsLayer->GetTile(x, y);
+                    if (tile.u1 <= tile.u0 || tile.v1 <= tile.v0) continue;
+
+                    float wx, wy;
+                    coords.NodeTileToWorld(x, y, wx, wy);
+
+                    const SpriteRegion* region = m_buildingsAtlas->GetRegion(tile.regionIndex);
+                    if (!region) continue;
+
+                    Graphics::RenderCommand cmd = {};
+                    cmd.x = wx - region->pivotX;
+                    cmd.y = wy - region->pivotY;
+                    cmd.width = (float)region->width;
+                    cmd.height = (float)region->height;
+                    cmd.u0 = tile.u0;
+                    cmd.v0 = tile.v0;
+                    cmd.u1 = tile.u1;
+                    cmd.v1 = tile.v1;
+                    cmd.color = 0xFFFFFFFF;
+                    cmd.textureID = 1;
+                    cmd.shaderID = SHADER_TERRAIN;
+                    cmd.blendMode = 0;
+                    cmd.layer = LAYER_WORLD;
+                    cmd.depth = static_cast<WORD>(30010 + y * 400);
+                    m_renderQueue->Submit(cmd);
+                }
+            }
+        }
+    }
 }
 
 void MapEditor::RenderCursor() {
@@ -971,9 +1022,15 @@ void MapEditor::RenderCursor() {
     if (spriteToRender >= 0) {
         SpriteAtlas* atlas = nullptr;
         WORD texID = 0;
-        if (m_currentLayer == World::Objects) {
+        if (m_currentLayer == World::Buildings) {
+            atlas = m_buildingsAtlas.get();
+            texID = 1;
+        } else if (m_currentLayer == World::Objects) {
             atlas = m_objectAtlas.get();
             texID = 9;
+        } else if (m_currentLayer == World::Roads) {
+            atlas = m_roadAtlas.get();
+            texID = 3;
         } else {
             atlas = m_groundAtlas.get();
             texID = 0;
@@ -1078,11 +1135,12 @@ void MapEditor::RenderCursor() {
 }
 
 void MapEditor::SetLayer(World::LayerType layer) {
-    if (layer != World::Roads) CancelRoad();
+    CancelRoad();
     m_currentLayer = layer;
     m_placingTile = false;
     m_currentTileIndex = -1;
     m_activeSpriteIndex = -1;
+    m_currentMode = EditMode_PaintObjects;
     if (layer == World::Roads && m_roadAtlas && m_roadAtlas->GetRegionCount() > 0) {
         m_currentTileIndex = 0;
         m_activeSpriteIndex = 0;
@@ -1311,7 +1369,183 @@ void MapEditor::PaintCurrentTile() {
         return;
     }
 
+    // Erase mode for Buildings: clear tile, clear placement layer, remove entrance flag/road
+    if (m_currentMode == EditMode_Erase && m_currentLayer == World::Buildings) {
+        World::TileLayer* buildingsLayer = m_map->GetLayer(World::Buildings);
+        if (buildingsLayer) {
+            // Get entrance offset and collision info before clearing the tile
+            int entranceX = 0, entranceY = 0;
+            bool hadRegion = false;
+            const World::Tile& oldTile = buildingsLayer->GetTile(tileX, tileY);
+            if (oldTile.regionIndex >= 0 && oldTile.atlasName == "Buildings" && m_buildingsAtlas) {
+                const SpriteRegion* region = m_buildingsAtlas->GetRegion(oldTile.regionIndex);
+                if (region) {
+                    entranceX = region->entranceX;
+                    entranceY = region->entranceY;
+                    hadRegion = true;
+                }
+            }
+
+            // Clear placement layer for building collision footprint (before clearing the tile!)
+            if (hadRegion) {
+                ClearPlacementFootprint(tileX, tileY, buildingsLayer);
+            }
+
+            World::Tile& eraseTile = buildingsLayer->GetTile(tileX, tileY);
+            eraseTile = World::Tile();
+
+            // Clear entrance tile from placement layer and remove entrance flag/road
+            if (entranceX != 0 || entranceY != 0) {
+                int ex = tileX + entranceX;
+                int ey = tileY + entranceY;
+                if (ex >= 0 && ex < m_nodesW && ey >= 0 && ey < m_nodesH) {
+                    // Remove flag
+                    for (size_t fi = 0; fi < m_roadFlags.size(); ++fi) {
+                        if (m_roadFlags[fi].first == ex && m_roadFlags[fi].second == ey) {
+                            m_roadFlags.erase(m_roadFlags.begin() + fi);
+                            break;
+                        }
+                    }
+                    // Clear entrance tile from placement layer
+                    World::TileLayer* placementLayer = m_map->GetLayer(World::Placement);
+                    if (placementLayer) {
+                        World::Tile& pt = placementLayer->GetTile(ex, ey);
+                        pt = World::Tile();
+                    }
+                    // Clear road tile
+                    World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
+                    if (roadsLayer) {
+                        World::Tile& roadTile = roadsLayer->GetTile(ex, ey);
+                        roadTile = World::Tile();
+                        UpdateRoadNeighbors(ex, ey);
+                    }
+                }
+            }
+        }
+        return;
+    }
+
     World::Tile& tile = layer->GetTile(tileX, tileY);
+
+    if (m_currentLayer == World::Buildings) {
+        if (!m_buildingsAtlas) return;
+        if (m_currentTileIndex >= (int)m_buildingsAtlas->GetRegionCount()) return;
+        const SpriteRegion* region = m_buildingsAtlas->GetRegion(m_currentTileIndex);
+        if (!region) return;
+
+        // Check occupancy: if collision footprint is occupied, deny placement
+        if (!IsPlacementFootprintFree(tileX, tileY, region)) {
+            return;
+        }
+
+        // Clear old placement footprint if tile already has a building
+        World::TileLayer* buildingsLayer = m_map->GetLayer(World::Buildings);
+        if (buildingsLayer) {
+            const World::Tile& oldTile = buildingsLayer->GetTile(tileX, tileY);
+            if (oldTile.regionIndex >= 0) {
+                ClearPlacementFootprint(tileX, tileY, buildingsLayer);
+            }
+        }
+
+        tile.u0 = region->u0;
+        tile.v0 = region->v0;
+        tile.u1 = region->u1;
+        tile.v1 = region->v1;
+        tile.regionIndex = m_currentTileIndex;
+        tile.type = World::Decoration;
+        tile.atlasName = "Buildings";
+        tile.walkable = true;
+
+        // Calculate collision offset
+        CoordinateSystem& coords = CoordinateSystem::GetInstance();
+        int offX, offY;
+        if (region->collOffX != 0 || region->collOffY != 0) {
+            offX = region->collOffX;
+            offY = region->collOffY;
+        } else {
+            float pivotDX = region->pivotX - region->width * 0.5f;
+            float pivotDY = region->pivotY - region->height * 0.5f;
+            offX = -(int)(pivotDX / coords.GetNodeWidth());
+            offY = -(int)(pivotDY / coords.GetNodeHeight());
+        }
+
+        // Fill Placement layer for building collision footprint
+        World::TileLayer* placementLayer = m_map->GetLayer(World::Placement);
+        if (placementLayer) {
+            int pw = placementLayer->GetWidth();
+            int ph = placementLayer->GetHeight();
+            if (!region->collMask.empty()) {
+                for (size_t i = 0; i < region->collMask.size(); ++i) {
+                    int fx = tileX + offX + region->collMask[i].first;
+                    int fy = tileY + offY + region->collMask[i].second;
+                    if (fx >= 0 && fx < pw && fy >= 0 && fy < ph) {
+                        World::Tile& pt = placementLayer->GetTile(fx, fy);
+                        pt.regionIndex = m_currentTileIndex;
+                        pt.type = World::Decoration;
+                        pt.atlasName = "Buildings";
+                        pt.walkable = !region->blocksMovement;
+                        pt.buildable = false;
+                    }
+                }
+            } else {
+                for (uint32_t dy = 0; dy < region->collHeight; ++dy) {
+                    for (uint32_t dx = 0; dx < region->collWidth; ++dx) {
+                        int fx = tileX + offX + (int)dx;
+                        int fy = tileY + offY + (int)dy;
+                        if (fx >= 0 && fx < pw && fy >= 0 && fy < ph) {
+                            World::Tile& pt = placementLayer->GetTile(fx, fy);
+                            pt.regionIndex = m_currentTileIndex;
+                            pt.type = World::Decoration;
+                            pt.atlasName = "Buildings";
+                            pt.walkable = !region->blocksMovement;
+                            pt.buildable = false;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Auto-place entrance flag and road if sprite has entrance offset
+        if ((region->entranceX != 0 || region->entranceY != 0) && m_roadAtlas) {
+            int ex = tileX + region->entranceX;
+            int ey = tileY + region->entranceY;
+            if (ex >= 0 && ex < m_nodesW && ey >= 0 && ey < m_nodesH) {
+                World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
+                if (roadsLayer) {
+                    World::Tile& roadTile = roadsLayer->GetTile(ex, ey);
+                    if (roadTile.regionIndex < 0) {
+                        roadTile.regionIndex = 0;
+                        roadTile.atlasName = "streets";
+                        roadTile.walkable = true;
+                        roadTile.buildable = false;
+                        m_map->SetNodeWeight(ex, ey, World::Weight_Land);
+                    }
+                    UpdateRoadNeighbors(ex, ey);
+                }
+                // Mark entrance tile in Placement layer so CommitRoad skips flag removal
+                if (placementLayer) {
+                    World::Tile& pt = placementLayer->GetTile(ex, ey);
+                    pt.regionIndex = 0;
+                    pt.type = World::None;
+                    pt.atlasName = "streets";
+                    pt.walkable = true;
+                    pt.buildable = false;
+                }
+                // Add building entrance flag (permanent)
+                bool hasFlag = false;
+                for (size_t fi = 0; fi < m_roadFlags.size(); ++fi) {
+                    if (m_roadFlags[fi].first == ex && m_roadFlags[fi].second == ey) {
+                        hasFlag = true;
+                        break;
+                    }
+                }
+                if (!hasFlag) {
+                    m_roadFlags.push_back(std::make_pair(ex, ey));
+                }
+            }
+        }
+        return;
+    }
 
     if (m_currentLayer == World::Objects) {
         // Clear old placement footprint if tile already has an object
@@ -1454,13 +1688,17 @@ void MapEditor::PaintCurrentTile() {
 void MapEditor::StartRoad(int x, int y) {
     if (!m_map || !m_roadAtlas) return;
     if (x < 0 || x >= m_nodesW || y < 0 || y >= m_nodesH) return;
-
-    // Check start node is passable (allow starting from existing roads)
     BYTE weight = m_map->GetNodeWeight(x, y);
     if (weight == World::Weight_Deep || weight == World::Weight_Block) return;
-    World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
-    if (!roadsLayer) return;
-
+    // Roads can only be built from a flag (building entrance or manually placed)
+    bool hasFlag = false;
+    for (size_t i = 0; i < m_roadFlags.size(); ++i) {
+        if (m_roadFlags[i].first == x && m_roadFlags[i].second == y) {
+            hasFlag = true;
+            break;
+        }
+    }
+    if (!hasFlag) return;
     m_roadBuildState = ROAD_PLACING;
     m_roadStartX = x;
     m_roadStartY = y;
@@ -1525,7 +1763,7 @@ void MapEditor::UpdateRoadPreview(int cursorX, int cursorY) {
             }
             if (placementLayer) {
                 const World::Tile& pt = placementLayer->GetTile(x, y);
-                if (pt.regionIndex >= 0) return false; // Занято объектом
+                if (pt.regionIndex >= 0 && pt.atlasName != "streets") return false;
             }
             return true;
         }
@@ -1653,6 +1891,25 @@ void MapEditor::CommitRoad() {
         UpdateRoadNeighbors(px, py);
     }
 
+    // Auto-place flag at the end of the road if not already present
+    if (!m_roadPreviewPath.empty()) {
+        int endX = m_roadPreviewPath.back().first;
+        int endY = m_roadPreviewPath.back().second;
+        bool hasFlag = false;
+        for (size_t fi = 0; fi < m_roadFlags.size(); ++fi) {
+            if (m_roadFlags[fi].first == endX && m_roadFlags[fi].second == endY) {
+                hasFlag = true;
+                break;
+            }
+        }
+        if (!hasFlag) {
+            m_roadFlags.push_back(std::make_pair(endX, endY));
+            char flagBuf[128];
+            sprintf_s(flagBuf, "[MapEditor] Auto-flag placed at (%d,%d)\n", endX, endY);
+            OutputDebugStringA(flagBuf);
+        }
+    }
+
     char buf[128];
     sprintf_s(buf, "[MapEditor] Road committed: %d nodes\n", (int)m_roadPreviewPath.size());
     OutputDebugStringA(buf);
@@ -1671,19 +1928,22 @@ void MapEditor::ToggleFlag(int x, int y) {
     if (!m_map || !m_roadAtlas) return;
     if (x < 0 || x >= m_nodesW || y < 0 || y >= m_nodesH) return;
 
-    World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
-    if (!roadsLayer) return;
-
-    bool isRoad = (roadsLayer->GetTile(x, y).regionIndex >= 0);
-    if (!isRoad) {
-        for (size_t k = 0; k < m_roadPreviewPath.size(); ++k) {
-            if (m_roadPreviewPath[k].first == x && m_roadPreviewPath[k].second == y) {
-                isRoad = true;
-                break;
-            }
+    // Check that the tile is not occupied by objects or non-street placement
+    {
+        World::TileLayer* objectsLayer = m_map->GetLayer(World::Objects);
+        if (objectsLayer) {
+            const World::Tile& ot = objectsLayer->GetTile(x, y);
+            if (ot.u1 > ot.u0 && ot.v1 > ot.v0) return;
         }
+        World::TileLayer* placementLayer = m_map->GetLayer(World::Placement);
+        if (placementLayer) {
+            const World::Tile& pt = placementLayer->GetTile(x, y);
+            if (pt.regionIndex >= 0 && pt.atlasName != "streets") return;
+        }
+        // Check weight
+        BYTE w = m_map->GetNodeWeight(x, y);
+        if (w == World::Weight_Deep || w == World::Weight_Block) return;
     }
-    if (!isRoad) return;
 
     // If flag already exists at this position, remove it
     for (size_t i = 0; i < m_roadFlags.size(); ++i) {
@@ -1865,6 +2125,57 @@ void MapEditor::UpdateRoadNeighbors(int x, int y) {
 void MapEditor::DeleteObjectAt(int x, int y) {
     if (!m_map) return;
 
+    // Buildings layer — erase building and entrance
+    if (m_currentLayer == World::Buildings) {
+        World::TileLayer* buildingsLayer = m_map->GetLayer(World::Buildings);
+        if (!buildingsLayer) return;
+        if (x < 0 || x >= buildingsLayer->GetWidth() || y < 0 || y >= buildingsLayer->GetHeight()) return;
+
+        const World::Tile& oldTile = buildingsLayer->GetTile(x, y);
+        if (oldTile.regionIndex < 0 || oldTile.atlasName != "Buildings") return;
+
+        int entranceX = 0, entranceY = 0;
+        if (m_buildingsAtlas) {
+            const SpriteRegion* region = m_buildingsAtlas->GetRegion(oldTile.regionIndex);
+            if (region) {
+                entranceX = region->entranceX;
+                entranceY = region->entranceY;
+            }
+        }
+
+        // Clear placement layer for building collision footprint
+        ClearPlacementFootprint(x, y, buildingsLayer);
+
+        World::Tile& eraseTile = buildingsLayer->GetTile(x, y);
+        eraseTile = World::Tile();
+
+        // Remove entrance flag and road
+        if (entranceX != 0 || entranceY != 0) {
+            int ex = x + entranceX;
+            int ey = y + entranceY;
+            if (ex >= 0 && ex < m_nodesW && ey >= 0 && ey < m_nodesH) {
+                for (size_t fi = 0; fi < m_roadFlags.size(); ++fi) {
+                    if (m_roadFlags[fi].first == ex && m_roadFlags[fi].second == ey) {
+                        m_roadFlags.erase(m_roadFlags.begin() + fi);
+                        break;
+                    }
+                }
+                World::TileLayer* placementLayer = m_map->GetLayer(World::Placement);
+                if (placementLayer) {
+                    World::Tile& pt = placementLayer->GetTile(ex, ey);
+                    pt = World::Tile();
+                }
+                World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
+                if (roadsLayer) {
+                    World::Tile& roadTile = roadsLayer->GetTile(ex, ey);
+                    roadTile = World::Tile();
+                    UpdateRoadNeighbors(ex, ey);
+                }
+            }
+        }
+        return;
+    }
+
     // Roads layer — clear road tile and update neighbors
     if (m_currentLayer == World::Roads) {
         World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
@@ -2013,8 +2324,21 @@ bool MapEditor::FindMountainObjectForResource(int x, int y, int& mountainX, int&
 void MapEditor::RenderActiveTile() {
     if (!m_renderer || m_currentTileIndex < 0 || !m_renderQueue) return;
 
-    SpriteAtlas* atlas = (m_currentLayer == World::Objects) ? m_objectAtlas.get() : m_groundAtlas.get();
-    LPDIRECT3DTEXTURE9 tex = (m_currentLayer == World::Objects) ? m_objectAtlas->GetTexture() : m_groundTexture;
+    SpriteAtlas* atlas = nullptr;
+    LPDIRECT3DTEXTURE9 tex = nullptr;
+    if (m_currentLayer == World::Buildings) {
+        atlas = m_buildingsAtlas.get();
+        tex = m_buildingsTexture;
+    } else if (m_currentLayer == World::Objects) {
+        atlas = m_objectAtlas.get();
+        tex = m_objectAtlas->GetTexture();
+    } else if (m_currentLayer == World::Roads) {
+        atlas = m_roadAtlas.get();
+        tex = m_roadTexture;
+    } else {
+        atlas = m_groundAtlas.get();
+        tex = m_groundTexture;
+    }
 
     if (!atlas || m_currentTileIndex >= (int)atlas->GetRegionCount()) return;
 

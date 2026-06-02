@@ -17,6 +17,7 @@ namespace SpriteAtlasTool
         private Bitmap m_spriteTexture;
         private List<Point> m_selectedTiles = new List<Point>();
         private bool m_isSelectingTiles = false;
+        private bool m_isSelectingEntrance = false;
         private Button btnSelectTiles;
         private int m_colliderOffsetX = 0;
         private int m_colliderOffsetY = 0;
@@ -50,6 +51,9 @@ namespace SpriteAtlasTool
             chkIsTrigger.Checked = m_collisionInfo.IsTrigger;
             m_colliderOffsetX = m_collisionInfo.OffsetX;
             m_colliderOffsetY = m_collisionInfo.OffsetY;
+            numEntranceX.Value = Math.Min(numEntranceX.Maximum, Math.Max(numEntranceX.Minimum, m_sprite.EntranceX));
+            numEntranceY.Value = Math.Min(numEntranceY.Maximum, Math.Max(numEntranceY.Minimum, m_sprite.EntranceY));
+            chkIsBuilding.Checked = m_sprite.IsBuilding;
 
             // Load mask if present
             m_selectedTiles.Clear();
@@ -140,8 +144,6 @@ namespace SpriteAtlasTool
 
         private void previewPanel_MouseClick(object sender, MouseEventArgs e)
         {
-            if (!m_isSelectingTiles) return;
-
             float centerX, centerY;
             GetGridCenter(out centerX, out centerY);
 
@@ -161,12 +163,25 @@ namespace SpriteAtlasTool
                     {
                         Point tilePos = new Point(nx, ny);
 
-                        if (m_selectedTiles.Contains(tilePos))
-                            m_selectedTiles.Remove(tilePos);
-                        else
-                            m_selectedTiles.Add(tilePos);
+                        if (m_isSelectingEntrance)
+                        {
+                            numEntranceX.Value = tilePos.X;
+                            numEntranceY.Value = tilePos.Y;
+                            previewPanel.Invalidate();
+                            return;
+                        }
 
-                        previewPanel.Invalidate();
+                        if (m_isSelectingTiles)
+                        {
+                            if (m_selectedTiles.Contains(tilePos))
+                                m_selectedTiles.Remove(tilePos);
+                            else
+                                m_selectedTiles.Add(tilePos);
+
+                            previewPanel.Invalidate();
+                            return;
+                        }
+
                         return;
                     }
                 }
@@ -199,13 +214,38 @@ namespace SpriteAtlasTool
         {
             m_isSelectingTiles = !m_isSelectingTiles;
             btnSelectTiles.Text = m_isSelectingTiles ? "Done Selecting" : "Select Tiles";
+            if (m_isSelectingTiles) m_isSelectingEntrance = false;
 
             if (!m_isSelectingTiles)
             {
                 UpdateColliderFromSelectedTiles();
             }
 
+            UpdateEntranceButtonText();
             previewPanel.Invalidate();
+        }
+
+        private void btnSelectEntrance_Click(object sender, EventArgs e)
+        {
+            m_isSelectingEntrance = !m_isSelectingEntrance;
+            if (m_isSelectingEntrance) m_isSelectingTiles = false;
+            btnSelectTiles.Text = m_isSelectingTiles ? "Done Selecting" : "Select Tiles";
+            UpdateEntranceButtonText();
+            previewPanel.Invalidate();
+        }
+
+        private void UpdateEntranceButtonText()
+        {
+            if (m_isSelectingEntrance)
+            {
+                btnSelectEntrance.Text = "Done Entrance";
+                lblEntranceInfo.Text = "Click a tile to set entrance";
+            }
+            else
+            {
+                btnSelectEntrance.Text = "Select Entrance";
+                lblEntranceInfo.Text = "Click grid to set tile";
+            }
         }
 
         private void UpdateColliderFromSelectedTiles()
@@ -227,6 +267,35 @@ namespace SpriteAtlasTool
             m_colliderOffsetY = minY;
         }
 
+        private void DrawEntranceMarker(Graphics graphics)
+        {
+            int eX = (int)numEntranceX.Value;
+            int eY = (int)numEntranceY.Value;
+            if (eX == 0 && eY == 0) return;
+
+            float centerX, centerY;
+            GetGridCenter(out centerX, out centerY);
+
+            float sx, sy;
+            TileToScreen(eX, eY, centerX, centerY, out sx, out sy);
+
+            using (Brush brush = new SolidBrush(Color.FromArgb(180, Color.Red)))
+            using (Pen pen = new Pen(Color.Red, 2.0f))
+            {
+                PointF[] pts = GetDiamondPoints(sx, sy, HALF_NODE_W, HALF_NODE_H);
+                graphics.FillPolygon(brush, pts);
+                graphics.DrawPolygon(pen, pts);
+            }
+
+            using (Font font = new Font("Arial", 8, FontStyle.Bold))
+            using (Brush textBrush = new SolidBrush(Color.White))
+            {
+                graphics.DrawString("E", font, textBrush, sx - 4, sy - 6);
+            }
+
+            lblEntranceInfo.Text = string.Format("Entrance: ({0}, {1})", eX, eY);
+        }
+
         private void previewPanel_Paint(object sender, PaintEventArgs e)
         {
             e.Graphics.SmoothingMode = SmoothingMode.HighQuality;
@@ -239,13 +308,17 @@ namespace SpriteAtlasTool
             DrawCollisionCoverage(e.Graphics);
             DrawSpriteTexture(e.Graphics);
             DrawSelectedTiles(e.Graphics);
+            DrawEntranceMarker(e.Graphics);
 
             using (Font font = new Font("Arial", 10, FontStyle.Bold))
             using (Brush textBrush = new SolidBrush(Color.White))
             {
                 int width = (int)numWidth.Value;
                 int height = (int)numHeight.Value;
-                string sizeText = string.Format("Collision: {0}×{1} tiles  Offset: {2},{3}", width, height, m_colliderOffsetX, m_colliderOffsetY);
+                int eX = (int)numEntranceX.Value;
+                int eY = (int)numEntranceY.Value;
+                string entranceText = (eX == 0 && eY == 0) ? "" : string.Format("  Entrance: {0},{1}", eX, eY);
+                string sizeText = string.Format("Collision: {0}×{1} tiles  Offset: {2},{3}{4}", width, height, m_colliderOffsetX, m_colliderOffsetY, entranceText);
                 SizeF textSize = e.Graphics.MeasureString(sizeText, font);
                 float textX = (previewPanel.Width - textSize.Width) * 0.5f;
                 float textY = 10.0f;
@@ -445,6 +518,10 @@ namespace SpriteAtlasTool
 
             m_collisionInfo.OffsetX = m_colliderOffsetX;
             m_collisionInfo.OffsetY = m_colliderOffsetY;
+
+            m_sprite.EntranceX = (int)numEntranceX.Value;
+            m_sprite.EntranceY = (int)numEntranceY.Value;
+            m_sprite.IsBuilding = chkIsBuilding.Checked;
         }
 
         private void btnAutoCollider_Click(object sender, EventArgs e)
@@ -481,6 +558,9 @@ namespace SpriteAtlasTool
             m_collisionInfo.BlocksMovement = true;
             m_collisionInfo.IsTrigger = false;
             m_collisionInfo.MaskTiles.Clear();
+            numEntranceX.Value = 0;
+            numEntranceY.Value = 0;
+            chkIsBuilding.Checked = false;
             previewPanel.Invalidate();
         }
     }

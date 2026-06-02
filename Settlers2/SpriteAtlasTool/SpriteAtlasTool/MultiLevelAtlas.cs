@@ -177,9 +177,12 @@ namespace SpriteAtlasTool
                         hasTransformFeatures ||
                         hasCollisionOffset);
                     bool hasNodeWeight = Sprites.Any(s => s.NodeWeights.Entries.Count > 0);
+                    bool hasEntrance = Sprites.Any(s => s.EntranceX != 0 || s.EntranceY != 0);
+                    bool hasBuilding = Sprites.Any(s => s.IsBuilding);
 
                     // Новая версия для поддержки трансформаций/имен и смещения коллайдера
-                    uint version = hasNodeWeight ? 9u :
+                    uint version = (hasEntrance || hasBuilding) ? 10u :
+                                   hasNodeWeight ? 9u :
                                    hasMask ? 8u :
                                    hasCollisionOffset ? 7u :
                                    (hasTransformFeatures ? 6u : (hasAdvancedFeatures ? 4u : 3u));
@@ -311,6 +314,14 @@ namespace SpriteAtlasTool
                                 WriteBigEndian(bw, (uint)e.NY);
                                 bw.Write(e.Weight);
                             }
+                        }
+
+                        // Начиная с версии 10 - сохраняем entranceX/entranceY и isBuilding
+                        if (version >= 10)
+                        {
+                            WriteBigEndian(bw, (uint)(int)sprite.EntranceX);
+                            WriteBigEndian(bw, (uint)(int)sprite.EntranceY);
+                            bw.Write(sprite.IsBuilding);
                         }
                     }
                 }
@@ -512,6 +523,14 @@ namespace SpriteAtlasTool
                                 byte w = br.ReadByte();
                                 sprite.NodeWeights.Entries.Add(new NodeWeightEntry(nx, ny, w));
                             }
+                        }
+
+                        // Начиная с версии 10 - читаем entranceX/entranceY и isBuilding
+                        if (version >= 10)
+                        {
+                            sprite.EntranceX = (int)ReadBigEndian(br);
+                            sprite.EntranceY = (int)ReadBigEndian(br);
+                            sprite.IsBuilding = br.ReadBoolean();
                         }
 
                         sprite.DisplayBounds = originalBounds;

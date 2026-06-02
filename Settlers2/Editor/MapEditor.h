@@ -69,6 +69,7 @@ public:
     void SetSpriteRenderer(SpriteRenderer* sr) { m_spriteRenderer = sr; }
     void SetCamera(Camera* pCamera) { m_pCamera = pCamera; }
     void SetRenderQueue(Graphics::RenderQueue* rq) { m_renderQueue = rq; if (m_textManager) m_textManager->SetRenderQueue(rq); }
+    Graphics::RenderQueue* GetRenderQueue() const { return m_renderQueue; }
     void SetTextManager(TextManager* tm) { m_textManager = tm; }
     void SetObjectGroup(const char* groupName);
     void SetPlacementOccupied(bool occupied) { m_placementOccupied = occupied; }
@@ -82,7 +83,9 @@ public:
     void SetShowResourceIcons(bool show) { m_showResourceIcons = show; }
     void SetShowObjects(bool show) { m_showObjects = show; }
     void SetShowOverlay(bool show) { m_showOverlay = show; }
+    void SetShowBuildings(bool show) { m_showBuildings = show; }
     void SetShowNodes(bool show) { m_showNodes = show; }
+    void SetShowCursor(bool show) { m_showCursor = show; }
 
     World::TileType GetCurrentTileType() const { return m_currentTileType; }
     int GetCurrentTileIndex() const { return m_currentTileIndex; }
@@ -169,6 +172,8 @@ private:
     LPDIRECT3DTEXTURE9 m_dotTexture;
     LPDIRECT3DTEXTURE9 m_roadTexture;
     std::tr1::shared_ptr<SpriteAtlas> m_roadAtlas;
+    LPDIRECT3DTEXTURE9 m_buildingsTexture;
+    std::tr1::shared_ptr<SpriteAtlas> m_buildingsAtlas;
 
     int m_cursorTileX;
     int m_cursorTileY;
@@ -180,9 +185,11 @@ private:
 
     bool m_showObjects;
     bool m_showOverlay;
+    bool m_showBuildings;
     bool m_showNodes;
     bool m_placementOccupied;
     bool m_showResourceIcons;
+    bool m_showCursor;
 
     int m_resourceIconIndices[World::ResourceType_Count];
 

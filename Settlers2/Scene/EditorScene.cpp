@@ -64,6 +64,7 @@ EditorScene::EditorScene()
     , m_radialMenu(nullptr)
     , m_gridMenu(nullptr)
     , m_mapEditor(nullptr)
+    , m_unitManager(nullptr)
     , m_currentLayer(World::Ground)
     , m_objectGroupIndex(0)
     , m_yButtonWasPressed(false)
@@ -94,10 +95,13 @@ EditorScene::EditorScene()
     , m_saveLoadMenuSection(0)
     , m_saveLoadMenuSelection(0)
     , m_saveLoadMenuPendingSlot(0)
+    , m_saveLoadMenuInputTimer(0.0f)
 {
 }
 
 EditorScene::~EditorScene() {
+    delete m_unitManager;
+    m_unitManager = nullptr;
     if (m_mapEditor) {
         delete m_mapEditor;
         m_mapEditor = nullptr;
@@ -195,6 +199,7 @@ void EditorScene::Load() {
 		items.push_back(RadialMenu::MenuItem(std::wstring(L"Resources"), World::Resources, "set_resources"));
 		items.push_back(RadialMenu::MenuItem(std::wstring(L"Ground"), World::Ground, "set_bg"));
 		items.push_back(RadialMenu::MenuItem(std::wstring(L"Objects"), World::Objects, "set_landscape"));
+		items.push_back(RadialMenu::MenuItem(std::wstring(L"Buildings"), World::Buildings, "select_building"));
 		m_radialMenu->SetItems(items);
 	}
 
@@ -231,6 +236,13 @@ void EditorScene::Load() {
 	if (streetsTex && m_spriteRenderer) {
 		m_spriteRenderer->SetTextureSlot(3, streetsTex);
 		OutputDebugStringA("[EditorScene] Streets atlas loaded and bound to slot 3\n");
+	}
+
+	// Buildings atlas — slot 1
+	LPDIRECT3DTEXTURE9 buildingsTex = registry.getTextureOrLoad("Buildings");
+	if (buildingsTex && m_spriteRenderer) {
+		m_spriteRenderer->SetTextureSlot(1, buildingsTex);
+		OutputDebugStringA("[EditorScene] Buildings atlas loaded and bound to slot 1\n");
 	}
 
 	// UI atlas (loaded by LoadingScene) — slot 14 for cursor, button hints, menu sprites
@@ -387,6 +399,22 @@ void EditorScene::Load() {
 		groundTexture, maptilesTex, uiTex);
 	OutputDebugStringA(debugMsg);
 
+	// Units atlas — slot 2, initialize UnitManager
+	{
+		LPDIRECT3DTEXTURE9 unitsTex = registry.getTextureOrLoad("Units");
+		if (unitsTex && m_spriteRenderer) {
+			m_spriteRenderer->SetTextureSlot(11, unitsTex);
+			std::tr1::shared_ptr<SpriteAtlas> unitsAtlas = registry.getAtlas("Units");
+			if (unitsAtlas && m_mapEditor) {
+				m_unitManager = new Game::UnitManager();
+				m_unitManager->SetAtlas(unitsAtlas);
+				m_unitManager->SetTextureSlot(11);
+				m_unitManager->Initialize(m_mapEditor->GetMap());
+				OutputDebugStringA("[EditorScene] Units atlas loaded to slot 11, UnitManager created\n");
+			}
+		}
+	}
+
 	OutputDebugStringA("[EditorScene] Load() complete\n");
 	m_loaded = true;
 }
@@ -404,6 +432,19 @@ void EditorScene::Update(float deltaTime) {
 
     Input::Gamepad* gamepad = m_inputManager->GetGamepad();
     if (!gamepad) return;
+
+    // Save/Load menu toggle (Start button)
+    if (!m_saveLoadMenuActive && m_mapEditor && gamepad->IsButtonPressed(Input::GP_Start)) {
+        m_saveLoadMenuActive = true;
+        m_saveLoadMenuSection = 0;
+        m_saveLoadMenuSelection = 0;
+    }
+
+    // If save/load menu is active, handle it and skip everything else
+    if (m_saveLoadMenuActive) {
+        UpdateSaveLoadMenu(gamepad, deltaTime);
+        return;
+    }
 
     bool menuActive = (m_gridMenu && m_gridMenu->IsVisible()) || (m_radialMenu && m_radialMenu->IsVisible());
 
@@ -429,6 +470,18 @@ void EditorScene::Update(float deltaTime) {
 
     if (m_mapEditor && !menuActive) {
         UpdateMapEditor(deltaTime, gamepad);
+    }
+
+    // Update UnitManager (rebuild network when flags change)
+    if (m_unitManager && m_mapEditor) {
+        m_unitManager->SetRenderQueue(m_mapEditor->GetRenderQueue());
+        static int s_lastFlagCount = -1;
+        int flagCount = (int)m_mapEditor->GetRoadFlags().size();
+        if (flagCount != s_lastFlagCount) {
+            m_unitManager->RebuildRoadNetwork(m_mapEditor->GetRoadFlags());
+            s_lastFlagCount = flagCount;
+        }
+        m_unitManager->Update(deltaTime);
     }
 }
 
@@ -587,13 +640,15 @@ void EditorScene::HandleDefaultMenuToggle() {
     } else if (m_gridMenu->IsVisible()) {
         m_gridMenu->Hide();
     } else {
-        TextureRegistry::instance().refreshTexture("ui");
-        if (m_currentLayer == World::Objects) {
-            LoadGridMenuGroup(kObjectGroupNames[m_objectGroupIndex]);
-            if (m_mapEditor) m_mapEditor->SetObjectGroup(kObjectGroupNames[m_objectGroupIndex]);
-        } else {
-            LoadGridMenuAtlas("ground");
-        }
+		TextureRegistry::instance().refreshTexture("ui");
+		if (m_currentLayer == World::Objects) {
+			LoadGridMenuGroup(kObjectGroupNames[m_objectGroupIndex]);
+			if (m_mapEditor) m_mapEditor->SetObjectGroup(kObjectGroupNames[m_objectGroupIndex]);
+		} else if (m_currentLayer == World::Buildings) {
+			LoadGridMenuAtlas("Buildings");
+		} else {
+			LoadGridMenuAtlas("ground");
+		}
         m_gridMenu->Show(640.0f, 330.0f);
     }
 }
@@ -627,6 +682,8 @@ void EditorScene::CreateDefaultGridMenu() {
             m_objectGroupIndex = 0;
             LoadGridMenuGroup(kObjectGroupNames[m_objectGroupIndex]);
             if (m_mapEditor) m_mapEditor->SetObjectGroup(kObjectGroupNames[m_objectGroupIndex]);
+        } else if (m_currentLayer == World::Buildings) {
+            LoadGridMenuAtlas("Buildings");
         } else {
             LoadGridMenuAtlas("ground");
         }
@@ -649,7 +706,7 @@ void EditorScene::UpdateGridMenu(Input::Gamepad* gamepad, float deltaTime) {
 
         // Update cursor preview with currently highlighted sprite
         if (m_mapEditor) {
-            if (m_gridMenu->IsVisible() && (m_currentLayer == World::Ground || m_currentLayer == World::Objects || m_currentLayer == World::Roads)) {
+            if (m_gridMenu->IsVisible() && (m_currentLayer == World::Ground || m_currentLayer == World::Objects || m_currentLayer == World::Roads || m_currentLayer == World::Buildings)) {
                 int previewIdx = m_gridMenu->GetSelectedSpriteIndex();
                 m_mapEditor->SetCursorPreview(previewIdx);
             } else {
@@ -802,6 +859,11 @@ void EditorScene::HandleRadialMenuSelection() {
                 m_mapEditor->SetShowOverlay(true);
                 m_mapEditor->SetShowResourceIcons(false);
                 break;
+            case World::Buildings:
+                m_mapEditor->SetShowObjects(false);
+                m_mapEditor->SetShowOverlay(false);
+                m_mapEditor->SetShowResourceIcons(false);
+                break;
             default:
                 m_mapEditor->SetShowObjects(true);
                 m_mapEditor->SetShowOverlay(true);
@@ -814,9 +876,15 @@ void EditorScene::HandleRadialMenuSelection() {
         }
     }
 
-    if (m_spriteRenderer) {
+	if (m_spriteRenderer) {
         TextureRegistry& reg = TextureRegistry::instance();
-        const char* atlasName = (m_currentLayer == World::Objects) ? "maptiles" : "ground";
+        const char* atlasName;
+        if (m_currentLayer == World::Buildings)
+            atlasName = "Buildings";
+        else if (m_currentLayer == World::Objects)
+            atlasName = "maptiles";
+        else
+            atlasName = "ground";
         std::tr1::shared_ptr<SpriteAtlas> atlas = reg.getAtlas(atlasName);
         if (atlas) {
             m_spriteRenderer->SetTextureSlot(8, atlas->GetTexture());
@@ -952,19 +1020,6 @@ void EditorScene::UpdateCamera(Input::Gamepad* gamepad, float deltaTime) {
 void EditorScene::UpdateMapEditor(float deltaTime, Input::Gamepad* gamepad) {
     m_mapEditor->Update(deltaTime);
 
-    // Open save/load menu with Start
-    if (!m_saveLoadMenuActive && gamepad->IsButtonPressed(Input::GP_Start)) {
-        m_saveLoadMenuActive = true;
-        m_saveLoadMenuSection = 0;
-        m_saveLoadMenuSelection = 0;
-    }
-
-    // If menu is active, handle it instead of normal editor input
-    if (m_saveLoadMenuActive) {
-        UpdateSaveLoadMenu(gamepad);
-        return;
-    }
-
     if (m_currentLayer == World::Resources) {
         if (gamepad->IsButtonPressed(Input::GP_DPadUp)) {
             m_resourceAmount += 5;
@@ -1018,7 +1073,13 @@ void EditorScene::UpdateMapEditor(float deltaTime, Input::Gamepad* gamepad) {
         }
 
         if (gamepad->IsButtonPressed(Input::GP_X)) {
-            m_mapEditor->DeleteObjectAt(m_mapEditor->GetCursorTileX(), m_mapEditor->GetCursorTileY());
+            // In flag mode, X removes only the flag (road stays)
+            if (m_currentLayer == World::Roads && m_mapEditor->GetRoadBuildState() == Editor::ROAD_FLAG) {
+                // If flag exists at cursor, ToggleFlag removes it; otherwise no-op
+                m_mapEditor->ToggleFlag(m_mapEditor->GetCursorTileX(), m_mapEditor->GetCursorTileY());
+            } else {
+                m_mapEditor->DeleteObjectAt(m_mapEditor->GetCursorTileX(), m_mapEditor->GetCursorTileY());
+            }
         }
 
         if (gamepad->IsButtonPressed(Input::GP_A)) {
@@ -1048,15 +1109,32 @@ void EditorScene::UpdateMapEditor(float deltaTime, Input::Gamepad* gamepad) {
     }
 }
 
-void EditorScene::UpdateSaveLoadMenu(Input::Gamepad* gamepad) {
+void EditorScene::UpdateSaveLoadMenu(Input::Gamepad* gamepad, float deltaTime) {
     const int kMainItems = 4;     // Save, Load, Main Menu, Close
     const int kSlotItems = SAVE_SLOT_COUNT + 1; // 10 slots + Back
 
+    // Left stick navigation (joystick) with input delay
+    m_saveLoadMenuInputTimer += deltaTime;
+    float stickX = 0.0f, stickY = 0.0f;
+    gamepad->GetLeftStick(stickX, stickY);
+    bool stickBeyondDeadzone = (stickY < -0.3f || stickY > 0.3f || stickX < -0.3f || stickX > 0.3f);
+    bool stickAllowed = stickBeyondDeadzone && m_saveLoadMenuInputTimer >= 0.15f;
+
+    bool stickUp = stickAllowed && (stickY < -0.3f);
+    bool stickDown = stickAllowed && (stickY > 0.3f);
+    bool stickLeft = stickAllowed && (stickX < -0.3f);
+    bool stickRight = stickAllowed && (stickX > 0.3f);
+
+    bool navUp = gamepad->IsButtonPressed(Input::GP_DPadUp) || stickUp;
+    bool navDown = gamepad->IsButtonPressed(Input::GP_DPadDown) || stickDown;
+    bool navLeft = gamepad->IsButtonPressed(Input::GP_DPadLeft) || stickLeft;
+    bool navRight = gamepad->IsButtonPressed(Input::GP_DPadRight) || stickRight;
+
     switch (m_saveLoadMenuSection) {
     case 0: // Main menu
-        if (gamepad->IsButtonPressed(Input::GP_DPadUp))
+        if (navUp)
             m_saveLoadMenuSelection = (m_saveLoadMenuSelection - 1 + kMainItems) % kMainItems;
-        if (gamepad->IsButtonPressed(Input::GP_DPadDown))
+        if (navDown)
             m_saveLoadMenuSelection = (m_saveLoadMenuSelection + 1) % kMainItems;
         if (gamepad->IsButtonPressed(Input::GP_A)) {
             switch (m_saveLoadMenuSelection) {
@@ -1071,11 +1149,11 @@ void EditorScene::UpdateSaveLoadMenu(Input::Gamepad* gamepad) {
         break;
 
     case 1: // Save slots
-        if (gamepad->IsButtonPressed(Input::GP_DPadUp)) {
+        if (navUp) {
             m_saveLoadMenuSelection--;
             if (m_saveLoadMenuSelection < 0) m_saveLoadMenuSelection = kSlotItems - 1;
         }
-        if (gamepad->IsButtonPressed(Input::GP_DPadDown))
+        if (navDown)
             m_saveLoadMenuSelection = (m_saveLoadMenuSelection + 1) % kSlotItems;
         if (gamepad->IsButtonPressed(Input::GP_A)) {
             if (m_saveLoadMenuSelection < SAVE_SLOT_COUNT) {
@@ -1127,11 +1205,11 @@ void EditorScene::UpdateSaveLoadMenu(Input::Gamepad* gamepad) {
             FindClose(hFind);
 
             int items = fileCount + 1;
-            if (gamepad->IsButtonPressed(Input::GP_DPadUp)) {
+            if (navUp) {
                 m_saveLoadMenuSelection--;
                 if (m_saveLoadMenuSelection < 0) m_saveLoadMenuSelection = items - 1;
             }
-            if (gamepad->IsButtonPressed(Input::GP_DPadDown))
+            if (navDown)
                 m_saveLoadMenuSelection = (m_saveLoadMenuSelection + 1) % items;
             if (gamepad->IsButtonPressed(Input::GP_A)) {
                 if (m_saveLoadMenuSelection < fileCount) {
@@ -1150,7 +1228,7 @@ void EditorScene::UpdateSaveLoadMenu(Input::Gamepad* gamepad) {
         break;
 
     case 3: // Confirm overwrite
-        if (gamepad->IsButtonPressed(Input::GP_DPadLeft) || gamepad->IsButtonPressed(Input::GP_DPadRight))
+        if (navLeft || navRight)
             m_saveLoadMenuSelection = 1 - m_saveLoadMenuSelection;
         if (gamepad->IsButtonPressed(Input::GP_A)) {
             if (m_saveLoadMenuSelection == 0) {
@@ -1168,7 +1246,7 @@ void EditorScene::UpdateSaveLoadMenu(Input::Gamepad* gamepad) {
         break;
 
     case 4: // Confirm exit to MenuScene
-        if (gamepad->IsButtonPressed(Input::GP_DPadLeft) || gamepad->IsButtonPressed(Input::GP_DPadRight))
+        if (navLeft || navRight)
             m_saveLoadMenuSelection = 1 - m_saveLoadMenuSelection;
         if (gamepad->IsButtonPressed(Input::GP_A)) {
             if (m_saveLoadMenuSelection == 0) { // Yes
@@ -1184,25 +1262,15 @@ void EditorScene::UpdateSaveLoadMenu(Input::Gamepad* gamepad) {
         }
         break;
     }
+
+    if (stickUp || stickDown || stickLeft || stickRight) {
+        m_saveLoadMenuInputTimer = 0.0f;
+    }
 }
 
 void EditorScene::RenderSaveLoadMenu(Graphics::RenderQueue* renderQueue) {
     if (!m_saveLoadMenuActive || !m_textManager) return;
-/*
-    // Draw semi-transparent overlay
-    Graphics::RenderCommand overlay = {};
-    overlay.x = 0.0f; overlay.y = 0.0f;
-    overlay.width = 1280.0f; overlay.height = 720.0f;
-    overlay.u0 = 0.0f; overlay.v0 = 0.0f; overlay.u1 = 1.0f; overlay.v1 = 1.0f;
-    overlay.color = 0x80000000;
-    overlay.textureID = 0;
-    overlay.shaderID = SHADER_UI;
-    overlay.blendMode = 1;
-    overlay.layer = LAYER_UI;
-    overlay.depth = 200;
-    overlay.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, 0, 200);
-    renderQueue->Submit(overlay);
-*/
+
     // Draw editor_menu sprite as decoration
     {
         TextureRegistry& reg = TextureRegistry::instance();
@@ -1417,7 +1485,19 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
     }
     // Render world content
     m_mapEditor->RenderGeometry();
+    if (m_saveLoadMenuActive) {
+        m_mapEditor->SetShowCursor(false);
+    }
     m_mapEditor->RenderUI();
+
+    // Render units after roads/flags
+    if (m_unitManager) {
+        m_unitManager->Render();
+    }
+
+    if (m_saveLoadMenuActive) {
+        m_mapEditor->SetShowCursor(true);
+    }
 
     if (m_textManager) {
         char fpsText[64];
@@ -1425,11 +1505,11 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
         m_textManager->DrawTextToScreen(fpsText, 650.0f, 720.0f - 60.0f, 0xFF00FF00, 0.25f);
 
         static const char* layerNames[] = {
-            "Roads", "Nodes", "Placement", "Resources", "Ground", "Objects", "Overlay"
+            "Roads", "Nodes", "Placement", "Resources", "Ground", "Objects", "Overlay", "Buildings"
         };
         const char* layerName = "Unknown";
         int layerIdx = static_cast<int>(m_currentLayer);
-        if (layerIdx >= 0 && layerIdx < 7) {
+        if (layerIdx >= 0 && layerIdx < World::LayerCount) {
             layerName = layerNames[layerIdx];
         }
         char layerText[64];
@@ -1485,6 +1565,8 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
                 sprintf_s(titleText, "Ground");
             } else if (m_currentLayer == World::Objects) {
                 sprintf_s(titleText, "%s", kObjectGroupNames[m_objectGroupIndex]);
+            } else if (m_currentLayer == World::Buildings) {
+                sprintf_s(titleText, "Buildings");
             } else {
                 sprintf_s(titleText, "");
             }
@@ -1568,6 +1650,9 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
             } else if (m_currentLayer == World::Roads) {
                 atlasName = "streets";
                 texSlot = 3;
+            } else if (m_currentLayer == World::Buildings) {
+                atlasName = "Buildings";
+                texSlot = 1;
             }
             std::tr1::shared_ptr<SpriteAtlas> atlas = reg.getAtlas(atlasName);
             if (atlas && tileIdx < (int)atlas->GetRegionCount()) {

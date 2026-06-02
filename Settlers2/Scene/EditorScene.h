@@ -12,6 +12,7 @@
 #include "../Graphics/Texture.h"
 #include "../Graphics/TextManager.h"
 #include "../Editor/MapEditor.h"
+#include "../Game/Unit.h"
 #include "../World/Map.h"
 #include "../World/ResourceNode.h"
 #include "../Graphics/Renderer.h"
@@ -113,7 +114,7 @@ public:
     void UpdateCamera(Input::Gamepad* gamepad, float deltaTime);
     void UpdateMapEditor(float deltaTime, Input::Gamepad* gamepad);
     void CycleObjectGroup();
-    void UpdateSaveLoadMenu(Input::Gamepad* gamepad);
+    void UpdateSaveLoadMenu(Input::Gamepad* gamepad, float deltaTime);
     void RenderSaveLoadMenu(Graphics::RenderQueue* renderQueue);
 
     // Public member variables
@@ -129,6 +130,7 @@ public:
     Texture m_groundTexture;
     Texture m_bgEditorTexture;
     Editor::MapEditor* m_mapEditor;
+    Game::UnitManager* m_unitManager;
     World::LayerType m_currentLayer;
 
     // Object group cycling (maptiles groups)
@@ -186,6 +188,7 @@ public:
     int m_saveLoadMenuSection;   // 0=main, 1=save, 2=load, 3=confirm
     int m_saveLoadMenuSelection;
     int m_saveLoadMenuPendingSlot; // slot index for confirm overwrite
+    float m_saveLoadMenuInputTimer;
     static const int SAVE_SLOT_COUNT = 10;
 };
 

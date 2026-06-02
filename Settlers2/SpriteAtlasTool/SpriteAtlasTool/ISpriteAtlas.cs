@@ -24,6 +24,9 @@ namespace SpriteAtlasTool
         }
         public bool IsPacked { get; set; }
         public NodeWeightInfo NodeWeights { get; set; }
+        public int EntranceX { get; set; }        // Node-tile offset X from anchor to entrance (0 = no entrance)
+        public int EntranceY { get; set; }        // Node-tile offset Y from anchor to entrance (0 = no entrance)
+        public bool IsBuilding { get; set; }      // True if this sprite represents a building (gameplay flag)
         public SpriteRegion(Rectangle bounds)
         {
             Bounds = bounds;
@@ -36,6 +39,9 @@ namespace SpriteAtlasTool
             FlipY = false;
             Name = "";
             NodeWeights = new NodeWeightInfo();
+            EntranceX = 0;
+            EntranceY = 0;
+            IsBuilding = false;
         }
 
         public override string ToString()

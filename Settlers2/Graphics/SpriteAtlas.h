@@ -30,6 +30,9 @@ struct SpriteRegion {
     bool isTrigger;         // whether it's a trigger (default false)
     std::vector<std::pair<int,int> > collMask; // Exact collision tile mask (dx,dy relative to collOffX/Y)
     std::vector<NodeWeightEntry> nodeWeightEntries; // Per-node weight entries for ground tiles
+    int entranceX;          // building entrance X offset in node-tiles (0 = no entrance)
+    int entranceY;          // building entrance Y offset in node-tiles (0 = no entrance)
+    bool isBuilding;        // true if this sprite represents a gameplay building
 };
 
 // SpriteAnimation structure for animation metadata

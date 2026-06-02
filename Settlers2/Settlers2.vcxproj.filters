@@ -9,6 +9,9 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
     </Filter>
+    <Filter Include="Game">
+      <UniqueIdentifier>{b7c3f2e1-8a5d-4e6f-9b1a-2d4c7e8f3a5b}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Graphics">
       <UniqueIdentifier>{86fecf20-ef24-4961-a493-f5bcc716d19c}</UniqueIdentifier>
     </Filter>
@@ -326,6 +329,9 @@
     <ClInclude Include="Graphics\BatchBuilder.h">
       <Filter>Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="Game\Unit.h">
+      <Filter>Game</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -489,6 +495,9 @@
     </ClCompile>
     <ClCompile Include="Editor\MapEditor.cpp">
       <Filter>Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\UnitManager.cpp">
+      <Filter>Game</Filter>
     </ClCompile>
     <ClCompile Include="World\Components\Building.cpp">
       <Filter>UI</Filter>

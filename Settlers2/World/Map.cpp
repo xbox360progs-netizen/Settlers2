@@ -21,6 +21,7 @@ Map::Map(int groundWidth, int groundHeight, int otherWidth, int otherHeight)
     m_layers[static_cast<int>(Resources)] = new TileLayer(Resources, otherWidth, otherHeight);
     m_layers[static_cast<int>(Objects)] = new TileLayer(Objects, otherWidth, otherHeight);
     m_layers[static_cast<int>(Overlay)] = new TileLayer(Overlay, otherWidth, otherHeight);
+    m_layers[static_cast<int>(Buildings)] = new TileLayer(Buildings, otherWidth, otherHeight);
 
     // Initialize resource map (same size as Objects layer: 40x40)
     int resourceMapSize = otherWidth * otherHeight;

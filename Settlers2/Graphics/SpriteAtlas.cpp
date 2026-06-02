@@ -41,6 +41,21 @@ void SpriteAtlas::SetTexture(LPDIRECT3DTEXTURE9 pTexture) {
                 m_textureHeight = desc.Height;
                 sprintf(debugMsg, "[SpriteAtlas] SetTexture texture size: %dx%d\n", m_textureWidth, m_textureHeight);
                 OutputDebugStringA(debugMsg);
+
+                // Half-texel inset to prevent atlas bleeding with bilinear filtering
+                if (m_textureWidth > 0 && m_textureHeight > 0) {
+                    float halfTexelU = 0.5f / (float)m_textureWidth;
+                    float halfTexelV = 0.5f / (float)m_textureHeight;
+                    for (size_t i = 0; i < m_regions.size(); ++i) {
+                        SpriteRegion& r = m_regions[i];
+                        float dirU = (r.u1 > r.u0) ? 1.0f : -1.0f;
+                        float dirV = (r.v1 > r.v0) ? 1.0f : -1.0f;
+                        r.u0 += dirU * halfTexelU;
+                        r.u1 -= dirU * halfTexelU;
+                        r.v0 += dirV * halfTexelV;
+                        r.v1 -= dirV * halfTexelV;
+                    }
+                }
             }
         } else {
             m_textureWidth = 0;

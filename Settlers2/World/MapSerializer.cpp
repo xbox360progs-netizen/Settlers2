@@ -8,13 +8,13 @@
 #pragma pack(push, 1)
 struct Header {
     char magic[4];   // "SMAP"
-    int version;     // 2 (added road flags support)
+    int version;     // 3 (added Buildings layer)
     int groundW, groundH;
     int otherW, otherH;
 };
 #pragma pack(pop)
 
-static const int CURRENT_VERSION = 2;
+static const int CURRENT_VERSION = 3;
 
 // Вспомогательные функции для буферизации
 static void Append(std::vector<BYTE>& buf, const void* data, size_t size) {
@@ -149,8 +149,8 @@ bool MapSerializer::Load(World::Map& map, const std::string& path, std::vector<s
     Header hdr;
     if (!reader.Read(&hdr, sizeof(hdr))) return false;
     if (memcmp(hdr.magic, "SMAP", 4) != 0) return false;
-    // Support version 1 (no flags) and version 2 (with flags)
-    if (hdr.version != 1 && hdr.version != CURRENT_VERSION) return false;
+    // Support versions 1-3
+    if (hdr.version < 1 || hdr.version > CURRENT_VERSION) return false;
 
     map.Clear();
     map.InitializeWeights(World::Weight_Land);
@@ -165,7 +165,8 @@ bool MapSerializer::Load(World::Map& map, const std::string& path, std::vector<s
                 layer->SetTile(x, y, World::Tile());
     }
 
-    for (int li = 0; li < World::LayerCount; ++li) {
+    int layersToRead = (hdr.version < 3) ? 7 : World::LayerCount;
+    for (int li = 0; li < layersToRead; ++li) {
         int ltInt, fileW, fileH;
         if (!reader.Read(&ltInt, sizeof(ltInt)) || !reader.Read(&fileW, sizeof(fileW)) || !reader.Read(&fileH, sizeof(fileH))) return false;
         World::LayerType lt = static_cast<World::LayerType>(ltInt);
