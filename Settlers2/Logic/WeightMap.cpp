@@ -56,7 +56,7 @@ TileWeight WeightMap::GetDefaultWeight(World::TileType type) {
         case World::Rock:
         case World::Decoration:
             return WEIGHT_LAND; 
-        case World::Building:
+        case World::Tile_Building:
             return WEIGHT_IMPASSABLE;
         default:
             return WEIGHT_DEFAULT;

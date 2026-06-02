@@ -1,4 +1,4 @@
-﻿#ifndef UI_RESOURCEBAR_H
+#ifndef UI_RESOURCEBAR_H
 #define UI_RESOURCEBAR_H
 
 // TODO: Implement ResourceBar

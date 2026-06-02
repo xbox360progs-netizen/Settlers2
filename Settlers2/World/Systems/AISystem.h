@@ -1,4 +1,4 @@
-﻿#ifndef WORLD_SYSTEMS_AISYSTEM_H
+#ifndef WORLD_SYSTEMS_AISYSTEM_H
 #define WORLD_SYSTEMS_AISYSTEM_H
 
 // TODO: Implement AISystem

@@ -27,7 +27,7 @@ MapEditor::MapEditor()
     , m_toolbarPanel(0)
     , m_currentMode(EditMode_PaintGround)
     , m_brushSize(BrushSize_Single)
-    , m_currentTileType(World::None)
+    , m_currentTileType(World::Tile_None)
     , m_currentTileIndex(0)
     , m_currentLayer(World::Ground)
     , m_weightMap(nullptr)
@@ -349,7 +349,7 @@ for (int y = centerY - brushRadius; y <= centerY + brushRadius; ++y) {
         for (int x = centerX - brushRadius; x <= centerX + brushRadius; ++x) {
             if (x >= 0 && x < gridW && y >= 0 && y < gridH) {
                 if (m_currentMode == EditMode_Erase) {
-                    m_map->SetTileType(layer, x, y, World::None);
+                    m_map->SetTileType(layer, x, y, World::Tile_None);
                 } else if (m_currentLayer == World::Ground || m_currentLayer == World::Objects || m_currentLayer == World::Buildings) {
                     int oldCursorX = m_cursorTileX;
                     int oldCursorY = m_cursorTileY;
@@ -420,7 +420,7 @@ void MapEditor::InitializeMap() {
         for (int y = 0; y < layer->GetHeight(); ++y) {
             for (int x = 0; x < layer->GetWidth(); ++x) {
                 World::Tile& tile = layer->GetTile(x, y);
-                tile.type = World::None;
+                tile.type = World::Tile_None;
                 tile.regionIndex = -1;
                 tile.u0 = 0.0f;
                 tile.v0 = 0.0f;
@@ -436,7 +436,7 @@ void MapEditor::InitializeMap() {
         for (int y = 0; y < groundLayer->GetHeight(); ++y) {
             for (int x = 0; x < groundLayer->GetWidth(); ++x) {
                 World::Tile& tile = groundLayer->GetTile(x, y);
-                tile.type = World::None;
+                tile.type = World::Tile_None;
                 tile.regionIndex = 0;
                 tile.u0 = firstRegion->u0;
                 tile.v0 = firstRegion->v0;
@@ -1209,7 +1209,7 @@ void MapEditor::ClearPlacementFootprint(int tx, int ty, World::TileLayer* object
             if (fx >= 0 && fx < pw && fy >= 0 && fy < ph) {
                 World::Tile& pt = placementLayer->GetTile(fx, fy);
                 pt.regionIndex = -1;
-                pt.type = World::None;
+                pt.type = World::Tile_None;
                 pt.atlasName.clear();
                 pt.walkable = true;
                 pt.buildable = true;
@@ -1223,7 +1223,7 @@ void MapEditor::ClearPlacementFootprint(int tx, int ty, World::TileLayer* object
                 if (fx >= 0 && fx < pw && fy >= 0 && fy < ph) {
                     World::Tile& pt = placementLayer->GetTile(fx, fy);
                     pt.regionIndex = -1;
-                    pt.type = World::None;
+                    pt.type = World::Tile_None;
                     pt.atlasName.clear();
                     pt.walkable = true;
                     pt.buildable = true;
@@ -1438,6 +1438,12 @@ void MapEditor::PaintCurrentTile() {
             return;
         }
 
+        // Debug: Inspect building collision/entrance values
+        char debugMsg[256];
+        sprintf_s(debugMsg, "[MapEditor] Placing building: %s, collOffX=%d, collOffY=%d, entranceX=%d, entranceY=%d\n", 
+                  region->name.c_str(), region->collOffX, region->collOffY, region->entranceX, region->entranceY);
+        OutputDebugStringA(debugMsg);
+
         // Clear old placement footprint if tile already has a building
         World::TileLayer* buildingsLayer = m_map->GetLayer(World::Buildings);
         if (buildingsLayer) {
@@ -1505,7 +1511,7 @@ void MapEditor::PaintCurrentTile() {
             }
         }
 
-        // Auto-place entrance flag and road if sprite has entrance offset
+        // Auto-place entrance flag and road from atlas-authored entrance offset
         if ((region->entranceX != 0 || region->entranceY != 0) && m_roadAtlas) {
             int ex = tileX + region->entranceX;
             int ey = tileY + region->entranceY;
@@ -1526,7 +1532,7 @@ void MapEditor::PaintCurrentTile() {
                 if (placementLayer) {
                     World::Tile& pt = placementLayer->GetTile(ex, ey);
                     pt.regionIndex = 0;
-                    pt.type = World::None;
+                    pt.type = World::Tile_None;
                     pt.atlasName = "streets";
                     pt.walkable = true;
                     pt.buildable = false;
@@ -1680,7 +1686,7 @@ void MapEditor::PaintCurrentTile() {
         tile.regionIndex = m_placementOccupied ? 1 : -1;
         tile.buildable = !m_placementOccupied;
         tile.walkable = !m_placementOccupied;
-        tile.type = World::None;
+        tile.type = World::Tile_None;
         tile.atlasName.clear();
     }
 }
@@ -1849,7 +1855,7 @@ void MapEditor::CommitRoad() {
             if (placementLayer) {
                 World::Tile& pt = placementLayer->GetTile(px, py);
                 pt.regionIndex = 0;
-                pt.type = World::None;
+                pt.type = World::Tile_None;
                 pt.atlasName = "streets";
                 pt.walkable = true;
                 pt.buildable = false;
@@ -1860,7 +1866,7 @@ void MapEditor::CommitRoad() {
                 World::Tile& pt = placementLayer->GetTile(px, py);
                 if (pt.regionIndex < 0) {
                     pt.regionIndex = 0;
-                    pt.type = World::None;
+                    pt.type = World::Tile_None;
                     pt.atlasName = "streets";
                     pt.walkable = true;
                     pt.buildable = false;
@@ -2518,7 +2524,7 @@ bool MapEditor::CanPlaceObject(int x, int y, World::TileType objectType) {
         case World::Decoration:
             // Trees, mountains, rocks only on land
             return weight == World::Weight_Land;
-        case World::Building:
+        case World::Tile_Building:
             return weight == World::Weight_Land;
         default:
             return true;

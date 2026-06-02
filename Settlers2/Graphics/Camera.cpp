@@ -1,10 +1,10 @@
-п»ї// Graphics/Camera.cpp
+// Graphics/Camera.cpp
 #include "stdafx.h"
 #include "Camera.h"
 #include "ShaderManager.h"
 
 Camera::Camera()
-: m_pShaderManager(nullptr)
+: m_pShaderManager(NULL)
 , m_screenWidth(0)
 , m_screenHeight(0)
 , m_posX(0)
@@ -108,19 +108,19 @@ void Camera::Zoom(float dz)
     if(m_zoom < 0.3f) m_zoom = 0.3f;
     if(m_zoom > 4.0f)  m_zoom = 4.0f;
     
-    // РљРѕСЂСЂРµРєС‚РёСЂСѓРµРј РїРѕР·РёС†РёСЋ РєР°РјРµСЂС‹ С‡С‚РѕР±С‹ Р·СѓРј Р±С‹Р» РѕС‚ С†РµРЅС‚СЂР° СЌРєСЂР°РЅР°
+    // Корректируем позицию камеры чтобы зум был от центра экрана
     float halfW = m_screenWidth * 0.5f;
     float halfH = m_screenHeight * 0.5f;
     
-    // РўРѕС‡РєР° РІ РјРёСЂРµ РґРѕ Р·СѓРјР°
+    // Точка в мире до зума
     float worldX, worldY;
     ScreenToWorld(halfW, halfH, worldX, worldY);
     
-    // РўРѕС‡РєР° РІ РјРёСЂРµ РїРѕСЃР»Рµ Р·СѓРјР° РґРѕР»Р¶РЅР° Р±С‹С‚СЊ С‚РѕР№ Р¶Рµ
+    // Точка в мире после зума должна быть той же
     float newWorldX = m_posX + halfW / m_zoom;
     float newWorldY = m_posY + halfH / m_zoom;
     
-    // РљРѕСЂСЂРµРєС‚РёСЂСѓРµРј РїРѕР·РёС†РёСЋ РєР°РјРµСЂС‹
+    // Корректируем позицию камеры
     m_posX += worldX - newWorldX;
     m_posY += worldY - newWorldY;
     
@@ -137,16 +137,16 @@ void Camera::Zoom(float dz, float centerScreenX, float centerScreenY)
     if(m_zoom < 0.3f) m_zoom = 0.3f;
     if(m_zoom > 4.0f)  m_zoom = 4.0f;
     
-    // РљРѕСЂСЂРµРєС‚РёСЂСѓРµРј РїРѕР·РёС†РёСЋ РєР°РјРµСЂС‹ С‡С‚РѕР±С‹ Р·СѓРј Р±С‹Р» РѕС‚ С†РµРЅС‚СЂР° (centerScreenX, centerScreenY)
-    // РўРѕС‡РєР° РІ РјРёСЂРµ РґРѕ Р·СѓРјР°
+    // Корректируем позицию камеры чтобы зум был от центра (centerScreenX, centerScreenY)
+    // Точка в мире до зума
     float worldX, worldY;
     ScreenToWorld(centerScreenX, centerScreenY, worldX, worldY);
     
-    // РўРѕС‡РєР° РІ РјРёСЂРµ РїРѕСЃР»Рµ Р·СѓРјР° РґРѕР»Р¶РЅР° Р±С‹С‚СЊ С‚РѕР№ Р¶Рµ
+    // Точка в мире после зума должна быть той же
     float newWorldX = m_posX + centerScreenX / m_zoom;
     float newWorldY = m_posY + (m_screenHeight - centerScreenY) / m_zoom;
     
-    // РљРѕСЂСЂРµРєС‚РёСЂСѓРµРј РїРѕР·РёС†РёСЋ РєР°РјРµСЂС‹
+    // Корректируем позицию камеры
     m_posX += worldX - newWorldX;
     m_posY += worldY - newWorldY;
     
@@ -162,7 +162,7 @@ void Camera::Reset()
 }
 
 //
-// Screen в†’ World
+// Screen > World
 //
 void Camera::ScreenToWorld(float sx,float sy,float& wx,float& wy) const
 {
@@ -171,7 +171,7 @@ void Camera::ScreenToWorld(float sx,float sy,float& wx,float& wy) const
 }
 
 //
-// World в†’ Screen
+// World > Screen
 //
 void Camera::WorldToScreen(float wx,float wy,float& sx,float& sy) const
 {

@@ -63,7 +63,7 @@ void TileRenderer::RenderTileLayer(World::LayerType layer, int layerOffset) {
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             const World::Tile& tile = tileLayer->GetTile(x, y);
-            if (tile.type != World::None) {
+            if (tile.type != World::Tile_None) {
                 RenderTile(x, y, tile.type, layerOffset);
             }
         }

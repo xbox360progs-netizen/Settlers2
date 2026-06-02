@@ -1,4 +1,4 @@
-﻿// PhysicsSystem.cpp
+// PhysicsSystem.cpp
 // TODO: Implement PhysicsSystem
 #include "stdafx.h"
 

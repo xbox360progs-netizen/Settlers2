@@ -1,4 +1,4 @@
-﻿// Graphics/Camera.h
+// Graphics/Camera.h
 #pragma once
 #include <d3dx9.h>
 
@@ -11,7 +11,7 @@ public:
 
     Camera();
 
-    void Initialize(float screenWidth, float screenHeight, ShaderManager* pShaderManager = nullptr);
+    void Initialize(float screenWidth, float screenHeight, ShaderManager* pShaderManager = NULL);
 
     void Update();     // world camera
     void UpdateUI();   // ui camera

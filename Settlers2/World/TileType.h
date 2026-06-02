@@ -6,12 +6,12 @@ namespace World {
 
 enum TileType
 {
-	None,
+	Tile_None,
     Tree,
     Mountain,
     MountainOnWater,
     Rock,
-    Building,
+    Tile_Building,
     Decoration
 };
 
@@ -19,12 +19,12 @@ inline const char* TileTypeToString(TileType type)
 {
     switch (type)
     {
-		case None: return "None";
+		case Tile_None: return "None";
         case Tree: return "Tree";
         case Mountain: return "Mountain";
         case MountainOnWater: return "MountainOnWater";
         case Rock: return "Rock";
-        case Building: return "Building";
+        case Tile_Building: return "Building";
         case Decoration: return "Decoration";
         default: return "Unknown";
     }
@@ -32,12 +32,12 @@ inline const char* TileTypeToString(TileType type)
 
 inline TileType StringToTileType(const std::string& str)
 {
-	if (str == "None") return None;
+	if (str == "None") return Tile_None;
     if (str == "Tree") return Tree;
     if (str == "Mountain") return Mountain;
     if (str == "MountainOnWater") return MountainOnWater;
     if (str == "Rock") return Rock;
-    if (str == "Building") return Building;
+    if (str == "Building") return Tile_Building;
     if (str == "Decoration") return Decoration;
     return Tree;
 }

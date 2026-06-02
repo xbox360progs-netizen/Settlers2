@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <stdint.h>
 #include <xtl.h>
 #include <xboxmath.h>
 

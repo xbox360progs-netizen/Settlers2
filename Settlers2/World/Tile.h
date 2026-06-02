@@ -19,7 +19,7 @@ struct Tile
     std::string atlasName;
 
     Tile()
-        : type(None)
+        : type(Tile_None)
         , x(0), y(0)
         , height(0.0f)
         , uvOffset(0.0f, 0.0f)
@@ -30,7 +30,7 @@ struct Tile
     {
     }
 
-    Tile(int tileX, int tileY, TileType tileType = None)
+    Tile(int tileX, int tileY, TileType tileType = Tile_None)
         : type(tileType)
         , x(tileX)
         , y(tileY)
@@ -54,7 +54,7 @@ struct Tile
 			buildable = false;
 			height = 1.0f;
 			break;
-		case Building:
+		case Tile_Building:
 			walkable = false;
 			buildable = false;
 			height = 1.0f;

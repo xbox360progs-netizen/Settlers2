@@ -1,4 +1,4 @@
-п»ї// TextureRegistry.cpp - Xbox 360 SDK compatible
+// TextureRegistry.cpp - Xbox 360 SDK compatible
 #include "StdAfx.h"
 #include "TextureRegistry.h"
 #include "TextureLoader.h"
@@ -110,7 +110,7 @@ LPDIRECT3DTEXTURE9 TextureRegistry::getTextureOrLoad(const std::string& name) {
     // Check if bin file exists
     FILE* binTest = _wfopen(binPathW.c_str(), L"rb");
     if (binTest) {
-        fclose(binTest); // Р—Р°РєСЂС‹РІР°РµРј, BinFileManager РѕС‚РєСЂРѕРµС‚ РµРіРѕ СЃР°Рј
+        fclose(binTest); // Закрываем, BinFileManager откроет его сам
         
         // Load as atlas
         BinFileManager* binFileManager = GetBinFileManagerStatic();
@@ -171,14 +171,14 @@ LPDIRECT3DTEXTURE9 TextureRegistry::getTextureOrLoad(const std::string& name) {
 bool TextureRegistry::refreshTexture(const std::string& name) {
     EnterCriticalSection(&m_cs);
     
-    // РџСЂРѕРІРµСЂСЏРµРј СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёРµ
+    // Проверяем существование
     std::map<std::string, LPDIRECT3DTEXTURE9>::iterator it = m_textures.find(name);
     if (it == m_textures.end()) {
         LeaveCriticalSection(&m_cs);
         return false;
     }
     
-    // РџРѕР»СѓС‡Р°РµРј РїСѓС‚СЊ РґРѕ РІС‹С…РѕРґР° РёР· РєСЂРёС‚РёС‡РµСЃРєРѕР№ СЃРµРєС†РёРё
+    // Получаем путь до выхода из критической секции
     std::map<std::string, std::wstring>::const_iterator itPath = m_texturePaths.find(name);
     if (itPath == m_texturePaths.end()) {
         LeaveCriticalSection(&m_cs);
@@ -195,9 +195,9 @@ bool TextureRegistry::refreshTexture(const std::string& name) {
         wpath = basePath + wpath;
     }
     
-    LeaveCriticalSection(&m_cs); // Р’Р«РҐРћР”РРњ Р”Рћ Р—РђР“Р РЈР—РљР!
+    LeaveCriticalSection(&m_cs); // ВЫХОДИМ ДО ЗАГРУЗКИ!
     
-    // Р—Р°РіСЂСѓР¶Р°РµРј РІРЅРµ РєСЂРёС‚РёС‡РµСЃРєРѕР№ СЃРµРєС†РёРё
+    // Загружаем вне критической секции
     if (!m_device) return false;
     
     TextureLoader loader(m_device);
@@ -205,7 +205,7 @@ bool TextureRegistry::refreshTexture(const std::string& name) {
     HRESULT hr = loader.Load(wpath.c_str(), &newTex);
     
     if (SUCCEEDED(hr) && newTex) {
-        registerTexture(name, newTex); // registerTexture СЃР°РјР° РёСЃРїРѕР»СЊР·СѓРµС‚ РєСЂРёС‚РёС‡РµСЃРєСѓСЋ СЃРµРєС†РёСЋ
+        registerTexture(name, newTex); // registerTexture сама использует критическую секцию
         char debugBuf[512];
         _snprintf(debugBuf, sizeof(debugBuf), "[TextureRegistry] Successfully refreshed '%s'\n", name.c_str());
         OutputDebugStringA(debugBuf);
@@ -267,7 +267,7 @@ void TextureRegistry::initialize(LPDIRECT3DDEVICE9 device) {
         if (SUCCEEDED(hr) && m_notFoundTexture) {
             D3DLOCKED_RECT lr;
             if (SUCCEEDED(m_notFoundTexture->LockRect(0, &lr, NULL, 0))) {
-                unsigned int color = 0xFFFF00FF; // РЇСЂРєРѕ-СЂРѕР·РѕРІС‹Р№ РґР»СЏ РѕС‚Р»Р°РґРєРё
+                unsigned int color = 0xFFFF00FF; // Ярко-розовый для отладки
                 *((unsigned int*)lr.pBits) = color;
                 m_notFoundTexture->UnlockRect(0);
             }
@@ -347,7 +347,7 @@ void TextureRegistry::initializeFromManifest(const std::string& manifestPath, co
         OutputDebugStringA(logBuf);
         
         if (!name.empty() && !path.empty()) {
-            // Р РµРіРёСЃС‚СЂРёСЂСѓРµРј РїСѓС‚СЊ РєР°Рє РµСЃС‚СЊ (РѕС‚РЅРѕСЃРёС‚РµР»СЊРЅС‹Р№ РїСѓС‚СЊ)
+            // Регистрируем путь как есть (относительный путь)
             std::wstring wpathLocal(path.begin(), path.end());
             m_texturePaths[name] = wpathLocal;
             totalLoaded++;

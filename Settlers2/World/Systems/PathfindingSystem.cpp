@@ -1,4 +1,4 @@
-﻿// PathfindingSystem.cpp
+// PathfindingSystem.cpp
 // TODO: Implement PathfindingSystem
 #include "stdafx.h"
 

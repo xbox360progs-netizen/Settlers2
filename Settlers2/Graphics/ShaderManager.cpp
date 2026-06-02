@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 #include "ShaderManager.h"
 #include "Renderer.h"
 #include <d3dx9.h>

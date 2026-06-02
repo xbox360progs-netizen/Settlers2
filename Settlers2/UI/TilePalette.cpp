@@ -14,7 +14,7 @@ static int s_buttonDataCount = 0;
 
 TilePalette::TilePalette()
     : Widget()
-    , m_selectedType(World::None)
+    , m_selectedType(World::Tile_None)
     , m_columns(4)
     , m_buttonSize(48.0f)
     , m_callback(0)
@@ -38,7 +38,7 @@ TilePalette::~TilePalette() {
 void TilePalette::CreateTileButtons(IDirect3DDevice9* device) {
 	World::TileType tileTypes[] = {
 		World::Tree, World::Mountain, World::MountainOnWater,
-		World::Rock, World::Building, World::Decoration
+		World::Rock, World::Tile_Building, World::Decoration
 	};
 
 	const char* tileNames[] = {

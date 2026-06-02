@@ -421,9 +421,6 @@
     <ClCompile Include="World\Components\Unit.cpp">
       <Filter>World\Components</Filter>
     </ClCompile>
-    <ClCompile Include="World\Systems\AISystem.cpp">
-      <Filter>World\Components\Systems</Filter>
-    </ClCompile>
     <ClCompile Include="World\Systems\EconomySystem.cpp">
       <Filter>World\Components\Systems</Filter>
     </ClCompile>
@@ -490,6 +487,12 @@
     <ClCompile Include="Logic\WeightMap.cpp">
       <Filter>Logic</Filter>
     </ClCompile>
+    <ClCompile Include="Logic\AISystem.cpp">
+      <Filter>Logic</Filter>
+    </ClCompile>
+    <ClCompile Include="Logic\EconomyManager.cpp">
+      <Filter>Logic</Filter>
+    </ClCompile>
     <ClCompile Include="Logic\IsoGrid.cpp">
       <Filter>Logic</Filter>
     </ClCompile>
@@ -501,6 +504,9 @@
     </ClCompile>
     <ClCompile Include="World\Components\Building.cpp">
       <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="World\CarrierManager.cpp">
+      <Filter>World</Filter>
     </ClCompile>
     <ClCompile Include="Input\InputController.cpp">
       <Filter>Input</Filter>

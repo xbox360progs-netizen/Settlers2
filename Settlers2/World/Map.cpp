@@ -1,7 +1,11 @@
 #include "stdafx.h"
 #include "Map.h"
 #include "../Graphics/Camera.h"
+#include "../Graphics/TileRenderer.h"
 #include "../Logic/CoordinateSystem.h"
+#include "TileLayer.h"
+#include "../Graphics/Camera.h"
+
 
 namespace World {
 
@@ -9,6 +13,7 @@ Map::Map(int groundWidth, int groundHeight, int otherWidth, int otherHeight)
     : m_width(groundWidth)
     , m_height(groundHeight)
 {
+    InitializeCriticalSection(&m_cs);
     m_layers.resize(static_cast<int>(LayerCount), NULL);
 
     // Ground layer: 20x20
@@ -26,6 +31,7 @@ Map::Map(int groundWidth, int groundHeight, int otherWidth, int otherHeight)
     // Initialize resource map (same size as Objects layer: 40x40)
     int resourceMapSize = otherWidth * otherHeight;
     m_resourceMap.resize(resourceMapSize, World::ResourceNode());
+    m_nodes.resize(resourceMapSize, World::MapNode());
 
     // Initialize weights to default (Land = 2)
     InitializeWeights(Weight_Deep);
@@ -33,6 +39,7 @@ Map::Map(int groundWidth, int groundHeight, int otherWidth, int otherHeight)
 
 Map::~Map()
 {
+    DeleteCriticalSection(&m_cs);
     for (size_t i = 0; i < m_layers.size(); ++i)
     {
         delete m_layers[i];
@@ -120,7 +127,7 @@ void Map::Clear()
                     tile.regionIndex = 0;
                     // Don't set type for Ground!
                     if (m_layers[i]->GetType() != World::Ground) {
-                        tile.type = World::None;
+                        tile.type = World::Tile_None;
                     }
                 }
             }
@@ -399,6 +406,67 @@ void Map::ClearResources()
     }
 }
 
+bool Map::FindResourceInRadius(int centerX, int centerY, int radius, ResourceType type, int& foundX, int& foundY) const
+{
+    EnterCriticalSection(&const_cast<Map*>(this)->m_cs);
+    int layerWidth = m_width * 2;
+    int layerHeight = m_height * 4;
+
+    bool found = false;
+    for (int dy = -radius; dy <= radius; ++dy) {
+        for (int dx = -radius; dx <= radius; ++dx) {
+            int checkX = centerX + dx;
+            int checkY = centerY + dy;
+
+            if (checkX >= 0 && checkX < layerWidth && checkY >= 0 && checkY < layerHeight) {
+                const ResourceNode& node = m_resourceMap[checkY * layerWidth + checkX];
+                if (node.type == type) {
+                    foundX = checkX;
+                    foundY = checkY;
+                    found = true;
+                    goto end;
+                }
+            }
+        }
+    }
+end:
+    LeaveCriticalSection(&const_cast<Map*>(this)->m_cs);
+    return found;
+}
+
+bool Map::FindTileTypeInRadius(int centerX, int centerY, int radius, LayerType layer, TileType type, int& foundX, int& foundY) const
+{
+    EnterCriticalSection(&const_cast<Map*>(this)->m_cs);
+    TileLayer* tileLayer = const_cast<Map*>(this)->GetLayer(layer);
+    if (!tileLayer) {
+        LeaveCriticalSection(&const_cast<Map*>(this)->m_cs);
+        return false;
+    }
+    
+    int layerWidth = tileLayer->GetWidth();
+    int layerHeight = tileLayer->GetHeight();
+
+    bool found = false;
+    for (int dy = -radius; dy <= radius; ++dy) {
+        for (int dx = -radius; dx <= radius; ++dx) {
+            int checkX = centerX + dx;
+            int checkY = centerY + dy;
+
+            if (checkX >= 0 && checkX < layerWidth && checkY >= 0 && checkY < layerHeight) {
+                if (tileLayer->GetTile(checkX, checkY).type == type) {
+                    foundX = checkX;
+                    foundY = checkY;
+                    found = true;
+                    goto end_tile;
+                }
+            }
+        }
+    }
+end_tile:
+    LeaveCriticalSection(&const_cast<Map*>(this)->m_cs);
+    return found;
+}
+
 // Weight management
 BYTE Map::GetNodeWeight(int x, int y) const
 {
@@ -436,6 +504,18 @@ void Map::InitializeWeights(BYTE defaultWeight)
 {
     for (size_t i = 0; i < m_resourceMap.size(); ++i) {
         m_resourceMap[i].weight = defaultWeight;
+    }
+}
+
+void Map::RecalculateTerritory()
+{
+    // TODO: Implement territory expansion algorithm (e.g., flood fill from buildings)
+}
+
+void Map::SetTileOwner(int x, int y, uint8_t owner)
+{
+    if (x >= 0 && x < m_width * 2 && y >= 0 && y < m_height * 4) {
+        m_nodes[y * (m_width * 2) + x].owner = owner;
     }
 }
 

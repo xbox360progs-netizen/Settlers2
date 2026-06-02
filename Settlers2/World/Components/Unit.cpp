@@ -1,4 +1,4 @@
-﻿// Unit.cpp
+// Unit.cpp
 // TODO: Implement Unit
 #include "stdafx.h"
 

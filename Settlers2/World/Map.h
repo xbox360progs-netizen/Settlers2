@@ -1,9 +1,11 @@
 #pragma once
 
 #include <vector>
+#include <xtl.h> // For CRITICAL_SECTION
 #include "TileLayer.h"
 #include "TileType.h"
 #include "ResourceNode.h"
+#include "MapNode.h"
 #include <d3dx9math.h>
 
 class Camera;
@@ -16,7 +18,11 @@ public:
     Map(int groundWidth, int groundHeight, int otherWidth, int otherHeight);
     ~Map();
 
+    void Lock() { EnterCriticalSection(&m_cs); }
+    void Unlock() { LeaveCriticalSection(&m_cs); }
+
     int GetWidth() const { return m_width; }
+
     int GetHeight() const { return m_height; }
 
     TileLayer* GetLayer(LayerType type);
@@ -46,11 +52,21 @@ public:
     const ResourceNode& GetResourceNode(int x, int y) const;
     void SetResourceNode(int x, int y, ResourceType type, int amount, bool isVisible = true);
     void ClearResources();
+    
+    // Find resource in radius
+    bool FindResourceInRadius(int centerX, int centerY, int radius, ResourceType type, int& foundX, int& foundY) const;
+    
+    // Find tile type in radius
+    bool FindTileTypeInRadius(int centerX, int centerY, int radius, LayerType layer, TileType type, int& foundX, int& foundY) const;
 
     // Weight management
     BYTE GetNodeWeight(int x, int y) const;
     void SetNodeWeight(int x, int y, BYTE weight);
     void InitializeWeights(BYTE defaultWeight = Weight_Land);
+
+    // Territory management
+    void RecalculateTerritory();
+    void SetTileOwner(int x, int y, uint8_t owner);
 
 private:
     int m_width;
@@ -59,6 +75,9 @@ private:
 
     // Resource map for the logical grid (staggered, same size as Objects layer)
     std::vector<ResourceNode> m_resourceMap;
+    std::vector<MapNode> m_nodes;
+    
+    CRITICAL_SECTION m_cs;
 };
 
 } // namespace World

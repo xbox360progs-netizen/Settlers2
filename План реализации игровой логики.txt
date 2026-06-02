@@ -1,0 +1,364 @@
+Этап 1. Базовая игровая модель
+
+Сначала нужно отказаться от идеи "строим здания и сразу работают".
+
+В Settlers 2 всё построено вокруг экономики.
+
+Основные сущности:
+
+Player
+World
+Map
+Road
+Flag
+Building
+Worker
+Soldier
+Resource
+TransportJob
+Этап 2. Карта
+
+Каждая клетка должна хранить:
+
+struct MapNode
+{
+    uint16_t terrain;
+    uint16_t height;
+
+    uint8_t owner;
+    uint8_t object;
+
+    uint8_t resourceType;
+    uint8_t resourceAmount;
+
+    bool road;
+    bool occupied;
+};
+Этап 3. Система флагов
+
+Это сердце Settlers 2.
+
+Любой транспорт идет:
+
+Building
+   ↓
+ Flag
+   ↓
+ Road
+   ↓
+ Flag
+   ↓
+ Building
+
+Не напрямую.
+
+Нужны:
+
+class Flag
+{
+    Vector2i pos;
+
+    ResourceSlot slots[8];
+
+    std::vector<Road*> roads;
+};
+Этап 4. Система дорог
+
+Игрок строит дорогу.
+
+Дорога:
+
+class Road
+{
+    Flag* start;
+    Flag* end;
+
+    std::vector<MapNode*> path;
+};
+
+После завершения:
+
+CreateCarrier();
+
+появляется носильщик.
+
+Этап 5. Транспортная система
+
+Самая важная часть игры.
+
+Нужно реализовать:
+
+TransportJob
+
+например:
+
+1 доска
+из лесопилки
+в склад
+
+Структура:
+
+struct TransportJob
+{
+    ResourceType resource;
+
+    Flag* source;
+    Flag* destination;
+
+    uint32_t priority;
+};
+Этап 6. Носильщики
+
+Carrier
+
+Состояния:
+
+Idle
+WalkingToPickup
+Pickup
+WalkingToDestination
+Drop
+
+Алгоритм:
+
+Есть груз на флаге
+↓
+Находим свободного носильщика
+↓
+Берет груз
+↓
+Несет на соседний флаг
+↓
+Кладет
+↓
+Следующий носильщик берет дальше
+
+Именно так работает оригинал.
+
+Этап 7. Складская система
+
+Нужен:
+
+Warehouse
+
+Хранит:
+
+Boards
+Stone
+Coal
+IronOre
+GoldOre
+Gold
+Water
+Beer
+Bread
+Fish
+Meat
+
+и всех специалистов.
+
+Этап 8. Производственная цепочка
+
+Самая большая часть.
+
+Лес
+Forester
+↓
+Tree
+↓
+Woodcutter
+↓
+Wood
+↓
+Sawmill
+↓
+Boards
+
+Оригинальная игра полностью строится на таких цепочках.
+
+Камень
+Granite
+↓
+Stonemason
+↓
+Stone
+Железо
+Coal Mine
+Iron Mine
+↓
+Iron Smelter
+↓
+Iron
+Золото
+Gold Mine
+↓
+Gold Smelter
+↓
+Gold
+Еда
+Farm
+↓
+Wheat
+↓
+Mill
+↓
+Flour
+↓
+Bakery
+↓
+Bread
+Этап 9. Рабочие
+
+Нужно разделить:
+
+Carrier
+Builder
+Woodcutter
+Forester
+Miner
+Farmer
+Fisher
+Hunter
+Baker
+Brewer
+Smelter
+
+Все наследуются от:
+
+class Worker
+{
+public:
+    WorkerState state;
+
+    Building* home;
+};
+Этап 10. Строительство
+
+Состояния:
+
+Ghost
+↓
+Materials Needed
+↓
+Builder Working
+↓
+Construction
+↓
+Finished
+
+Материалы:
+
+boards
+stone
+
+должны реально приехать по дорогам.
+
+Этап 11. Территория
+
+Военная система.
+
+Здания:
+
+Hut
+Tower
+Fortress
+Castle
+
+Каждое расширяет территорию.
+
+Нужно:
+
+RecalculateTerritory();
+Этап 12. Солдаты
+Private
+PrivateFirstClass
+Sergeant
+Officer
+General
+
+Хранят:
+
+Attack
+Defense
+Health
+Этап 13. Бой
+
+Когда территория соприкасается:
+
+Soldier A
+vs
+Soldier B
+
+Победитель захватывает здание.
+
+Этап 14. Поиск пути
+
+Для Xbox 360 подойдет:
+
+A*
+
+Для:
+
+рабочих;
+солдат;
+строителей.
+
+Для транспорта лучше отдельно:
+
+Flag Graph
+Этап 15. ИИ
+
+Минимальный AI:
+
+Строит лесорубов
+↓
+Строит лесников
+↓
+Строит шахты
+↓
+Строит армию
+↓
+Атакует
+Этап 16. Система приоритетов
+
+Как в оригинале:
+
+EconomySettings
+{
+    FoodPriority;
+    CoalPriority;
+    IronPriority;
+    GoldPriority;
+}
+Этап 17. Сохранения
+SaveGame
+{
+    Map
+    Players
+    Buildings
+    Workers
+    Roads
+    Resources
+}
+
+
+Правильный порядок:
+
+1. Карта
+2. Флаги
+3. Дороги
+4. Носильщики
+5. Склад
+6. Доставка ресурсов
+7. Строительство
+8. Лесоруб + Лесник
+9. Лесопилка
+10. Камень
+11. Фермы
+12. Шахты
+13. Плавильни
+14. Территория
+15. Солдаты
+16. Бой
+17. ИИ
+18. Сохранения

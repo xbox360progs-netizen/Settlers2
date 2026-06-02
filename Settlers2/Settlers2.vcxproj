@@ -366,6 +366,8 @@
     <ClCompile Include="Input\InputController.cpp" />
     <ClCompile Include="Input\InputManager.cpp" />
     <ClCompile Include="Input\ScreenKeyboard.cpp" />
+    <ClCompile Include="Logic\AISystem.cpp" />
+    <ClCompile Include="Logic\EconomyManager.cpp" />
     <ClCompile Include="Logic\IsoGrid.cpp" />
     <ClCompile Include="Logic\WeightMap.cpp" />
     <ClCompile Include="Scene\EditorScene.cpp" />
@@ -401,11 +403,11 @@
     <ClCompile Include="World\Components\Sprite.cpp" />
     <ClCompile Include="World\Components\Transform.cpp" />
     <ClCompile Include="World\Components\Unit.cpp" />
+    <ClCompile Include="World\CarrierManager.cpp" />
     <ClCompile Include="World\Entity.cpp" />
     <ClCompile Include="World\EntityManager.cpp" />
     <ClCompile Include="World\Map.cpp" />
     <ClCompile Include="World\MapSerializer.cpp" />
-    <ClCompile Include="World\Systems\AISystem.cpp" />
     <ClCompile Include="World\Systems\EconomySystem.cpp" />
     <ClCompile Include="World\Systems\PathfindingSystem.cpp" />
     <ClCompile Include="World\Systems\PhysicsSystem.cpp" />

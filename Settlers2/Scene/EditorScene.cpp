@@ -48,8 +48,8 @@ int EditorScene::s_mapGridHeight = 20;
 static const ResourceMenuGroupDef kResourceMenuGroups[] = {
     { "icon_resource_wood",  { World::ResourceType_Wood, World::ResourceType_RealWood, World::ResourceType_ExoticWood }, 3 },
     { "icon_resource_stone", { World::ResourceType_Stone, World::ResourceType_Marble, World::ResourceType_Granite }, 3 },
-    { "icon_resource_mine",  { World::ResourceType_Iron, World::ResourceType_Gold, World::ResourceType_Coal, World::ResourceType_BronzeOre, World::ResourceType_Titanium, World::ResourceType_Salpeter }, 6 },
-    { "icon_resource_food",  { World::ResourceType_Corn, World::ResourceType_Water, World::ResourceType_Meat, World::ResourceType_Fish }, 4 }
+    { "icon_resource_mine",  { World::ResourceType_IronOre, World::ResourceType_GoldOre, World::ResourceType_Coal, World::ResourceType_BronzeOre, World::ResourceType_Titanium, World::ResourceType_Salpeter }, 6 },
+    { "icon_resource_food",  { World::ResourceType_Wheat, World::ResourceType_Water, World::ResourceType_Meat, World::ResourceType_Fish }, 4 }
 };
 
 EditorScene::EditorScene()

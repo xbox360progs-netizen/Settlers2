@@ -1,4 +1,4 @@
-﻿// Sprite.cpp
+// Sprite.cpp
 // TODO: Implement Sprite
 #include "stdafx.h"
 

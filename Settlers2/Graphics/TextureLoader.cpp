@@ -1,4 +1,4 @@
-п»ї#include "StdAfx.h"
+#include "StdAfx.h"
 #include "TextureLoader.h"
 #include "TextureRegistry.h"
 #include <stdio.h>
@@ -26,7 +26,7 @@ HRESULT TextureLoader::Load(LPCWSTR filename, LPDIRECT3DTEXTURE9* texture)
     char pathA[512];
     WideCharToMultiByte(CP_ACP, 0, filename, -1, pathA, 512, NULL, NULL);
     
-    // РСЃРїРѕР»СЊР·СѓРµРј CreateFile РґР»СЏ РІСЃРµС… РїСѓС‚РµР№ (СЂР°Р±РѕС‚Р°РµС‚ Рё РґР»СЏ game:\)
+    // Используем CreateFile для всех путей (работает и для game:\)
     HANDLE hFile = CreateFileA(
         pathA,
         GENERIC_READ,
@@ -52,7 +52,7 @@ HRESULT TextureLoader::Load(LPCWSTR filename, LPDIRECT3DTEXTURE9* texture)
         return E_FAIL;
     }
 
-    // --- С‡РёС‚Р°РµРј С„Р°Р№Р» РІ РїР°РјСЏС‚СЊ ---
+    // --- читаем файл в память ---
     BYTE* buffer = (BYTE*)malloc(fileSize);
     if (!buffer)
     {
@@ -70,7 +70,7 @@ HRESULT TextureLoader::Load(LPCWSTR filename, LPDIRECT3DTEXTURE9* texture)
         return E_FAIL;
     }
 
-    // --- СѓР·РЅР°С‘Рј РѕСЂРёРіРёРЅР°Р»СЊРЅС‹Рµ СЂР°Р·РјРµСЂС‹, С‡С‚РѕР±С‹ РЅРµ РґРѕРїР°РґРёС‚СЊ РґРѕ СЃС‚РµРїРµРЅРё 2 ---
+    // --- узнаём оригинальные размеры, чтобы не допадить до степени 2 ---
     D3DXIMAGE_INFO info;
     ZeroMemory(&info, sizeof(info));
     HRESULT hrInfo = D3DXGetImageInfoFromFileInMemory(buffer, fileSize, &info);
@@ -82,7 +82,7 @@ HRESULT TextureLoader::Load(LPCWSTR filename, LPDIRECT3DTEXTURE9* texture)
         OutputDebugStringA(debugInfo);
     }
 
-    // --- СЃРѕР·РґР°С‘Рј С‚РµРєСЃС‚СѓСЂСѓ РёР· РїР°РјСЏС‚Рё, СЃС‚Р°СЂР°СЏСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ РёСЃС…РѕРґРЅС‹Рµ СЂР°Р·РјРµСЂС‹ ---
+    // --- создаём текстуру из памяти, стараясь сохранить исходные размеры ---
     // Xbox 360: Use D3DPOOL_DEFAULT with D3DUSAGE_WRITEONLY for static textures in fast video memory
     #ifdef _XBOX
     DWORD usage = D3DUSAGE_WRITEONLY;
@@ -98,7 +98,7 @@ HRESULT TextureLoader::Load(LPCWSTR filename, LPDIRECT3DTEXTURE9* texture)
         fileSize,
         SUCCEEDED(hrInfo) ? info.Width  : D3DX_DEFAULT_NONPOW2,
         SUCCEEDED(hrInfo) ? info.Height : D3DX_DEFAULT_NONPOW2,
-        1,                       // Р±РµР· Р°РІС‚РѕРіРµРЅРµСЂР°С†РёРё РјРёРїРѕРІ РґР»СЏ 2D
+        1,                       // без автогенерации мипов для 2D
         usage,
         D3DFMT_A8R8G8B8,
         pool,
@@ -110,7 +110,7 @@ HRESULT TextureLoader::Load(LPCWSTR filename, LPDIRECT3DTEXTURE9* texture)
         texture
     );
 
-    // Р¤РѕР»Р±СЌРє РґР»СЏ СѓСЃС‚СЂРѕР№СЃС‚РІ, РєРѕС‚РѕСЂС‹Рµ РЅРµ РїРѕРґРґРµСЂР¶РёРІР°СЋС‚ NPOT (РЅР° РІСЃСЏРєРёР№ СЃР»СѓС‡Р°Р№)
+    // Фолбэк для устройств, которые не поддерживают NPOT (на всякий случай)
     if (FAILED(hr))
     {
         hr = D3DXCreateTextureFromFileInMemory(

@@ -1,4 +1,4 @@
-п»ї#include "stdafx.h"
+#include "stdafx.h"
 #include "MenuScene.h"
 #include <iostream>
 #include "SceneManager.h"
@@ -113,7 +113,7 @@ void MenuScene::Unload() {
 
 void MenuScene::OnEnter() {
   ClearExitRequest();
-  ResetTextureState(); // РЎР±СЂР°СЃС‹РІР°РµРј Рё Р°РєС‚СѓР°Р»РёР·РёСЂСѓРµРј С‚РµРєСЃС‚СѓСЂСѓ РїСЂРё РІС…РѕРґРµ
+  ResetTextureState(); // Сбрасываем и актуализируем текстуру при входе
 }
 
 void MenuScene::OnExit() {
