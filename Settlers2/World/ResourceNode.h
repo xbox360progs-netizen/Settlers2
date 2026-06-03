@@ -17,6 +17,7 @@ enum ResourceType
 {
     ResourceType_None = 0,
     ResourceType_Wood,
+    ResourceType_Planks,
     ResourceType_Fish,
     ResourceType_Coal,
     ResourceType_IronOre,
@@ -65,6 +66,7 @@ inline const char* ResourceTypeToString(ResourceType type)
     {
         case ResourceType_None: return "None";
         case ResourceType_Wood: return "Wood";
+        case ResourceType_Planks: return "Planks";
         case ResourceType_Fish: return "Fish";
         case ResourceType_Coal: return "Coal";
         case ResourceType_IronOre: return "IronOre";

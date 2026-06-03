@@ -3,6 +3,7 @@
 #include <map>
 #include "ResourceNode.h"
 #include "Components/Building.h"
+#include "Flag.h"
 
 namespace World {
     class Worker; // Forward declaration
@@ -13,14 +14,24 @@ namespace World {
         std::vector<Worker*> specialists;
 
         Warehouse(int x, int y, uint8_t o) : Building(Building_None, x, y, o, NULL) {
-            // Initialize resources to 0
             for (int i = 0; i < ResourceType_Count; ++i) {
                 resources[(ResourceType)i] = 0;
             }
         }
 
         virtual void Update() {
-            // Warehouse doesn't "produce" anything itself, it just holds resources
+            // Pull one unit per frame from flag into warehouse storage
+            if (connectedFlag) {
+                for (int t = 0; t < ResourceType_Count; ++t) {
+                    ResourceType type = (ResourceType)t;
+                    if (type == ResourceType_None) continue;
+                    if (connectedFlag->GetAvailable(type) > 0) {
+                        connectedFlag->RemoveResource(type, 1);
+                        AddResource(type, 1);
+                        break;
+                    }
+                }
+            }
         }
 
         void AddResource(ResourceType type, int amount) {

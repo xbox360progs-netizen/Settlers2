@@ -8,6 +8,7 @@
 #include "../World/Components/Mill.h"
 #include "../World/Components/Bakery.h"
 #include "../World/Components/Sawmill.h"
+#include "../World/Components/Stonemason.h"
 #include "../World/Components/Hunter.h"
 #include "../World/Components/Fisher.h"
 #include "../World/Components/ToolWorkshop.h"
@@ -127,7 +128,7 @@ namespace Logic {
     void AISystem::Update(float deltaTime) {
         (void)deltaTime;
         static const World::BuildingType types[] = {
-            World::Woodcutter, World::Sawmill,
+            World::Woodcutter, World::Sawmill, World::Stonemason,
             World::CoalMine, World::IronMine, World::IronSmelter, World::ToolWorkshop,
             World::Farm, World::Mill, World::Bakery,
             World::Hunter, World::Fisher,
@@ -221,6 +222,7 @@ namespace Logic {
             case World::IronMine:      return new class World::IronMine(x, y, m_playerID, m_map);
             case World::GoldMine:      return new class World::GoldMine(x, y, m_playerID, m_map);
             case World::Sawmill:       return new class World::Sawmill(x, y, m_playerID, m_map);
+            case World::Stonemason:    return new class World::Stonemason(x, y, m_playerID, m_map);
             case World::Farm:          return new class World::Farm(x, y, m_playerID, m_map);
             case World::Mill:          return new class World::Mill(x, y, m_playerID, m_map);
             case World::Bakery:        return new class World::Bakery(x, y, m_playerID, m_map);

@@ -286,8 +286,10 @@
     <ClInclude Include="Input\ScreenKeyboard.h" />
     <ClInclude Include="Logic\CoordinateSystem.h" />
     <ClInclude Include="Logic\AStar.h" />
+    <ClInclude Include="Logic\EconomySettings.h" />
     <ClInclude Include="Logic\IsoGrid.h" />
     <ClInclude Include="Logic\MapConstants.h" />
+    <ClInclude Include="Logic\ResourceRegistry.h" />
     <ClInclude Include="Logic\WeightMap.h" />
     <ClInclude Include="Scene\EditorScene.h" />
     <ClInclude Include="Scene\GameScene.h" />
@@ -391,6 +393,7 @@
     <ClCompile Include="Input\ScreenKeyboard.cpp" />
     <ClCompile Include="Logic\AISystem.cpp" />
     <ClCompile Include="Logic\EconomyManager.cpp" />
+    <ClCompile Include="Logic\ResourceRegistry.cpp" />
     <ClCompile Include="Logic\IsoGrid.cpp" />
     <ClCompile Include="Logic\WeightMap.cpp" />
     <ClCompile Include="Scene\EditorScene.cpp" />

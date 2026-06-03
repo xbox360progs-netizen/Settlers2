@@ -2,19 +2,24 @@
 #define WORLD_COMPONENTS_STONEMASON_H
 
 #include "Building.h"
+#include "../Map.h"
 
 namespace World {
 
 class Stonemason : public Building {
 public:
-    Stonemason(int x, int y, uint8_t o) 
-        : Building(BuildingType::Stonemason, x, y, o) {
-        // Stonemason needs access to granite deposits
+    Stonemason(int x, int y, uint8_t o, Map* m) 
+        : Building(BuildingType::Stonemason, x, y, o, m) {
         outputResources.push_back(ResourceType_Stone);
     }
 
     void Update() override {
-        // Логика каменотеса: добыча камня из залежей гранита
+        if (inventory[ResourceType_Stone] < 5) {
+            int foundX, foundY;
+            if (map && map->FindResourceInRadius(pos.x, pos.y, 5, ResourceType_Granite, foundX, foundY)) {
+                inventory[ResourceType_Stone]++;
+            }
+        }
     }
 };
 

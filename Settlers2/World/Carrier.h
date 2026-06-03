@@ -18,6 +18,7 @@ namespace World {
     public:
         CarrierState state;
         TransportJob* currentJob;
+        Cargo cargo;
         Flag* currentFlag;
         Flag* nextFlag;
 
@@ -44,8 +45,20 @@ namespace World {
                     Move(deltaTime);
                     break;
                 case Pickup:
+                    if (currentJob) {
+                        cargo = currentJob->cargo;
+                        currentFlag->CommitPickup(cargo.type, cargo.amount);
+                    }
+                    state = WalkingToDestination;
+                    break;
                 case Drop:
-                    state = (state == Pickup) ? WalkingToDestination : Idle;
+                    if (currentJob) {
+                        currentFlag->AddResource(cargo.type, cargo.amount);
+                    }
+                    delete currentJob;
+                    currentJob = NULL;
+                    cargo = Cargo();
+                    state = Idle;
                     break;
             }
         }

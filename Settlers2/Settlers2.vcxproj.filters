@@ -233,6 +233,12 @@
     <ClInclude Include="Logic\CoordinateSystem.h">
       <Filter>Logic</Filter>
     </ClInclude>
+    <ClInclude Include="Logic\EconomySettings.h">
+      <Filter>Logic</Filter>
+    </ClInclude>
+    <ClInclude Include="Logic\ResourceRegistry.h">
+      <Filter>Logic</Filter>
+    </ClInclude>
     <ClInclude Include="Input\InputController.h">
       <Filter>Input</Filter>
     </ClInclude>
@@ -557,6 +563,9 @@
       <Filter>Logic</Filter>
     </ClCompile>
     <ClCompile Include="Logic\EconomyManager.cpp">
+      <Filter>Logic</Filter>
+    </ClCompile>
+    <ClCompile Include="Logic\ResourceRegistry.cpp">
       <Filter>Logic</Filter>
     </ClCompile>
     <ClCompile Include="Logic\IsoGrid.cpp">
