@@ -2,7 +2,7 @@
 #define WORLD_COMPONENTS_HUNTER_H
 
 #include "Building.h"
-#include "../Map.h"
+#include "../WildlifeSystem.h"
 
 namespace World {
 
@@ -15,21 +15,24 @@ public:
         outputResources.push_back(ResourceType_Meat);
     }
 
-    void Update() override {
-        // 1. Ставим капканы (потребляем капканы из инвентаря)
+    void Update() {
+        // 1. Place traps on live animals
         if (trapsCount < 3 && inventory[ResourceType_Trap] > 0) {
-            int foundX, foundY;
-            if (map && map->FindResourceInRadius(pos.x, pos.y, 8, ResourceType_WildlifeSpawner_Deer, foundX, foundY)) {
-                inventory[ResourceType_Trap]--;
-                trapsCount++;
+            WildlifeSystem* ws = map ? map->GetWildlifeSystem() : NULL;
+            if (ws) {
+                int animalIdx = ws->FindAliveAnimal(pos.x, pos.y, 8, AnimalType_Deer);
+                if (animalIdx >= 0) {
+                    inventory[ResourceType_Trap]--;
+                    ws->TrapAnimal(animalIdx);
+                    trapsCount++;
+                }
             }
         }
 
-        // 2. Охотимся
-        if (trapsCount > 0) {
-            if (inventory[ResourceType_Meat] < 5) {
-                inventory[ResourceType_Meat]++;
-            }
+        // 2. Harvest meat from traps
+        if (trapsCount > 0 && inventory[ResourceType_Meat] < 5) {
+            inventory[ResourceType_Meat]++;
+            trapsCount--;
         }
     }
 };

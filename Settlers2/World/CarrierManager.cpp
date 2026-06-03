@@ -17,7 +17,7 @@ namespace World {
         m_pendingJobs.push_back(job);
     }
 
-    void CarrierManager::Update(float deltaTime) {
+    void CarrierManager::SortAndAssign() {
         std::sort(m_pendingJobs.begin(), m_pendingJobs.end(), TransportJobPriorityGreater);
 
         for (std::vector<TransportJob>::iterator it = m_pendingJobs.begin(); it != m_pendingJobs.end();) {
@@ -36,10 +36,18 @@ namespace World {
                 ++it;
             }
         }
+    }
 
-        for (std::vector<Carrier*>::iterator carrierIt = m_carriers.begin(); carrierIt != m_carriers.end(); ++carrierIt) {
-            Carrier* carrier = *carrierIt;
-            carrier->Update(deltaTime);
+    void CarrierManager::UpdateCarrierRange(int start, int end, float deltaTime) {
+        if (start < 0) start = 0;
+        if (end > (int)m_carriers.size()) end = (int)m_carriers.size();
+        for (int i = start; i < end; ++i) {
+            m_carriers[i]->Update(deltaTime);
         }
+    }
+
+    void CarrierManager::Update(float deltaTime) {
+        SortAndAssign();
+        UpdateCarrierRange(0, (int)m_carriers.size(), deltaTime);
     }
 }

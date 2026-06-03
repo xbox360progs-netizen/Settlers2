@@ -2,16 +2,17 @@
 #define WORLD_COMPONENTS_GOLDSMELTER_H
 
 #include "Building.h"
+#include "../Map.h"
 
 namespace World {
 
 class GoldSmelter : public Building {
 public:
-    GoldSmelter(int x, int y, uint8_t o) 
-        : Building(BuildingType::GoldSmelter, x, y, o) {
-        inputResources.push_back(ResourceType_Gold);
+    GoldSmelter(int x, int y, uint8_t o, Map* m) 
+        : Building(BuildingType::GoldSmelter, x, y, o, m) {
+        inputResources.push_back(ResourceType_GoldOre);
         inputResources.push_back(ResourceType_Coal);
-        outputResources.push_back(ResourceType_Gold); // Bar
+        outputResources.push_back(ResourceType_GoldBar);
     }
 
     void Update() override {

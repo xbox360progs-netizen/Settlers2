@@ -4,6 +4,7 @@
 //
 
 #pragma once
+#pragma warning(disable: 4482)
 
 #include <stdint.h>
 #include <xtl.h>

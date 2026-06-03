@@ -14,6 +14,9 @@ namespace Logic {
         void Update(World::CarrierManager* carrierManager);
         void AddBuilding(World::Building* building);
         void SetWarehouse(World::Warehouse* warehouse) { m_warehouse = warehouse; }
+        bool HasBuilding(World::BuildingType type) const;
+        int GetBuildingCount() const { return (int)m_buildings.size(); }
+        World::Building* GetBuilding(int index) const { return m_buildings[index]; }
 
     private:
         std::vector<World::Building*> m_buildings;

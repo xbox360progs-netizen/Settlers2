@@ -240,6 +240,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\GameEngine.h" />
+    <ClInclude Include="Core\LanguageManager.h" />
+    <ClInclude Include="Core\ThreadSync.h" />
+    <ClInclude Include="Core\Vector2i.h" />
+    <ClInclude Include="Game\Unit.h" />
     <ClInclude Include="Graphics\BatchBuilder.h" />
     <ClInclude Include="Graphics\BinFileManager.h" />
     <ClInclude Include="Graphics\BitmapFont.h" />
@@ -291,6 +295,7 @@
     <ClInclude Include="Scene\MenuScene.h" />
     <ClInclude Include="Scene\Scene.h" />
     <ClInclude Include="Scene\SceneManager.h" />
+    <ClInclude Include="Core\JobManager.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="UI\BuildMenu.h" />
     <ClInclude Include="UI\Button.h" />
@@ -303,19 +308,36 @@
     <ClInclude Include="UI\UIManager.h" />
     <ClInclude Include="UI\TilePalette.h" />
     <ClInclude Include="UI\WeightMenu.h" />
+    <ClInclude Include="World\Components\Bakery.h" />
+    <ClInclude Include="World\Components\Building.h" />
+    <ClInclude Include="World\Components\CoalMine.h" />
+    <ClInclude Include="World\Components\Farm.h" />
+    <ClInclude Include="World\Components\Fisher.h" />
+    <ClInclude Include="World\Components\GoldMine.h" />
+    <ClInclude Include="World\Components\GoldSmelter.h" />
+    <ClInclude Include="World\Components\Hunter.h" />
+    <ClInclude Include="World\Components\IronMine.h" />
+    <ClInclude Include="World\Components\IronSmelter.h" />
+    <ClInclude Include="World\Components\Mill.h" />
     <ClInclude Include="World\Components\Resource.h" />
     <ClInclude Include="World\Components\Collider.h" />
     <ClInclude Include="World\Components\IComponent.h" />
     <ClInclude Include="World\Components\Model.h" />
     <ClInclude Include="World\Components\ModelComponent.h" />
     <ClInclude Include="World\Components\Resource.h" />
+    <ClInclude Include="World\Components\Sawmill.h" />
     <ClInclude Include="World\Components\SpriteComponent.h" />
+    <ClInclude Include="World\Components\Stonemason.h" />
+    <ClInclude Include="World\Components\ToolWorkshop.h" />
     <ClInclude Include="World\Components\Transform.h" />
     <ClInclude Include="World\Components\TransformComponent.h" />
     <ClInclude Include="World\Components\Unit.h" />
+    <ClInclude Include="World\Components\Woodcutter.h" />
     <ClInclude Include="World\Entity.h" />
+    <ClInclude Include="World\Animal.h" />
     <ClInclude Include="World\EntityManager.h" />
     <ClInclude Include="World\Map.h" />
+    <ClInclude Include="World\WildlifeSystem.h" />
     <ClInclude Include="World\MapSerializer.h" />
     <ClInclude Include="World\ResourceNode.h" />
     <ClInclude Include="World\Systems\AISystem.h" />
@@ -331,6 +353,7 @@
   <ItemGroup>
     <ClCompile Include="Core\GameEngine.cpp" />
     <ClCompile Include="Core\LanguageManager.cpp" />
+    <ClCompile Include="Core\JobManager.cpp" />
     <ClCompile Include="Core\ThreadSync.cpp" />
     <ClCompile Include="Graphics\BatchBuilder.cpp" />
     <ClCompile Include="Graphics\BinFileManager.cpp" />
@@ -400,7 +423,6 @@
     <ClCompile Include="World\Components\Collider.cpp" />
     <ClCompile Include="World\Components\Model.cpp" />
     <ClCompile Include="World\Components\Resource.cpp" />
-    <ClCompile Include="World\Components\Sprite.cpp" />
     <ClCompile Include="World\Components\Transform.cpp" />
     <ClCompile Include="World\Components\Unit.cpp" />
     <ClCompile Include="World\CarrierManager.cpp" />
@@ -408,6 +430,7 @@
     <ClCompile Include="World\EntityManager.cpp" />
     <ClCompile Include="World\Map.cpp" />
     <ClCompile Include="World\MapSerializer.cpp" />
+    <ClCompile Include="World\WildlifeSystem.cpp" />
     <ClCompile Include="World\Systems\EconomySystem.cpp" />
     <ClCompile Include="World\Systems\PathfindingSystem.cpp" />
     <ClCompile Include="World\Systems\PhysicsSystem.cpp" />

@@ -329,8 +329,77 @@
     <ClInclude Include="Graphics\BatchBuilder.h">
       <Filter>Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="World\Components\Resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Game\Unit.h">
       <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\Resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Animal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\LanguageManager.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\ThreadSync.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Vector2i.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\JobManager.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="World\WildlifeSystem.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\Bakery.h">
+      <Filter>World\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\Building.h">
+      <Filter>World\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\CoalMine.h">
+      <Filter>World\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\Farm.h">
+      <Filter>World\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\Fisher.h">
+      <Filter>World\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\GoldMine.h">
+      <Filter>World\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\GoldSmelter.h">
+      <Filter>World\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\Hunter.h">
+      <Filter>World\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\IronMine.h">
+      <Filter>World\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\IronSmelter.h">
+      <Filter>World\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\Mill.h">
+      <Filter>World\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\Sawmill.h">
+      <Filter>World\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\Stonemason.h">
+      <Filter>World\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\ToolWorkshop.h">
+      <Filter>World\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\Woodcutter.h">
+      <Filter>World\Components</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -410,9 +479,6 @@
       <Filter>World\Components</Filter>
     </ClCompile>
     <ClCompile Include="World\Components\Resource.cpp">
-      <Filter>World\Components</Filter>
-    </ClCompile>
-    <ClCompile Include="World\Components\Sprite.cpp">
       <Filter>World\Components</Filter>
     </ClCompile>
     <ClCompile Include="World\Components\Transform.cpp">
@@ -573,6 +639,12 @@
     </ClCompile>
     <ClCompile Include="Graphics\BatchBuilder.cpp">
       <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\JobManager.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="World\WildlifeSystem.cpp">
+      <Filter>World</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

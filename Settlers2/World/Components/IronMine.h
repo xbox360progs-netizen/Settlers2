@@ -10,7 +10,7 @@ class IronMine : public Building {
 public:
     IronMine(int x, int y, uint8_t o, Map* m) 
         : Building(BuildingType::IronMine, x, y, o, m) {
-        outputResources.push_back(ResourceType_Iron);
+        outputResources.push_back(ResourceType_IronOre);
     }
 
     void Update() override {

@@ -12,6 +12,10 @@ class Camera;
 
 namespace World {
 
+class WildlifeSystem;
+
+using ::Camera;
+
 class Map
 {
 public:
@@ -68,6 +72,10 @@ public:
     void RecalculateTerritory();
     void SetTileOwner(int x, int y, uint8_t owner);
 
+    // Wildlife system
+    void SetWildlifeSystem(WildlifeSystem* ws) { m_wildlifeSystem = ws; }
+    WildlifeSystem* GetWildlifeSystem() const { return m_wildlifeSystem; }
+
 private:
     int m_width;
     int m_height;
@@ -77,6 +85,8 @@ private:
     std::vector<ResourceNode> m_resourceMap;
     std::vector<MapNode> m_nodes;
     
+    WildlifeSystem* m_wildlifeSystem;
+
     CRITICAL_SECTION m_cs;
 };
 

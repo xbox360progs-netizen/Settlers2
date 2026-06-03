@@ -3,7 +3,6 @@
 #include "../World/Components/Building.h"
 #include "../World/Flag.h"
 #include "../World/Warehouse.h"
-
 namespace Logic {
 
     EconomyManager::EconomyManager()
@@ -37,5 +36,14 @@ namespace Logic {
 
     void EconomyManager::AddBuilding(World::Building* building) {
         m_buildings.push_back(building);
+    }
+
+    bool EconomyManager::HasBuilding(World::BuildingType type) const {
+        for (size_t i = 0; i < m_buildings.size(); ++i) {
+            if (m_buildings[i]->type == type) {
+                return true;
+            }
+        }
+        return false;
     }
 }

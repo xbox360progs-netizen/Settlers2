@@ -2,16 +2,17 @@
 #define WORLD_COMPONENTS_IRONSMELTER_H
 
 #include "Building.h"
+#include "../Map.h"
 
 namespace World {
 
 class IronSmelter : public Building {
 public:
-    IronSmelter(int x, int y, uint8_t o) 
-        : Building(BuildingType::IronSmelter, x, y, o) {
-        inputResources.push_back(ResourceType_Iron);
+    IronSmelter(int x, int y, uint8_t o, Map* m) 
+        : Building(BuildingType::IronSmelter, x, y, o, m) {
+        inputResources.push_back(ResourceType_IronOre);
         inputResources.push_back(ResourceType_Coal);
-        outputResources.push_back(ResourceType_Iron); // Bar
+        outputResources.push_back(ResourceType_IronBar);
     }
 
     void Update() override {

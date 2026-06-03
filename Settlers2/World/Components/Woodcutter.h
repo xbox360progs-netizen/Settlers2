@@ -23,8 +23,7 @@ public:
             }
         }
     }
-
-    }
+};
 
 } // namespace World
 

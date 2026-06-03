@@ -10,7 +10,7 @@ class GoldMine : public Building {
 public:
     GoldMine(int x, int y, uint8_t o, Map* m) 
         : Building(BuildingType::GoldMine, x, y, o, m) {
-        outputResources.push_back(ResourceType_Gold);
+        outputResources.push_back(ResourceType_GoldOre);
     }
 
     void Update() override {

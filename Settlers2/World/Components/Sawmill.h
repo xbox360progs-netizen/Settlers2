@@ -2,13 +2,14 @@
 #define WORLD_COMPONENTS_SAWMILL_H
 
 #include "Building.h"
+#include "../Map.h"
 
 namespace World {
 
 class Sawmill : public Building {
 public:
-    Sawmill(int x, int y, uint8_t o) 
-        : Building(BuildingType::Sawmill, x, y, o) {
+    Sawmill(int x, int y, uint8_t o, Map* m) 
+        : Building(BuildingType::Sawmill, x, y, o, m) {
         inputResources.push_back(ResourceType_Wood);
         outputResources.push_back(ResourceType_Wood); // Boards
     }
