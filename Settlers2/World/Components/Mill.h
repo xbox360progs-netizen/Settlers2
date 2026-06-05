@@ -13,6 +13,7 @@ public:
         m_numRules = 1;
         m_rules[0].AddInput(ResourceType_Wheat);
         m_rules[0].AddOutput(ResourceType_Flour);
+        SyncIOFromRules();
     }
 };
 

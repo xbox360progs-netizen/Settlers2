@@ -12,6 +12,9 @@ namespace Logic {
         for (int i = 0; i < MAX_REQUESTS; ++i)
             m_requests[i].active = false;
 
+        for (int i = 0; i < MAX_CONSTRUCTION_REQUESTS; ++i)
+            m_constructionRequests[i].active = false;
+
         for (int i = 0; i < World::ResourceType_Count; ++i)
             m_deliveryReserved[i] = 0;
     }
@@ -24,6 +27,19 @@ namespace Logic {
                 m_requests[i].amount = amount;
                 m_requests[i].priority = priority;
                 m_requests[i].active = true;
+                return;
+            }
+        }
+    }
+
+    void EconomyManager::RequestConstructionResource(World::Flag* destFlag, World::ResourceType type, int amount, int priority) {
+        for (int i = 0; i < MAX_CONSTRUCTION_REQUESTS; ++i) {
+            if (!m_constructionRequests[i].active) {
+                m_constructionRequests[i].destFlag = destFlag;
+                m_constructionRequests[i].type = type;
+                m_constructionRequests[i].amount = amount;
+                m_constructionRequests[i].priority = priority;
+                m_constructionRequests[i].active = true;
                 return;
             }
         }
@@ -78,7 +94,40 @@ namespace Logic {
         ComputeDeliveryReserved();
         m_registry.ClearPlanningReservations();
 
-        // ─── Phase 1: Process pending ResourceRequests ───────────────────
+        // ─── Phase 1a: Process pending construction resource requests ─────
+        for (int r = 0; r < MAX_CONSTRUCTION_REQUESTS; ++r) {
+            if (!m_constructionRequests[r].active) continue;
+            if (!m_constructionRequests[r].destFlag) { m_constructionRequests[r].active = false; continue; }
+
+            // Construction resources come from warehouse for now
+            if (!m_warehouse || !m_warehouse->connectedFlag) continue;
+            if (m_warehouse->resources[m_constructionRequests[r].type] <= 0) continue;
+
+            World::Flag* destFlag = m_constructionRequests[r].destFlag;
+            int toDeliver = m_constructionRequests[r].amount;
+            int available = m_warehouse->resources[m_constructionRequests[r].type];
+            if (toDeliver > available) toDeliver = available;
+
+            if (!m_warehouse->connectedFlag->AddResource(m_constructionRequests[r].type, toDeliver))
+                continue;
+
+            if (!m_warehouse->connectedFlag->Reserve(m_constructionRequests[r].type, toDeliver))
+                continue;
+
+            m_registry.ReservePlanning(m_constructionRequests[r].type, toDeliver);
+
+            World::TransportJob job;
+            job.cargo = World::Cargo(m_constructionRequests[r].type, (uint8_t)toDeliver);
+            job.source = m_warehouse->connectedFlag;
+            job.destination = destFlag;
+            job.priority = m_constructionRequests[r].priority;
+            carrierManager->AssignJob(job);
+
+            m_warehouse->RemoveResource(m_constructionRequests[r].type, toDeliver);
+            m_constructionRequests[r].active = false;
+        }
+
+        // ─── Phase 1b: Process pending building ResourceRequests ──────────
         for (int r = 0; r < MAX_REQUESTS; ++r) {
             if (!m_requests[r].active) continue;
 

@@ -2,6 +2,7 @@
 #include "MapSerializer.h"
 #include "Map.h"
 #include "TileLayer.h"
+#include "Components/Building.h"
 #include <vector>
 #include <cstring>
 
@@ -14,7 +15,7 @@ struct Header {
 };
 #pragma pack(pop)
 
-static const int CURRENT_VERSION = 3;
+static const int CURRENT_VERSION = 4;  // v4 adds full flag data (IDs, types)
 
 // Вспомогательные функции для буферизации
 static void Append(std::vector<BYTE>& buf, const void* data, size_t size) {
@@ -236,6 +237,243 @@ bool MapSerializer::Load(World::Map& map, const std::string& path, std::vector<s
                     int fx, fy;
                     if (!reader.Read(&fx, sizeof(fx)) || !reader.Read(&fy, sizeof(fy))) break;
                     flags->push_back(std::make_pair(fx, fy));
+                }
+            }
+        }
+    }
+    return true;
+}
+
+bool MapSerializer::SaveV4(const World::Map& map, const std::string& path, const std::vector<World::FlagData>* flags)
+{
+    std::vector<BYTE> buffer;
+    buffer.reserve(1024 * 1024);
+
+    int groundW = map.GetWidth();
+    int groundH = map.GetHeight();
+    int otherW = groundW * 2;
+    int otherH = groundH * 4;
+
+    Header hdr;
+    memcpy(hdr.magic, "SMAP", 4);
+    hdr.version = 4;
+    hdr.groundW = groundW;
+    hdr.groundH = groundH;
+    hdr.otherW = otherW;
+    hdr.otherH = otherH;
+    Append(buffer, &hdr, sizeof(hdr));
+
+    for (int li = 0; li < World::LayerCount; ++li) {
+        World::LayerType lt = static_cast<World::LayerType>(li);
+        const World::TileLayer* layer = map.GetLayer(lt);
+        if (!layer) {
+            int zero = 0;
+            Append(buffer, &zero, sizeof(zero));
+            Append(buffer, &zero, sizeof(zero));
+            Append(buffer, &zero, sizeof(zero));
+            continue;
+        }
+        int ltInt = static_cast<int>(lt);
+        int w = layer->GetWidth();
+        int h = layer->GetHeight();
+        Append(buffer, &ltInt, sizeof(ltInt));
+        Append(buffer, &w, sizeof(w));
+        Append(buffer, &h, sizeof(h));
+
+        for (int y = 0; y < h; ++y) {
+            for (int x = 0; x < w; ++x) {
+                const World::Tile& tile = layer->GetTile(x, y);
+                int type = static_cast<int>(tile.type);
+                Append(buffer, &type, sizeof(type));
+                Append(buffer, &tile.x, sizeof(tile.x));
+                Append(buffer, &tile.y, sizeof(tile.y));
+                Append(buffer, &tile.height, sizeof(tile.height));
+                Append(buffer, &tile.uvOffset, sizeof(tile.uvOffset));
+                BYTE wb = tile.walkable ? 1 : 0;
+                BYTE bb = tile.buildable ? 1 : 0;
+                Append(buffer, &wb, 1);
+                Append(buffer, &bb, 1);
+                Append(buffer, &tile.regionIndex, sizeof(tile.regionIndex));
+                Append(buffer, &tile.u0, sizeof(tile.u0));
+                Append(buffer, &tile.v0, sizeof(tile.v0));
+                Append(buffer, &tile.u1, sizeof(tile.u1));
+                Append(buffer, &tile.v1, sizeof(tile.v1));
+                int nameLen = static_cast<int>(tile.atlasName.length());
+                Append(buffer, &nameLen, sizeof(nameLen));
+                if (nameLen > 0)
+                    Append(buffer, tile.atlasName.c_str(), nameLen);
+            }
+        }
+    }
+
+    int rcount = otherW * otherH;
+    Append(buffer, &rcount, sizeof(rcount));
+    for (int y = 0; y < otherH; ++y) {
+        for (int x = 0; x < otherW; ++x) {
+            const World::ResourceNode& rn = map.GetResourceNode(x, y);
+            Append(buffer, &rn.weight, sizeof(rn.weight));
+            int rt = static_cast<int>(rn.type);
+            Append(buffer, &rt, sizeof(rt));
+            Append(buffer, &rn.amount, sizeof(rn.amount));
+            BYTE vis = rn.isVisible ? 1 : 0;
+            Append(buffer, &vis, 1);
+        }
+    }
+
+    // V4 flag format: count + array of { x, y, id, type, pendingBuilding, hasBuilding, neighborCount, neighborIds... }
+    if (flags) {
+        int fcount = (int)flags->size();
+        Append(buffer, &fcount, sizeof(fcount));
+        for (size_t i = 0; i < flags->size(); ++i) {
+            const World::FlagData& fd = (*flags)[i];
+            Append(buffer, &fd.x, sizeof(fd.x));
+            Append(buffer, &fd.y, sizeof(fd.y));
+            Append(buffer, &fd.id, sizeof(fd.id));
+            int ft = static_cast<int>(fd.type);
+            Append(buffer, &ft, sizeof(ft));
+            int pb = static_cast<int>(fd.pendingBuilding);
+            Append(buffer, &pb, sizeof(pb));
+            BYTE hb = fd.hasBuilding ? 1 : 0;
+            Append(buffer, &hb, 1);
+            int nc = (int)fd.neighborIds.size();
+            Append(buffer, &nc, sizeof(nc));
+            for (int ni = 0; ni < nc; ++ni) {
+                Append(buffer, &fd.neighborIds[ni], sizeof(fd.neighborIds[ni]));
+            }
+        }
+    } else {
+        int fcount = -1;
+        Append(buffer, &fcount, sizeof(fcount));
+    }
+
+    HANDLE hFile = CreateFileA(path.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hFile == INVALID_HANDLE_VALUE) return false;
+    DWORD written = 0;
+    bool success = WriteFile(hFile, buffer.data(), (DWORD)buffer.size(), &written, NULL) && written == buffer.size();
+    CloseHandle(hFile);
+    return success;
+}
+
+bool MapSerializer::LoadV4(World::Map& map, const std::string& path, std::vector<World::FlagData>* flags)
+{
+    HANDLE hFile = CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hFile == INVALID_HANDLE_VALUE) return false;
+
+    DWORD fileSize = GetFileSize(hFile, NULL);
+    std::vector<BYTE> buffer(fileSize);
+    DWORD read = 0;
+    ReadFile(hFile, buffer.data(), fileSize, &read, NULL);
+    CloseHandle(hFile);
+
+    BufferReader reader(buffer);
+    Header hdr;
+    if (!reader.Read(&hdr, sizeof(hdr))) return false;
+    if (memcmp(hdr.magic, "SMAP", 4) != 0) return false;
+    if (hdr.version < 1 || hdr.version > 4) return false;
+
+    map.Clear();
+    map.InitializeWeights(World::Weight_Land);
+    map.ClearResources();
+
+    for (int li = 0; li < World::LayerCount; ++li) {
+        World::LayerType lt = static_cast<World::LayerType>(li);
+        World::TileLayer* layer = map.GetLayer(lt);
+        if (!layer) continue;
+        for (int y = 0; y < layer->GetHeight(); ++y)
+            for (int x = 0; x < layer->GetWidth(); ++x)
+                layer->SetTile(x, y, World::Tile());
+    }
+
+    int layersToRead = (hdr.version < 3) ? 7 : World::LayerCount;
+    for (int li = 0; li < layersToRead; ++li) {
+        int ltInt, fileW, fileH;
+        if (!reader.Read(&ltInt, sizeof(ltInt)) || !reader.Read(&fileW, sizeof(fileW)) || !reader.Read(&fileH, sizeof(fileH))) return false;
+        World::LayerType lt = static_cast<World::LayerType>(ltInt);
+        World::TileLayer* layer = map.GetLayer(lt);
+        if (!layer) return false;
+        int readW = min(fileW, layer->GetWidth());
+        int readH = min(fileH, layer->GetHeight());
+        for (int y = 0; y < fileH; ++y) {
+            for (int x = 0; x < fileW; ++x) {
+                World::Tile tile;
+                int type;
+                reader.Read(&type, sizeof(type));
+                tile.type = static_cast<World::TileType>(type);
+                reader.Read(&tile.x, sizeof(tile.x));
+                reader.Read(&tile.y, sizeof(tile.y));
+                reader.Read(&tile.height, sizeof(tile.height));
+                reader.Read(&tile.uvOffset, sizeof(tile.uvOffset));
+                BYTE wb, bb;
+                reader.Read(&wb, 1);
+                reader.Read(&bb, 1);
+                tile.walkable = (wb != 0);
+                tile.buildable = (bb != 0);
+                reader.Read(&tile.regionIndex, sizeof(tile.regionIndex));
+                reader.Read(&tile.u0, sizeof(tile.u0));
+                reader.Read(&tile.v0, sizeof(tile.v0));
+                reader.Read(&tile.u1, sizeof(tile.u1));
+                reader.Read(&tile.v1, sizeof(tile.v1));
+                int nameLen;
+                reader.Read(&nameLen, sizeof(nameLen));
+                if (nameLen > 0) {
+                    std::vector<char> buf(nameLen + 1, 0);
+                    reader.Read(buf.data(), nameLen);
+                    tile.atlasName = buf.data();
+                }
+                if (x < readW && y < readH) {
+                    layer->SetTile(x, y, tile);
+                }
+            }
+        }
+    }
+
+    int fileRcount;
+    if (!reader.Read(&fileRcount, sizeof(fileRcount))) return false;
+    int maxRes = hdr.otherW * hdr.otherH;
+    int readCount = min(fileRcount, maxRes);
+    for (int i = 0; i < readCount; ++i) {
+        int y = i / hdr.otherW;
+        int x = i % hdr.otherW;
+        BYTE weight;
+        int rt, amount;
+        BYTE vis;
+        reader.Read(&weight, 1);
+        reader.Read(&rt, sizeof(rt));
+        reader.Read(&amount, sizeof(amount));
+        reader.Read(&vis, 1);
+        map.SetResourceNode(x, y, static_cast<World::ResourceType>(rt), amount, vis != 0);
+        map.SetNodeWeight(x, y, weight);
+    }
+
+    // V4 flags (with neighbor graph)
+    if (flags) {
+        int fcount;
+        if (reader.Read(&fcount, sizeof(fcount))) {
+            if (fcount >= 0) {
+                flags->clear();
+                for (int i = 0; i < fcount; ++i) {
+                    World::FlagData fd;
+                    memset(&fd, 0, sizeof(fd));
+                    reader.Read(&fd.x, sizeof(fd.x));
+                    reader.Read(&fd.y, sizeof(fd.y));
+                    reader.Read(&fd.id, sizeof(fd.id));
+                    int ft;
+                    reader.Read(&ft, sizeof(ft));
+                    fd.type = static_cast<World::FlagType>(ft);
+                    int pb;
+                    reader.Read(&pb, sizeof(pb));
+                    fd.pendingBuilding = static_cast<World::BuildingType>(pb);
+                    BYTE hb;
+                    reader.Read(&hb, 1);
+                    fd.hasBuilding = (hb != 0);
+                    int nc;
+                    if (reader.Read(&nc, sizeof(nc))) {
+                        fd.neighborIds.resize(nc);
+                        for (int ni = 0; ni < nc; ++ni) {
+                            reader.Read(&fd.neighborIds[ni], sizeof(fd.neighborIds[ni]));
+                        }
+                    }
+                    flags->push_back(fd);
                 }
             }
         }

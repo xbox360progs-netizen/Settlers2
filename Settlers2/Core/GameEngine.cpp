@@ -375,52 +375,52 @@ void GameEngine::Run()
     m_running = true;
     DWORD lastTime = GetTickCount();
 
-    OutputDebugStringA("[GameEngine] Entering main loop\n");
+//    OutputDebugStringA("[GameEngine] Entering main loop\n");
 
     while (m_running)
     {
 #ifdef _XBOX
-        OutputDebugStringA("[Loop] 1 - top of loop\n");
+//        OutputDebugStringA("[Loop] 1 - top of loop\n");
         DWORD currentTime = GetTickCount();
         float deltaTime = (currentTime - lastTime) / 1000.0f;
         lastTime = currentTime;
         if (deltaTime < 0.001f) deltaTime = 0.016f;
         if (deltaTime > 0.1f) deltaTime = 0.1f;
 
-        OutputDebugStringA("[Loop] 2 - before input update\n");
+//        OutputDebugStringA("[Loop] 2 - before input update\n");
         if (m_inputManager) m_inputManager->Update();
-        OutputDebugStringA("[Loop] 3 - after input update\n");
+//        OutputDebugStringA("[Loop] 3 - after input update\n");
         if (m_sceneManager) m_sceneManager->Update(deltaTime);
-        OutputDebugStringA("[Loop] 4 - after scene update\n");
+//        OutputDebugStringA("[Loop] 4 - after scene update\n");
 
         ProcessSceneRequests();
-        OutputDebugStringA("[Loop] 5 - after process requests\n");
+//        OutputDebugStringA("[Loop] 5 - after process requests\n");
         if (m_sceneManager && m_sceneManager->IsSceneReady()) {
-            OutputDebugStringA("[Loop] 6 - scene ready, rendering\n");
+//            OutputDebugStringA("[Loop] 6 - scene ready, rendering\n");
             m_sceneManager->ResetFrameRendered();
             m_renderer->BeginFrame();
-            OutputDebugStringA("[Loop] 7 - after BeginFrame\n");
+//            OutputDebugStringA("[Loop] 7 - after BeginFrame\n");
 
             RenderFrame* renderFrame = m_renderer->GetRenderFrame();
             if (renderFrame) {
-                OutputDebugStringA("[Loop] 8 - renderFrame BeginFrame\n");
+//                OutputDebugStringA("[Loop] 8 - renderFrame BeginFrame\n");
                 renderFrame->BeginFrame();
-                OutputDebugStringA("[Loop] 9 - before SceneManager::Render\n");
+//                OutputDebugStringA("[Loop] 9 - before SceneManager::Render\n");
                 m_sceneManager->Render();
-                OutputDebugStringA("[Loop] 10 - after Render, before Execute\n");
+//                OutputDebugStringA("[Loop] 10 - after Render, before Execute\n");
                 renderFrame->Execute();
-                OutputDebugStringA("[Loop] 11 - after Execute, before RenderOverlay\n");
+//                OutputDebugStringA("[Loop] 11 - after Execute, before RenderOverlay\n");
                 m_sceneManager->RenderOverlay();
-                OutputDebugStringA("[Loop] 12 - after RenderOverlay, EndFrame\n");
+//                OutputDebugStringA("[Loop] 12 - after RenderOverlay, EndFrame\n");
                 renderFrame->EndFrame();
             } else {
                 OutputDebugStringA("[Loop] 8b - no renderFrame, calling Render directly\n");
                 m_sceneManager->Render();
             }
 
-            OutputDebugStringA("[Loop] 13 - before EndFrame\n");
+//            OutputDebugStringA("[Loop] 13 - before EndFrame\n");
             m_renderer->EndFrame();
-            OutputDebugStringA("[Loop] 14 - after EndFrame\n");
+//            OutputDebugStringA("[Loop] 14 - after EndFrame\n");
         } else {
             OutputDebugStringA("[Loop] 6b - scene NOT ready\n");
         }

@@ -10,6 +10,15 @@ public:
     ProductionBuilding(BuildingType t, int x, int y, uint8_t o, Map* m)
         : Building(t, x, y, o, m) {}
 
+    void SyncIOFromRules() {
+        for (int r = 0; r < m_numRules; ++r) {
+            for (int i = 0; i < m_rules[r].numInputs; ++i)
+                inputResources.push_back(m_rules[r].input[i]);
+            for (int o = 0; o < m_rules[r].numOutputs; ++o)
+                outputResources.push_back(m_rules[r].output[o]);
+        }
+    }
+
     void Update() override {
         if (state != State_Finished) return;
 

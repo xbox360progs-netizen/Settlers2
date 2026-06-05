@@ -33,6 +33,10 @@ namespace World {
                 case Idle:
                     break;
                 case WalkingToPickup:
+                    if (currentFlag == currentJob->source) {
+                        state = Pickup;
+                        break;
+                    }
                     if (!nextFlag) {
                         nextFlag = Pathfinding::GetNextFlag(currentFlag, currentJob->source);
                     }

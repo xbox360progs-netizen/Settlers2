@@ -9,6 +9,7 @@ namespace World {
     class Pathfinding {
     public:
         static Flag* GetNextFlag(Flag* start, Flag* end) {
+            if (!start || !end) return NULL;
             if (start == end) return NULL;
 
             std::queue<Flag*> q;
@@ -31,6 +32,7 @@ namespace World {
 
                 for (size_t i = 0; i < current->neighbors.size(); ++i) {
                     Flag* neighbor = current->neighbors[i];
+                    if (!neighbor) continue;
                     if (parent.find(neighbor) == parent.end()) {
                         parent[neighbor] = current;
                         q.push(neighbor);

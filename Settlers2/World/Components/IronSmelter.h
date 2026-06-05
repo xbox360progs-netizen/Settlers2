@@ -14,6 +14,7 @@ public:
         m_rules[0].AddInput(ResourceType_IronOre);
         m_rules[0].AddInput(ResourceType_Coal);
         m_rules[0].AddOutput(ResourceType_IronBar);
+        SyncIOFromRules();
     }
 };
 

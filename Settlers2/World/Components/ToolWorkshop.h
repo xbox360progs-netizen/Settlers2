@@ -14,6 +14,7 @@ public:
         m_rules[0].AddInput(ResourceType_Wood);
         m_rules[0].AddInput(ResourceType_IronBar);
         m_rules[0].AddOutput(ResourceType_Trap);
+        SyncIOFromRules();
     }
 };
 

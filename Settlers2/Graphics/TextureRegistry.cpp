@@ -75,9 +75,9 @@ LPDIRECT3DTEXTURE9 TextureRegistry::getTextureOrLoad(const std::string& name) {
     LPDIRECT3DTEXTURE9 tex = (it != m_textures.end()) ? it->second : NULL;
     
     if (tex) {
-        char buf[256];
-        _snprintf(buf, sizeof(buf), "[TextureRegistry] Texture '%s' found in cache\n", name.c_str());
-        OutputDebugStringA(buf);
+//        char buf[256];
+//        _snprintf(buf, sizeof(buf), "[TextureRegistry] Texture '%s' found in cache\n", name.c_str());
+//        OutputDebugStringA(buf);
         LeaveCriticalSection(&m_cs);
         return tex;
     }
@@ -85,9 +85,9 @@ LPDIRECT3DTEXTURE9 TextureRegistry::getTextureOrLoad(const std::string& name) {
     // Find path in manifest
     std::map<std::string, std::wstring>::const_iterator itPath = m_texturePaths.find(name);
     if (itPath == m_texturePaths.end()) {
-        char buf[256];
-        _snprintf(buf, sizeof(buf), "[TextureRegistry] Path not registered for '%s'\n", name.c_str());
-        OutputDebugStringA(buf);
+//        char buf[256];
+//        _snprintf(buf, sizeof(buf), "[TextureRegistry] Path not registered for '%s'\n", name.c_str());
+//        OutputDebugStringA(buf);
         LeaveCriticalSection(&m_cs);
         return m_notFoundTexture;
     }
@@ -120,9 +120,9 @@ LPDIRECT3DTEXTURE9 TextureRegistry::getTextureOrLoad(const std::string& name) {
         BinFileManager* binFileManager = GetBinFileManagerStatic();
         if (binFileManager) {
             std::string binPathA(binPathW.begin(), binPathW.end());
-            char debugBuf[512];
-            _snprintf(debugBuf, sizeof(debugBuf), "[TextureRegistry] Found .bin, attempting to load as atlas: %s\n", binPathA.c_str());
-            OutputDebugStringA(debugBuf);
+//            char debugBuf[512];
+//            _snprintf(debugBuf, sizeof(debugBuf), "[TextureRegistry] Found .bin, attempting to load as atlas: %s\n", binPathA.c_str());
+//            OutputDebugStringA(debugBuf);
             
             std::tr1::shared_ptr<SpriteAtlas> atlas = binFileManager->LoadAtlas(binPathA, name);
             if (atlas && atlas->GetTexture()) {
@@ -302,8 +302,8 @@ void TextureRegistry::initializeFromManifest(const std::string& manifestPath, co
     }
     
     char logBuf[256];
-    _snprintf(logBuf, sizeof(logBuf), "[TextureRegistry] initializeFromManifest: opening %s section=%s\n", manifestPath.c_str(), sectionName.c_str());
-    OutputDebugStringA(logBuf);
+//    _snprintf(logBuf, sizeof(logBuf), "[TextureRegistry] initializeFromManifest: opening %s section=%s\n", manifestPath.c_str(), sectionName.c_str());
+//    OutputDebugStringA(logBuf);
     
     std::wstring wpath(manifestPath.begin(), manifestPath.end());
     FILE* fin = NULL;
@@ -315,7 +315,7 @@ void TextureRegistry::initializeFromManifest(const std::string& manifestPath, co
         return;
     }
     
-    OutputDebugStringA("[TextureRegistry] Manifest file opened\n");
+//    OutputDebugStringA("[TextureRegistry] Manifest file opened\n");
     
     std::string currentSection = "Global";
     char line[512];

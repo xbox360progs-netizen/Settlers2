@@ -3,6 +3,7 @@
 
 #include "Building.h"
 #include "../WildlifeSystem.h"
+#include "../../Logic/ResourceRegistry.h"
 
 namespace World {
 

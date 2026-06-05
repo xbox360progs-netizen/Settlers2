@@ -3,6 +3,7 @@
 
 #include "../Map.h"
 #include "Building.h"
+#include "../../Logic/ResourceRegistry.h"
 
 namespace World {
 

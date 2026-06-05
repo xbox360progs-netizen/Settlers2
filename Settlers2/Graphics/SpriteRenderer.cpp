@@ -149,12 +149,12 @@ int SpriteRenderer::Execute(const BatchBuilder& builder) {
 //            m_pShaderManager, m_pShaderManager ? m_pShaderManager->GetCurrentShaderID() : -99);
 //    OutputDebugStringA(dbg);
 
-    sprintf(dbg, "[SpriteRenderer] Shaders: SPRITE=%d UI=%d WORLD=%d\n",
-        m_pShaderManager ? m_pShaderManager->HasShader(SHADER_SPRITE) : -1,
-        m_pShaderManager ? m_pShaderManager->HasShader(SHADER_UI) : -1,
-        m_pShaderManager ? m_pShaderManager->HasShader(SHADER_WORLD) : -1);
-    OutputDebugStringA(dbg);
-    OutputDebugStringA("[SpriteRenderer] Begin batch loop\n");
+//    sprintf(dbg, "[SpriteRenderer] Shaders: SPRITE=%d UI=%d WORLD=%d\n",
+//        m_pShaderManager ? m_pShaderManager->HasShader(SHADER_SPRITE) : -1,
+//        m_pShaderManager ? m_pShaderManager->HasShader(SHADER_UI) : -1,
+//        m_pShaderManager ? m_pShaderManager->HasShader(SHADER_WORLD) : -1);
+//    OutputDebugStringA(dbg);
+//    OutputDebugStringA("[SpriteRenderer] Begin batch loop\n");
     for (uint32_t i = 0; i < batchCount; i++) {
         const RenderBatch& batch = builder.GetBatches()[i];
 
@@ -162,8 +162,8 @@ int SpriteRenderer::Execute(const BatchBuilder& builder) {
 //                i, batch.shaderID, batch.textureID, batch.blendMode, batch.startIndex, batch.indexCount);
 //        OutputDebugStringA(dbg);
 
-        sprintf(dbg, "[SpriteRenderer] Batch %d: shader=%d tex=%d\n", i, batch.shaderID, batch.textureID);
-        OutputDebugStringA(dbg);
+//        sprintf(dbg, "[SpriteRenderer] Batch %d: shader=%d tex=%d\n", i, batch.shaderID, batch.textureID);
+//        OutputDebugStringA(dbg);
         // 1. Устанавливаем блэндинг
         if (batch.blendMode == 0) {
             m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
@@ -208,16 +208,16 @@ int SpriteRenderer::Execute(const BatchBuilder& builder) {
 
         // 4. Выполняем отрисовку
         bool hasActiveShader = m_pShaderManager && m_pShaderManager->GetActiveShader();
-        sprintf(dbg, "[SpriteRenderer]   hasActiveShader=%d\n", hasActiveShader);
-        OutputDebugStringA(dbg);
+//        sprintf(dbg, "[SpriteRenderer]   hasActiveShader=%d\n", hasActiveShader);
+//        OutputDebugStringA(dbg);
 
         if (hasActiveShader) {
-            OutputDebugStringA("[SpriteRenderer]   >>> BeginPass(0)\n");
+//            OutputDebugStringA("[SpriteRenderer]   >>> BeginPass(0)\n");
             m_pShaderManager->BeginPass(0);
             
             uint32_t primitiveCount = batch.indexCount / 3;
-            sprintf(dbg, "[SpriteRenderer]   >>> DrawIndexedPrimitive prims=%d\n", primitiveCount);
-            OutputDebugStringA(dbg);
+//            sprintf(dbg, "[SpriteRenderer]   >>> DrawIndexedPrimitive prims=%d\n", primitiveCount);
+//            OutputDebugStringA(dbg);
             
             hr = m_pDevice->DrawIndexedPrimitive(
                 D3DPT_TRIANGLELIST,
@@ -227,10 +227,10 @@ int SpriteRenderer::Execute(const BatchBuilder& builder) {
                 batch.startIndex,
                 primitiveCount);
                 
-            sprintf(dbg, "[SpriteRenderer]   <<< DrawIndexedPrimitive hr=0x%08x\n", hr);
-            OutputDebugStringA(dbg);
+//            sprintf(dbg, "[SpriteRenderer]   <<< DrawIndexedPrimitive hr=0x%08x\n", hr);
+//            OutputDebugStringA(dbg);
             
-            OutputDebugStringA("[SpriteRenderer]   <<< EndPass()\n");
+//            OutputDebugStringA("[SpriteRenderer]   <<< EndPass()\n");
             m_pShaderManager->EndPass();
             m_drawCalls++;
         } else {
@@ -250,8 +250,8 @@ int SpriteRenderer::Execute(const BatchBuilder& builder) {
 
     m_pDevice->SetTexture(0, NULL);
 
-    sprintf(dbg, "[SpriteRenderer] Execute END: drawCalls=%d\n", m_drawCalls);
-    OutputDebugStringA(dbg);
+//    sprintf(dbg, "[SpriteRenderer] Execute END: drawCalls=%d\n", m_drawCalls);
+//    OutputDebugStringA(dbg);
 
     return 0;
 }

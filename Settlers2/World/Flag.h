@@ -1,10 +1,28 @@
 #pragma once
 #include <vector>
+#include <stdint.h>
 #include "../Core/Vector2i.h"
 #include "ResourceNode.h"
+#include "Components/Building.h"
 
 namespace World {
     class Road;
+
+    enum FlagType {
+        FLAG_NORMAL,
+        FLAG_BUILDING,
+        FLAG_WAREHOUSE,
+        FLAG_MILITARY
+    };
+
+    struct FlagData {
+        int x, y;
+        uint32_t id;
+        FlagType type;
+        BuildingType pendingBuilding;
+        bool hasBuilding;
+        std::vector<uint32_t> neighborIds;
+    };
 
     struct ResourceSlot {
         ResourceType type;
@@ -16,12 +34,18 @@ namespace World {
 
     class Flag {
     public:
+        uint32_t id;
         Vector2i pos;
+        FlagType type;
         ResourceSlot slots[8];
         std::vector<Road*> roads;
         std::vector<Flag*> neighbors;
+        BuildingType pendingBuilding;
+        bool hasBuilding;
 
-        Flag(int x, int y) {
+        Flag(int x, int y, uint32_t id)
+            : id(id), type(FLAG_NORMAL), pendingBuilding(static_cast<BuildingType>(0)), hasBuilding(false)
+        {
             pos.x = x;
             pos.y = y;
         }

@@ -14,6 +14,7 @@ public:
         m_rules[0].AddInput(ResourceType_Flour);
         m_rules[0].AddInput(ResourceType_Water);
         m_rules[0].AddOutput(ResourceType_Bread);
+        SyncIOFromRules();
     }
 };
 

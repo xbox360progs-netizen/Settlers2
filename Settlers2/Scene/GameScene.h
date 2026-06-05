@@ -13,6 +13,9 @@
 #include "../Logic/AISystem.h"
 #include "../World/Components/Building.h"
 #include "../World/Flag.h"
+#include "../World/FlagManager.h"
+#include "../World/ConstructionSite.h"
+#include "../World/ConstructionManager.h"
 #include "../Logic/ResourceRegistry.h"
 #include "../Graphics/Camera.h"
 #include "../Input/InputManager.h"
@@ -94,18 +97,26 @@ private:
     int m_cursorTileY;
     GridMenu* m_buildMenu;
     bool m_menuActive;
-    bool m_placementActive;
+
+    // Build state machine
+    enum BuildState {
+        BUILDSTATE_NONE,
+        BUILDSTATE_PLACE_FLAG,     // selected building → place flag first
+        BUILDSTATE_PLACE_ROAD,     // building road between flags
+    };
+    BuildState m_buildState;
+    World::BuildingType m_selectedBuilding;
     int m_placementIconIdx;    // UI atlas sprite index for preview at cursor
     int m_placementConstrIdx;  // Buildings atlas sprite index for construction site
     std::string m_selectedIconName;
-    std::vector<std::pair<int,int>> m_gameFlags;
+
+    // Flags
+    World::FlagManager* m_flagManager;
+
+    // Construction sites
+    World::ConstructionManager* m_constructionManager;
 
     // Road building state
-    enum RoadBuildState {
-        ROAD_IDLE,
-        ROAD_PLACING,
-    };
-    RoadBuildState m_roadBuildState;
     int m_roadStartX, m_roadStartY;
     std::vector<std::pair<int,int>> m_roadPreviewPath;
 
@@ -123,7 +134,12 @@ private:
     void UpdateCursor();
     void RenderCursor(Graphics::RenderQueue* renderQueue);
     void InitBuildMenu();
-    void PlaceBuilding(int tileX, int tileY, const std::string& iconName);
+
+    bool CanPlaceBuilding(World::BuildingType type, int buildX, int buildY);
+    void PlaceFlag(int tileX, int tileY);
+    void CreateConstructionSite(World::Flag* flag, int siteX, int siteY);
+    void ConfirmConstruction(World::Flag* flag);
+    const char* GetBuildingName(World::BuildingType type) const;
 
     void StartRoad(int x, int y);
     void UpdateRoadPreview(int cursorX, int cursorY);
