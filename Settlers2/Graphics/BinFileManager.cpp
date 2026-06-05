@@ -9,7 +9,7 @@
 #include <cstring>
 #include <utility>
 
-// Вспомогательные функции для чтения с конвертацией endianness
+// Helper functions for reading with endianness conversion
 static inline uint32_t ReadU32LE(const BYTE* ptr)
 {
     return  (uint32_t(ptr[0])      ) |
@@ -36,7 +36,7 @@ static inline uint16_t ReadU16BE(const BYTE* ptr)
     return  (uint16_t(ptr[0]) << 8 ) |
             (uint16_t(ptr[1])      );
 }
-// Универсальные чтения с учётом выбранного порядка байт
+// Universal read with selected byte order
 static inline uint32_t ReadU32(const BYTE* ptr, bool bigEndian)
 {
     return bigEndian ? ReadU32BE(ptr) : ReadU32LE(ptr);
@@ -191,16 +191,16 @@ bool BinFileManager::ParseBinFile(BYTE* buffer, DWORD bufferSize, SpriteAtlas* a
         return false;
     }
 
-    // Читаем первый байт типа
-    uint8_t atlasType = buffer[4]; // 5-й байт
+    // Read atlas type from 5th byte
+    uint8_t atlasType = buffer[4]; // 5th byte
 
     char debugHeader[256];
     sprintf(debugHeader, "[ParseBinFile] Raw type: %d\n", atlasType);
     OutputDebugStringA(debugHeader);
 
-    // Поддерживаем MultiLevelAtlas (type 1) и AnimationAtlas (type 2)
+    // Support MultiLevelAtlas (type 1) and AnimationAtlas (type 2)
     if (atlasType == 1) {
-        // Версия и headerSize по 2 байта
+        // Version and headerSize are 2 bytes each
         uint16_t versionBE    = ReadU16BE(buffer + 0);
         uint16_t headerSizeBE = ReadU16BE(buffer + 2);
         uint16_t versionLE    = ReadU16LE(buffer + 0);
@@ -220,9 +220,9 @@ bool BinFileManager::ParseBinFile(BYTE* buffer, DWORD bufferSize, SpriteAtlas* a
         else {
             if ((versionBE >= 3 && versionBE <= 10) && headerSizeBE == 24) {
                 bigEndian = true;
-                OutputDebugStringA("[ParseBinFile] Принудительно выбран BigEndian для MultiLevel\n");
+                OutputDebugStringA("[ParseBinFile] Forced BigEndian for MultiLevel\n");
             } else {
-                OutputDebugStringA("[ParseBinFile] Неверный заголовок MultiLevel файла!\n");
+                OutputDebugStringA("[ParseBinFile] Invalid MultiLevel file header!\n");
                 return false;
             }
         }
@@ -230,11 +230,11 @@ bool BinFileManager::ParseBinFile(BYTE* buffer, DWORD bufferSize, SpriteAtlas* a
         uint16_t version    = bigEndian ? versionBE    : versionLE;
         uint16_t headerSize = bigEndian ? headerSizeBE : headerSizeLE;
 
-        sprintf(debugHeader, "[ParseBinFile] Определена версия MultiLevel: %d, endian: %s\n",
+        sprintf(debugHeader, "[ParseBinFile] Determined MultiLevel version: %d, endian: %s\n",
                 version, bigEndian ? "big" : "little");
         OutputDebugStringA(debugHeader);
 
-        OutputDebugStringA("[ParseBinFile] Начинаем парсинг MultiLevel\n");
+        OutputDebugStringA("[ParseBinFile] Starting MultiLevel parsing\n");
         return ParseMultiLevelAtlas(buffer, bufferSize, atlas, version, bigEndian);
     }
     else if (atlasType == 2) {
@@ -259,21 +259,21 @@ bool BinFileManager::ParseBinFile(BYTE* buffer, DWORD bufferSize, SpriteAtlas* a
         else {
             // Default to big endian for animation atlases
             bigEndian = true;
-            OutputDebugStringA("[ParseBinFile] Принудительно выбран BigEndian для AnimationAtlas\n");
+            OutputDebugStringA("[ParseBinFile] Forced BigEndian for AnimationAtlas\n");
         }
 
         uint16_t version = bigEndian ? versionBE : versionLE;
 
-        sprintf(debugHeader, "[ParseBinFile] Определена версия AnimationAtlas: %d, endian: %s\n",
+        sprintf(debugHeader, "[ParseBinFile] Determined AnimationAtlas version: %d, endian: %s\n",
                 version, bigEndian ? "big" : "little");
         OutputDebugStringA(debugHeader);
 
-        OutputDebugStringA("[ParseBinFile] Начинаем парсинг AnimationAtlas\n");
+        OutputDebugStringA("[ParseBinFile] Starting AnimationAtlas parsing\n");
         return ParseAnimationAtlas(buffer, bufferSize, atlas, version, bigEndian);
     }
     else {
         char unknownType[128];
-        sprintf(unknownType, "[ParseBinFile] Неизвестный тип атласа: %d (поддерживаются MultiLevelAtlas type 1 и AnimationAtlas type 2)\n", atlasType);
+        sprintf(unknownType, "[ParseBinFile] Unknown atlas type: %d (supported: MultiLevelAtlas type 1, AnimationAtlas type 2)\n", atlasType);
         OutputDebugStringA(unknownType);
         return false;
     }
@@ -281,29 +281,29 @@ bool BinFileManager::ParseBinFile(BYTE* buffer, DWORD bufferSize, SpriteAtlas* a
 
 bool BinFileManager::ParseMultiLevelAtlas(BYTE* buffer, DWORD bufferSize, SpriteAtlas* atlas, uint16_t version, bool bigEndian)
 {
-    OutputDebugStringA("[ParseMultiLevelAtlas] Начало парсинга\n");
+    OutputDebugStringA("[ParseMultiLevelAtlas] Starting parsing\n");
     
     uint32_t nameLen = ReadU32(buffer + 5, bigEndian);
     uint32_t nameStart = 9;
     if (nameLen == 0 || nameLen > 256 || nameStart + nameLen > bufferSize) {
-        OutputDebugStringA("[ParseMultiLevelAtlas] Ошибка чтения имени атласа\n");
+        OutputDebugStringA("[ParseMultiLevelAtlas] Error reading atlas name\n");
         return false;
     }
 
     DWORD pos = nameStart + nameLen;
     std::string atlasName(reinterpret_cast<char const*>(buffer + nameStart), nameLen);
     char debugMsg[256];
-    sprintf(debugMsg, "[ParseMultiLevelAtlas] Имя атласа: %s\n", atlasName.c_str());
+    sprintf(debugMsg, "[ParseMultiLevelAtlas] Atlas name: %s\n", atlasName.c_str());
     OutputDebugStringA(debugMsg);
 
     uint32_t prefixLen = ReadU32(buffer + pos, bigEndian); pos += 4;
     if (prefixLen == 0 || prefixLen > 256 || pos + prefixLen > bufferSize) {
-        OutputDebugStringA("[ParseMultiLevelAtlas] Ошибка чтения префикса\n");
+        OutputDebugStringA("[ParseMultiLevelAtlas] Error reading prefix\n");
         return false;
     }
     std::string prefix(reinterpret_cast<char const*>(buffer + pos), prefixLen);
     pos += prefixLen;
-    sprintf(debugMsg, "[ParseMultiLevelAtlas] Префикс: %s\n", prefix.c_str());
+    sprintf(debugMsg, "[ParseMultiLevelAtlas] Prefix: %s\n", prefix.c_str());
     OutputDebugStringA(debugMsg);
 
     uint32_t spritesPerLevel = ReadU32(buffer + pos, bigEndian); pos += 4;
@@ -313,27 +313,27 @@ bool BinFileManager::ParseMultiLevelAtlas(BYTE* buffer, DWORD bufferSize, Sprite
     OutputDebugStringA(debugMsg);
 
     uint32_t groupCount = ReadU32(buffer + pos, bigEndian); pos += 4;
-    sprintf(debugMsg, "[ParseMultiLevelAtlas] Количество групп: %d\n", groupCount);
+    sprintf(debugMsg, "[ParseMultiLevelAtlas] Group count: %d\n", groupCount);
     OutputDebugStringA(debugMsg);
     
     if (groupCount > 512) {
-        OutputDebugStringA("[ParseMultiLevelAtlas] Слишком много групп\n");
+        OutputDebugStringA("[ParseMultiLevelAtlas] Too many groups\n");
         return false;
     }
     
-    // Читаем группы и собираем имена
+    // Read groups and collect names
     std::vector<std::string> groupNames;
     std::vector<std::vector<uint32_t>> groupSpriteIndices;
     
     for (uint32_t i = 0; i < groupCount; i++) {
         if (pos + 4 > bufferSize) {
-            sprintf(debugMsg, "[ParseMultiLevelAtlas] Ошибка в группе %d: недостаточно данных\n", i);
+            sprintf(debugMsg, "[ParseMultiLevelAtlas] Error in group %d: insufficient data\n", i);
             OutputDebugStringA(debugMsg);
             return false;
         }
         uint32_t groupNameLen = ReadU32(buffer + pos, bigEndian); pos += 4;
         if (groupNameLen > 256 || pos + groupNameLen > bufferSize) {
-            sprintf(debugMsg, "[ParseMultiLevelAtlas] Ошибка в группе %d: неверная длина имени\n", i);
+            sprintf(debugMsg, "[ParseMultiLevelAtlas] Error in group %d: invalid name length\n", i);
             OutputDebugStringA(debugMsg);
             return false;
         }
@@ -343,13 +343,13 @@ bool BinFileManager::ParseMultiLevelAtlas(BYTE* buffer, DWORD bufferSize, Sprite
         groupNames.push_back(groupName);
         
         if (pos + 4 > bufferSize) {
-            sprintf(debugMsg, "[ParseMultiLevelAtlas] Ошибка в группе %d: нет данных о спрайтах\n", i);
+            sprintf(debugMsg, "[ParseMultiLevelAtlas] Error in group %d: no sprite data\n", i);
             OutputDebugStringA(debugMsg);
             return false;
         }
         uint32_t spriteCount = ReadU32(buffer + pos, bigEndian); pos += 4;
         if (spriteCount > kMaxSpriteCount) {
-            sprintf(debugMsg, "[ParseMultiLevelAtlas] Ошибка в группе %d: слишком много спрайтов\n", i);
+            sprintf(debugMsg, "[ParseMultiLevelAtlas] Error in group %d: too many sprites\n", i);
             OutputDebugStringA(debugMsg);
             return false;
         }
@@ -357,7 +357,7 @@ bool BinFileManager::ParseMultiLevelAtlas(BYTE* buffer, DWORD bufferSize, Sprite
         std::vector<uint32_t> spriteIndices;
         for (uint32_t j = 0; j < spriteCount; j++) {
             if (pos + 4 > bufferSize) {
-                sprintf(debugMsg, "[ParseMultiLevelAtlas] Ошибка в группе %d, спрайт %d: недостаточно данных\n", i, j);
+                sprintf(debugMsg, "[ParseMultiLevelAtlas] Error in group %d, sprite %d: insufficient data\n", i, j);
                 OutputDebugStringA(debugMsg);
                 return false;
             }
@@ -366,27 +366,27 @@ bool BinFileManager::ParseMultiLevelAtlas(BYTE* buffer, DWORD bufferSize, Sprite
         }
         groupSpriteIndices.push_back(spriteIndices);
         
-        sprintf(debugMsg, "[ParseMultiLevelAtlas] Группа %d: %s (%d спрайтов)\n", i, groupName.c_str(), spriteCount);
+        sprintf(debugMsg, "[ParseMultiLevelAtlas] Group %d: %s (%d sprites)\n", i, groupName.c_str(), spriteCount);
         OutputDebugStringA(debugMsg);
     }
 
     if (pos + 4 > bufferSize) {
-        OutputDebugStringA("[ParseMultiLevelAtlas] Ошибка чтения общего количества спрайтов\n");
+        OutputDebugStringA("[ParseMultiLevelAtlas] Error reading total sprite count\n");
         return false;
     }
     uint32_t totalSpriteCount = ReadU32(buffer + pos, bigEndian); pos += 4;
-    sprintf(debugMsg, "[ParseMultiLevelAtlas] Всего спрайтов: %d\n", totalSpriteCount);
+    sprintf(debugMsg, "[ParseMultiLevelAtlas] Total sprites: %d\n", totalSpriteCount);
     OutputDebugStringA(debugMsg);
     
     if (totalSpriteCount == 0 || totalSpriteCount > kMaxSpriteCount) {
-        OutputDebugStringA("[ParseMultiLevelAtlas] Неверное количество спрайтов\n");
+        OutputDebugStringA("[ParseMultiLevelAtlas] Invalid sprite count\n");
         return false;
     }
 
-    // Теперь читаем сами спрайты и создаем SpriteRegion
+    // Now read sprites and create SpriteRegions
     for (uint32_t spriteIdx = 0; spriteIdx < totalSpriteCount; spriteIdx++) {
         if (pos + 20 > bufferSize) {
-            sprintf(debugMsg, "[ParseMultiLevelAtlas] Ошибка чтения спрайта %d: недостаточно данных\n", spriteIdx);
+            sprintf(debugMsg, "[ParseMultiLevelAtlas] Error reading sprite %d: insufficient data\n", spriteIdx);
             OutputDebugStringA(debugMsg);
             return false;
         }
@@ -396,7 +396,7 @@ bool BinFileManager::ParseMultiLevelAtlas(BYTE* buffer, DWORD bufferSize, Sprite
         uint32_t width = ReadU32(buffer + pos, bigEndian); pos += 4;
         uint32_t height = ReadU32(buffer + pos, bigEndian); pos += 4;
 
-        // Пивоты в BigEndian (как в C# коде)
+        // Pivots are in BigEndian (as in C# code)
         uint16_t pivotX = ReadU16BE(buffer + pos); pos += 2;
         uint16_t pivotY = ReadU16BE(buffer + pos); pos += 2;
 
@@ -404,7 +404,7 @@ bool BinFileManager::ParseMultiLevelAtlas(BYTE* buffer, DWORD bufferSize, Sprite
         float uv_max_x = 1.0f, uv_max_y = 1.0f;
         if (version >= 2) {
             if (pos + 16 > bufferSize) {
-                sprintf(debugMsg, "[ParseMultiLevelAtlas] Ошибка чтения UV спрайта %d\n", spriteIdx);
+                sprintf(debugMsg, "[ParseMultiLevelAtlas] Error reading UV for sprite %d\n", spriteIdx);
                 OutputDebugStringA(debugMsg);
                 return false;
             }
@@ -418,14 +418,14 @@ bool BinFileManager::ParseMultiLevelAtlas(BYTE* buffer, DWORD bufferSize, Sprite
         uint32_t blockOffsetX = 0, blockOffsetY = 0;
         if (version >= 4) {
             if (pos >= bufferSize) {
-                sprintf(debugMsg, "[ParseMultiLevelAtlas] Ошибка чтения IsPacked спрайта %d\n", spriteIdx);
+                sprintf(debugMsg, "[ParseMultiLevelAtlas] Error reading IsPacked for sprite %d\n", spriteIdx);
                 OutputDebugStringA(debugMsg);
                 return false;
             }
             isPacked = (buffer[pos] != 0); pos += 1;
             if (isPacked) {
                 if (pos + 8 > bufferSize) {
-                    sprintf(debugMsg, "[ParseMultiLevelAtlas] Ошибка чтения BlockOffset спрайта %d\n", spriteIdx);
+                    sprintf(debugMsg, "[ParseMultiLevelAtlas] Error reading BlockOffset for sprite %d\n", spriteIdx);
                     OutputDebugStringA(debugMsg);
                     return false;
                 }
@@ -438,7 +438,7 @@ bool BinFileManager::ParseMultiLevelAtlas(BYTE* buffer, DWORD bufferSize, Sprite
         bool blocksMovement = true, isTrigger = false;
         if (version >= 3) {
             if (pos + 10 > bufferSize) {
-                sprintf(debugMsg, "[ParseMultiLevelAtlas] Ошибка чтения коллайдера спрайта %d\n", spriteIdx);
+                sprintf(debugMsg, "[ParseMultiLevelAtlas] Error reading collider for sprite %d\n", spriteIdx);
                 OutputDebugStringA(debugMsg);
                 return false;
             }
@@ -448,19 +448,19 @@ bool BinFileManager::ParseMultiLevelAtlas(BYTE* buffer, DWORD bufferSize, Sprite
             isTrigger = (buffer[pos] != 0); pos += 1;
         }
 
-        // Новые поля из version >= 6
+        // New fields from version >= 6
         std::string spriteName;
         bool flipX = false, flipY = false;
         if (version >= 6) {
             if (pos + 4 > bufferSize) {
-                sprintf(debugMsg, "[ParseMultiLevelAtlas] Ошибка чтения имени спрайта %d\n", spriteIdx);
+                sprintf(debugMsg, "[ParseMultiLevelAtlas] Error reading sprite name for sprite %d\n", spriteIdx);
                 OutputDebugStringA(debugMsg);
                 return false;
             }
             uint32_t nameLenSprite = ReadU32(buffer + pos, bigEndian); pos += 4;
             if (nameLenSprite > 0) {
                 if (pos + nameLenSprite > bufferSize) {
-                    sprintf(debugMsg, "[ParseMultiLevelAtlas] Ошибка чтения имени спрайта %d: недостаточно данных\n", spriteIdx);
+                    sprintf(debugMsg, "[ParseMultiLevelAtlas] Error reading sprite name for sprite %d: insufficient data\n", spriteIdx);
                     OutputDebugStringA(debugMsg);
                     return false;
                 }
@@ -469,7 +469,7 @@ bool BinFileManager::ParseMultiLevelAtlas(BYTE* buffer, DWORD bufferSize, Sprite
             }
 
             if (pos + 2 > bufferSize) {
-                sprintf(debugMsg, "[ParseMultiLevelAtlas] Ошибка чтения трансформаций спрайта %d\n", spriteIdx);
+                sprintf(debugMsg, "[ParseMultiLevelAtlas] Error reading sprite transforms for sprite %d\n", spriteIdx);
                 OutputDebugStringA(debugMsg);
                 return false;
             }
@@ -477,11 +477,11 @@ bool BinFileManager::ParseMultiLevelAtlas(BYTE* buffer, DWORD bufferSize, Sprite
             flipY = (buffer[pos] != 0); pos += 1;
         }
 
-        // Начиная с версии 7 - читаем смещение коллайдера (signed int32)
+        // Starting from version 7 - read collider offset (signed int32)
         int collOffX = 0, collOffY = 0;
         if (version >= 7) {
             if (pos + 8 > bufferSize) {
-                sprintf(debugMsg, "[ParseMultiLevelAtlas] Ошибка чтения смещения коллайдера спрайта %d\n", spriteIdx);
+                sprintf(debugMsg, "[ParseMultiLevelAtlas] Error reading collider offset for sprite %d\n", spriteIdx);
                 OutputDebugStringA(debugMsg);
                 return false;
             }
@@ -489,23 +489,23 @@ bool BinFileManager::ParseMultiLevelAtlas(BYTE* buffer, DWORD bufferSize, Sprite
             collOffY = (int)ReadU32(buffer + pos, bigEndian); pos += 4;
         }
 
-        // Начиная с версии 8 - читаем маску тайлов коллизии
+        // Starting from version 8 - read collision tile mask
         std::vector<std::pair<int,int> > collMask;
         if (version >= 8) {
             if (pos + 4 > bufferSize) {
-                sprintf(debugMsg, "[ParseMultiLevelAtlas] Ошибка чтения маски коллизии спрайта %d\n", spriteIdx);
+                sprintf(debugMsg, "[ParseMultiLevelAtlas] Error reading collision mask for sprite %d\n", spriteIdx);
                 OutputDebugStringA(debugMsg);
                 return false;
             }
             uint32_t maskCount = ReadU32(buffer + pos, bigEndian); pos += 4;
             if (maskCount > 1024) {
-                sprintf(debugMsg, "[ParseMultiLevelAtlas] Слишком много тайлов в маске спрайта %d: %d\n", spriteIdx, maskCount);
+                sprintf(debugMsg, "[ParseMultiLevelAtlas] Too many tiles in mask for sprite %d: %d\n", spriteIdx, maskCount);
                 OutputDebugStringA(debugMsg);
                 return false;
             }
             for (uint32_t m = 0; m < maskCount; m++) {
                 if (pos + 8 > bufferSize) {
-                    sprintf(debugMsg, "[ParseMultiLevelAtlas] Ошибка чтения элемента маски %d спрайта %d\n", m, spriteIdx);
+                    sprintf(debugMsg, "[ParseMultiLevelAtlas] Error reading mask element %d for sprite %d\n", m, spriteIdx);
                     OutputDebugStringA(debugMsg);
                     return false;
                 }
@@ -515,23 +515,23 @@ bool BinFileManager::ParseMultiLevelAtlas(BYTE* buffer, DWORD bufferSize, Sprite
             }
         }
 
-        // Начиная с версии 9 - читаем записи весов узлов (NodeWeight entries)
+        // Starting from version 9 - read node weight entries
         std::vector<NodeWeightEntry> nodeWeightEntries;
         if (version >= 9) {
             if (pos + 4 > bufferSize) {
-                sprintf(debugMsg, "[ParseMultiLevelAtlas] Ошибка чтения количества NodeWeight спрайта %d\n", spriteIdx);
+                sprintf(debugMsg, "[ParseMultiLevelAtlas] Error reading NodeWeight count for sprite %d\n", spriteIdx);
                 OutputDebugStringA(debugMsg);
                 return false;
             }
             uint32_t entryCount = ReadU32(buffer + pos, bigEndian); pos += 4;
             if (entryCount > 1024) {
-                sprintf(debugMsg, "[ParseMultiLevelAtlas] Слишком много NodeWeight entry спрайта %d: %d\n", spriteIdx, entryCount);
+                sprintf(debugMsg, "[ParseMultiLevelAtlas] Too many NodeWeight entries for sprite %d: %d\n", spriteIdx, entryCount);
                 OutputDebugStringA(debugMsg);
                 return false;
             }
             for (uint32_t ei = 0; ei < entryCount; ei++) {
                 if (pos + 9 > bufferSize) {
-                    sprintf(debugMsg, "[ParseMultiLevelAtlas] Ошибка чтения NodeWeight entry %d спрайта %d\n", ei, spriteIdx);
+                    sprintf(debugMsg, "[ParseMultiLevelAtlas] Error reading NodeWeight entry %d for sprite %d\n", ei, spriteIdx);
                     OutputDebugStringA(debugMsg);
                     return false;
                 }
@@ -543,19 +543,19 @@ bool BinFileManager::ParseMultiLevelAtlas(BYTE* buffer, DWORD bufferSize, Sprite
             }
         }
 
-        // Начиная с версии 10 - читаем entranceX, entranceY и isBuilding
+        // Starting from version 10 - read entranceX, entranceY and isBuilding
         int entranceX = 0, entranceY = 0;
         bool isBuilding = false;
         if (version >= 10) {
             if (pos + 8 > bufferSize) {
-                sprintf(debugMsg, "[ParseMultiLevelAtlas] Ошибка чтения entrance спрайта %d\n", spriteIdx);
+                sprintf(debugMsg, "[ParseMultiLevelAtlas] Error reading entrance for sprite %d\n", spriteIdx);
                 OutputDebugStringA(debugMsg);
                 return false;
             }
             entranceX = (int)ReadU32(buffer + pos, bigEndian); pos += 4;
             entranceY = (int)ReadU32(buffer + pos, bigEndian); pos += 4;
             if (pos >= bufferSize) {
-                sprintf(debugMsg, "[ParseMultiLevelAtlas] Ошибка чтения isBuilding спрайта %d\n", spriteIdx);
+                sprintf(debugMsg, "[ParseMultiLevelAtlas] Error reading isBuilding for sprite %d\n", spriteIdx);
                 OutputDebugStringA(debugMsg);
                 return false;
             }
@@ -563,16 +563,16 @@ bool BinFileManager::ParseMultiLevelAtlas(BYTE* buffer, DWORD bufferSize, Sprite
         }
 
         if (width == 0 || height == 0 || width > kMaxFrameDim || height > kMaxFrameDim) {
-            sprintf(debugMsg, "[ParseMultiLevelAtlas] Пропущен спрайт %d: неверные размеры\n", spriteIdx);
+            sprintf(debugMsg, "[ParseMultiLevelAtlas] Skipping sprite %d: invalid dimensions\n", spriteIdx);
             OutputDebugStringA(debugMsg);
             continue;
         }
 
-        // Default pivot 0xFFFF > center (width/2, height/2)
+        // Default pivot 0xFFFF -> center (width/2, height/2)
         if (pivotX == 0xFFFF) pivotX = width / 2;
         if (pivotY == 0xFFFF) pivotY = height / 2;
 
-        sprintf(debugMsg, "[ParseMultiLevelAtlas] Спрайт %d: %dx%d, pivot=(%d,%d), UV=(%.3f,%.3f)-(%.3f,%.3f)\n",
+        sprintf(debugMsg, "[ParseMultiLevelAtlas] Sprite %d: %dx%d, pivot=(%d,%d), UV=(%.3f,%.3f)-(%.3f,%.3f)\n",
                 spriteIdx, width, height, pivotX, pivotY, uv_min_x, uv_min_y, uv_max_x, uv_max_y);
         OutputDebugStringA(debugMsg);
 
@@ -613,10 +613,10 @@ bool BinFileManager::ParseMultiLevelAtlas(BYTE* buffer, DWORD bufferSize, Sprite
         atlas->AddGroup(groupNames[i], groupSpriteIndices[i]);
     }
 
-    sprintf(debugMsg, "[ParseMultiLevelAtlas] Успешно обработано %d спрайтов, %d групп\n",
+    sprintf(debugMsg, "[ParseMultiLevelAtlas] Successfully processed %d sprites, %d groups\n",
             totalSpriteCount, groupCount);
     OutputDebugStringA(debugMsg);
-    OutputDebugStringA("[ParseMultiLevelAtlas] Парсинг завершен успешно\n");
+    OutputDebugStringA("[ParseMultiLevelAtlas] Parsing completed successfully\n");
     return totalSpriteCount > 0;
 }
 
@@ -668,20 +668,20 @@ AtlasPtr BinFileManager::CreateAtlasFromSingleTexture(LPDIRECT3DDEVICE9 pDevice,
     sprintf(debugMsg, "[BinFileManager] CreateAtlasFromSingleTexture: name=%s, path=%s\n", name, filePath);
     OutputDebugStringA(debugMsg);
 
-    // 1. Проверяем кэш
+    // 1. Check cache
     if (HasAtlas(name)) {
         return GetAtlas(name);
     }
 
-    // 2. Используем новый TextureLoader вместо pTex->Load
+    // 2. Use new TextureLoader instead of pTex->Load
     TextureLoader loader(pDevice);
     LPDIRECT3DTEXTURE9 pD3DTex = nullptr;
 
-    // Конвертируем путь в WideString для лоадера
+    // Convert path to WideString for loader
     std::string pathStr(filePath);
     std::wstring wPath(pathStr.begin(), pathStr.end());
 
-    // Загружаем через наш исправленный метод (из памяти, с поддержкой game:\)
+    // Load through our fixed method (from memory, with game:\ support)
     HRESULT hr = loader.Load(wPath.c_str(), &pD3DTex);
 
     if (FAILED(hr) || !pD3DTex) {
@@ -690,15 +690,15 @@ AtlasPtr BinFileManager::CreateAtlasFromSingleTexture(LPDIRECT3DDEVICE9 pDevice,
         return NULL;
     }
 
-    // 3. Получаем размеры текстуры
+    // 3. Get texture dimensions
     D3DSURFACE_DESC desc;
     pD3DTex->GetLevelDesc(0, &desc);
 
-    // 4. Создаем атлас
+    // 4. Create atlas
     AtlasPtr atlas(new SpriteAtlas(name));
-    atlas->SetTexture(pD3DTex); // SpriteAtlas должен сделать AddRef() внутри
+    atlas->SetTexture(pD3DTex); // SpriteAtlas should AddRef() internally
 
-    // 5. Создаем регион на всю текстуру
+    // 5. Create a single region covering the full texture
     SpriteRegion region;
     region.name = "default";
     region.width = desc.Width;
@@ -716,10 +716,10 @@ AtlasPtr BinFileManager::CreateAtlasFromSingleTexture(LPDIRECT3DDEVICE9 pDevice,
 
     atlas->AddRegion(region);
 
-    // 6. Регистрируем и чистим за собой
+    // 6. Register and clean up
     m_loadedAtlases[name] = atlas;
     
-    // Освобождаем локальную ссылку, так как атлас теперь владеет текстурой
+    // Release local reference since atlas now owns the texture
     pD3DTex->Release();
 
     sprintf(debugMsg, "[BinFileManager] Atlas created: %s (%ux%u)\n", name, desc.Width, desc.Height);
@@ -730,28 +730,28 @@ AtlasPtr BinFileManager::CreateAtlasFromSingleTexture(LPDIRECT3DDEVICE9 pDevice,
 
 bool BinFileManager::ParseAnimationAtlas(BYTE* buffer, DWORD bufferSize, SpriteAtlas* atlas, uint16_t version, bool bigEndian)
 {
-    OutputDebugStringA("[ParseAnimationAtlas] Начало парсинга\n");
+    OutputDebugStringA("[ParseAnimationAtlas] Starting parsing\n");
 
     DWORD pos = 5; // Type byte was at index 4
 
     // 1. Animation Name
     if (pos + 4 > bufferSize) {
-        OutputDebugStringA("[ParseAnimationAtlas] Ошибка чтения имени анимации\n");
+        OutputDebugStringA("[ParseAnimationAtlas] Error reading animation name\n");
         return false;
     }
     uint32_t nameLen = ReadU32(buffer + pos, bigEndian); pos += 4;
     if (nameLen == 0 || nameLen > 256 || pos + nameLen > bufferSize) {
-        OutputDebugStringA("[ParseAnimationAtlas] Неверная длина имени анимации\n");
+        OutputDebugStringA("[ParseAnimationAtlas] Invalid animation name length\n");
         return false;
     }
     std::string animName(reinterpret_cast<char const*>(buffer + pos), nameLen); pos += nameLen;
     char debugMsg[256];
-    sprintf(debugMsg, "[ParseAnimationAtlas] Имя анимации: %s\n", animName.c_str());
+    sprintf(debugMsg, "[ParseAnimationAtlas] Animation name: %s\n", animName.c_str());
     OutputDebugStringA(debugMsg);
 
     // 2. Playback Metadata
     if (pos + 20 > bufferSize) {
-        OutputDebugStringA("[ParseAnimationAtlas] Ошибка чтения метаданных воспроизведения\n");
+        OutputDebugStringA("[ParseAnimationAtlas] Error reading playback metadata\n");
         return false;
     }
     uint32_t frameRate = ReadU32(buffer + pos, bigEndian); pos += 4;
@@ -767,15 +767,15 @@ bool BinFileManager::ParseAnimationAtlas(BYTE* buffer, DWORD bufferSize, SpriteA
 
     // 3. Frame Count
     if (pos + 4 > bufferSize) {
-        OutputDebugStringA("[ParseAnimationAtlas] Ошибка чтения количества кадров\n");
+        OutputDebugStringA("[ParseAnimationAtlas] Error reading frame count\n");
         return false;
     }
     uint32_t spriteCount = ReadU32(buffer + pos, bigEndian); pos += 4;
     if (spriteCount == 0 || spriteCount > kMaxSpriteCount) {
-        OutputDebugStringA("[ParseAnimationAtlas] Неверное количество кадров\n");
+        OutputDebugStringA("[ParseAnimationAtlas] Invalid frame count\n");
         return false;
     }
-    sprintf(debugMsg, "[ParseAnimationAtlas] Количество кадров: %d\n", spriteCount);
+    sprintf(debugMsg, "[ParseAnimationAtlas] Frame count: %d\n", spriteCount);
     OutputDebugStringA(debugMsg);
 
     // Create animation object
@@ -792,7 +792,7 @@ bool BinFileManager::ParseAnimationAtlas(BYTE* buffer, DWORD bufferSize, SpriteA
     // 4. Parse sprite frames
     for (uint32_t i = 0; i < spriteCount; i++) {
         if (pos + 20 > bufferSize) {
-            sprintf(debugMsg, "[ParseAnimationAtlas] Ошибка чтения кадра %d\n", i);
+            sprintf(debugMsg, "[ParseAnimationAtlas] Error reading frame %d\n", i);
             OutputDebugStringA(debugMsg);
             return false;
         }
@@ -819,7 +819,7 @@ bool BinFileManager::ParseAnimationAtlas(BYTE* buffer, DWORD bufferSize, SpriteA
 
         if (version >= 2) {
             if (pos + 16 > bufferSize) {
-                sprintf(debugMsg, "[ParseAnimationAtlas] Ошибка чтения UV кадра %d\n", i);
+                sprintf(debugMsg, "[ParseAnimationAtlas] Error reading UV for frame %d\n", i);
                 OutputDebugStringA(debugMsg);
                 return false;
             }
@@ -851,7 +851,7 @@ bool BinFileManager::ParseAnimationAtlas(BYTE* buffer, DWORD bufferSize, SpriteA
     // Store animation metadata
     atlas->AddAnimation(anim);
 
-    sprintf(debugMsg, "[ParseAnimationAtlas] Успешно обработано %d кадров анимации\n", spriteCount);
+    sprintf(debugMsg, "[ParseAnimationAtlas] Successfully processed %d animation frames\n", spriteCount);
     OutputDebugStringA(debugMsg);
     return true;
 }

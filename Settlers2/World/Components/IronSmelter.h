@@ -1,27 +1,19 @@
 #ifndef WORLD_COMPONENTS_IRONSMELTER_H
 #define WORLD_COMPONENTS_IRONSMELTER_H
 
-#include "Building.h"
-#include "../Map.h"
+#include "ProductionBuilding.h"
 
 namespace World {
 
-class IronSmelter : public Building {
+class IronSmelter : public ProductionBuilding {
 public:
-    IronSmelter(int x, int y, uint8_t o, Map* m) 
-        : Building(BuildingType::IronSmelter, x, y, o, m) {
-        inputResources.push_back(ResourceType_IronOre);
-        inputResources.push_back(ResourceType_Coal);
-        outputResources.push_back(ResourceType_IronBar);
-    }
-
-    void Update() override {
-        // Плавильня: IronOre + Coal -> IronBar
-        if (inventory[ResourceType_IronOre] > 0 && inventory[ResourceType_Coal] > 0) {
-            inventory[ResourceType_IronOre]--;
-            inventory[ResourceType_Coal]--;
-            inventory[ResourceType_IronBar]++;
-        }
+    IronSmelter(int x, int y, uint8_t o, Map* m)
+        : ProductionBuilding(BuildingType::IronSmelter, x, y, o, m)
+    {
+        m_numRules = 1;
+        m_rules[0].AddInput(ResourceType_IronOre);
+        m_rules[0].AddInput(ResourceType_Coal);
+        m_rules[0].AddOutput(ResourceType_IronBar);
     }
 };
 

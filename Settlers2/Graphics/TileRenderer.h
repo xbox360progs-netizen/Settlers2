@@ -5,6 +5,11 @@
 #include "../World/TileLayer.h"
 #include "../World/Map.h"
 #include "RenderQueue.h"
+#include "RenderTypes.h"
+#include "RenderLayers.h"
+#include "TextureRegistry.h"
+#include "../Logic/CoordinateSystem.h"
+#include <map>
 
 class Renderer;
 class SpriteAtlas;
@@ -31,7 +36,7 @@ public:
     ~TileRenderer();
 
     void SetMap(World::Map* map) { m_map = map; }
-    void RenderMap(float cameraX = 0.0f, float cameraY = 0.0f, float zoom = 1.0f);
+    void RenderMap();
     void RenderTileLayer(World::LayerType layer, int layerOffset = 0);
     void RenderTile(int tileX, int tileY, World::TileType type, int layerOffset = 0);
 
@@ -40,12 +45,17 @@ public:
     void WorldToScreen(int wx, int wy, int& sx, int& sy);
     void ScreenToWorld(int sx, int sy, int& wx, int& wy);
 
+    void SetAtlasSlot(const std::string& atlasName, WORD slot) { m_atlasSlots[atlasName] = slot; }
+    bool HasAtlasSlot(const std::string& atlasName) const { return m_atlasSlots.find(atlasName) != m_atlasSlots.end(); }
+    void ClearAtlasSlots() { m_atlasSlots.clear(); }
+
     std::pair<int, int> screenToTileCoords(float screenX, float screenY) const;
 
 private:
-    void drawTileQuad(float x, float y, float width, float height,
-                      LPDIRECT3DTEXTURE9 texture,
-                      float u0 = 0.0f, float v0 = 0.0f, float u1 = 1.0f, float v1 = 1.0f);
+    void submitTile(float x, float y, float width, float height,
+                    LPDIRECT3DTEXTURE9 texture, WORD textureID,
+                    float u0, float v0, float u1, float v1,
+                    WORD shaderID, BYTE blendMode, BYTE layer, WORD depth);
 
     Renderer* m_renderer;
     World::Map* m_map;
@@ -53,8 +63,7 @@ private:
     int m_mapWidth;
     int m_mapHeight;
     int m_mode;
-    float m_offsetX, m_offsetY;
-    float m_zoom;
+    std::map<std::string, WORD> m_atlasSlots;
 };
 
 #endif // SETTLERS2_GRAPHICS_TILE_RENDERER_H

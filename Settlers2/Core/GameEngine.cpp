@@ -74,25 +74,38 @@ void GameEngine::CreateScenes()
     if (loadingScene)
         m_sceneManager->AddScene(loadingScene);
 
+    OutputDebugStringA("[GameEngine::CreateScenes] Creating MenuScene...\n");
     MenuScene* menuScene = new MenuScene();
     if (menuScene) {
         menuScene->SetTextManager(m_textManager);
         menuScene->SetBinFileManager(m_binFileManager);
 		menuScene->SetRenderer(m_spriteRenderer, m_renderer);
+        OutputDebugStringA("[GameEngine::CreateScenes] BEFORE menuScene->Initialize\n");
         menuScene->Initialize(m_renderer->GetDevice(), m_spriteRenderer, m_renderer, m_inputManager->GetGamepad(), m_textureLoader);
-		
+        OutputDebugStringA("[GameEngine::CreateScenes] AFTER menuScene->Initialize\n");
     }
     
+    OutputDebugStringA("[GameEngine::CreateScenes] BEFORE AddScene(menuScene)\n");
     m_sceneManager->AddScene(menuScene);
+    OutputDebugStringA("[GameEngine::CreateScenes] AFTER AddScene(menuScene)\n");
     
     // Create GameScene (placeholder for now)
+    OutputDebugStringA("[CreateScenes] BEFORE GameScene creation\n");
     Scene::GameScene* gameScene = new Scene::GameScene();
     if (gameScene) {
+        OutputDebugStringA("[CreateScenes] BEFORE GameScene::Initialize\n");
         gameScene->Initialize(m_renderer->GetDevice(), m_spriteRenderer);
+        OutputDebugStringA("[CreateScenes] AFTER GameScene::Initialize\n");
+        gameScene->SetRenderer(m_renderer);
+        gameScene->SetInputManager(m_inputManager);
+        OutputDebugStringA("[CreateScenes] AFTER SetRenderer\n");
     }
+    OutputDebugStringA("[CreateScenes] BEFORE AddScene(gameScene)\n");
     m_sceneManager->AddScene(gameScene);
+    OutputDebugStringA("[CreateScenes] AFTER AddScene(gameScene)\n");
     
     // Create EditorScene (placeholder for now)
+    OutputDebugStringA("[CreateScenes] BEFORE EditorScene creation\n");
     Scene::EditorScene* editorScene = new Scene::EditorScene();
     if (editorScene) {
         editorScene->SetRenderer(m_renderer);
@@ -103,7 +116,9 @@ void GameEngine::CreateScenes()
     }
     m_sceneManager->AddScene(editorScene);
     
+    OutputDebugStringA("[CreateScenes] BEFORE SwitchTo\n");
     m_sceneManager->SwitchTo("MenuScene");
+    OutputDebugStringA("[CreateScenes] AFTER SwitchTo\n");
 }
 
 //-------------------------------------------------------------------------------------
@@ -112,32 +127,36 @@ void GameEngine::CreateScenes()
 bool GameEngine::Initialize()
 {
     setvbuf(stdout, NULL, _IONBF, 0);
+    OutputDebugStringA("[GameEngine::Initialize] START\n");
 
     if (m_initialized)
     {
         return true;
     }
 
+    OutputDebugStringA("[GameEngine::Initialize] Creating ShaderManager\n");
     m_pShaderManager = new ShaderManager();
 
+    OutputDebugStringA("[GameEngine::Initialize] Creating Renderer\n");
     m_renderer = new Renderer();
     m_renderer->SetShaderManager(m_pShaderManager);
     HRESULT hr = m_renderer->Initialize();
     if (FAILED(hr))
     {
-        std::cerr << "[GameEngine] Failed to initialize Renderer" << std::endl;
+        OutputDebugStringA("[GameEngine::Initialize] FAILED: Renderer initialization\n");
         return false;
     }
 
-    // Initialize shader manager after renderer has created the device.
+    OutputDebugStringA("[GameEngine::Initialize] Initializing ShaderManager\n");
     m_pShaderManager->Initialize(m_renderer->GetDevice());
     m_pShaderManager->Init();
+    OutputDebugStringA("[GameEngine::Initialize] ShaderManager initialized\n");
 
     m_spriteRenderer = new SpriteRenderer();
     hr = m_spriteRenderer->Initialize(m_renderer->GetDevice(), m_renderer->GetShaderManager());
     if (FAILED(hr))
     {
-        std::cerr << "[GameEngine] Failed to initialize SpriteRenderer" << std::endl;
+        OutputDebugStringA("[GameEngine] Failed to initialize SpriteRenderer\n");
         return false;
     }
 
@@ -147,7 +166,7 @@ bool GameEngine::Initialize()
     m_inputManager = new Input::InputManager();
     if (!m_inputManager->Initialize(NULL, m_renderer->GetDevice()))
     {
-        std::cerr << "[GameEngine] Failed to initialize InputManager" << std::endl;
+        OutputDebugStringA("[GameEngine] Failed to initialize InputManager\n");
         return false;
     }
 
@@ -186,16 +205,19 @@ bool GameEngine::Initialize()
     m_textureLoader = new TextureLoader(m_renderer->GetDevice());
 
     // Initialize TextureRegistry before any scene can query it.
+    OutputDebugStringA("[GameEngine::Initialize] Initializing TextureRegistry thread safety...\n");
     TextureRegistry::instance().initThreadSafety();
+    OutputDebugStringA("[GameEngine::Initialize] Initializing TextureRegistry device...\n");
     TextureRegistry::instance().initialize(m_renderer->GetDevice());
     SetBinFileManagerStatic(m_binFileManager);
+    OutputDebugStringA("[GameEngine::Initialize] Loading TextureRegistry manifest...\n");
     TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "Menu");
-    TextureRegistry::instance().getTextureOrLoad("menu_background");
+    OutputDebugStringA("[GameEngine::Initialize] TextureRegistry initialized\n");
 
     CreateScenes();
 
     m_initialized = true;
-    std::cout << "[GameEngine] Initialized successfully" << std::endl;
+    OutputDebugStringA("[GameEngine] Initialized successfully\n");
     return true;
 }
 
@@ -262,7 +284,7 @@ void GameEngine::Shutdown()
     }
 
     m_initialized = false;
-    std::cout << "[GameEngine] Shutdown complete" << std::endl;
+    OutputDebugStringA("[GameEngine] Shutdown complete\n");
 }
 
 void GameEngine::ProcessSceneRequests()
@@ -342,7 +364,7 @@ void GameEngine::Run()
 {
     if (!m_initialized)
     {
-        std::cerr << "[GameEngine] Cannot run - not initialized" << std::endl;
+        OutputDebugStringA("[GameEngine] Cannot run - not initialized\n");
         return;
     }
 
@@ -353,42 +375,54 @@ void GameEngine::Run()
     m_running = true;
     DWORD lastTime = GetTickCount();
 
-    std::cout << "[GameEngine] Entering main loop" << std::endl;
+    OutputDebugStringA("[GameEngine] Entering main loop\n");
 
     while (m_running)
     {
 #ifdef _XBOX
+        OutputDebugStringA("[Loop] 1 - top of loop\n");
         DWORD currentTime = GetTickCount();
         float deltaTime = (currentTime - lastTime) / 1000.0f;
         lastTime = currentTime;
         if (deltaTime < 0.001f) deltaTime = 0.016f;
         if (deltaTime > 0.1f) deltaTime = 0.1f;
 
-        if (m_inputManager) {
-            m_inputManager->Update();
-        }
-
-        if (m_sceneManager) {
-            m_sceneManager->Update(deltaTime);
-        }
+        OutputDebugStringA("[Loop] 2 - before input update\n");
+        if (m_inputManager) m_inputManager->Update();
+        OutputDebugStringA("[Loop] 3 - after input update\n");
+        if (m_sceneManager) m_sceneManager->Update(deltaTime);
+        OutputDebugStringA("[Loop] 4 - after scene update\n");
 
         ProcessSceneRequests();
+        OutputDebugStringA("[Loop] 5 - after process requests\n");
         if (m_sceneManager && m_sceneManager->IsSceneReady()) {
+            OutputDebugStringA("[Loop] 6 - scene ready, rendering\n");
             m_sceneManager->ResetFrameRendered();
             m_renderer->BeginFrame();
+            OutputDebugStringA("[Loop] 7 - after BeginFrame\n");
 
             RenderFrame* renderFrame = m_renderer->GetRenderFrame();
             if (renderFrame) {
+                OutputDebugStringA("[Loop] 8 - renderFrame BeginFrame\n");
                 renderFrame->BeginFrame();
+                OutputDebugStringA("[Loop] 9 - before SceneManager::Render\n");
                 m_sceneManager->Render();
+                OutputDebugStringA("[Loop] 10 - after Render, before Execute\n");
                 renderFrame->Execute();
+                OutputDebugStringA("[Loop] 11 - after Execute, before RenderOverlay\n");
                 m_sceneManager->RenderOverlay();
+                OutputDebugStringA("[Loop] 12 - after RenderOverlay, EndFrame\n");
                 renderFrame->EndFrame();
             } else {
+                OutputDebugStringA("[Loop] 8b - no renderFrame, calling Render directly\n");
                 m_sceneManager->Render();
             }
 
+            OutputDebugStringA("[Loop] 13 - before EndFrame\n");
             m_renderer->EndFrame();
+            OutputDebugStringA("[Loop] 14 - after EndFrame\n");
+        } else {
+            OutputDebugStringA("[Loop] 6b - scene NOT ready\n");
         }
         
         Sleep(16);
@@ -407,7 +441,7 @@ void GameEngine::Run()
         Sleep(16);
     }
 
-std::cout << "[GameEngine] Exiting main loop" << std::endl;
+OutputDebugStringA("[GameEngine] Exiting main loop\n");
 
     if (m_renderer) {
         m_renderer->Shutdown();

@@ -1,0 +1,22 @@
+Построение начато 05.06.2026 1:01:09.
+Проект "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" в узле 1 (целевые объекты по умолчанию).
+Построение с инструментами версии "4.0".
+Целевой объект "InvalidPlatformError" в файле "C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\Microsoft.Cpp.InvalidPlatform.Targets" из проекта "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" (точка входа):
+Задача "VCMessage" пропущена из-за невыполненного условия; выражение ('$(BuildingInsideVisualStudio)' == 'true') равно ('' == 'true').
+Используется задача "VCMessage" из сборки "Microsoft.Build.CppTasks.Common, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a".
+Задача "VCMessage"
+C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\Microsoft.Cpp.InvalidPlatform.Targets(23,7): error MSB8007: платформа для проекта "Settlers2.vcxproj" недопустима.  Платформа="Xbox360". Вывод этого сообщения может быть вызван попыткой построения проекта без файла решения и с указанием платформы не по умолчанию, не существующей для данного проекта. [D:\development\Settlers2\Settlers2\Settlers2.vcxproj]
+Выполнение задачи "VCMessage" завершено с ошибкой.
+Построение целевого объекта "InvalidPlatformError" в проекте "Settlers2.vcxproj" завершено с ошибкой.
+Построение проекта "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" завершено (целевые объекты по умолчанию) с ошибкой.
+
+Не удалось выполнить построение.
+
+"D:\development\Settlers2\Settlers2\Settlers2.vcxproj" (целевой объект по умолчанию) (1) ->
+(Целевой объект InvalidPlatformError) -> 
+  C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\Microsoft.Cpp.InvalidPlatform.Targets(23,7): error MSB8007: платформа для проекта "Settlers2.vcxproj" недопустима.  Платформа="Xbox360". Вывод этого сообщения может быть вызван попыткой построения проекта без файла решения и с указанием платформы не по умолчанию, не существующей для данного проекта. [D:\development\Settlers2\Settlers2\Settlers2.vcxproj]
+
+    Предупреждений: 0
+    Ошибок: 1
+
+Затраченное время: 00:00:01.52

@@ -19,6 +19,7 @@ struct NodeWeightEntry {
 struct SpriteRegion {
     float u0, v0, u1, v1; // UV coordinates for shader
     uint32_t width, height;
+    uint32_t x, y;        // pixel position in atlas (for UV recomputation)
     float pivotX, pivotY;
     bool flipX, flipY;
     std::string name;
@@ -74,6 +75,9 @@ public:
     // Get texture dimensions for UV calculation
     uint32_t GetTextureWidth() const;
     uint32_t GetTextureHeight() const;
+
+    // Fix UVs for regions where stored UV is (0,0,1,1) but pixel rect is not full texture
+    void FixUVs();
 
     // Get total number of regions
     uint32_t GetRegionCount() const { return (uint32_t)m_regions.size(); }

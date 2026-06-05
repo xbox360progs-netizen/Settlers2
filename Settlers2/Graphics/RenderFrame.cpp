@@ -5,13 +5,7 @@
 #include "SpriteRenderer.h"
 #include "RenderDebugOverlay.h"
 
-namespace Graphics {
-
-static void OutputDebugStringA(const char* msg) {
-#ifdef _DEBUG
-    ::OutputDebugStringA(msg);
-#endif
-}
+using namespace Graphics;
 
 RenderFrame::RenderFrame()
     : m_pDevice(NULL)
@@ -103,4 +97,4 @@ void RenderFrame::EndFrame() {
     }
 }
 
-}
+

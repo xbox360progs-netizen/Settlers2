@@ -48,33 +48,41 @@ MenuScene::~MenuScene() {
 
 void MenuScene::Load() {
   m_loaded = true;
-  std::cout << "[MenuScene] Load() called" << std::endl;
+  OutputDebugStringA("[MenuScene] Load() called\n");
 
   // Debug logging for m_spriteRenderer initialization
   if (!m_spriteRenderer) {
-    std::cout << "[MenuScene] WARNING: m_spriteRenderer is NULL in Load()" << std::endl;
+    OutputDebugStringA("[MenuScene] WARNING: m_spriteRenderer is NULL in Load()\n");
   } else {
-    std::cout << "[MenuScene] m_spriteRenderer is valid in Load()" << std::endl;
+    OutputDebugStringA("[MenuScene] m_spriteRenderer is valid in Load()\n");
   }
 }
 
 void MenuScene::ResetTextureState() {
+    OutputDebugStringA("[MenuScene::ResetTextureState] START\n");
     TextureRegistry& registry = TextureRegistry::instance();
-    LPDIRECT3DTEXTURE9 tex = registry.getTexture("menu_background");
+    OutputDebugStringA("[MenuScene::ResetTextureState] Got registry\n");
+    
+    // Use getTextureOrLoad to load texture if not already loaded
+    LPDIRECT3DTEXTURE9 tex = registry.getTextureOrLoad("menu_background");
+    OutputDebugStringA("[MenuScene::ResetTextureState] Got texture\n");
     
     if (tex) {
         m_backgroundTexture.SetTexture(tex);
         if (m_spriteRenderer) {
             m_spriteRenderer->SetTextureSlot(0, tex);
         }
-        OutputDebugStringA("[MenuScene] Texture state reset from memory\n");
+        OutputDebugStringA("[MenuScene::ResetTextureState] Texture set OK\n");
     } else {
-        OutputDebugStringA("[MenuScene] ERROR: menu_background not found in TextureRegistry!\n");
+        OutputDebugStringA("[MenuScene::ResetTextureState] ERROR no texture\n");
     }
+    OutputDebugStringA("[MenuScene::ResetTextureState] END\n");
 }
 
 void MenuScene::LoadTextures() {
+    OutputDebugStringA("[MenuScene::LoadTextures] START\n");
     ResetTextureState();
+    OutputDebugStringA("[MenuScene::LoadTextures] END\n");
 }
 
 void MenuScene::Initialize(LPDIRECT3DDEVICE9 device, SpriteRenderer* spriteRenderer) {
@@ -101,10 +109,9 @@ void MenuScene::Initialize(LPDIRECT3DDEVICE9 device, SpriteRenderer* spriteRende
   char buf[256];
   sprintf(buf, "[MenuScene::Initialize] EXTENDED this=%p, m_device=%p, m_spriteRenderer=%p, m_renderer=%p\n", this, m_device, m_spriteRenderer, m_renderer);
   OutputDebugStringA(buf);
-  std::cout << "[MenuScene] Initialize called" << std::endl;
-  
-  
+  OutputDebugStringA("[MenuScene] Calling LoadTextures...\n");
   LoadTextures();
+  OutputDebugStringA("[MenuScene] LoadTextures returned\n");
 }
 
 void MenuScene::Unload() {
@@ -112,8 +119,11 @@ void MenuScene::Unload() {
 }
 
 void MenuScene::OnEnter() {
+  OutputDebugStringA("[MenuScene::OnEnter] START\n");
   ClearExitRequest();
-  ResetTextureState(); // —брасываем и актуализируем текстуру при входе
+  OutputDebugStringA("[MenuScene::OnEnter] Calling ResetTextureState...\n");
+  ResetTextureState();
+  OutputDebugStringA("[MenuScene::OnEnter] END\n");
 }
 
 void MenuScene::OnExit() {
@@ -169,29 +179,31 @@ void MenuScene::ExecuteMenuItem() {
     return;
   }
 
-  std::cout << "[MenuScene] ExecuteMenuItem called, selectedIndex = " << m_selectedIndex << std::endl;
+  char buf[256];
+  sprintf(buf, "[MenuScene] ExecuteMenuItem called, selectedIndex = %d\n", m_selectedIndex);
+  OutputDebugStringA(buf);
   
   SceneManager* sceneMgr = GetSceneManager();
-  std::cout << "[MenuScene] sceneMgr = " << (sceneMgr ? "VALID" : "NULL") << std::endl;
+  OutputDebugStringA(sceneMgr ? "[MenuScene] sceneMgr = VALID\n" : "[MenuScene] sceneMgr = NULL\n");
   
   switch (m_selectedIndex) {
     case 0: // New Game
-      std::cout << "[MenuScene] New Game selected" << std::endl;
+      OutputDebugStringA("[MenuScene] New Game selected\n");
       if (sceneMgr) {
-        std::cout << "[MenuScene] Calling GetScene(\"Loading\")..." << std::endl;
+        OutputDebugStringA("[MenuScene] Calling GetScene(\"Loading\")...\n");
         Scene* rawScene = sceneMgr->GetScene("Loading");
-        std::cout << "[MenuScene] rawScene = " << (rawScene ? "VALID" : "NULL") << std::endl;
+        OutputDebugStringA(rawScene ? "[MenuScene] rawScene = VALID\n" : "[MenuScene] rawScene = NULL\n");
         if (rawScene) {
-          std::cout << "[MenuScene] Attempting static_cast to LoadingScene..." << std::endl;
+          OutputDebugStringA("[MenuScene] Attempting static_cast to LoadingScene...\n");
           LoadingScene* loadingScene = static_cast<LoadingScene*>(rawScene);
-          std::cout << "[MenuScene] loadingScene = " << (loadingScene ? "VALID" : "NULL") << std::endl;
+          OutputDebugStringA(loadingScene ? "[MenuScene] loadingScene = VALID\n" : "[MenuScene] loadingScene = NULL\n");
           if (loadingScene) {
             loadingScene->SetTargetScene("Game");
-            std::cout << "[MenuScene] Set target scene to 'Game'" << std::endl;
+            OutputDebugStringA("[MenuScene] Set target scene to 'Game'\n");
           }
         }
       }
-      std::cout << "[MenuScene] Calling RequestSceneSwitch(\"Loading\")..." << std::endl;
+      OutputDebugStringA("[MenuScene] Calling RequestSceneSwitch(\"Loading\")...\n");
       RequestSceneSwitch("Loading");
       break;
     case 1: // Map Editor
@@ -228,10 +240,17 @@ void MenuScene::Update(float deltaTime) {
 }
 
 void MenuScene::Render(RenderQueue* renderQueue) {
-    if (!renderQueue) return;
+    if (!renderQueue) {
+        OutputDebugStringA("[MenuScene::Render] renderQueue=NULL\n");
+        return;
+    }
 
-    if (!m_backgroundTexture.GetTexture()) return;
+    if (!m_backgroundTexture.GetTexture()) {
+        OutputDebugStringA("[MenuScene::Render] texture NULL - nothing to render\n");
+        return;
+    }
 
+    OutputDebugStringA("[MenuScene::Render] submitting background\n");
     // Background sprite
     Graphics::RenderCommand bgCmd = {};
     bgCmd.shaderID = SHADER_SPRITE;

@@ -8,25 +8,26 @@ namespace World {
 
 class Fisher : public Building {
 public:
-    Fisher(int x, int y, uint8_t o, Map* m) 
+    Fisher(int x, int y, uint8_t o, Map* m)
         : Building(BuildingType::Fisher, x, y, o, m) {
-        inputResources.push_back(ResourceType_Meat); // Используем Meat как Bread (Хлеб) для прикормки
+        inputResources.push_back(ResourceType_Meat);
         outputResources.push_back(ResourceType_Fish);
     }
 
     void Update() override {
-        // Логика рыбака:
-        // 1. Нужно иметь прикормку (хлеб)
-        if (inventory[ResourceType_Meat] > 0) {
-            // 2. Ищем воду в радиусе
-            int foundX, foundY;
-            if (map && map->FindResourceInRadius(pos.x, pos.y, 5, ResourceType_Fish, foundX, foundY)) {
-                // 3. Используем прикормку и ловим рыбу
-                inventory[ResourceType_Meat]--;
-                if (inventory[ResourceType_Fish] < 5) {
-                    inventory[ResourceType_Fish]++;
-                }
+        if (m_storage[ResourceType_Fish] >= 5) return;
+        if (m_storage[ResourceType_Meat] <= 0) return;
+
+        if (!m_hasTarget) {
+            Logic::ResourceRegistry* registry = map ? map->GetResourceRegistry() : NULL;
+            if (registry) {
+                m_hasTarget = registry->FindNearestWorldResource(ResourceType_Fish, pos, m_target);
             }
+        }
+
+        if (m_hasTarget) {
+            m_storage[ResourceType_Meat]--;
+            m_storage[ResourceType_Fish]++;
         }
     }
 };

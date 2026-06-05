@@ -26,8 +26,18 @@ namespace Logic {
             const Vector2i& requesterPos,
             const int* deliveryReserved);
 
+        // Find nearest resource node in the world
+        bool FindNearestWorldResource(World::ResourceType type, const Vector2i& pos, Vector2i& outPos);
+        void RegisterWorldResource(World::ResourceType type, int x, int y);
+        void UnregisterWorldResource(World::ResourceType type, int x, int y);
+        
+        // Populate cache from map
+        void BuildWorldResourceCache(World::Map* map);
+        void ClearWorldResources();
+
     private:
         std::vector<World::Building*> m_producers[World::ResourceType_Count];
+        std::vector<Vector2i> m_worldResources[World::ResourceType_Count];
         int m_planningReserved[World::ResourceType_Count];
     };
 

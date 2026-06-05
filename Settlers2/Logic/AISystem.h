@@ -42,6 +42,12 @@ namespace Logic {
 
         BuildSite m_siteCache[MAX_BUILDING_TYPE];
         bool m_siteCacheValid[MAX_BUILDING_TYPE];
+
+        // Strategic AI: decide what to build every few seconds
+        float m_decisionTimer;
+        std::vector<World::BuildingType> m_decisionList;
+
+        void UpdateDecisionList();
     };
 
 } // namespace Logic

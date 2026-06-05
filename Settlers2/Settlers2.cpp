@@ -4,7 +4,6 @@
 #include "stdafx.h"
 
 #include "Core\GameEngine.h"
-#include <iostream>
 
 //-------------------------------------------------------------------------------------
 // Main Entry Point
@@ -14,15 +13,20 @@ int main(int argc, char** argv)
     (void)argc;
     (void)argv;
 
+    OutputDebugStringA("[Settlers2::main] START\n");
+
     GameEngine engine;
 
+    OutputDebugStringA("[Settlers2::main] Initializing engine\n");
     if (!engine.Initialize())
     {
-        std::cerr << "[Settlers2] Failed to initialize game engine" << std::endl;
+        OutputDebugStringA("[Settlers2::main] FAILED to initialize game engine\n");
         return 1;
     }
 
+    OutputDebugStringA("[Settlers2::main] Engine initialized, running\n");
     engine.Run();
 
+    OutputDebugStringA("[Settlers2::main] Engine stopped\n");
     return 0;
 }

@@ -42,6 +42,9 @@ void SpriteAtlas::SetTexture(LPDIRECT3DTEXTURE9 pTexture) {
                 sprintf(debugMsg, "[SpriteAtlas] SetTexture texture size: %dx%d\n", m_textureWidth, m_textureHeight);
                 OutputDebugStringA(debugMsg);
 
+                // Fix UVs for regions with broken stored data (0,0,1,1)
+                FixUVs();
+
                 // Half-texel inset to prevent atlas bleeding with bilinear filtering
                 if (m_textureWidth > 0 && m_textureHeight > 0) {
                     float halfTexelU = 0.5f / (float)m_textureWidth;
@@ -103,6 +106,27 @@ uint32_t SpriteAtlas::GetTextureHeight() const {
     D3DSURFACE_DESC desc;
     m_pTexture->GetLevelDesc(0, &desc);
     return desc.Height;
+}
+
+void SpriteAtlas::FixUVs() {
+    if (m_textureWidth == 0 || m_textureHeight == 0) return;
+    float tw = (float)m_textureWidth;
+    float th = (float)m_textureHeight;
+    for (size_t i = 0; i < m_regions.size(); ++i) {
+        SpriteRegion& r = m_regions[i];
+        if (r.u0 == 0.0f && r.v0 == 0.0f && r.u1 == 1.0f && r.v1 == 1.0f) {
+            if (r.x != 0 || r.y != 0 || r.width != m_textureWidth || r.height != m_textureHeight) {
+                r.u0 = (float)r.x / tw;
+                r.v0 = (float)r.y / th;
+                r.u1 = (float)(r.x + r.width) / tw;
+                r.v1 = (float)(r.y + r.height) / th;
+                char buf[256];
+                sprintf(buf, "[SpriteAtlas] Fixed UV for region %u '%s': (%.4f,%.4f)-(%.4f,%.4f)\n",
+                    (uint32_t)i, r.name.c_str(), r.u0, r.v0, r.u1, r.v1);
+                OutputDebugStringA(buf);
+            }
+        }
+    }
 }
 
 void SpriteAtlas::AddRegion(const SpriteRegion& region) {

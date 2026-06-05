@@ -7,20 +7,24 @@
 namespace World {
 
 class CoalMine : public Building {
+    bool m_hasDeposit;
+    Vector2i m_depositPos;
 public:
-    CoalMine(int x, int y, uint8_t o, Map* m) 
-        : Building(BuildingType::CoalMine, x, y, o, m) {
+    CoalMine(int x, int y, uint8_t o, Map* m)
+        : Building(BuildingType::CoalMine, x, y, o, m), m_hasDeposit(false) {
+        m_depositPos.x = 0;
+        m_depositPos.y = 0;
         outputResources.push_back(ResourceType_Coal);
     }
 
     void Update() override {
-        // Логика угольной шахты: ищем гору в радиусе + потребляем еду
-        int foundX, foundY;
-        if (map && map->FindTileTypeInRadius(pos.x, pos.y, 2, Objects, Mountain, foundX, foundY)) {
+        if (!m_hasDeposit) {
+            m_hasDeposit = map && map->FindTileTypeInRadius(pos.x, pos.y, 2, Objects, Mountain, m_depositPos.x, m_depositPos.y);
+        }
+        if (m_hasDeposit) {
             int foodBonus = ConsumeFood();
             if (foodBonus > 0) {
-                // Если есть еда, производим уголь. Бонус разнообразия ускоряет добычу
-                inventory[ResourceType_Coal] += foodBonus;
+                m_storage[ResourceType_Coal] += foodBonus;
             }
         }
     }

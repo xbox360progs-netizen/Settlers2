@@ -75,7 +75,9 @@ LPDIRECT3DTEXTURE9 TextureRegistry::getTextureOrLoad(const std::string& name) {
     LPDIRECT3DTEXTURE9 tex = (it != m_textures.end()) ? it->second : NULL;
     
     if (tex) {
-        OutputDebugStringA(("[TextureRegistry] Texture '" + name + "' found in cache\n").c_str());
+        char buf[256];
+        _snprintf(buf, sizeof(buf), "[TextureRegistry] Texture '%s' found in cache\n", name.c_str());
+        OutputDebugStringA(buf);
         LeaveCriticalSection(&m_cs);
         return tex;
     }
@@ -83,7 +85,9 @@ LPDIRECT3DTEXTURE9 TextureRegistry::getTextureOrLoad(const std::string& name) {
     // Find path in manifest
     std::map<std::string, std::wstring>::const_iterator itPath = m_texturePaths.find(name);
     if (itPath == m_texturePaths.end()) {
-        OutputDebugStringA(("[TextureRegistry] Path not registered for '" + name + "'\n").c_str());
+        char buf[256];
+        _snprintf(buf, sizeof(buf), "[TextureRegistry] Path not registered for '%s'\n", name.c_str());
+        OutputDebugStringA(buf);
         LeaveCriticalSection(&m_cs);
         return m_notFoundTexture;
     }
@@ -110,7 +114,7 @@ LPDIRECT3DTEXTURE9 TextureRegistry::getTextureOrLoad(const std::string& name) {
     // Check if bin file exists
     FILE* binTest = _wfopen(binPathW.c_str(), L"rb");
     if (binTest) {
-        fclose(binTest); // Закрываем, BinFileManager откроет его сам
+        fclose(binTest); 
         
         // Load as atlas
         BinFileManager* binFileManager = GetBinFileManagerStatic();
@@ -171,14 +175,12 @@ LPDIRECT3DTEXTURE9 TextureRegistry::getTextureOrLoad(const std::string& name) {
 bool TextureRegistry::refreshTexture(const std::string& name) {
     EnterCriticalSection(&m_cs);
     
-    // Проверяем существование
     std::map<std::string, LPDIRECT3DTEXTURE9>::iterator it = m_textures.find(name);
     if (it == m_textures.end()) {
         LeaveCriticalSection(&m_cs);
         return false;
     }
     
-    // Получаем путь до выхода из критической секции
     std::map<std::string, std::wstring>::const_iterator itPath = m_texturePaths.find(name);
     if (itPath == m_texturePaths.end()) {
         LeaveCriticalSection(&m_cs);
@@ -195,9 +197,8 @@ bool TextureRegistry::refreshTexture(const std::string& name) {
         wpath = basePath + wpath;
     }
     
-    LeaveCriticalSection(&m_cs); // ВЫХОДИМ ДО ЗАГРУЗКИ!
+    LeaveCriticalSection(&m_cs); 
     
-    // Загружаем вне критической секции
     if (!m_device) return false;
     
     TextureLoader loader(m_device);
@@ -205,7 +206,7 @@ bool TextureRegistry::refreshTexture(const std::string& name) {
     HRESULT hr = loader.Load(wpath.c_str(), &newTex);
     
     if (SUCCEEDED(hr) && newTex) {
-        registerTexture(name, newTex); // registerTexture сама использует критическую секцию
+        registerTexture(name, newTex); 
         char debugBuf[512];
         _snprintf(debugBuf, sizeof(debugBuf), "[TextureRegistry] Successfully refreshed '%s'\n", name.c_str());
         OutputDebugStringA(debugBuf);
@@ -267,7 +268,7 @@ void TextureRegistry::initialize(LPDIRECT3DDEVICE9 device) {
         if (SUCCEEDED(hr) && m_notFoundTexture) {
             D3DLOCKED_RECT lr;
             if (SUCCEEDED(m_notFoundTexture->LockRect(0, &lr, NULL, 0))) {
-                unsigned int color = 0xFFFF00FF; // Ярко-розовый для отладки
+                unsigned int color = 0xFFFF00FF; 
                 *((unsigned int*)lr.pBits) = color;
                 m_notFoundTexture->UnlockRect(0);
             }
@@ -347,7 +348,6 @@ void TextureRegistry::initializeFromManifest(const std::string& manifestPath, co
         OutputDebugStringA(logBuf);
         
         if (!name.empty() && !path.empty()) {
-            // Регистрируем путь как есть (относительный путь)
             std::wstring wpathLocal(path.begin(), path.end());
             m_texturePaths[name] = wpathLocal;
             totalLoaded++;

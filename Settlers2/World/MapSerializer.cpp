@@ -174,8 +174,8 @@ bool MapSerializer::Load(World::Map& map, const std::string& path, std::vector<s
         if (!layer) return false;
         int readW = min(fileW, layer->GetWidth());
         int readH = min(fileH, layer->GetHeight());
-        for (int y = 0; y < readH; ++y) {
-            for (int x = 0; x < readW; ++x) {
+        for (int y = 0; y < fileH; ++y) {
+            for (int x = 0; x < fileW; ++x) {
                 World::Tile tile;
                 int type;
                 reader.Read(&type, sizeof(type));
@@ -201,7 +201,9 @@ bool MapSerializer::Load(World::Map& map, const std::string& path, std::vector<s
                     reader.Read(buf.data(), nameLen);
                     tile.atlasName = buf.data();
                 }
-                layer->SetTile(x, y, tile);
+                if (x < readW && y < readH) {
+                    layer->SetTile(x, y, tile);
+                }
             }
         }
     }

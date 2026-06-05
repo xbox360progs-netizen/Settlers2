@@ -7,32 +7,38 @@
 namespace World {
 
 class Hunter : public Building {
+    int m_trapsCount;
 public:
-    int trapsCount;
-
-    Hunter(int x, int y, uint8_t o, Map* m) 
-        : Building(BuildingType::Hunter, x, y, o, m), trapsCount(0) {
+    Hunter(int x, int y, uint8_t o, Map* m)
+        : Building(BuildingType::Hunter, x, y, o, m), m_trapsCount(0) {
         outputResources.push_back(ResourceType_Meat);
     }
 
     void Update() {
-        // 1. Place traps on live animals
-        if (trapsCount < 3 && inventory[ResourceType_Trap] > 0) {
-            WildlifeSystem* ws = map ? map->GetWildlifeSystem() : NULL;
-            if (ws) {
-                int animalIdx = ws->FindAliveAnimal(pos.x, pos.y, 8, AnimalType_Deer);
-                if (animalIdx >= 0) {
-                    inventory[ResourceType_Trap]--;
-                    ws->TrapAnimal(animalIdx);
-                    trapsCount++;
+        if (m_trapsCount < 3 && m_storage[ResourceType_Trap] > 0) {
+            if (!m_hasTarget) {
+                Logic::ResourceRegistry* registry = map ? map->GetResourceRegistry() : NULL;
+                if (registry) {
+                    m_hasTarget = registry->FindNearestWorldResource(ResourceType_WildlifeSpawner_Deer, pos, m_target);
+                }
+            }
+
+            if (m_hasTarget) {
+                WildlifeSystem* ws = map ? map->GetWildlifeSystem() : NULL;
+                if (ws) {
+                    int animalIdx = ws->FindAliveAnimal(m_target.x, m_target.y, 4, AnimalType_Deer);
+                    if (animalIdx >= 0) {
+                        m_storage[ResourceType_Trap]--;
+                        ws->TrapAnimal(animalIdx);
+                        m_trapsCount++;
+                    }
                 }
             }
         }
 
-        // 2. Harvest meat from traps
-        if (trapsCount > 0 && inventory[ResourceType_Meat] < 5) {
-            inventory[ResourceType_Meat]++;
-            trapsCount--;
+        if (m_trapsCount > 0 && m_storage[ResourceType_Meat] < 5) {
+            m_storage[ResourceType_Meat]++;
+            m_trapsCount--;
         }
     }
 };

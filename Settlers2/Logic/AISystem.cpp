@@ -87,16 +87,19 @@ namespace Logic {
         return false;
     }
 
-    AISystem::AISystem(uint8_t playerID, World::Map* map, EconomyManager* economy)
-        : m_playerID(playerID), m_map(map), m_economy(economy)
-    {
-        int numTiles = (map->GetWidth() * 2) * (map->GetHeight() * 4);
-        m_reservedNumWords = (numTiles + 31) / 32;
-        m_reservedBits = new LONG[m_reservedNumWords]();
+     AISystem::AISystem(uint8_t playerID, World::Map* map, EconomyManager* economy)
+         : m_playerID(playerID), m_map(map), m_economy(economy), m_decisionTimer(0.0f)
+     {
+         int numTiles = (map->GetWidth() * 2) * (map->GetHeight() * 4);
+         m_reservedNumWords = (numTiles + 31) / 32;
+         m_reservedBits = new LONG[m_reservedNumWords]();
 
-        for (int i = 0; i < MAX_BUILDING_TYPE; ++i)
-            m_siteCacheValid[i] = false;
-    }
+         for (int i = 0; i < MAX_BUILDING_TYPE; ++i)
+             m_siteCacheValid[i] = false;
+         
+         // Initialize decision list with some basic buildings
+         UpdateDecisionList();
+     }
 
     AISystem::~AISystem()
     {
@@ -125,21 +128,26 @@ namespace Logic {
         return true;
     }
 
-    void AISystem::Update(float deltaTime) {
-        (void)deltaTime;
-        static const World::BuildingType types[] = {
-            World::Woodcutter, World::Sawmill, World::Stonemason,
-            World::CoalMine, World::IronMine, World::IronSmelter, World::ToolWorkshop,
-            World::Farm, World::Mill, World::Bakery,
-            World::Hunter, World::Fisher,
-            World::GoldMine, World::GoldSmelter
-        };
-        for (int i = 0; i < sizeof(types) / sizeof(types[0]); ++i) {
-            BuildRequest req;
-            if (PlanBuild(types[i], req))
-                ApplyBuild(req);
-        }
-    }
+     void AISystem::Update(float deltaTime) {
+         // Update decision timer for strategic AI (decide what to build every 3 seconds)
+         m_decisionTimer += deltaTime;
+         if (m_decisionTimer >= 3.0f) {
+             m_decisionTimer = 0.0f;
+             UpdateDecisionList();
+         }
+
+         // Build based on decision list (find location every frame)
+         if (!m_decisionList.empty()) {
+             // Try to build the first item in the decision list
+             World::BuildingType type = m_decisionList.front();
+             BuildRequest req;
+             if (PlanBuild(type, req)) {
+                 ApplyBuild(req);
+                 // Remove from list after successful build attempt
+                 m_decisionList.erase(m_decisionList.begin());
+             }
+         }
+     }
 
     bool AISystem::PlanBuild(World::BuildingType type, BuildRequest& outReq) {
         if (!m_map || !m_economy) return false;
@@ -237,6 +245,50 @@ namespace Logic {
 
     bool AISystem::HasBuilding(World::BuildingType type) {
         return m_economy ? m_economy->HasBuilding(type) : false;
+    }
+
+    void AISystem::UpdateDecisionList()
+    {
+        // Clear current decision list
+        m_decisionList.clear();
+
+        // Simple strategy: prioritize based on what we can afford and what we need
+        // For now, just cycle through some basic buildings in a reasonable order
+        static const World::BuildingType buildingOrder[] = {
+            World::Woodcutter,    // Need wood for everything
+            World::Sawmill,       // Turn wood into planks
+            World::Farm,          // Need food
+            World::Mill,          // Turn wheat into flour
+            World::Bakery,        // Turn flour into bread
+            World::CoalMine,      // Need coal for smelting
+            World::IronMine,      // Need iron ore
+            World::IronSmelter,   // Turn ore into bars
+            World::ToolWorkshop,  // Turn bars into tools
+            World::Stonemason,    // Need stone
+            World::Hunter,        // Need meat
+            World::Fisher,        // Need fish
+            World::GoldMine,      // Need gold ore
+            World::GoldSmelter    // Turn gold ore into bars
+        };
+
+        // Add buildings to decision list if we don't have them yet
+        for (int i = 0; i < sizeof(buildingOrder) / sizeof(buildingOrder[0]); ++i) {
+            World::BuildingType type = buildingOrder[i];
+            if (!HasBuilding(type)) {
+                m_decisionList.push_back(type);
+            }
+        }
+
+        // If we have all basic buildings, add some variety
+        if (m_decisionList.empty()) {
+            static const World::BuildingType extraBuildings[] = {
+                World::Woodcutter, World::Sawmill, World::Farm, 
+                World::Mill, World::Bakery, World::Stonemason
+            };
+            for (int i = 0; i < sizeof(extraBuildings) / sizeof(extraBuildings[0]); ++i) {
+                m_decisionList.push_back(extraBuildings[i]);
+            }
+        }
     }
 
 } // namespace Logic

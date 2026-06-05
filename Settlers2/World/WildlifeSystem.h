@@ -24,6 +24,7 @@ public:
     void AddAnimals(const std::vector<Animal>& animals);
 
     int FindAliveAnimal(int x, int y, int radius, AnimalType type) const;
+    bool IsAlive(int index) const;
     void TrapAnimal(int index);
     void RemoveAnimal(int index);
 

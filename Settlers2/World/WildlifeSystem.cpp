@@ -156,6 +156,12 @@ void WildlifeSystem::TrapAnimal(int index)
     }
 }
 
+bool WildlifeSystem::IsAlive(int index) const
+{
+    return index >= 0 && index < (int)m_animals.size()
+        && m_animals[index].state == AnimalState_Alive;
+}
+
 void WildlifeSystem::RemoveAnimal(int index)
 {
     if (index >= 0 && index < (int)m_animals.size()) {

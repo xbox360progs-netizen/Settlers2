@@ -10,11 +10,16 @@
 
 class Camera;
 
+namespace Logic {
+    class ResourceRegistry;
+}
+
 namespace World {
 
 class WildlifeSystem;
 
 using ::Camera;
+
 
 class Map
 {
@@ -76,6 +81,10 @@ public:
     void SetWildlifeSystem(WildlifeSystem* ws) { m_wildlifeSystem = ws; }
     WildlifeSystem* GetWildlifeSystem() const { return m_wildlifeSystem; }
 
+    // Resource registry
+    void SetResourceRegistry(Logic::ResourceRegistry* rr) { m_resourceRegistry = rr; }
+    Logic::ResourceRegistry* GetResourceRegistry() const { return m_resourceRegistry; }
+
 private:
     int m_width;
     int m_height;
@@ -86,6 +95,7 @@ private:
     std::vector<MapNode> m_nodes;
     
     WildlifeSystem* m_wildlifeSystem;
+    Logic::ResourceRegistry* m_resourceRegistry;
 
     CRITICAL_SECTION m_cs;
 };

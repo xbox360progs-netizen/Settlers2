@@ -96,77 +96,90 @@ void SceneManager::RemoveScene(const std::string& name)
 
 bool SceneManager::SwitchTo(const std::string& name)
 {
-    std::cout << "[SceneManager] Switching to scene: " << name << std::endl;
+    char buf[512];
+    _snprintf(buf, sizeof(buf), "[SceneManager::SwitchTo] START name=%s\n", name.c_str());
+    OutputDebugStringA(buf);
 
     // THREAD SAFETY: Lock BEFORE modifying m_currentScene
+    OutputDebugStringA("[SceneManager::SwitchTo] Entering critical section\n");
     EnterCriticalSection(&m_cs);
+    OutputDebugStringA("[SceneManager::SwitchTo] Critical section entered OK\n");
 
     // BLOCK render thread on Core 1 - scene is being loaded
     m_isSceneReady = false;
     m_bSceneGraphicsReady = false;
-    OutputDebugStringA("[SceneManager] Blocking render thread - scene loading\n");
+    OutputDebugStringA("[SceneManager::SwitchTo] Blocking render thread\n");
 
     std::map<std::string, Scene*>::iterator it = m_scenes.find(name);
     if (it == m_scenes.end())
     {
-        std::cout << "[SceneManager] ERROR: Scene not found: " << name << std::endl;
+        _snprintf(buf, sizeof(buf), "[SceneManager::SwitchTo] ERROR Scene not found=%s\n", name.c_str());
+        OutputDebugStringA(buf);
         LeaveCriticalSection(&m_cs);
         return false;
     }
+    OutputDebugStringA("[SceneManager::SwitchTo] Scene found\n");
 
-    // Exit current scene
-    if (m_currentScene)
+    // Exit current scene OUTSIDE critical section to prevent deadlock
+    Scene* oldScene = m_currentScene;
+    if (oldScene)
     {
-        std::cout << "[SceneManager] Exiting current scene: " << m_currentScene->GetName() << std::endl;
-        m_currentScene->OnExit();
+        OutputDebugStringA("[SceneManager::SwitchTo] Found old scene, exiting\n");
+        LeaveCriticalSection(&m_cs);
+        oldScene->OnExit();
+        EnterCriticalSection(&m_cs);
+        OutputDebugStringA("[SceneManager::SwitchTo] OnExit done\n");
     }
 
-    // Enter new scene (keep reference only, load outside critical section)
+    // Switch to new scene
     Scene* newScene = it->second;
     m_currentScene = newScene;
-    std::cout << "[SceneManager] Entering new scene: " << m_currentScene->GetName() << std::endl;
+    OutputDebugStringA("[SceneManager::SwitchTo] New scene set\n");
 
     // UNLOCK before loading to avoid deadlock (Load may access SceneManager/Renderer)
     bool needsLoad = !m_currentScene->IsLoaded();
+    _snprintf(buf, sizeof(buf), "[SceneManager::SwitchTo] needsLoad=%d\n", needsLoad?1:0);
+    OutputDebugStringA(buf);
     LeaveCriticalSection(&m_cs);
-    std::cout << "[SceneManager] Critical section unlocked, needsLoad=" << (needsLoad?"true":"false") << std::endl;
-    std::cout.flush();
+    OutputDebugStringA("[SceneManager::SwitchTo] Left critical section for Load\n");
 
     // Load OUTSIDE critical section to prevent deadlock
     if (needsLoad)
     {
-        std::cout << "[SceneManager] Calling Load() outside critical section..." << std::endl;
-        std::cout.flush();
+        OutputDebugStringA("[SceneManager::SwitchTo] Loading scene\n");
         m_currentScene->Load();
-        std::cout << "[SceneManager] Load() returned" << std::endl;
-        std::cout.flush();
+        OutputDebugStringA("[SceneManager::SwitchTo] Load done\n");
     }
 
-    // Re-lock for finalization
-    EnterCriticalSection(&m_cs);
-    std::cout << "[SceneManager] About to call OnEnter()" << std::endl;
-    std::cout.flush();
-    OutputDebugStringA("[SceneManager] About to call OnEnter()\n");
+    // Call OnEnter OUTSIDE critical section to prevent deadlock
+    // (OnEnter may access TextureRegistry or other resources with their own locks)
+    OutputDebugStringA("[SceneManager::SwitchTo] Calling OnEnter\n");
     m_currentScene->OnEnter();
-    std::cout << "[SceneManager] OnEnter() returned" << std::endl;
-    std::cout.flush();
-    OutputDebugStringA("[SceneManager] OnEnter() returned\n");
+    OutputDebugStringA("[SceneManager::SwitchTo] OnEnter done\n");
     
-    std::cout << "[SceneManager] Switch complete to: " << name << std::endl;
+    // Re-lock just for setting ready flags
+    OutputDebugStringA("[SceneManager::SwitchTo] Re-entering critical section\n");
+    EnterCriticalSection(&m_cs);
+    OutputDebugStringA("[SceneManager::SwitchTo] Re-entered critical section\n");
+    
+    _snprintf(buf, sizeof(buf), "[SceneManager::SwitchTo] Switch complete to=%s\n", name.c_str());
+    OutputDebugStringA(buf);
 
     // UNBLOCK render thread - scene is ready
     if (m_spriteRenderer != NULL && m_shaderManager != NULL)
     {
         m_isSceneReady = true;
         m_bSceneGraphicsReady = true;
-        OutputDebugStringA("[SceneManager] Unblocking render thread - scene ready\n");
+        OutputDebugStringA("[SceneManager::SwitchTo] Scene ready UNBLOCKED\n");
     }
     else
     {
-        OutputDebugStringA("[SceneManager] WARNING: Resources not ready\n");
+        OutputDebugStringA("[SceneManager::SwitchTo] WARNING Resources not ready\n");
     }
 
+    OutputDebugStringA("[SceneManager::SwitchTo] Leaving critical section\n");
     LeaveCriticalSection(&m_cs);
+    OutputDebugStringA("[SceneManager::SwitchTo] DONE\n");
     return true;
 }
 
@@ -223,12 +236,12 @@ void SceneManager::Render()
         OutputDebugStringA("[SceneManager] Render: m_renderQueue IS NULL!\n");
     }
 
-    EnterCriticalSection(&m_cs);
+    // Note: Render is called only from main game loop, so no need to lock.
+    // Locking here can cause deadlock if scene render accesses TextureRegistry or other locked resources.
     if (m_currentScene) {
 //        OutputDebugStringA("[SceneManager] Render: calling scene->Render()\n");
         m_currentScene->Render(m_renderQueue);
     }
-    LeaveCriticalSection(&m_cs);
 
     if (m_renderQueue) {
 //        char buf[256];

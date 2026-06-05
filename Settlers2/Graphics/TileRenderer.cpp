@@ -5,6 +5,7 @@
 #include "Texture.h"
 #include "SpriteAtlas.h"
 #include "RenderLayers.h"
+#include "../Logic/CoordinateSystem.h"
 #include <cmath>
 #include <cstdio>
 
@@ -31,24 +32,20 @@ void IsoTransform::screenToWorld(float screenX, float screenY,
 
 TileRenderer::TileRenderer(::Renderer* renderer, int mapWidth, int mapHeight)
   : m_renderer(renderer), m_map(nullptr), m_renderQueue(nullptr), m_mapWidth(mapWidth), m_mapHeight(mapHeight),
-    m_mode(0), m_offsetX(0), m_offsetY(0), m_zoom(1.0f) {}
+    m_mode(0) {}
 
 TileRenderer::~TileRenderer() {}
 
-void TileRenderer::RenderMap(float cameraX, float cameraY, float zoom) {
+void TileRenderer::RenderMap() {
     if (!m_map) return;
 
-    m_offsetX = cameraX;
-    m_offsetY = cameraY;
-    m_zoom = zoom;
+    CoordinateSystem::GetInstance().Initialize(m_mapWidth, m_mapHeight);
 
-    // Render each layer in correct order
-    for (int layerType = 0; layerType < static_cast<int>(World::LayerCount); ++layerType) {
-        World::TileLayer* layer = m_map->GetLayer(static_cast<World::LayerType>(layerType));
-        if (layer) {
-            RenderTileLayer(static_cast<World::LayerType>(layerType), layerType);
-        }
-    }
+    // Render only game-relevant layers (skip Placement debug, Resources, etc.)
+    RenderTileLayer(World::Roads, World::Roads);
+    RenderTileLayer(World::Ground, World::Ground);
+    RenderTileLayer(World::Objects, World::Objects);
+    RenderTileLayer(World::Buildings, World::Buildings);
 }
 
 void TileRenderer::RenderTileLayer(World::LayerType layer, int layerOffset) {
@@ -59,6 +56,29 @@ void TileRenderer::RenderTileLayer(World::LayerType layer, int layerOffset) {
 
     int width = tileLayer->GetWidth();
     int height = tileLayer->GetHeight();
+    int nonNoneCount = 0;
+    int submittedCount = 0;
+    const char* layerNames[] = {
+        "Roads", "Nodes", "Placement", "Resources",
+        "Ground", "Objects", "Overlay", "Buildings"
+    };
+    const char* layerName = (layer >= 0 && layer < 8) ? layerNames[layer] : "?";
+
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            const World::Tile& tile = tileLayer->GetTile(x, y);
+            if (tile.type != World::Tile_None) {
+                nonNoneCount++;
+                if (!tile.atlasName.empty()) {
+                    submittedCount++;
+                }
+            }
+        }
+    }
+    char buf[256];
+    _snprintf(buf, sizeof(buf), "[TileRenderer] Layer %d (%s): %dx%d, non-None=%d, submitted=%d\n",
+              (int)layer, layerName, width, height, nonNoneCount, submittedCount);
+    OutputDebugStringA(buf);
 
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
@@ -71,15 +91,98 @@ void TileRenderer::RenderTileLayer(World::LayerType layer, int layerOffset) {
 }
 
 void TileRenderer::RenderTile(int tileX, int tileY, World::TileType type, int layerOffset) {
-    (void)tileX;
-    (void)tileY;
     (void)type;
-    (void)layerOffset;
+    if (!m_map || !m_renderQueue) return;
+
+    World::LayerType layerType = static_cast<World::LayerType>(layerOffset);
+    World::TileLayer* layer = m_map->GetLayer(layerType);
+    if (!layer) return;
+    const World::Tile& tile = layer->GetTile(tileX, tileY);
+
+    // Look up texture slot for this tile's atlas
+    if (tile.atlasName.empty()) return;
+    auto it = m_atlasSlots.find(tile.atlasName);
+    if (it == m_atlasSlots.end()) return;
+    WORD texSlot = it->second;
+
+    // Get the texture
+    TextureRegistry& reg = TextureRegistry::instance();
+    LPDIRECT3DTEXTURE9 tex = NULL;
+    std::tr1::shared_ptr<SpriteAtlas> atlas = reg.getAtlas(tile.atlasName);
+    if (atlas) {
+        tex = atlas->GetTexture();
+    }
+    if (!tex) {
+        tex = reg.getTexture(tile.atlasName);
+    }
+    if (!tex) return;
+
+    CoordinateSystem& coords = CoordinateSystem::GetInstance();
+    float wx, wy;
+    float spriteW, spriteH, pivotX, pivotY;
+    float useU0 = tile.u0, useV0 = tile.v0, useU1 = tile.u1, useV1 = tile.v1;
+    BYTE blendMode;
+    BYTE renderLayer;
+    WORD depth;
+
+    if (layerType == World::Ground) {
+        // Ground tiles: simple grid
+        coords.GroundTileToWorld(tileX, tileY, wx, wy);
+        spriteW = 238.0f;
+        spriteH = 148.0f;
+        pivotX = spriteW * 0.5f;
+        pivotY = spriteH * 0.5f;
+
+        if (tile.regionIndex >= 0 && atlas) {
+            const SpriteRegion* region = atlas->GetRegion(tile.regionIndex);
+            if (region) {
+                spriteW = (float)region->width;
+                spriteH = (float)region->height;
+                pivotX = region->pivotX;
+                pivotY = region->pivotY;
+            }
+        }
+        wx += 119.0f;
+        wy += 74.0f;
+        blendMode = 1;
+        renderLayer = LAYER_TERRAIN;
+        depth = static_cast<WORD>(0.95f * 65535.0f);
+    } else {
+        // Node-based tiles (objects, buildings, roads): staggered grid
+        coords.NodeTileToWorld(tileX, tileY, wx, wy);
+        spriteW = 119.0f;
+        spriteH = 72.0f;
+        pivotX = 0.0f;
+        pivotY = 0.0f;
+
+        if (tile.regionIndex >= 0 && atlas) {
+            const SpriteRegion* region = atlas->GetRegion(tile.regionIndex);
+            if (region) {
+                spriteW = (float)region->width;
+                spriteH = (float)region->height;
+                pivotX = region->pivotX;
+                pivotY = region->pivotY;
+            }
+        }
+        blendMode = 0;
+        renderLayer = LAYER_WORLD;
+        depth = static_cast<WORD>(30010 + tileY * 400);
+    }
+
+    // Submit in world space — camera view-projection matrix transforms to screen
+    float renderX = wx - pivotX;
+    float renderY = wy - pivotY;
+
+    submitTile(renderX, renderY, spriteW, spriteH,
+               tex, texSlot,
+               useU0, useV0, useU1, useV1,
+               SHADER_TERRAIN, blendMode, renderLayer, depth);
 }
 
-void TileRenderer::drawTileQuad(float x, float y, float width, float height,
-                                 LPDIRECT3DTEXTURE9 texture,
-                                 float u0, float v0, float u1, float v1) {
+void TileRenderer::submitTile(float x, float y, float width, float height,
+                               LPDIRECT3DTEXTURE9 texture, WORD textureID,
+                               float u0, float v0, float u1, float v1,
+                               WORD shaderID, BYTE blendMode, BYTE layer, WORD depth) {
     if (!m_renderQueue || !texture) return;
 
     Graphics::RenderCommand cmd = {};
@@ -92,11 +195,11 @@ void TileRenderer::drawTileQuad(float x, float y, float width, float height,
     cmd.u1 = u1;
     cmd.v1 = v1;
     cmd.color = 0xFFFFFFFF;
-    cmd.shaderID = SHADER_SPRITE;
-    cmd.textureID = 0;
-    cmd.blendMode = 0;
-    cmd.layer = LAYER_TERRAIN;
-    cmd.depth = 0;
+    cmd.shaderID = shaderID;
+    cmd.textureID = textureID;
+    cmd.blendMode = blendMode;
+    cmd.layer = layer;
+    cmd.depth = depth;
     m_renderQueue->Submit(cmd);
 }
 
@@ -113,6 +216,6 @@ void TileRenderer::ScreenToWorld(int sx, int sy, int& wx, int& wy) {
 
 std::pair<int, int> TileRenderer::screenToTileCoords(float screenX, float screenY) const {
     int tileX, tileY;
-    IsoTransform::screenToWorld(screenX, screenY, tileX, tileY, m_offsetX, m_offsetY);
+    IsoTransform::screenToWorld(screenX, screenY, tileX, tileY);
     return std::make_pair(tileX, tileY);
 }

@@ -1,31 +1,22 @@
 #ifndef WORLD_COMPONENTS_BAKERY_H
 #define WORLD_COMPONENTS_BAKERY_H
 
-#include "Building.h"
-#include "../Map.h"
+#include "ProductionBuilding.h"
 
 namespace World {
 
-class Bakery : public Building {
+class Bakery : public ProductionBuilding {
 public:
-    Bakery(int x, int y, uint8_t o, Map* m) 
-        : Building(BuildingType::Bakery, x, y, o, m) {
-        inputResources.push_back(ResourceType_Flour); 
-        inputResources.push_back(ResourceType_Water);
-        outputResources.push_back(ResourceType_Bread); 
-    }
-
-    void Update() override {
-        // Логика пекарни: если есть мука и вода, печем хлеб
-        if (inventory[ResourceType_Flour] > 0 && inventory[ResourceType_Water] > 0) {
-            inventory[ResourceType_Flour]--;
-            inventory[ResourceType_Water]--;
-            inventory[ResourceType_Bread]++; // Хлеб
-        }
+    Bakery(int x, int y, uint8_t o, Map* m)
+        : ProductionBuilding(BuildingType::Bakery, x, y, o, m)
+    {
+        m_numRules = 1;
+        m_rules[0].AddInput(ResourceType_Flour);
+        m_rules[0].AddInput(ResourceType_Water);
+        m_rules[0].AddOutput(ResourceType_Bread);
     }
 };
 
 } // namespace World
-
 
 #endif

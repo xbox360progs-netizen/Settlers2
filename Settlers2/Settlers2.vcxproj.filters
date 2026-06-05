@@ -407,6 +407,9 @@
     <ClInclude Include="World\Components\Woodcutter.h">
       <Filter>World\Components</Filter>
     </ClInclude>
+    <ClInclude Include="World\Components\Resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -577,9 +580,6 @@
     <ClCompile Include="Game\UnitManager.cpp">
       <Filter>Game</Filter>
     </ClCompile>
-    <ClCompile Include="World\Components\Building.cpp">
-      <Filter>UI</Filter>
-    </ClCompile>
     <ClCompile Include="World\CarrierManager.cpp">
       <Filter>World</Filter>
     </ClCompile>
@@ -654,6 +654,9 @@
     </ClCompile>
     <ClCompile Include="World\WildlifeSystem.cpp">
       <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="World\Components\Building.cpp">
+      <Filter>World\Components</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

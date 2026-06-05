@@ -8,17 +8,23 @@ namespace World {
 
 class Stonemason : public Building {
 public:
-    Stonemason(int x, int y, uint8_t o, Map* m) 
+    Stonemason(int x, int y, uint8_t o, Map* m)
         : Building(BuildingType::Stonemason, x, y, o, m) {
         outputResources.push_back(ResourceType_Stone);
     }
 
     void Update() override {
-        if (inventory[ResourceType_Stone] < 5) {
-            int foundX, foundY;
-            if (map && map->FindResourceInRadius(pos.x, pos.y, 5, ResourceType_Granite, foundX, foundY)) {
-                inventory[ResourceType_Stone]++;
+        if (m_storage[ResourceType_Stone] >= 5) return;
+
+        if (!m_hasTarget) {
+            Logic::ResourceRegistry* registry = map ? map->GetResourceRegistry() : NULL;
+            if (registry) {
+                m_hasTarget = registry->FindNearestWorldResource(ResourceType_Granite, pos, m_target);
             }
+        }
+
+        if (m_hasTarget) {
+            m_storage[ResourceType_Stone]++;
         }
     }
 };

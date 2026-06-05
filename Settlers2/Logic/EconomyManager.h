@@ -30,6 +30,9 @@ namespace Logic {
         World::Building* GetBuilding(int index) const { return m_buildings[index]; }
         void ValidateEconomy();
 
+        ResourceRegistry& GetRegistry() { return m_registry; }
+        const ResourceRegistry& GetRegistry() const { return m_registry; }
+
         void RequestResource(World::Building* requester, World::ResourceType type, int amount, int priority);
 
         static const int MAX_REQUESTS = 256;

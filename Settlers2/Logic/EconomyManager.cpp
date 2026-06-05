@@ -63,11 +63,9 @@ namespace Logic {
         World::Building* exclude,
         const Vector2i& requesterPos)
     {
-        // 1. Nearest producer with stock
         World::Building* b = m_registry.FindBestSupplier(type, outAmount, exclude, requesterPos, m_deliveryReserved);
         if (b) return b;
 
-        // 2. Warehouse as fallback (include distance)
         if (m_warehouse && m_warehouse->resources[type] > 0) {
             outAmount = m_warehouse->resources[type];
             return static_cast<World::Building*>(m_warehouse);
@@ -113,11 +111,9 @@ namespace Logic {
             if (producer == static_cast<World::Building*>(m_warehouse)) {
                 m_warehouse->RemoveResource(m_requests[r].type, toDeliver);
             } else {
-                std::map<World::ResourceType, int>::iterator it = producer->inventory.find(m_requests[r].type);
-                if (it != producer->inventory.end()) {
-                    it->second -= toDeliver;
-                    if (it->second < 0) it->second = 0;
-                }
+                producer->m_storage[m_requests[r].type] -= toDeliver;
+                if (producer->m_storage[m_requests[r].type] < 0)
+                    producer->m_storage[m_requests[r].type] = 0;
             }
 
             m_requests[r].active = false;
@@ -128,12 +124,24 @@ namespace Logic {
             World::Building* b = m_buildings[i];
             if (b->state != World::State_Finished) continue;
 
-            for (size_t j = 0; j < b->inputResources.size(); ++j) {
-                World::ResourceType needed = b->inputResources[j];
-                std::map<World::ResourceType, int>::iterator it = b->inventory.find(needed);
-                int have = (it != b->inventory.end()) ? it->second : 0;
-                if (have < 1) {
-                    RequestResource(b, needed, 1, m_settings.routeConfig[needed].transferPriority);
+            if (b->m_numRules > 0) {
+                for (int r = 0; r < b->m_numRules; ++r) {
+                    for (int j = 0; j < b->m_rules[r].numInputs; ++j) {
+                        World::ResourceType needed = b->m_rules[r].input[j];
+                        int have = b->m_storage[needed];
+                        if (have < b->m_rules[r].inputAmount[j]) {
+                            RequestResource(b, needed, b->m_rules[r].inputAmount[j],
+                                            m_settings.routeConfig[needed].transferPriority);
+                        }
+                    }
+                }
+            } else {
+                for (size_t j = 0; j < b->inputResources.size(); ++j) {
+                    World::ResourceType needed = b->inputResources[j];
+                    int have = b->m_storage[needed];
+                    if (have < 1) {
+                        RequestResource(b, needed, 1, m_settings.routeConfig[needed].transferPriority);
+                    }
                 }
             }
         }
@@ -144,11 +152,25 @@ namespace Logic {
             if (b->state != World::State_Finished) continue;
             if (!b->connectedFlag) continue;
 
-            for (size_t j = 0; j < b->inputResources.size(); ++j) {
-                World::ResourceType needed = b->inputResources[j];
-                if (b->connectedFlag->GetAvailable(needed) > 0) {
-                    b->connectedFlag->RemoveResource(needed, 1);
-                    b->inventory[needed]++;
+            if (b->m_numRules > 0) {
+                for (int r = 0; r < b->m_numRules; ++r) {
+                    for (int j = 0; j < b->m_rules[r].numInputs; ++j) {
+                        World::ResourceType needed = b->m_rules[r].input[j];
+                        int needCount = b->m_rules[r].inputAmount[j];
+                        while (needCount > 0 && b->connectedFlag->GetAvailable(needed) > 0) {
+                            b->connectedFlag->RemoveResource(needed, 1);
+                            b->m_storage[needed]++;
+                            needCount--;
+                        }
+                    }
+                }
+            } else {
+                for (size_t j = 0; j < b->inputResources.size(); ++j) {
+                    World::ResourceType needed = b->inputResources[j];
+                    if (b->connectedFlag->GetAvailable(needed) > 0) {
+                        b->connectedFlag->RemoveResource(needed, 1);
+                        b->m_storage[needed]++;
+                    }
                 }
             }
         }
@@ -177,30 +199,52 @@ namespace Logic {
             if (b->state != World::State_Finished) continue;
             if (!b->connectedFlag) continue;
 
-            for (size_t j = 0; j < b->outputResources.size(); ++j) {
-                World::ResourceType outType = b->outputResources[j];
-                ResourceRouteConfig& cfg = m_settings.routeConfig[outType];
+            if (b->m_numRules > 0) {
+                for (int r = 0; r < b->m_numRules; ++r) {
+                    for (int o = 0; o < b->m_rules[r].numOutputs; ++o) {
+                        World::ResourceType outType = b->m_rules[r].output[o];
+                        ResourceRouteConfig& cfg = m_settings.routeConfig[outType];
 
-                std::map<World::ResourceType, int>::iterator it = b->inventory.find(outType);
-                if (it == b->inventory.end() || it->second <= 0) continue;
+                        if (b->m_storage[outType] <= 0) continue;
 
-                if (cfg.routing == ROUTE_DIRECT) {
-                    continue;
+                        if (cfg.routing == ROUTE_DIRECT) continue;
+
+                        if (!m_warehouse || !m_warehouse->connectedFlag) continue;
+                        if (!b->connectedFlag->AddResource(outType, 1)) continue;
+                        b->m_storage[outType]--;
+
+                        m_registry.ReservePlanning(outType, 1);
+
+                        World::TransportJob job;
+                        job.cargo = World::Cargo(outType, 1);
+                        job.source = b->connectedFlag;
+                        job.destination = m_warehouse->connectedFlag;
+                        job.priority = cfg.transferPriority;
+                        carrierManager->AssignJob(job);
+                    }
                 }
+            } else {
+                for (size_t j = 0; j < b->outputResources.size(); ++j) {
+                    World::ResourceType outType = b->outputResources[j];
+                    ResourceRouteConfig& cfg = m_settings.routeConfig[outType];
 
-                if (!m_warehouse || !m_warehouse->connectedFlag) continue;
-                if (!b->connectedFlag->AddResource(outType, 1))
-                    continue;
-                it->second--;
+                    if (b->m_storage[outType] <= 0) continue;
 
-                m_registry.ReservePlanning(outType, 1);
+                    if (cfg.routing == ROUTE_DIRECT) continue;
 
-                World::TransportJob job;
-                job.cargo = World::Cargo(outType, 1);
-                job.source = b->connectedFlag;
-                job.destination = m_warehouse->connectedFlag;
-                job.priority = cfg.transferPriority;
-                carrierManager->AssignJob(job);
+                    if (!m_warehouse || !m_warehouse->connectedFlag) continue;
+                    if (!b->connectedFlag->AddResource(outType, 1)) continue;
+                    b->m_storage[outType]--;
+
+                    m_registry.ReservePlanning(outType, 1);
+
+                    World::TransportJob job;
+                    job.cargo = World::Cargo(outType, 1);
+                    job.source = b->connectedFlag;
+                    job.destination = m_warehouse->connectedFlag;
+                    job.priority = cfg.transferPriority;
+                    carrierManager->AssignJob(job);
+                }
             }
         }
 
@@ -228,9 +272,7 @@ namespace Logic {
 
             for (size_t i = 0; i < m_buildings.size(); ++i) {
                 World::Building* b = m_buildings[i];
-                std::map<World::ResourceType, int>::iterator it = b->inventory.find(type);
-                if (it != b->inventory.end())
-                    total += it->second;
+                total += b->m_storage[type];
             }
 
             total += m_warehouse->resources[type];

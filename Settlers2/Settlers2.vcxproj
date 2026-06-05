@@ -328,6 +328,7 @@
     <ClInclude Include="World\Components\ModelComponent.h" />
     <ClInclude Include="World\Components\Resource.h" />
     <ClInclude Include="World\Components\Sawmill.h" />
+    <ClInclude Include="World\Components\ProductionBuilding.h" />
     <ClInclude Include="World\Components\SpriteComponent.h" />
     <ClInclude Include="World\Components\Stonemason.h" />
     <ClInclude Include="World\Components\ToolWorkshop.h" />

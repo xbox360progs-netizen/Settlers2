@@ -1,27 +1,19 @@
 #ifndef WORLD_COMPONENTS_GOLDSMELTER_H
 #define WORLD_COMPONENTS_GOLDSMELTER_H
 
-#include "Building.h"
-#include "../Map.h"
+#include "ProductionBuilding.h"
 
 namespace World {
 
-class GoldSmelter : public Building {
+class GoldSmelter : public ProductionBuilding {
 public:
-    GoldSmelter(int x, int y, uint8_t o, Map* m) 
-        : Building(BuildingType::GoldSmelter, x, y, o, m) {
-        inputResources.push_back(ResourceType_GoldOre);
-        inputResources.push_back(ResourceType_Coal);
-        outputResources.push_back(ResourceType_GoldBar);
-    }
-
-    void Update() override {
-        // Плавильня: GoldOre + Coal -> GoldBar
-        if (inventory[ResourceType_GoldOre] > 0 && inventory[ResourceType_Coal] > 0) {
-            inventory[ResourceType_GoldOre]--;
-            inventory[ResourceType_Coal]--;
-            inventory[ResourceType_GoldBar]++;
-        }
+    GoldSmelter(int x, int y, uint8_t o, Map* m)
+        : ProductionBuilding(BuildingType::GoldSmelter, x, y, o, m)
+    {
+        m_numRules = 1;
+        m_rules[0].AddInput(ResourceType_GoldOre);
+        m_rules[0].AddInput(ResourceType_Coal);
+        m_rules[0].AddOutput(ResourceType_GoldBar);
     }
 };
 

@@ -7,18 +7,24 @@
 namespace World {
 
 class GoldMine : public Building {
+    bool m_hasDeposit;
+    Vector2i m_depositPos;
 public:
-    GoldMine(int x, int y, uint8_t o, Map* m) 
-        : Building(BuildingType::GoldMine, x, y, o, m) {
+    GoldMine(int x, int y, uint8_t o, Map* m)
+        : Building(BuildingType::GoldMine, x, y, o, m), m_hasDeposit(false) {
+        m_depositPos.x = 0;
+        m_depositPos.y = 0;
         outputResources.push_back(ResourceType_GoldOre);
     }
 
     void Update() override {
-        int foundX, foundY;
-        if (map && map->FindTileTypeInRadius(pos.x, pos.y, 2, Objects, Mountain, foundX, foundY)) {
+        if (!m_hasDeposit) {
+            m_hasDeposit = map && map->FindTileTypeInRadius(pos.x, pos.y, 2, Objects, Mountain, m_depositPos.x, m_depositPos.y);
+        }
+        if (m_hasDeposit) {
             int foodBonus = ConsumeFood();
             if (foodBonus > 0) {
-                inventory[ResourceType_GoldOre] += foodBonus;
+                m_storage[ResourceType_GoldOre] += foodBonus;
             }
         }
     }
