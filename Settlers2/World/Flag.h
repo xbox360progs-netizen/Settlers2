@@ -4,9 +4,12 @@
 #include "../Core/Vector2i.h"
 #include "ResourceNode.h"
 #include "Components/Building.h"
+#include "ObjectState.h"
+#include "Handle.h"
 
 namespace World {
-    class Road;
+    class Building;
+    struct Road;
 
     enum FlagType {
         FLAG_NORMAL,
@@ -21,15 +24,15 @@ namespace World {
         FlagType type;
         BuildingType pendingBuilding;
         bool hasBuilding;
-        std::vector<uint32_t> neighborIds;
     };
 
     struct ResourceSlot {
         ResourceType type;
         int amount;
         int reserved; // committed to pending TransportJobs, not available for new requests
+        uint32_t destFlagId; // ID of ultimate destination flag (0 = no routing, safe across flag deletion)
 
-        ResourceSlot() : type(ResourceType_None), amount(0), reserved(0) {}
+        ResourceSlot() : type(ResourceType_None), amount(0), reserved(0), destFlagId(0) {}
     };
 
     class Flag {
@@ -37,23 +40,26 @@ namespace World {
         uint32_t id;
         Vector2i pos;
         FlagType type;
+        Building* building;
         ResourceSlot slots[8];
         std::vector<Road*> roads;
-        std::vector<Flag*> neighbors;
         BuildingType pendingBuilding;
         bool hasBuilding;
+        ObjectState state;
 
         Flag(int x, int y, uint32_t id)
-            : id(id), type(FLAG_NORMAL), pendingBuilding(static_cast<BuildingType>(0)), hasBuilding(false)
+            : id(id), type(FLAG_NORMAL), building(NULL), pendingBuilding(static_cast<BuildingType>(0)), hasBuilding(false), state(Active)
         {
             pos.x = x;
             pos.y = y;
         }
 
-        int FindSlot(ResourceType type) const {
+        int FindSlot(ResourceType type, uint32_t destFlagId = 0) const {
             for (int i = 0; i < 8; ++i) {
-                if (slots[i].type == type)
-                    return i;
+                if (slots[i].type == type) {
+                    if (destFlagId == 0 || slots[i].destFlagId == destFlagId)
+                        return i;
+                }
             }
             return -1;
         }
@@ -67,29 +73,32 @@ namespace World {
         }
 
         int GetAvailable(ResourceType type) const {
-            int idx = FindSlot(type);
-            if (idx < 0) return 0;
-            return slots[idx].amount - slots[idx].reserved;
+            int total = 0;
+            for (int i = 0; i < 8; ++i) {
+                if (slots[i].type == type)
+                    total += slots[i].amount - slots[i].reserved;
+            }
+            return total;
         }
 
-        bool Reserve(ResourceType type, int amount) {
-            int idx = FindSlot(type);
+        bool Reserve(ResourceType type, int amount, uint32_t destFlagId = 0) {
+            int idx = FindSlot(type, destFlagId);
             if (idx < 0) return false;
             if (slots[idx].amount - slots[idx].reserved < amount) return false;
             slots[idx].reserved += amount;
             return true;
         }
 
-        void Unreserve(ResourceType type, int amount) {
-            int idx = FindSlot(type);
+        void Unreserve(ResourceType type, int amount, uint32_t destFlagId = 0) {
+            int idx = FindSlot(type, destFlagId);
             if (idx >= 0) {
                 slots[idx].reserved -= amount;
                 if (slots[idx].reserved < 0) slots[idx].reserved = 0;
             }
         }
 
-        bool AddResource(ResourceType type, int amount) {
-            int idx = FindSlot(type);
+        bool AddResource(ResourceType type, int amount, uint32_t destFlagId = 0) {
+            int idx = FindSlot(type, destFlagId);
             if (idx >= 0) {
                 slots[idx].amount += amount;
                 return true;
@@ -99,13 +108,14 @@ namespace World {
                 slots[idx].type = type;
                 slots[idx].amount = amount;
                 slots[idx].reserved = 0;
+                slots[idx].destFlagId = destFlagId;
                 return true;
             }
             return false;
         }
 
-        bool RemoveResource(ResourceType type, int amount) {
-            int idx = FindSlot(type);
+        bool RemoveResource(ResourceType type, int amount, uint32_t destFlagId = 0) {
+            int idx = FindSlot(type, destFlagId);
             if (idx < 0) return false;
             if (slots[idx].amount - slots[idx].reserved < amount) return false;
             slots[idx].amount -= amount;
@@ -113,23 +123,32 @@ namespace World {
                 slots[idx].type = ResourceType_None;
                 slots[idx].amount = 0;
                 slots[idx].reserved = 0;
+                slots[idx].destFlagId = 0;
             }
             return true;
         }
 
-        void CommitPickup(ResourceType type, int amount) {
-            int idx = FindSlot(type);
+        void CommitPickup(ResourceType type, int amount, uint32_t destFlagId = 0) {
+            int idx = FindSlot(type, destFlagId);
             if (idx < 0) return;
-            if (slots[idx].reserved > 0) {
-                int unreserve = (amount < slots[idx].reserved) ? amount : slots[idx].reserved;
-                slots[idx].reserved -= unreserve;
-                slots[idx].amount -= unreserve;
-                if (slots[idx].amount <= 0) {
-                    slots[idx].type = ResourceType_None;
-                    slots[idx].amount = 0;
-                    slots[idx].reserved = 0;
-                }
+            if (amount <= 0) return;
+            int toRemove = (amount < slots[idx].amount) ? amount : slots[idx].amount;
+            if (toRemove <= 0) return;
+            if (slots[idx].reserved >= toRemove) {
+                slots[idx].reserved -= toRemove;
+            } else {
+                slots[idx].reserved = 0;
+            }
+            slots[idx].amount -= toRemove;
+            if (slots[idx].amount <= 0) {
+                slots[idx].type = ResourceType_None;
+                slots[idx].amount = 0;
+                slots[idx].reserved = 0;
+                slots[idx].destFlagId = 0;
             }
         }
     };
+
+    class Flag;
+    typedef Handle<Flag> FlagHandle;
 }

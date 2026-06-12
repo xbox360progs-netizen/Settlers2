@@ -1,0 +1,83 @@
+IFETCH : Cycle = 2 : Addresss = 1000 : Fetch Addresss = 1000 : ID = 0 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1
+IFETCH : L1 Hit : Cycle = 2 : ID = 0
+IFETCH : Cycle = 4 : Addresss = 1010 : Fetch Addresss = 1010 : ID = 1 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1
+IFETCH : L1 Hit : Cycle = 4 : ID = 1
+IFETCH : Cycle = 6 : Addresss = 1020 : Fetch Addresss = 1020 : ID = 2 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1
+IFETCH : L1 Hit : Cycle = 6 : ID = 2
+DISPATCH : Cycle = 8 : Instruction = 1.0.0 : PC = 1000 : Addr = 0 : Mnemonic = add R3, R3, R7 : Opcode = 7c633a14
+IFETCH : Cycle = 8 : Addresss = 1030 : Fetch Addresss = 1030 : ID = 3 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1
+DISPATCH : Cycle = 8 : Instruction = 2.0.0 : PC = 1004 : Addr = 1000 : Mnemonic = lvx V0, R3, R8 : Opcode = 7c0340ce
+IFETCH : L1 Hit : Cycle = 8 : ID = 3
+DISPATCH : Cycle = 9 : Instruction = 3.0.0 : PC = 1008 : Addr = 0 : Mnemonic = add R3, R3, R7 : Opcode = 7c633a14
+DISPATCH : Cycle = 9 : Instruction = 4.0.0 : PC = 100c : Addr = 1000 : Mnemonic = lvx V1, R3, R8 : Opcode = 7c2340ce
+DISPATCH : Cycle = 10 : Instruction = 5.0.0 : PC = 1010 : Addr = 0 : Mnemonic = add R3, R3, R7 : Opcode = 7c633a14
+DISPATCH : Cycle = 10 : Instruction = 6.0.0 : PC = 1014 : Addr = 1000 : Mnemonic = lvx V2, R3, R8 : Opcode = 7c4340ce
+DISPATCH : Cycle = 11 : Instruction = 7.0.0 : PC = 1018 : Addr = 0 : Mnemonic = add R3, R3, R7 : Opcode = 7c633a14
+DISPATCH : Cycle = 11 : Instruction = 8.0.0 : PC = 101c : Addr = 1000 : Mnemonic = lvx V3, R3, R8 : Opcode = 7c6340ce
+DISPATCH : Cycle = 12 : Instruction = 9.0.0 : PC = 1020 : Addr = 0 : Mnemonic = add R3, R3, R7 : Opcode = 7c633a14
+DISPATCH : Cycle = 12 : Instruction = 10.0.0 : PC = 1024 : Addr = 0 : Mnemonic = add R4, R3, R7 : Opcode = 7c833a14
+ISSUE-IS2 : Cycle = 13 : Instruction = 1.0.0 : PC = 1000 : Addr = 0 : Mnemonic = add R3, R3, R7 : Pipeline = ALU
+DISPATCH : Cycle = 18 : Instruction = 11.0.0 : PC = 1028 : Addr = 0 : Mnemonic = add R5, R4, R7 : Opcode = 7ca43a14
+DISPATCH : Cycle = 18 : Instruction = 12.0.0 : PC = 102c : Addr = 0 : Mnemonic = add R6, R5, R7 : Opcode = 7cc53a14
+ISSUE-IS2 : Cycle = 18 : Instruction = 2.0.0 : PC = 1004 : Addr = 1000 : Mnemonic = lvx V0, R3, R8 : Pipeline = LdSt
+ISSUE-IS2 : Cycle = 19 : Instruction = 3.0.0 : PC = 1008 : Addr = 0 : Mnemonic = add R3, R3, R7 : Pipeline = ALU
+LOAD : L1 Initial Hit : Cycle = 21 : Instruction = 2.0.0 : Effective Address = 1000 : Mnemonic = lvx V0, R3, R8
+COMPLETION-IS2 : Cycle = 24 : Instruction = 1.0.0 : PC = 1000 : Mnemonic = add R3, R3, R7 : Pipeline = ALU
+DISPATCH : Cycle = 24 : Instruction = 13.0.0 : PC = 1030 : Addr = 1000 : Mnemonic = lvx V0, R3, R8 : Opcode = 7c0340ce
+DISPATCH : Cycle = 24 : Instruction = 14.0.0 : PC = 1034 : Addr = 1000 : Mnemonic = lvx V1, R4, R8 : Opcode = 7c2440ce
+ISSUE-IS2 : Cycle = 24 : Instruction = 4.0.0 : PC = 100c : Addr = 1000 : Mnemonic = lvx V1, R3, R8 : Pipeline = LdSt
+ISSUE-IS2 : Cycle = 25 : Instruction = 5.0.0 : PC = 1010 : Addr = 0 : Mnemonic = add R3, R3, R7 : Pipeline = ALU
+LOAD : L1 Initial Hit : Cycle = 27 : Instruction = 4.0.0 : Effective Address = 1000 : Mnemonic = lvx V1, R3, R8
+ISSUE-VQ8 : Cycle = 27 : Instruction = 2.0.0 : PC = 1004 : Addr = 1000 : Mnemonic = lvx V0, R3, R8 : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 29 : Instruction = 2.0.0 : PC = 1004 : Mnemonic = lvx V0, R3, R8 : EA = 1000 : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 30 : Instruction = 3.0.0 : PC = 1008 : Mnemonic = add R3, R3, R7 : Pipeline = ALU
+DISPATCH : Cycle = 30 : Instruction = 15.0.0 : PC = 1038 : Addr = 1000 : Mnemonic = lvx V2, R5, R8 : Opcode = 7c4540ce
+DISPATCH : Cycle = 30 : Instruction = 16.0.0 : PC = 103c : Addr = 1000 : Mnemonic = lvx V3, R6, R8 : Opcode = 7c6640ce
+ISSUE-IS2 : Cycle = 30 : Instruction = 6.0.0 : PC = 1014 : Addr = 1000 : Mnemonic = lvx V2, R3, R8 : Pipeline = LdSt
+ISSUE-IS2 : Cycle = 31 : Instruction = 7.0.0 : PC = 1018 : Addr = 0 : Mnemonic = add R3, R3, R7 : Pipeline = ALU
+LOAD : L1 Initial Hit : Cycle = 33 : Instruction = 6.0.0 : Effective Address = 1000 : Mnemonic = lvx V2, R3, R8
+ISSUE-VQ8 : Cycle = 33 : Instruction = 4.0.0 : PC = 100c : Addr = 1000 : Mnemonic = lvx V1, R3, R8 : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 35 : Instruction = 4.0.0 : PC = 100c : Mnemonic = lvx V1, R3, R8 : EA = 1000 : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 36 : Instruction = 5.0.0 : PC = 1010 : Mnemonic = add R3, R3, R7 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 36 : Instruction = 8.0.0 : PC = 101c : Addr = 1000 : Mnemonic = lvx V3, R3, R8 : Pipeline = LdSt
+ISSUE-IS2 : Cycle = 37 : Instruction = 9.0.0 : PC = 1020 : Addr = 0 : Mnemonic = add R3, R3, R7 : Pipeline = ALU
+COMPLETION-VQ8 : Cycle = 39 : Instruction = 2.0.0 : PC = 1004 : Mnemonic = lvx V0, R3, R8 : EA = 1000 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 39 : Instruction = 8.0.0 : Effective Address = 1000 : Mnemonic = lvx V3, R3, R8
+ISSUE-VQ8 : Cycle = 39 : Instruction = 6.0.0 : PC = 1014 : Addr = 1000 : Mnemonic = lvx V2, R3, R8 : Pipeline = LdSt
+ISSUE-IS2 : Cycle = 39 : Instruction = 10.0.0 : PC = 1024 : Addr = 0 : Mnemonic = add R4, R3, R7 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 41 : Instruction = 6.0.0 : PC = 1014 : Mnemonic = lvx V2, R3, R8 : EA = 1000 : Pipeline = LdSt
+ISSUE-IS2 : Cycle = 41 : Instruction = 11.0.0 : PC = 1028 : Addr = 0 : Mnemonic = add R5, R4, R7 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 42 : Instruction = 7.0.0 : PC = 1018 : Mnemonic = add R3, R3, R7 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 43 : Instruction = 12.0.0 : PC = 102c : Addr = 0 : Mnemonic = add R6, R5, R7 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 44 : Instruction = 13.0.0 : PC = 1030 : Addr = 1000 : Mnemonic = lvx V0, R3, R8 : Pipeline = LdSt
+COMPLETION-VQ8 : Cycle = 45 : Instruction = 4.0.0 : PC = 100c : Mnemonic = lvx V1, R3, R8 : EA = 1000 : Pipeline = LdSt
+ISSUE-VQ8 : Cycle = 45 : Instruction = 8.0.0 : PC = 101c : Addr = 1000 : Mnemonic = lvx V3, R3, R8 : Pipeline = LdSt
+ISSUE-IS2 : Cycle = 45 : Instruction = 14.0.0 : PC = 1034 : Addr = 1000 : Mnemonic = lvx V1, R4, R8 : Pipeline = LdSt
+ISSUE-IS2 : Cycle = 46 : Instruction = 15.0.0 : PC = 1038 : Addr = 1000 : Mnemonic = lvx V2, R5, R8 : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 47 : Instruction = 8.0.0 : PC = 101c : Mnemonic = lvx V3, R3, R8 : EA = 1000 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 47 : Instruction = 13.0.0 : Effective Address = 1000 : Mnemonic = lvx V0, R3, R8
+COMPLETION-IS2 : Cycle = 48 : Instruction = 9.0.0 : PC = 1020 : Mnemonic = add R3, R3, R7 : Pipeline = ALU
+LOAD : L1 Initial Hit : Cycle = 48 : Instruction = 14.0.0 : Effective Address = 1000 : Mnemonic = lvx V1, R4, R8
+ISSUE-IS2 : Cycle = 48 : Instruction = 16.0.0 : PC = 103c : Addr = 1000 : Mnemonic = lvx V3, R6, R8 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 49 : Instruction = 15.0.0 : Effective Address = 1000 : Mnemonic = lvx V2, R5, R8
+COMPLETION-IS2 : Cycle = 50 : Instruction = 10.0.0 : PC = 1024 : Mnemonic = add R4, R3, R7 : Pipeline = ALU
+COMPLETION-VQ8 : Cycle = 51 : Instruction = 6.0.0 : PC = 1014 : Mnemonic = lvx V2, R3, R8 : EA = 1000 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 51 : Instruction = 16.0.0 : Effective Address = 1000 : Mnemonic = lvx V3, R6, R8
+COMPLETION-IS2 : Cycle = 52 : Instruction = 11.0.0 : PC = 1028 : Mnemonic = add R5, R4, R7 : Pipeline = ALU
+ISSUE-VQ8 : Cycle = 53 : Instruction = 13.0.0 : PC = 1030 : Addr = 1000 : Mnemonic = lvx V0, R3, R8 : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 54 : Instruction = 12.0.0 : PC = 102c : Mnemonic = add R6, R5, R7 : Pipeline = ALU
+ISSUE-VQ8 : Cycle = 54 : Instruction = 14.0.0 : PC = 1034 : Addr = 1000 : Mnemonic = lvx V1, R4, R8 : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 55 : Instruction = 13.0.0 : PC = 1030 : Mnemonic = lvx V0, R3, R8 : EA = 1000 : Pipeline = LdSt
+ISSUE-VQ8 : Cycle = 55 : Instruction = 15.0.0 : PC = 1038 : Addr = 1000 : Mnemonic = lvx V2, R5, R8 : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 56 : Instruction = 14.0.0 : PC = 1034 : Mnemonic = lvx V1, R4, R8 : EA = 1000 : Pipeline = LdSt
+COMPLETION-VQ8 : Cycle = 57 : Instruction = 8.0.0 : PC = 101c : Mnemonic = lvx V3, R3, R8 : EA = 1000 : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 57 : Instruction = 15.0.0 : PC = 1038 : Mnemonic = lvx V2, R5, R8 : EA = 1000 : Pipeline = LdSt
+ISSUE-VQ8 : Cycle = 57 : Instruction = 16.0.0 : PC = 103c : Addr = 1000 : Mnemonic = lvx V3, R6, R8 : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 59 : Instruction = 16.0.0 : PC = 103c : Mnemonic = lvx V3, R6, R8 : EA = 1000 : Pipeline = LdSt
+COMPLETION-VQ8 : Cycle = 65 : Instruction = 13.0.0 : PC = 1030 : Mnemonic = lvx V0, R3, R8 : EA = 1000 : Pipeline = LdSt
+COMPLETION-VQ8 : Cycle = 66 : Instruction = 14.0.0 : PC = 1034 : Mnemonic = lvx V1, R4, R8 : EA = 1000 : Pipeline = LdSt
+COMPLETION-VQ8 : Cycle = 67 : Instruction = 15.0.0 : PC = 1038 : Mnemonic = lvx V2, R5, R8 : EA = 1000 : Pipeline = LdSt
+COMPLETION-VQ8 : Cycle = 69 : Instruction = 16.0.0 : PC = 103c : Mnemonic = lvx V3, R6, R8 : EA = 1000 : Pipeline = LdSt
+Report for ACTUALL2 of type TYPE_TARPIT
+	Latency = 20.000000
+End report for ACTUALL2

@@ -39,6 +39,7 @@ const int EditorScene::kResourceMenuGroupCount = 4;
 struct ResourceMenuGroupDef {
     const char* iconName;
     World::ResourceType resources[8];
+    const char* depositIconNames[8];
     int count;
 };
 
@@ -46,10 +47,18 @@ int EditorScene::s_mapGridWidth = 20;
 int EditorScene::s_mapGridHeight = 20;
 
 static const ResourceMenuGroupDef kResourceMenuGroups[] = {
-    { "icon_resource_wood",  { World::ResourceType_Wood, World::ResourceType_RealWood, World::ResourceType_ExoticWood }, 3 },
-    { "icon_resource_stone", { World::ResourceType_Stone, World::ResourceType_Marble, World::ResourceType_Granite }, 3 },
-    { "icon_resource_mine",  { World::ResourceType_IronOre, World::ResourceType_GoldOre, World::ResourceType_Coal, World::ResourceType_BronzeOre, World::ResourceType_Titanium, World::ResourceType_Salpeter }, 6 },
-    { "icon_resource_food",  { World::ResourceType_Wheat, World::ResourceType_Water, World::ResourceType_Meat, World::ResourceType_Fish }, 4 }
+    { "icon_resource_wood",
+      { World::ResourceType_Wood, World::ResourceType_RealWood, World::ResourceType_ExoticWood },
+      { "deposit_wood", "deposit_real_wood", "deposit_exotic_wood" }, 3 },
+    { "icon_resource_stone",
+      { World::ResourceType_Stone, World::ResourceType_Marble, World::ResourceType_Granite },
+      { "deposit_stone", "deposit_marble", "deposit_granite" }, 3 },
+    { "icon_resource_mine",
+      { World::ResourceType_BronzeOre, World::ResourceType_IronOre, World::ResourceType_Coal, World::ResourceType_GoldOre, World::ResourceType_Salpeter, World::ResourceType_Titanium },
+      { "deposit_bronze_ore", "deposit_iron", "deposit_coal", "deposit_gold", "deposit_salpeter", "deposit_titanium" }, 6 },
+    { "icon_resource_food",
+      { World::ResourceType_Fish, World::ResourceType_Water, World::ResourceType_Meat, World::ResourceType_Wheat },
+      { "deposit_fish", "deposit_water", "deposit_meat", "deposit_corn" }, 4 }
 };
 
 EditorScene::EditorScene()
@@ -1406,22 +1415,25 @@ bool EditorScene::HandleGridMenuResourceSelection(Input::Gamepad* gamepad) {
     if (!m_gridMenu || !m_gridMenu->IsVisible() || m_currentLayer != World::Resources)
         return false;
 
-    if (!gamepad->IsButtonPressed(Input::GP_A))
-        return false;
+    bool hasSel = m_gridMenu->HasSelection();
+    int selIdx = m_gridMenu->GetSelectedSpriteIndex();
+    char dbg[256];
+    sprintf_s(dbg, "[EditorScene] HandleSelection: hasSel=%d selIdx=%d showingGroups=%d groupIdx=%d\n",
+        hasSel, selIdx, m_resourceMenuShowingGroups, m_resourceMenuGroupIndex);
+    OutputDebugStringA(dbg);
 
-    int selectedIndex = m_gridMenu->GetSelectedSpriteIndex();
-    if (selectedIndex < 0 || !m_mapEditor)
+    if (!hasSel)
         return false;
-
-    const std::tr1::shared_ptr<SpriteAtlas> uiAtl = TextureRegistry::instance().getAtlas("ui");
-    if (!uiAtl)
-        return false;
-
-    const SpriteRegion* region = uiAtl->GetRegion(selectedIndex);
-    if (!region)
+    if (selIdx < 0 || !m_mapEditor)
         return false;
 
     if (m_resourceMenuShowingGroups) {
+        const std::tr1::shared_ptr<SpriteAtlas> uiAtl = TextureRegistry::instance().getAtlas("ui");
+        if (!uiAtl)
+            return false;
+        const SpriteRegion* region = uiAtl->GetRegion(selIdx);
+        if (!region)
+            return false;
         for (int i = 0; i < kResourceMenuGroupCount; ++i) {
             if (region->name == kResourceMenuGroups[i].iconName) {
                 m_resourceMenuGroupIndex = i;
@@ -1430,21 +1442,31 @@ bool EditorScene::HandleGridMenuResourceSelection(Input::Gamepad* gamepad) {
             }
         }
     } else {
-        for (int i = 1; i < World::ResourceType_Count; ++i) {
-            World::ResourceType rt = static_cast<World::ResourceType>(i);
-            if (region->name == World::ResourceTypeToIconName(rt)) {
+        // Match selected icon against deposit icon names in the current group
+        if (m_resourceMenuGroupIndex < 0 || m_resourceMenuGroupIndex >= kResourceMenuGroupCount)
+            return false;
+        const ResourceMenuGroupDef& group = kResourceMenuGroups[m_resourceMenuGroupIndex];
+        const std::tr1::shared_ptr<SpriteAtlas> iconAtl = TextureRegistry::instance().getAtlas("Icon");
+        if (!iconAtl)
+            return false;
+        const SpriteRegion* region = iconAtl->GetRegion(selIdx);
+        if (!region)
+            return false;
+        for (int i = 0; i < group.count; ++i) {
+            if (region->name == group.depositIconNames[i]) {
+                World::ResourceType rt = group.resources[i];
                 m_activeResourceType = rt;
                 m_resourceAmount = World::GetDefaultResourceAmount(rt);
                 m_currentState = STATE_PLACING;
                 m_depositConfirmPending = false;
                 m_depositBuildingSpriteIdx = -1;
-                const char* buildingName = World::ResourceTypeToBuildingSpriteName(rt);
-                if (buildingName && buildingName[0]) {
-                    std::tr1::shared_ptr<SpriteAtlas> maptiles = TextureRegistry::instance().getAtlas("maptiles");
-                    if (maptiles) m_depositBuildingSpriteIdx = (int)maptiles->GetIndex(buildingName);
-                }
-                if (m_depositBuildingSpriteIdx < 0) {
-                    m_depositBuildingSpriteIdx = selectedIndex;
+                {
+                    std::tr1::shared_ptr<SpriteAtlas> iconAtl = TextureRegistry::instance().getAtlas("Icon");
+                    if (iconAtl) {
+                        uint32_t bidx = iconAtl->GetIndex(group.depositIconNames[i]);
+                        if (bidx != 0xFFFFFFFF)
+                            m_depositBuildingSpriteIdx = (int)bidx;
+                    }
                 }
                 m_gridMenu->Hide();
                 return true;
@@ -1685,12 +1707,15 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
         float wx, wy;
         coords.NodeTileToWorld(m_phantomTileX, m_phantomTileY, wx, wy);
 
-        std::tr1::shared_ptr<SpriteAtlas> maptiles = TextureRegistry::instance().getAtlas("maptiles");
-        if (maptiles && m_depositBuildingSpriteIdx >= 0 && m_depositBuildingSpriteIdx < (int)maptiles->GetRegionCount()) {
-            const SpriteRegion* region = maptiles->GetRegion(m_depositBuildingSpriteIdx);
+        std::tr1::shared_ptr<SpriteAtlas> iconAtl = TextureRegistry::instance().getAtlas("Icon");
+        if (iconAtl && m_depositBuildingSpriteIdx >= 0 && m_depositBuildingSpriteIdx < (int)iconAtl->GetRegionCount()) {
+            const SpriteRegion* region = iconAtl->GetRegion(m_depositBuildingSpriteIdx);
             if (region) {
                 float previewW = (float)region->width;
                 float previewH = (float)region->height;
+
+                if (m_spriteRenderer)
+                    m_spriteRenderer->SetTextureSlot(12, iconAtl->GetTexture());
 
                 Graphics::RenderCommand cmd = {};
                 cmd.x = wx - region->pivotX;
@@ -1701,7 +1726,7 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
                 cmd.u1 = region->u1; cmd.v1 = region->v1;
                 cmd.color = 0xFFFFFFFF;
                 cmd.shaderID = SHADER_TERRAIN;
-                cmd.textureID = 9;
+                cmd.textureID = 12;
                 cmd.blendMode = 1;
                 cmd.layer = LAYER_WORLD;
                 cmd.depth = static_cast<WORD>(0.99f * 65535.0f);
@@ -2059,7 +2084,7 @@ void EditorScene::LoadResourceGroupIcons() {
             const SpriteRegion* reg = uiAtl->GetRegion(bgIdx);
             if (reg) { bgUV.u0 = reg->u0; bgUV.v0 = reg->v0; bgUV.u1 = reg->u1; bgUV.v1 = reg->v1; }
         }
-        uint32_t cellIdx = uiAtl->GetIndex("menu_cell");
+        uint32_t cellIdx = uiAtl->GetIndex("menu_cell1");
         if (cellIdx != 0xFFFFFFFF) {
             const SpriteRegion* reg = uiAtl->GetRegion(cellIdx);
             if (reg) { cellUV.u0 = reg->u0; cellUV.v0 = reg->v0; cellUV.u1 = reg->u1; cellUV.v1 = reg->v1; }
@@ -2071,6 +2096,7 @@ void EditorScene::LoadResourceGroupIcons() {
 
     std::vector<GridMenu::TileUV> uvs;
     std::vector<int> globalIndices;
+    std::vector<std::string> groupLabels;
 
     for (int i = 0; i < kResourceMenuGroupCount; ++i) {
         uint32_t spriteIdx = uiAtl->GetIndex(kResourceMenuGroups[i].iconName);
@@ -2091,9 +2117,12 @@ void EditorScene::LoadResourceGroupIcons() {
         }
         uvs.push_back(tu);
         globalIndices.push_back((int)spriteIdx);
+        static const char* kGroupDisplayNames[] = { "Wood", "Stone", "Ore", "Food" };
+        groupLabels.push_back((i < 4) ? kGroupDisplayNames[i] : "");
     }
 
     m_gridMenu->SetTileData(uvs, globalIndices);
+    m_gridMenu->SetCellLabels(groupLabels);
     m_gridMenu->SetSpriteRenderer(m_spriteRenderer);
     m_gridMenu->ResetSelection();
     m_resourceMenuShowingGroups = true;
@@ -2110,26 +2139,47 @@ void EditorScene::LoadResourceGroupResources(int groupIndex) {
 
     TextureRegistry& registry = TextureRegistry::instance();
     std::tr1::shared_ptr<SpriteAtlas> uiAtl = registry.getAtlas("ui");
-    if (!uiAtl) return;
+    std::tr1::shared_ptr<SpriteAtlas> iconAtl = registry.getAtlas("Icon");
+    if (!uiAtl || !iconAtl) return;
+
+    LPDIRECT3DTEXTURE9 uiTex = uiAtl->GetTexture();
+    LPDIRECT3DTEXTURE9 iconTex = iconAtl->GetTexture();
+
+    // Background and cells from UI atlas, icons from Icon atlas
+    m_gridMenu->SetTextures(uiTex, uiTex, iconTex);
+    if (m_spriteRenderer) {
+        m_spriteRenderer->SetTextureSlot(6, uiTex);   // background menu_Grid
+        m_spriteRenderer->SetTextureSlot(7, uiTex);   // cell menu_cell1
+        m_spriteRenderer->SetTextureSlot(8, iconTex); // icons r_xxx
+    }
+
+    GridMenu::TileUV cellUV = {0,0,1,1};
+    uint32_t cellIdx = uiAtl->GetIndex("menu_cell1");
+    if (cellIdx != 0xFFFFFFFF) {
+        const SpriteRegion* reg = uiAtl->GetRegion(cellIdx);
+        if (reg) { cellUV.u0 = reg->u0; cellUV.v0 = reg->v0; cellUV.u1 = reg->u1; cellUV.v1 = reg->v1; }
+    }
+    m_gridMenu->SetCellUV(cellUV);
 
     std::vector<GridMenu::TileUV> uvs;
     std::vector<int> globalIndices;
+    std::vector<std::string> itemLabels;
     const ResourceMenuGroupDef& group = kResourceMenuGroups[groupIndex];
 
     for (int i = 0; i < group.count; ++i) {
         World::ResourceType rt = group.resources[i];
-        const char* iconName = World::ResourceTypeToIconName(rt);
-        if (!iconName || !iconName[0]) continue;
+        const char* depositName = group.depositIconNames[i];
+        if (!depositName || !depositName[0]) continue;
 
-        uint32_t spriteIdx = uiAtl->GetIndex(iconName);
+        uint32_t spriteIdx = iconAtl->GetIndex(depositName);
         if (spriteIdx == 0xFFFFFFFF) {
             char buf[128];
-            sprintf_s(buf, "[EditorScene] Resource icon '%s' not found in UI atlas\n", iconName);
+            sprintf_s(buf, "[EditorScene] Deposit icon '%s' not found in Icon atlas\n", depositName);
             OutputDebugStringA(buf);
             continue;
         }
 
-        const SpriteRegion* reg = uiAtl->GetRegion(spriteIdx);
+        const SpriteRegion* reg = iconAtl->GetRegion(spriteIdx);
         GridMenu::TileUV tu;
         if (reg) {
             tu.u0 = reg->u0; tu.v0 = reg->v0; tu.u1 = reg->u1; tu.v1 = reg->v1;
@@ -2138,9 +2188,12 @@ void EditorScene::LoadResourceGroupResources(int groupIndex) {
         }
         uvs.push_back(tu);
         globalIndices.push_back((int)spriteIdx);
+        const char* nameStr = World::ResourceTypeToString(rt);
+        itemLabels.push_back(nameStr ? nameStr : "");
     }
 
     m_gridMenu->SetTileData(uvs, globalIndices);
+    m_gridMenu->SetCellLabels(itemLabels);
     m_gridMenu->SetSpriteRenderer(m_spriteRenderer);
     m_gridMenu->ResetSelection();
     m_resourceMenuShowingGroups = false;

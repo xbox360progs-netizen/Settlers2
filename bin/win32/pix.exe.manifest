@@ -1,0 +1,41 @@
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+ <assemblyIdentity version="2.0.0.0"
+     processorArchitecture="X86"
+     name="PIX"
+     type="win32"/> 
+ <description>Performance Investigator for XBOX 360</description> 
+ <!-- Identify the application security requirements. -->
+ <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+   <security>
+     <requestedPrivileges>
+       <requestedExecutionLevel
+         level="asInvoker"
+         uiAccess="false"/>
+       </requestedPrivileges>
+      </security>
+ </trustInfo>
+ <dependency>
+  <dependentAssembly>
+
+
+
+   <assemblyIdentity type="win32" name="Microsoft.VC80.CRT" version="8.0.50608.0" processorArchitecture="x86" publicKeyToken="1fc8b3b9a1e18e3b"/>
+
+  </dependentAssembly>
+ </dependency>
+
+ <dependency>
+  <dependentAssembly>
+   <assemblyIdentity type='win32' name='Microsoft.VC80.ATL' version='8.0.50727.42' processorArchitecture='x86' publicKeyToken='1fc8b3b9a1e18e3b'/>
+  </dependentAssembly>
+ </dependency>
+
+ <dependency>
+  <dependentAssembly>
+   <assemblyIdentity type="win32" name="Dia2Lib" version="8.0.50727.762"/>
+  </dependentAssembly>
+ </dependency>
+
+</assembly>

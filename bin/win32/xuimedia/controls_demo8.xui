@@ -1,0 +1,193 @@
+<XuiCanvas version="000c">
+<Properties>
+<Width>640.000000</Width>
+<Height>480.000000</Height>
+</Properties>
+<XuiFigure>
+<Properties>
+<Width>640.000000</Width>
+<Height>480.000000</Height>
+<Stroke>
+<Properties>
+<StrokeColor>0xff0f0f80</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillColor>0xffeb8080</FillColor>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>4,0.000000,0.000000,0.000000,0.000000,640.000000,0.000000,0,640.000000,0.000000,640.000000,0.000000,640.000000,480.000000,0,640.000000,480.000000,640.000000,480.000000,0.000000,480.000000,0,0.000000,480.000000,0.000000,480.000000,0.000000,0.000000,0,</Points>
+</Properties>
+</XuiFigure>
+<XuiScene>
+<Properties>
+<Id>XuiScene1</Id>
+<Width>592.000000</Width>
+<Height>432.000000</Height>
+<Position>24.000000,24.000000,0.000000</Position>
+<Text>Controls Demo: HTML</Text>
+</Properties>
+<XuiFigure>
+<Properties>
+<Width>369.000000</Width>
+<Height>2.000000</Height>
+<Position>111.000000,40.000000,0.000000</Position>
+<Stroke>
+<Properties>
+<StrokeColor>0xff0f0f80</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillColor>0xff0f0f0f</FillColor>
+<Gradient>
+<Properties>
+<NumStops>1</NumStops>
+<StopColor index="0">0x00000000</StopColor>
+<StopPos index="0">0.000000</StopPos>
+</Properties>
+</Gradient>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>4,0.000000,0.000000,0.000000,0.000000,456.000000,0.000000,0,456.000000,0.000000,456.000000,0.000000,456.000000,8.000000,0,456.000000,8.000000,456.000000,8.000000,0.000000,8.000000,0,0.000000,8.000000,0.000000,8.000000,0.000000,0.000000,0,</Points>
+</Properties>
+</XuiFigure>
+<XuiNavButton>
+<Properties>
+<Id>navNext1</Id>
+<Width>160.000000</Width>
+<Height>40.000000</Height>
+<Position>416.000000,376.000000,0.000000</Position>
+<NavUp>XuiHtmlControl1</NavUp>
+<Text>Continue</Text>
+<PressPath>controls_demo9.xur</PressPath>
+</Properties>
+</XuiNavButton>
+<XuiHtmlElement>
+<Properties>
+<Id>XuiHtmlElement1</Id>
+<Width>544.000000</Width>
+<Height>312.000000</Height>
+<Position>24.000000,56.000000,0.000000</Position>
+<Text>&lt;font color="#000000" size=11&gt;
+
+All of the text descriptions in this demo are created using the &lt;i&gt;&lt;b&gt;HTML Element&lt;/b&gt;&lt;/i&gt;.
+The HTML support in XUI is a lite and strict version of what is used in web pages.
+It supports the core tags for text formatting, images, list variations, and tables.
+
+</Text>
+</Properties>
+</XuiHtmlElement>
+<XuiBackButton>
+<Properties>
+<Id>XuiBackButton1</Id>
+<Width>184.000000</Width>
+<Height>40.000000</Height>
+<Position>16.000000,376.000000,0.000000</Position>
+<DisableFocusRecursion>true</DisableFocusRecursion>
+<UnfocusedInput>true</UnfocusedInput>
+<Text>Back Button</Text>
+<PressKey>22593</PressKey>
+</Properties>
+</XuiBackButton>
+<XuiHtmlControl>
+<Properties>
+<Id>XuiHtmlControl1</Id>
+<Width>512.000000</Width>
+<Height>208.000000</Height>
+<Position>48.000000,152.000000,0.000000</Position>
+<Visual>XuiHtmlControl_ScrollV</Visual>
+<NavDown>navNext1</NavDown>
+<Text>&lt;font size=12&gt;
+
+&lt;a name="top"&gt;This&lt;/a&gt; &lt;i&gt;&lt;b&gt;HTML Control&lt;/b&gt;&lt;/i&gt; can also handle user input, which adds the capability for anchor tags (ie. links).
+&lt;ol type=I&gt;
+&lt;li&gt;&lt;a href="goto_bookmarks"&gt;Bookmarks&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="goto_visited"&gt;Visited Links&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="goto_placeholders"&gt;Placeholder Images&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="goto_tags"&gt;Supported Tags&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;br/&gt;
+
+&lt;table bgcolor="#cccccc"&gt;
+&lt;tr&gt;
+&lt;td width="10"/&gt;
+&lt;td&gt;
+&lt;b&gt;Bookmarks:&lt;/b&gt;
+&lt;a href="top"&gt;(back to top)&lt;/a&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/table&gt;
+&lt;br/&gt;
+
+&lt;a name="goto_bookmarks"&gt;Anchors&lt;/a&gt; have built-in bookmarking support to jump from one section of HTML to another, but the application needs to handle other behaviors such as navigating to a new scene.
+
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+
+&lt;table bgcolor="#cccccc"&gt;
+&lt;tr&gt;
+&lt;td width="10"/&gt;
+&lt;td&gt;
+&lt;b&gt;Visited Links:&lt;/b&gt;
+&lt;a href="top"&gt;(back to top)&lt;/a&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/table&gt;
+&lt;br/&gt;
+
+&lt;a name="goto_visited"&gt;An&lt;/a&gt; application can also handle a message in order to change links to a visited color (similar to a web browser).
+The application needs to maintain the links that have been visited, and pass back the appropriate value when requested.
+
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+
+&lt;table bgcolor="#cccccc"&gt;
+&lt;tr&gt;
+&lt;td width="10"/&gt;
+&lt;td&gt;
+&lt;b&gt;Placeholder Images:&lt;/b&gt;
+&lt;a href="top"&gt;(back to top)&lt;/a&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/table&gt;
+&lt;br/&gt;
+
+&lt;a name="goto_placeholders"&gt;A&lt;/a&gt; message is also sent to the parent application whenever an image is requested from the HTML.
+This allows the application to tell the HTML to use a different image instead, if the requested one is not yet available... and it also enables multiple replacement images, if desired.
+
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+
+&lt;table bgcolor="#cccccc"&gt;
+&lt;tr&gt;
+&lt;td width="10"/&gt;
+&lt;td&gt;
+&lt;b&gt;Supported Tags:&lt;/b&gt;
+&lt;a href="top"&gt;(back to top)&lt;/a&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/table&gt;
+&lt;br/&gt;
+
+&lt;a name="goto_tags"&gt;Please &lt;/a&gt; see the XUI documentation for the full set of tags supported by this lite version of HTML.
+
+&lt;br/&gt;
+&lt;br/&gt;
+
+&lt;/font&gt;
+
+</Text>
+</Properties>
+</XuiHtmlControl>
+</XuiScene>
+</XuiCanvas>

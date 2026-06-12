@@ -1,0 +1,399 @@
+IFETCH : Cycle = 2 : Addresss = 1000 : Fetch Addresss = 1000 : ID = 0 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1
+IFETCH : L1 Hit : Cycle = 2 : ID = 0
+IFETCH : Cycle = 4 : Addresss = 1010 : Fetch Addresss = 1010 : ID = 1 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1
+IFETCH : L1 Hit : Cycle = 4 : ID = 1
+IFETCH : Cycle = 6 : Addresss = 1020 : Fetch Addresss = 1020 : ID = 2 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1
+IFETCH : L1 Hit : Cycle = 6 : ID = 2
+DISPATCH : Cycle = 8 : Instruction = 1.0.0 : PC = 1000 : Addr = 0 : Mnemonic = vperm V5, V6, V7, V8 : Opcode = 10a63a2b
+IFETCH : Cycle = 8 : Addresss = 1030 : Fetch Addresss = 1030 : ID = 3 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1
+DISPATCH : Cycle = 8 : Instruction = 2.0.0 : PC = 1004 : Addr = 0 : Mnemonic = vmaddfp128 V0, V1, V0, V32 : Opcode = 140100d1
+IFETCH : L1 Hit : Cycle = 8 : ID = 3
+DISPATCH : Cycle = 9 : Instruction = 3.0.0 : PC = 1008 : Addr = 0 : Mnemonic = vperm V9, V10, V11, V12 : Opcode = 112a5b2b
+DISPATCH : Cycle = 9 : Instruction = 4.0.0 : PC = 100c : Addr = 0 : Mnemonic = vmaddfp128 V0, V2, V0, V33 : Opcode = 140208d1
+DISPATCH : Cycle = 10 : Instruction = 5.0.0 : PC = 1010 : Addr = 0 : Mnemonic = vmaddfp128 V0, V3, V0, V34 : Opcode = 140310d1
+IFETCH : Cycle = 10 : Addresss = 1040 : Fetch Addresss = 1040 : ID = 4 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1
+DISPATCH : Cycle = 10 : Instruction = 6.0.0 : PC = 1014 : Addr = 0 : Mnemonic = vmaddfp128 V0, V4, V0, V35 : Opcode = 140418d1
+IFETCH : L1 Hit : Cycle = 10 : ID = 4
+DISPATCH : Cycle = 11 : Instruction = 7.0.0 : PC = 1018 : Addr = 0 : Mnemonic = add R3, R4, R5 : Opcode = 7c642a14
+DISPATCH : Cycle = 11 : Instruction = 8.0.0 : PC = 101c : Addr = 5 : Mnemonic = lwz R6, 0(R4) : Opcode = 80c40000
+DISPATCH : Cycle = 12 : Instruction = 9.0.0 : PC = 1020 : Addr = 0 : Mnemonic = add R7, R8, R9 : Opcode = 7ce84a14
+IFETCH : Cycle = 12 : Addresss = 1050 : Fetch Addresss = 1050 : ID = 5 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1
+DISPATCH : Cycle = 12 : Instruction = 10.0.0 : PC = 1024 : Addr = 9 : Mnemonic = lwz R10, 0(R8) : Opcode = 81480000
+IFETCH : L1 Hit : Cycle = 12 : ID = 5
+DISPATCH : Cycle = 13 : Instruction = 11.0.0 : PC = 1028 : Addr = 0 : Mnemonic = add R4, R5, R5 : Opcode = 7c852a14
+DISPATCH : Cycle = 13 : Instruction = 12.0.0 : PC = 102c : Addr = 5 : Mnemonic = lwz R11, 0(R5) : Opcode = 81650000
+ISSUE-IS2 : Cycle = 13 : Instruction = 1.0.0 : PC = 1000 : Addr = 0 : Mnemonic = vperm V5, V6, V7, V8 : Pipeline = VMX_VUP
+ISSUE-IS2 : Cycle = 13 : Instruction = 2.0.0 : PC = 1004 : Addr = 0 : Mnemonic = vmaddfp128 V0, V1, V0, V32 : Pipeline = VMX_VUS
+DISPATCH : Cycle = 14 : Instruction = 13.0.0 : PC = 1030 : Addr = 0 : Mnemonic = add R8, R9, R9 : Opcode = 7d094a14
+IFETCH : Cycle = 14 : Addresss = 1060 : Fetch Addresss = 1060 : ID = 6 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1
+DISPATCH : Cycle = 14 : Instruction = 14.0.0 : PC = 1034 : Addr = 9 : Mnemonic = lwz R12, 0(R9) : Opcode = 81890000
+ISSUE-IS2 : Cycle = 14 : Instruction = 3.0.0 : PC = 1008 : Addr = 0 : Mnemonic = vperm V9, V10, V11, V12 : Pipeline = VMX_VUP
+IFETCH : L1 Hit : Cycle = 14 : ID = 6
+ISSUE-IS2 : Cycle = 14 : Instruction = 4.0.0 : PC = 100c : Addr = 0 : Mnemonic = vmaddfp128 V0, V2, V0, V33 : Pipeline = VMX_VUS
+DISPATCH : Cycle = 15 : Instruction = 15.0.0 : PC = 1038 : Addr = 0 : Mnemonic = add R3, R4, R5 : Opcode = 7c642a14
+DISPATCH : Cycle = 15 : Instruction = 16.0.0 : PC = 103c : Addr = 5 : Mnemonic = lwz R6, 0(R4) : Opcode = 80c40000
+ISSUE-IS2 : Cycle = 15 : Instruction = 5.0.0 : PC = 1010 : Addr = 0 : Mnemonic = vmaddfp128 V0, V3, V0, V34 : Pipeline = VMX_VUS
+ISSUE-IS2 : Cycle = 15 : Instruction = 6.0.0 : PC = 1014 : Addr = 0 : Mnemonic = vmaddfp128 V0, V4, V0, V35 : Pipeline = VMX_VUS
+DISPATCH : Cycle = 16 : Instruction = 17.0.0 : PC = 1040 : Addr = 0 : Mnemonic = add R7, R8, R9 : Opcode = 7ce84a14
+IFETCH : Cycle = 16 : Addresss = 1070 : Fetch Addresss = 1070 : ID = 7 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1
+DISPATCH : Cycle = 16 : Instruction = 18.0.0 : PC = 1044 : Addr = 9 : Mnemonic = lwz R10, 0(R8) : Opcode = 81480000
+ISSUE-IS2 : Cycle = 16 : Instruction = 7.0.0 : PC = 1018 : Addr = 0 : Mnemonic = add R3, R4, R5 : Pipeline = ALU
+IFETCH : L1 Hit : Cycle = 16 : ID = 7
+ISSUE-IS2 : Cycle = 16 : Instruction = 8.0.0 : PC = 101c : Addr = 5 : Mnemonic = lwz R6, 0(R4) : Pipeline = LdSt
+DISPATCH : Cycle = 17 : Instruction = 19.0.0 : PC = 1048 : Addr = 0 : Mnemonic = add R4, R5, R5 : Opcode = 7c852a14
+DISPATCH : Cycle = 17 : Instruction = 20.0.0 : PC = 104c : Addr = 5 : Mnemonic = lwz R11, 0(R5) : Opcode = 81650000
+ISSUE-IS2 : Cycle = 17 : Instruction = 9.0.0 : PC = 1020 : Addr = 0 : Mnemonic = add R7, R8, R9 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 17 : Instruction = 10.0.0 : PC = 1024 : Addr = 9 : Mnemonic = lwz R10, 0(R8) : Pipeline = LdSt
+DISPATCH : Cycle = 18 : Instruction = 21.0.0 : PC = 1050 : Addr = 0 : Mnemonic = add R8, R9, R9 : Opcode = 7d094a14
+IFETCH : Cycle = 18 : Addresss = 1080 : Fetch Addresss = 1080 : ID = 8 : Cache Tag = 0 : Cache Index = 21 : ERAT Tag = 0 : ERAT Index = 1
+DISPATCH : Cycle = 18 : Instruction = 22.0.0 : PC = 1054 : Addr = 9 : Mnemonic = lwz R12, 0(R9) : Opcode = 81890000
+ISSUE-IS2 : Cycle = 18 : Instruction = 11.0.0 : PC = 1028 : Addr = 0 : Mnemonic = add R4, R5, R5 : Pipeline = ALU
+IFETCH : L1 Hit : Cycle = 18 : ID = 8
+ISSUE-IS2 : Cycle = 18 : Instruction = 12.0.0 : PC = 102c : Addr = 5 : Mnemonic = lwz R11, 0(R5) : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 19 : Instruction = 8.0.0 : Effective Address = 5 : Mnemonic = lwz R6, 0(R4)
+DISPATCH : Cycle = 19 : Instruction = 23.0.0 : PC = 1058 : Addr = 0 : Mnemonic = add R3, R4, R5 : Opcode = 7c642a14
+DISPATCH : Cycle = 19 : Instruction = 24.0.0 : PC = 105c : Addr = 5 : Mnemonic = lwz R6, 0(R4) : Opcode = 80c40000
+ISSUE-IS2 : Cycle = 19 : Instruction = 13.0.0 : PC = 1030 : Addr = 0 : Mnemonic = add R8, R9, R9 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 19 : Instruction = 14.0.0 : PC = 1034 : Addr = 9 : Mnemonic = lwz R12, 0(R9) : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 20 : Instruction = 10.0.0 : Effective Address = 9 : Mnemonic = lwz R10, 0(R8)
+IFETCH : Cycle = 20 : Addresss = 1090 : Fetch Addresss = 1090 : ID = 9 : Cache Tag = 0 : Cache Index = 21 : ERAT Tag = 0 : ERAT Index = 1
+ISSUE-IS2 : Cycle = 20 : Instruction = 15.0.0 : PC = 1038 : Addr = 0 : Mnemonic = add R3, R4, R5 : Pipeline = ALU
+IFETCH : L1 Hit : Cycle = 20 : ID = 9
+LOAD : L1 Initial Hit : Cycle = 21 : Instruction = 12.0.0 : Effective Address = 5 : Mnemonic = lwz R11, 0(R5)
+LOAD : L1 Initial Hit : Cycle = 22 : Instruction = 14.0.0 : Effective Address = 9 : Mnemonic = lwz R12, 0(R9)
+IFETCH : Cycle = 22 : Addresss = 10a0 : Fetch Addresss = 10a0 : ID = a : Cache Tag = 0 : Cache Index = 21 : ERAT Tag = 0 : ERAT Index = 1
+ISSUE-VQ8 : Cycle = 22 : Instruction = 1.0.0 : PC = 1000 : Addr = 0 : Mnemonic = vperm V5, V6, V7, V8 : Pipeline = VMX_VUP
+ISSUE-VQ8 : Cycle = 22 : Instruction = 2.0.0 : PC = 1004 : Addr = 0 : Mnemonic = vmaddfp128 V0, V1, V0, V32 : Pipeline = VMX_VUS
+IFETCH : L1 Hit : Cycle = 22 : ID = 10
+DISPATCH : Cycle = 23 : Instruction = 25.0.0 : PC = 1060 : Addr = 0 : Mnemonic = add R7, R8, R9 : Opcode = 7ce84a14
+ISSUE-VQ8 : Cycle = 23 : Instruction = 3.0.0 : PC = 1008 : Addr = 0 : Mnemonic = vperm V9, V10, V11, V12 : Pipeline = VMX_VUP
+DISPATCH : Cycle = 23 : Instruction = 26.0.0 : PC = 1064 : Addr = 9 : Mnemonic = lwz R10, 0(R8) : Opcode = 81480000
+ISSUE-IS2 : Cycle = 23 : Instruction = 16.0.0 : PC = 103c : Addr = 5 : Mnemonic = lwz R6, 0(R4) : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 24 : Instruction = 1.0.0 : PC = 1000 : Mnemonic = vperm V5, V6, V7, V8 : Pipeline = VMX_VUP
+COMPLETION-IS2 : Cycle = 24 : Instruction = 2.0.0 : PC = 1004 : Mnemonic = vmaddfp128 V0, V1, V0, V32 : Pipeline = VMX_VUS
+DISPATCH : Cycle = 24 : Instruction = 27.0.0 : PC = 1068 : Addr = 0 : Mnemonic = add R4, R5, R5 : Opcode = 7c852a14
+DISPATCH : Cycle = 24 : Instruction = 28.0.0 : PC = 106c : Addr = 5 : Mnemonic = lwz R11, 0(R5) : Opcode = 81650000
+ISSUE-IS2 : Cycle = 24 : Instruction = 17.0.0 : PC = 1040 : Addr = 0 : Mnemonic = add R7, R8, R9 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 24 : Instruction = 18.0.0 : PC = 1044 : Addr = 9 : Mnemonic = lwz R10, 0(R8) : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 25 : Instruction = 3.0.0 : PC = 1008 : Mnemonic = vperm V9, V10, V11, V12 : Pipeline = VMX_VUP
+COMPLETION-IS2 : Cycle = 25 : Instruction = 4.0.0 : PC = 100c : Mnemonic = vmaddfp128 V0, V2, V0, V33 : Pipeline = VMX_VUS
+DISPATCH : Cycle = 25 : Instruction = 29.0.0 : PC = 1070 : Addr = 0 : Mnemonic = add R8, R9, R9 : Opcode = 7d094a14
+ISSUE-IS2 : Cycle = 25 : Instruction = 19.0.0 : PC = 1048 : Addr = 0 : Mnemonic = add R4, R5, R5 : Pipeline = ALU
+DISPATCH : Cycle = 25 : Instruction = 30.0.0 : PC = 1074 : Addr = 9 : Mnemonic = lwz R12, 0(R9) : Opcode = 81890000
+ISSUE-IS2 : Cycle = 25 : Instruction = 20.0.0 : PC = 104c : Addr = 5 : Mnemonic = lwz R11, 0(R5) : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 26 : Instruction = 5.0.0 : PC = 1010 : Mnemonic = vmaddfp128 V0, V3, V0, V34 : Pipeline = VMX_VUS
+COMPLETION-IS2 : Cycle = 26 : Instruction = 6.0.0 : PC = 1014 : Mnemonic = vmaddfp128 V0, V4, V0, V35 : Pipeline = VMX_VUS
+LOAD : L1 Initial Hit : Cycle = 26 : Instruction = 16.0.0 : Effective Address = 5 : Mnemonic = lwz R6, 0(R4)
+DISPATCH : Cycle = 26 : Instruction = 31.0.0 : PC = 1078 : Addr = 0 : Mnemonic = add R3, R4, R5 : Opcode = 7c642a14
+ISSUE-IS2 : Cycle = 26 : Instruction = 21.0.0 : PC = 1050 : Addr = 0 : Mnemonic = add R8, R9, R9 : Pipeline = ALU
+DISPATCH : Cycle = 26 : Instruction = 32.0.0 : PC = 107c : Addr = 5 : Mnemonic = lwz R6, 0(R4) : Opcode = 80c40000
+ISSUE-IS2 : Cycle = 26 : Instruction = 22.0.0 : PC = 1054 : Addr = 9 : Mnemonic = lwz R12, 0(R9) : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 27 : Instruction = 7.0.0 : PC = 1018 : Mnemonic = add R3, R4, R5 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 27 : Instruction = 8.0.0 : PC = 101c : Mnemonic = lwz R6, 0(R4) : EA = 5 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 27 : Instruction = 18.0.0 : Effective Address = 9 : Mnemonic = lwz R10, 0(R8)
+ISSUE-IS2 : Cycle = 27 : Instruction = 23.0.0 : PC = 1058 : Addr = 0 : Mnemonic = add R3, R4, R5 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 28 : Instruction = 9.0.0 : PC = 1020 : Mnemonic = add R7, R8, R9 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 28 : Instruction = 10.0.0 : PC = 1024 : Mnemonic = lwz R10, 0(R8) : EA = 9 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 28 : Instruction = 20.0.0 : Effective Address = 5 : Mnemonic = lwz R11, 0(R5)
+IFETCH : Cycle = 28 : Addresss = 10b0 : Fetch Addresss = 10b0 : ID = d : Cache Tag = 0 : Cache Index = 21 : ERAT Tag = 0 : ERAT Index = 1
+IFETCH : L1 Hit : Cycle = 28 : ID = 13
+COMPLETION-IS2 : Cycle = 29 : Instruction = 11.0.0 : PC = 1028 : Mnemonic = add R4, R5, R5 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 29 : Instruction = 12.0.0 : PC = 102c : Mnemonic = lwz R11, 0(R5) : EA = 5 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 29 : Instruction = 22.0.0 : Effective Address = 9 : Mnemonic = lwz R12, 0(R9)
+COMPLETION-IS2 : Cycle = 30 : Instruction = 13.0.0 : PC = 1030 : Mnemonic = add R8, R9, R9 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 30 : Instruction = 14.0.0 : PC = 1034 : Mnemonic = lwz R12, 0(R9) : EA = 9 : Pipeline = LdSt
+DISPATCH : Cycle = 30 : Instruction = 33.0.0 : PC = 1080 : Addr = 0 : Mnemonic = add R7, R8, R9 : Opcode = 7ce84a14
+IFETCH : Cycle = 30 : Addresss = 10c0 : Fetch Addresss = 10c0 : ID = c : Cache Tag = 0 : Cache Index = 21 : ERAT Tag = 0 : ERAT Index = 1
+ISSUE-IS2 : Cycle = 30 : Instruction = 24.0.0 : PC = 105c : Addr = 5 : Mnemonic = lwz R6, 0(R4) : Pipeline = LdSt
+DISPATCH : Cycle = 30 : Instruction = 34.0.0 : PC = 1084 : Addr = 9 : Mnemonic = lwz R10, 0(R8) : Opcode = 81480000
+IFETCH : L1 Hit : Cycle = 30 : ID = 12
+COMPLETION-IS2 : Cycle = 31 : Instruction = 15.0.0 : PC = 1038 : Mnemonic = add R3, R4, R5 : Pipeline = ALU
+DISPATCH : Cycle = 31 : Instruction = 35.0.0 : PC = 1088 : Addr = 0 : Mnemonic = add R4, R5, R5 : Opcode = 7c852a14
+ISSUE-IS2 : Cycle = 31 : Instruction = 25.0.0 : PC = 1060 : Addr = 0 : Mnemonic = add R7, R8, R9 : Pipeline = ALU
+DISPATCH : Cycle = 31 : Instruction = 36.0.0 : PC = 108c : Addr = 5 : Mnemonic = lwz R11, 0(R5) : Opcode = 81650000
+ISSUE-IS2 : Cycle = 31 : Instruction = 26.0.0 : PC = 1064 : Addr = 9 : Mnemonic = lwz R10, 0(R8) : Pipeline = LdSt
+DISPATCH : Cycle = 32 : Instruction = 37.0.0 : PC = 1090 : Addr = 0 : Mnemonic = add R8, R9, R9 : Opcode = 7d094a14
+ISSUE-IS2 : Cycle = 32 : Instruction = 27.0.0 : PC = 1068 : Addr = 0 : Mnemonic = add R4, R5, R5 : Pipeline = ALU
+DISPATCH : Cycle = 32 : Instruction = 38.0.0 : PC = 1094 : Addr = 9 : Mnemonic = lwz R12, 0(R9) : Opcode = 81890000
+ISSUE-IS2 : Cycle = 32 : Instruction = 28.0.0 : PC = 106c : Addr = 5 : Mnemonic = lwz R11, 0(R5) : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 33 : Instruction = 24.0.0 : Effective Address = 5 : Mnemonic = lwz R6, 0(R4)
+DISPATCH : Cycle = 33 : Instruction = 39.0.0 : PC = 1098 : Addr = 0 : Mnemonic = add R3, R4, R5 : Opcode = 7c642a14
+ISSUE-IS2 : Cycle = 33 : Instruction = 29.0.0 : PC = 1070 : Addr = 0 : Mnemonic = add R8, R9, R9 : Pipeline = ALU
+DISPATCH : Cycle = 33 : Instruction = 40.0.0 : PC = 109c : Addr = 5 : Mnemonic = lwz R6, 0(R4) : Opcode = 80c40000
+ISSUE-IS2 : Cycle = 33 : Instruction = 30.0.0 : PC = 1074 : Addr = 9 : Mnemonic = lwz R12, 0(R9) : Pipeline = LdSt
+COMPLETION-VQ8 : Cycle = 34 : Instruction = 1.0.0 : PC = 1000 : Mnemonic = vperm V5, V6, V7, V8 : Pipeline = VMX_VUP
+COMPLETION-VQ8 : Cycle = 34 : Instruction = 2.0.0 : PC = 1004 : Mnemonic = vmaddfp128 V0, V1, V0, V32 : Pipeline = VMX_VUS
+COMPLETION-IS2 : Cycle = 34 : Instruction = 16.0.0 : PC = 103c : Mnemonic = lwz R6, 0(R4) : EA = 5 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 34 : Instruction = 26.0.0 : Effective Address = 9 : Mnemonic = lwz R10, 0(R8)
+ISSUE-VQ8 : Cycle = 34 : Instruction = 4.0.0 : PC = 100c : Addr = 0 : Mnemonic = vmaddfp128 V0, V2, V0, V33 : Pipeline = VMX_VUS
+ISSUE-IS2 : Cycle = 34 : Instruction = 31.0.0 : PC = 1078 : Addr = 0 : Mnemonic = add R3, R4, R5 : Pipeline = ALU
+COMPLETION-VQ8 : Cycle = 35 : Instruction = 3.0.0 : PC = 1008 : Mnemonic = vperm V9, V10, V11, V12 : Pipeline = VMX_VUP
+COMPLETION-IS2 : Cycle = 35 : Instruction = 17.0.0 : PC = 1040 : Mnemonic = add R7, R8, R9 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 35 : Instruction = 18.0.0 : PC = 1044 : Mnemonic = lwz R10, 0(R8) : EA = 9 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 35 : Instruction = 28.0.0 : Effective Address = 5 : Mnemonic = lwz R11, 0(R5)
+COMPLETION-IS2 : Cycle = 36 : Instruction = 19.0.0 : PC = 1048 : Mnemonic = add R4, R5, R5 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 36 : Instruction = 20.0.0 : PC = 104c : Mnemonic = lwz R11, 0(R5) : EA = 5 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 36 : Instruction = 30.0.0 : Effective Address = 9 : Mnemonic = lwz R12, 0(R9)
+IFETCH : Cycle = 36 : Addresss = 10d0 : Fetch Addresss = 10d0 : ID = f : Cache Tag = 0 : Cache Index = 21 : ERAT Tag = 0 : ERAT Index = 1
+IFETCH : L1 Hit : Cycle = 36 : ID = 15
+COMPLETION-IS2 : Cycle = 37 : Instruction = 21.0.0 : PC = 1050 : Mnemonic = add R8, R9, R9 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 37 : Instruction = 22.0.0 : PC = 1054 : Mnemonic = lwz R12, 0(R9) : EA = 9 : Pipeline = LdSt
+DISPATCH : Cycle = 37 : Instruction = 41.0.0 : PC = 10a0 : Addr = 0 : Mnemonic = add R7, R8, R9 : Opcode = 7ce84a14
+ISSUE-IS2 : Cycle = 37 : Instruction = 32.0.0 : PC = 107c : Addr = 5 : Mnemonic = lwz R6, 0(R4) : Pipeline = LdSt
+DISPATCH : Cycle = 37 : Instruction = 42.0.0 : PC = 10a4 : Addr = 9 : Mnemonic = lwz R10, 0(R8) : Opcode = 81480000
+COMPLETION-IS2 : Cycle = 38 : Instruction = 23.0.0 : PC = 1058 : Mnemonic = add R3, R4, R5 : Pipeline = ALU
+DISPATCH : Cycle = 38 : Instruction = 43.0.0 : PC = 10a8 : Addr = 0 : Mnemonic = vperm V13, V14, V15, V16 : Opcode = 11ae7c2b
+IFETCH : Cycle = 38 : Addresss = 10e0 : Fetch Addresss = 10e0 : ID = 10 : Cache Tag = 0 : Cache Index = 21 : ERAT Tag = 0 : ERAT Index = 1
+ISSUE-IS2 : Cycle = 38 : Instruction = 33.0.0 : PC = 1080 : Addr = 0 : Mnemonic = add R7, R8, R9 : Pipeline = ALU
+DISPATCH : Cycle = 38 : Instruction = 44.0.0 : PC = 10ac : Addr = 0 : Mnemonic = vperm V17, V18, V19, V20 : Opcode = 12329d2b
+ISSUE-IS2 : Cycle = 38 : Instruction = 34.0.0 : PC = 1084 : Addr = 9 : Mnemonic = lwz R10, 0(R8) : Pipeline = LdSt
+IFETCH : L1 Hit : Cycle = 38 : ID = 16
+DISPATCH : Cycle = 39 : Instruction = 45.0.0 : PC = 10b0 : Addr = 0 : Mnemonic = add R4, R5, R5 : Opcode = 7c852a14
+ISSUE-IS2 : Cycle = 39 : Instruction = 35.0.0 : PC = 1088 : Addr = 0 : Mnemonic = add R4, R5, R5 : Pipeline = ALU
+DISPATCH : Cycle = 39 : Instruction = 46.0.0 : PC = 10b4 : Addr = 5 : Mnemonic = lwz R11, 0(R5) : Opcode = 81650000
+ISSUE-IS2 : Cycle = 39 : Instruction = 36.0.0 : PC = 108c : Addr = 5 : Mnemonic = lwz R11, 0(R5) : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 40 : Instruction = 32.0.0 : Effective Address = 5 : Mnemonic = lwz R6, 0(R4)
+DISPATCH : Cycle = 40 : Instruction = 47.0.0 : PC = 10b8 : Addr = 0 : Mnemonic = add R8, R9, R9 : Opcode = 7d094a14
+ISSUE-IS2 : Cycle = 40 : Instruction = 37.0.0 : PC = 1090 : Addr = 0 : Mnemonic = add R8, R9, R9 : Pipeline = ALU
+IFETCH : Cycle = 40 : Addresss = 10f0 : Fetch Addresss = 10f0 : ID = 11 : Cache Tag = 0 : Cache Index = 21 : ERAT Tag = 0 : ERAT Index = 1
+DISPATCH : Cycle = 40 : Instruction = 48.0.0 : PC = 10bc : Addr = 9 : Mnemonic = lwz R12, 0(R9) : Opcode = 81890000
+ISSUE-IS2 : Cycle = 40 : Instruction = 38.0.0 : PC = 1094 : Addr = 9 : Mnemonic = lwz R12, 0(R9) : Pipeline = LdSt
+IFETCH : L1 Hit : Cycle = 40 : ID = 17
+COMPLETION-IS2 : Cycle = 41 : Instruction = 24.0.0 : PC = 105c : Mnemonic = lwz R6, 0(R4) : EA = 5 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 41 : Instruction = 34.0.0 : Effective Address = 9 : Mnemonic = lwz R10, 0(R8)
+ISSUE-IS2 : Cycle = 41 : Instruction = 39.0.0 : PC = 1098 : Addr = 0 : Mnemonic = add R3, R4, R5 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 42 : Instruction = 25.0.0 : PC = 1060 : Mnemonic = add R7, R8, R9 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 42 : Instruction = 26.0.0 : PC = 1064 : Mnemonic = lwz R10, 0(R8) : EA = 9 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 42 : Instruction = 36.0.0 : Effective Address = 5 : Mnemonic = lwz R11, 0(R5)
+IFETCH : Cycle = 42 : Addresss = 1100 : Fetch Addresss = 1100 : ID = 12 : Cache Tag = 0 : Cache Index = 22 : ERAT Tag = 0 : ERAT Index = 1
+IFETCH : L1 Hit : Cycle = 42 : ID = 18
+COMPLETION-IS2 : Cycle = 43 : Instruction = 27.0.0 : PC = 1068 : Mnemonic = add R4, R5, R5 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 43 : Instruction = 28.0.0 : PC = 106c : Mnemonic = lwz R11, 0(R5) : EA = 5 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 43 : Instruction = 38.0.0 : Effective Address = 9 : Mnemonic = lwz R12, 0(R9)
+COMPLETION-IS2 : Cycle = 44 : Instruction = 29.0.0 : PC = 1070 : Mnemonic = add R8, R9, R9 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 44 : Instruction = 30.0.0 : PC = 1074 : Mnemonic = lwz R12, 0(R9) : EA = 9 : Pipeline = LdSt
+DISPATCH : Cycle = 44 : Instruction = 49.0.0 : PC = 10c0 : Addr = 0 : Mnemonic = add R3, R4, R5 : Opcode = 7c642a14
+ISSUE-IS2 : Cycle = 44 : Instruction = 40.0.0 : PC = 109c : Addr = 5 : Mnemonic = lwz R6, 0(R4) : Pipeline = LdSt
+DISPATCH : Cycle = 44 : Instruction = 50.0.0 : PC = 10c4 : Addr = 5 : Mnemonic = lwz R6, 0(R4) : Opcode = 80c40000
+COMPLETION-IS2 : Cycle = 45 : Instruction = 31.0.0 : PC = 1078 : Mnemonic = add R3, R4, R5 : Pipeline = ALU
+DISPATCH : Cycle = 45 : Instruction = 51.0.0 : PC = 10c8 : Addr = 0 : Mnemonic = add R7, R8, R9 : Opcode = 7ce84a14
+ISSUE-IS2 : Cycle = 45 : Instruction = 41.0.0 : PC = 10a0 : Addr = 0 : Mnemonic = add R7, R8, R9 : Pipeline = ALU
+DISPATCH : Cycle = 45 : Instruction = 52.0.0 : PC = 10cc : Addr = 9 : Mnemonic = lwz R10, 0(R8) : Opcode = 81480000
+ISSUE-IS2 : Cycle = 45 : Instruction = 42.0.0 : PC = 10a4 : Addr = 9 : Mnemonic = lwz R10, 0(R8) : Pipeline = LdSt
+COMPLETION-VQ8 : Cycle = 46 : Instruction = 4.0.0 : PC = 100c : Mnemonic = vmaddfp128 V0, V2, V0, V33 : Pipeline = VMX_VUS
+ISSUE-VQ8 : Cycle = 46 : Instruction = 5.0.0 : PC = 1010 : Addr = 0 : Mnemonic = vmaddfp128 V0, V3, V0, V34 : Pipeline = VMX_VUS
+LOAD : L1 Initial Hit : Cycle = 47 : Instruction = 40.0.0 : Effective Address = 5 : Mnemonic = lwz R6, 0(R4)
+COMPLETION-IS2 : Cycle = 48 : Instruction = 32.0.0 : PC = 107c : Mnemonic = lwz R6, 0(R4) : EA = 5 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 48 : Instruction = 42.0.0 : Effective Address = 9 : Mnemonic = lwz R10, 0(R8)
+COMPLETION-IS2 : Cycle = 49 : Instruction = 33.0.0 : PC = 1080 : Mnemonic = add R7, R8, R9 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 49 : Instruction = 34.0.0 : PC = 1084 : Mnemonic = lwz R10, 0(R8) : EA = 9 : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 50 : Instruction = 35.0.0 : PC = 1088 : Mnemonic = add R4, R5, R5 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 50 : Instruction = 36.0.0 : PC = 108c : Mnemonic = lwz R11, 0(R5) : EA = 5 : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 51 : Instruction = 37.0.0 : PC = 1090 : Mnemonic = add R8, R9, R9 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 51 : Instruction = 38.0.0 : PC = 1094 : Mnemonic = lwz R12, 0(R9) : EA = 9 : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 52 : Instruction = 39.0.0 : PC = 1098 : Mnemonic = add R3, R4, R5 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 55 : Instruction = 40.0.0 : PC = 109c : Mnemonic = lwz R6, 0(R4) : EA = 5 : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 56 : Instruction = 41.0.0 : PC = 10a0 : Mnemonic = add R7, R8, R9 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 56 : Instruction = 42.0.0 : PC = 10a4 : Mnemonic = lwz R10, 0(R8) : EA = 9 : Pipeline = LdSt
+COMPLETION-VQ8 : Cycle = 58 : Instruction = 5.0.0 : PC = 1010 : Mnemonic = vmaddfp128 V0, V3, V0, V34 : Pipeline = VMX_VUS
+ISSUE-VQ8 : Cycle = 58 : Instruction = 6.0.0 : PC = 1014 : Addr = 0 : Mnemonic = vmaddfp128 V0, V4, V0, V35 : Pipeline = VMX_VUS
+DISPATCH : Cycle = 60 : Instruction = 53.0.0 : PC = 10d0 : Addr = 0 : Mnemonic = add R4, R5, R5 : Opcode = 7c852a14
+DISPATCH : Cycle = 60 : Instruction = 54.0.0 : PC = 10d4 : Addr = 5 : Mnemonic = lwz R11, 0(R5) : Opcode = 81650000
+ISSUE-IS2 : Cycle = 60 : Instruction = 43.0.0 : PC = 10a8 : Addr = 0 : Mnemonic = vperm V13, V14, V15, V16 : Pipeline = VMX_VUP
+ISSUE-IS2 : Cycle = 60 : Instruction = 44.0.0 : PC = 10ac : Addr = 0 : Mnemonic = vperm V17, V18, V19, V20 : Pipeline = VMX_VUP
+DISPATCH : Cycle = 61 : Instruction = 55.0.0 : PC = 10d8 : Addr = 0 : Mnemonic = add R8, R9, R9 : Opcode = 7d094a14
+DISPATCH : Cycle = 61 : Instruction = 56.0.0 : PC = 10dc : Addr = 9 : Mnemonic = lwz R12, 0(R9) : Opcode = 81890000
+ISSUE-IS2 : Cycle = 61 : Instruction = 45.0.0 : PC = 10b0 : Addr = 0 : Mnemonic = add R4, R5, R5 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 61 : Instruction = 46.0.0 : PC = 10b4 : Addr = 5 : Mnemonic = lwz R11, 0(R5) : Pipeline = LdSt
+DISPATCH : Cycle = 62 : Instruction = 57.0.0 : PC = 10e0 : Addr = 0 : Mnemonic = add R3, R4, R5 : Opcode = 7c642a14
+DISPATCH : Cycle = 62 : Instruction = 58.0.0 : PC = 10e4 : Addr = 5 : Mnemonic = lwz R6, 0(R4) : Opcode = 80c40000
+ISSUE-IS2 : Cycle = 62 : Instruction = 47.0.0 : PC = 10b8 : Addr = 0 : Mnemonic = add R8, R9, R9 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 62 : Instruction = 48.0.0 : PC = 10bc : Addr = 9 : Mnemonic = lwz R12, 0(R9) : Pipeline = LdSt
+ISSUE-IS2 : Cycle = 63 : Instruction = 49.0.0 : PC = 10c0 : Addr = 0 : Mnemonic = add R3, R4, R5 : Pipeline = ALU
+LOAD : L1 Initial Hit : Cycle = 64 : Instruction = 46.0.0 : Effective Address = 5 : Mnemonic = lwz R11, 0(R5)
+IFETCH : Cycle = 64 : Addresss = 1110 : Fetch Addresss = 1110 : ID = 1b : Cache Tag = 0 : Cache Index = 22 : ERAT Tag = 0 : ERAT Index = 1
+IFETCH : L1 Hit : Cycle = 64 : ID = 27
+LOAD : L1 Initial Hit : Cycle = 65 : Instruction = 48.0.0 : Effective Address = 9 : Mnemonic = lwz R12, 0(R9)
+DISPATCH : Cycle = 66 : Instruction = 59.0.0 : PC = 10e8 : Addr = 0 : Mnemonic = add R7, R8, R9 : Opcode = 7ce84a14
+IFETCH : Cycle = 66 : Addresss = 1120 : Fetch Addresss = 1120 : ID = 1c : Cache Tag = 0 : Cache Index = 22 : ERAT Tag = 0 : ERAT Index = 1
+DISPATCH : Cycle = 66 : Instruction = 60.0.0 : PC = 10ec : Addr = 9 : Mnemonic = lwz R10, 0(R8) : Opcode = 81480000
+ISSUE-IS2 : Cycle = 66 : Instruction = 50.0.0 : PC = 10c4 : Addr = 5 : Mnemonic = lwz R6, 0(R4) : Pipeline = LdSt
+IFETCH : L1 Hit : Cycle = 66 : ID = 28
+DISPATCH : Cycle = 67 : Instruction = 61.0.0 : PC = 10f0 : Addr = 0 : Mnemonic = add R4, R5, R5 : Opcode = 7c852a14
+DISPATCH : Cycle = 67 : Instruction = 62.0.0 : PC = 10f4 : Addr = 5 : Mnemonic = lwz R11, 0(R5) : Opcode = 81650000
+ISSUE-IS2 : Cycle = 67 : Instruction = 51.0.0 : PC = 10c8 : Addr = 0 : Mnemonic = add R7, R8, R9 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 67 : Instruction = 52.0.0 : PC = 10cc : Addr = 9 : Mnemonic = lwz R10, 0(R8) : Pipeline = LdSt
+DISPATCH : Cycle = 68 : Instruction = 63.0.0 : PC = 10f8 : Addr = 0 : Mnemonic = add R8, R9, R9 : Opcode = 7d094a14
+IFETCH : Cycle = 68 : Addresss = 1130 : Fetch Addresss = 1130 : ID = 1d : Cache Tag = 0 : Cache Index = 22 : ERAT Tag = 0 : ERAT Index = 1
+DISPATCH : Cycle = 68 : Instruction = 64.0.0 : PC = 10fc : Addr = 9 : Mnemonic = lwz R12, 0(R9) : Opcode = 81890000
+ISSUE-IS2 : Cycle = 68 : Instruction = 53.0.0 : PC = 10d0 : Addr = 0 : Mnemonic = add R4, R5, R5 : Pipeline = ALU
+IFETCH : L1 Hit : Cycle = 68 : ID = 29
+ISSUE-IS2 : Cycle = 68 : Instruction = 54.0.0 : PC = 10d4 : Addr = 5 : Mnemonic = lwz R11, 0(R5) : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 69 : Instruction = 50.0.0 : Effective Address = 5 : Mnemonic = lwz R6, 0(R4)
+DISPATCH : Cycle = 69 : Instruction = 65.0.0 : PC = 1100 : Addr = 0 : Mnemonic = add R3, R4, R5 : Opcode = 7c642a14
+ISSUE-VQ8 : Cycle = 69 : Instruction = 43.0.0 : PC = 10a8 : Addr = 0 : Mnemonic = vperm V13, V14, V15, V16 : Pipeline = VMX_VUP
+DISPATCH : Cycle = 69 : Instruction = 66.0.0 : PC = 1104 : Addr = 5 : Mnemonic = lwz R6, 0(R4) : Opcode = 80c40000
+ISSUE-IS2 : Cycle = 69 : Instruction = 55.0.0 : PC = 10d8 : Addr = 0 : Mnemonic = add R8, R9, R9 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 69 : Instruction = 56.0.0 : PC = 10dc : Addr = 9 : Mnemonic = lwz R12, 0(R9) : Pipeline = LdSt
+COMPLETION-VQ8 : Cycle = 70 : Instruction = 6.0.0 : PC = 1014 : Mnemonic = vmaddfp128 V0, V4, V0, V35 : Pipeline = VMX_VUS
+LOAD : L1 Initial Hit : Cycle = 70 : Instruction = 52.0.0 : Effective Address = 9 : Mnemonic = lwz R10, 0(R8)
+ISSUE-VQ8 : Cycle = 70 : Instruction = 44.0.0 : PC = 10ac : Addr = 0 : Mnemonic = vperm V17, V18, V19, V20 : Pipeline = VMX_VUP
+IFETCH : Cycle = 70 : Addresss = 1140 : Fetch Addresss = 1140 : ID = 1e : Cache Tag = 0 : Cache Index = 22 : ERAT Tag = 0 : ERAT Index = 1
+ISSUE-IS2 : Cycle = 70 : Instruction = 57.0.0 : PC = 10e0 : Addr = 0 : Mnemonic = add R3, R4, R5 : Pipeline = ALU
+IFETCH : L1 Hit : Cycle = 70 : ID = 30
+COMPLETION-IS2 : Cycle = 71 : Instruction = 43.0.0 : PC = 10a8 : Mnemonic = vperm V13, V14, V15, V16 : Pipeline = VMX_VUP
+COMPLETION-IS2 : Cycle = 71 : Instruction = 44.0.0 : PC = 10ac : Mnemonic = vperm V17, V18, V19, V20 : Pipeline = VMX_VUP
+LOAD : L1 Initial Hit : Cycle = 71 : Instruction = 54.0.0 : Effective Address = 5 : Mnemonic = lwz R11, 0(R5)
+COMPLETION-IS2 : Cycle = 72 : Instruction = 45.0.0 : PC = 10b0 : Mnemonic = add R4, R5, R5 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 72 : Instruction = 46.0.0 : PC = 10b4 : Mnemonic = lwz R11, 0(R5) : EA = 5 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 72 : Instruction = 56.0.0 : Effective Address = 9 : Mnemonic = lwz R12, 0(R9)
+IFETCH : Cycle = 72 : Addresss = 1150 : Fetch Addresss = 1150 : ID = 1f : Cache Tag = 0 : Cache Index = 22 : ERAT Tag = 0 : ERAT Index = 1
+IFETCH : L1 Hit : Cycle = 72 : ID = 31
+COMPLETION-IS2 : Cycle = 73 : Instruction = 47.0.0 : PC = 10b8 : Mnemonic = add R8, R9, R9 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 73 : Instruction = 48.0.0 : PC = 10bc : Mnemonic = lwz R12, 0(R9) : EA = 9 : Pipeline = LdSt
+DISPATCH : Cycle = 73 : Instruction = 67.0.0 : PC = 1108 : Addr = 0 : Mnemonic = add R7, R8, R9 : Opcode = 7ce84a14
+DISPATCH : Cycle = 73 : Instruction = 68.0.0 : PC = 110c : Addr = 9 : Mnemonic = lwz R10, 0(R8) : Opcode = 81480000
+ISSUE-IS2 : Cycle = 73 : Instruction = 58.0.0 : PC = 10e4 : Addr = 5 : Mnemonic = lwz R6, 0(R4) : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 74 : Instruction = 49.0.0 : PC = 10c0 : Mnemonic = add R3, R4, R5 : Pipeline = ALU
+DISPATCH : Cycle = 74 : Instruction = 69.0.0 : PC = 1110 : Addr = 0 : Mnemonic = add R4, R5, R5 : Opcode = 7c852a14
+DISPATCH : Cycle = 74 : Instruction = 70.0.0 : PC = 1114 : Addr = 5 : Mnemonic = lwz R11, 0(R5) : Opcode = 81650000
+ISSUE-IS2 : Cycle = 74 : Instruction = 59.0.0 : PC = 10e8 : Addr = 0 : Mnemonic = add R7, R8, R9 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 74 : Instruction = 60.0.0 : PC = 10ec : Addr = 9 : Mnemonic = lwz R10, 0(R8) : Pipeline = LdSt
+DISPATCH : Cycle = 75 : Instruction = 71.0.0 : PC = 1118 : Addr = 0 : Mnemonic = add R8, R9, R9 : Opcode = 7d094a14
+DISPATCH : Cycle = 75 : Instruction = 72.0.0 : PC = 111c : Addr = 9 : Mnemonic = lwz R12, 0(R9) : Opcode = 81890000
+ISSUE-IS2 : Cycle = 75 : Instruction = 61.0.0 : PC = 10f0 : Addr = 0 : Mnemonic = add R4, R5, R5 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 75 : Instruction = 62.0.0 : PC = 10f4 : Addr = 5 : Mnemonic = lwz R11, 0(R5) : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 76 : Instruction = 58.0.0 : Effective Address = 5 : Mnemonic = lwz R6, 0(R4)
+DISPATCH : Cycle = 76 : Instruction = 73.0.0 : PC = 1120 : Addr = 0 : Mnemonic = add R3, R4, R5 : Opcode = 7c642a14
+DISPATCH : Cycle = 76 : Instruction = 74.0.0 : PC = 1124 : Addr = 5 : Mnemonic = lwz R6, 0(R4) : Opcode = 80c40000
+ISSUE-IS2 : Cycle = 76 : Instruction = 63.0.0 : PC = 10f8 : Addr = 0 : Mnemonic = add R8, R9, R9 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 76 : Instruction = 64.0.0 : PC = 10fc : Addr = 9 : Mnemonic = lwz R12, 0(R9) : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 77 : Instruction = 50.0.0 : PC = 10c4 : Mnemonic = lwz R6, 0(R4) : EA = 5 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 77 : Instruction = 60.0.0 : Effective Address = 9 : Mnemonic = lwz R10, 0(R8)
+ISSUE-IS2 : Cycle = 77 : Instruction = 65.0.0 : PC = 1100 : Addr = 0 : Mnemonic = add R3, R4, R5 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 78 : Instruction = 51.0.0 : PC = 10c8 : Mnemonic = add R7, R8, R9 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 78 : Instruction = 52.0.0 : PC = 10cc : Mnemonic = lwz R10, 0(R8) : EA = 9 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 78 : Instruction = 62.0.0 : Effective Address = 5 : Mnemonic = lwz R11, 0(R5)
+COMPLETION-IS2 : Cycle = 79 : Instruction = 53.0.0 : PC = 10d0 : Mnemonic = add R4, R5, R5 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 79 : Instruction = 54.0.0 : PC = 10d4 : Mnemonic = lwz R11, 0(R5) : EA = 5 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 79 : Instruction = 64.0.0 : Effective Address = 9 : Mnemonic = lwz R12, 0(R9)
+COMPLETION-IS2 : Cycle = 80 : Instruction = 55.0.0 : PC = 10d8 : Mnemonic = add R8, R9, R9 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 80 : Instruction = 56.0.0 : PC = 10dc : Mnemonic = lwz R12, 0(R9) : EA = 9 : Pipeline = LdSt
+DISPATCH : Cycle = 80 : Instruction = 75.0.0 : PC = 1128 : Addr = 0 : Mnemonic = add R7, R8, R9 : Opcode = 7ce84a14
+IFETCH : Cycle = 80 : Addresss = 1160 : Fetch Addresss = 1160 : ID = 21 : Cache Tag = 0 : Cache Index = 22 : ERAT Tag = 0 : ERAT Index = 1
+DISPATCH : Cycle = 80 : Instruction = 76.0.0 : PC = 112c : Addr = 9 : Mnemonic = lwz R10, 0(R8) : Opcode = 81480000
+ISSUE-IS2 : Cycle = 80 : Instruction = 66.0.0 : PC = 1104 : Addr = 5 : Mnemonic = lwz R6, 0(R4) : Pipeline = LdSt
+IFETCH : L1 Hit : Cycle = 80 : ID = 33
+COMPLETION-VQ8 : Cycle = 81 : Instruction = 43.0.0 : PC = 10a8 : Mnemonic = vperm V13, V14, V15, V16 : Pipeline = VMX_VUP
+COMPLETION-IS2 : Cycle = 81 : Instruction = 57.0.0 : PC = 10e0 : Mnemonic = add R3, R4, R5 : Pipeline = ALU
+DISPATCH : Cycle = 81 : Instruction = 77.0.0 : PC = 1130 : Addr = 0 : Mnemonic = add R4, R5, R5 : Opcode = 7c852a14
+DISPATCH : Cycle = 81 : Instruction = 78.0.0 : PC = 1134 : Addr = 5 : Mnemonic = lwz R11, 0(R5) : Opcode = 81650000
+ISSUE-IS2 : Cycle = 81 : Instruction = 67.0.0 : PC = 1108 : Addr = 0 : Mnemonic = add R7, R8, R9 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 81 : Instruction = 68.0.0 : PC = 110c : Addr = 9 : Mnemonic = lwz R10, 0(R8) : Pipeline = LdSt
+COMPLETION-VQ8 : Cycle = 82 : Instruction = 44.0.0 : PC = 10ac : Mnemonic = vperm V17, V18, V19, V20 : Pipeline = VMX_VUP
+DISPATCH : Cycle = 82 : Instruction = 79.0.0 : PC = 1138 : Addr = 0 : Mnemonic = add R8, R9, R9 : Opcode = 7d094a14
+IFETCH : Cycle = 82 : Addresss = 1170 : Fetch Addresss = 1170 : ID = 22 : Cache Tag = 0 : Cache Index = 22 : ERAT Tag = 0 : ERAT Index = 1
+DISPATCH : Cycle = 82 : Instruction = 80.0.0 : PC = 113c : Addr = 9 : Mnemonic = lwz R12, 0(R9) : Opcode = 81890000
+ISSUE-IS2 : Cycle = 82 : Instruction = 69.0.0 : PC = 1110 : Addr = 0 : Mnemonic = add R4, R5, R5 : Pipeline = ALU
+IFETCH : L1 Hit : Cycle = 82 : ID = 34
+ISSUE-IS2 : Cycle = 82 : Instruction = 70.0.0 : PC = 1114 : Addr = 5 : Mnemonic = lwz R11, 0(R5) : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 83 : Instruction = 66.0.0 : Effective Address = 5 : Mnemonic = lwz R6, 0(R4)
+DISPATCH : Cycle = 83 : Instruction = 81.0.0 : PC = 1140 : Addr = 0 : Mnemonic = add R3, R4, R5 : Opcode = 7c642a14
+DISPATCH : Cycle = 83 : Instruction = 82.0.0 : PC = 1144 : Addr = 5 : Mnemonic = lwz R6, 0(R4) : Opcode = 80c40000
+ISSUE-IS2 : Cycle = 83 : Instruction = 71.0.0 : PC = 1118 : Addr = 0 : Mnemonic = add R8, R9, R9 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 83 : Instruction = 72.0.0 : PC = 111c : Addr = 9 : Mnemonic = lwz R12, 0(R9) : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 84 : Instruction = 58.0.0 : PC = 10e4 : Mnemonic = lwz R6, 0(R4) : EA = 5 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 84 : Instruction = 68.0.0 : Effective Address = 9 : Mnemonic = lwz R10, 0(R8)
+ISSUE-IS2 : Cycle = 84 : Instruction = 73.0.0 : PC = 1120 : Addr = 0 : Mnemonic = add R3, R4, R5 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 85 : Instruction = 59.0.0 : PC = 10e8 : Mnemonic = add R7, R8, R9 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 85 : Instruction = 60.0.0 : PC = 10ec : Mnemonic = lwz R10, 0(R8) : EA = 9 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 85 : Instruction = 70.0.0 : Effective Address = 5 : Mnemonic = lwz R11, 0(R5)
+COMPLETION-IS2 : Cycle = 86 : Instruction = 61.0.0 : PC = 10f0 : Mnemonic = add R4, R5, R5 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 86 : Instruction = 62.0.0 : PC = 10f4 : Mnemonic = lwz R11, 0(R5) : EA = 5 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 86 : Instruction = 72.0.0 : Effective Address = 9 : Mnemonic = lwz R12, 0(R9)
+COMPLETION-IS2 : Cycle = 87 : Instruction = 63.0.0 : PC = 10f8 : Mnemonic = add R8, R9, R9 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 87 : Instruction = 64.0.0 : PC = 10fc : Mnemonic = lwz R12, 0(R9) : EA = 9 : Pipeline = LdSt
+DISPATCH : Cycle = 87 : Instruction = 83.0.0 : PC = 1148 : Addr = 0 : Mnemonic = add R7, R8, R9 : Opcode = 7ce84a14
+DISPATCH : Cycle = 87 : Instruction = 84.0.0 : PC = 114c : Addr = 9 : Mnemonic = lwz R10, 0(R8) : Opcode = 81480000
+ISSUE-IS2 : Cycle = 87 : Instruction = 74.0.0 : PC = 1124 : Addr = 5 : Mnemonic = lwz R6, 0(R4) : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 88 : Instruction = 65.0.0 : PC = 1100 : Mnemonic = add R3, R4, R5 : Pipeline = ALU
+DISPATCH : Cycle = 88 : Instruction = 85.0.0 : PC = 1150 : Addr = 0 : Mnemonic = add R4, R5, R5 : Opcode = 7c852a14
+DISPATCH : Cycle = 88 : Instruction = 86.0.0 : PC = 1154 : Addr = 5 : Mnemonic = lwz R11, 0(R5) : Opcode = 81650000
+ISSUE-IS2 : Cycle = 88 : Instruction = 75.0.0 : PC = 1128 : Addr = 0 : Mnemonic = add R7, R8, R9 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 88 : Instruction = 76.0.0 : PC = 112c : Addr = 9 : Mnemonic = lwz R10, 0(R8) : Pipeline = LdSt
+DISPATCH : Cycle = 89 : Instruction = 87.0.0 : PC = 1158 : Addr = 0 : Mnemonic = add R8, R9, R9 : Opcode = 7d094a14
+DISPATCH : Cycle = 89 : Instruction = 88.0.0 : PC = 115c : Addr = 9 : Mnemonic = lwz R12, 0(R9) : Opcode = 81890000
+ISSUE-IS2 : Cycle = 89 : Instruction = 77.0.0 : PC = 1130 : Addr = 0 : Mnemonic = add R4, R5, R5 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 89 : Instruction = 78.0.0 : PC = 1134 : Addr = 5 : Mnemonic = lwz R11, 0(R5) : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 90 : Instruction = 74.0.0 : Effective Address = 5 : Mnemonic = lwz R6, 0(R4)
+DISPATCH : Cycle = 90 : Instruction = 89.0.0 : PC = 1160 : Addr = 0 : Mnemonic = add R3, R4, R5 : Opcode = 7c642a14
+DISPATCH : Cycle = 90 : Instruction = 90.0.0 : PC = 1164 : Addr = 5 : Mnemonic = lwz R6, 0(R4) : Opcode = 80c40000
+ISSUE-IS2 : Cycle = 90 : Instruction = 79.0.0 : PC = 1138 : Addr = 0 : Mnemonic = add R8, R9, R9 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 90 : Instruction = 80.0.0 : PC = 113c : Addr = 9 : Mnemonic = lwz R12, 0(R9) : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 91 : Instruction = 66.0.0 : PC = 1104 : Mnemonic = lwz R6, 0(R4) : EA = 5 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 91 : Instruction = 76.0.0 : Effective Address = 9 : Mnemonic = lwz R10, 0(R8)
+ISSUE-IS2 : Cycle = 91 : Instruction = 81.0.0 : PC = 1140 : Addr = 0 : Mnemonic = add R3, R4, R5 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 92 : Instruction = 67.0.0 : PC = 1108 : Mnemonic = add R7, R8, R9 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 92 : Instruction = 68.0.0 : PC = 110c : Mnemonic = lwz R10, 0(R8) : EA = 9 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 92 : Instruction = 78.0.0 : Effective Address = 5 : Mnemonic = lwz R11, 0(R5)
+COMPLETION-IS2 : Cycle = 93 : Instruction = 69.0.0 : PC = 1110 : Mnemonic = add R4, R5, R5 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 93 : Instruction = 70.0.0 : PC = 1114 : Mnemonic = lwz R11, 0(R5) : EA = 5 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 93 : Instruction = 80.0.0 : Effective Address = 9 : Mnemonic = lwz R12, 0(R9)
+COMPLETION-IS2 : Cycle = 94 : Instruction = 71.0.0 : PC = 1118 : Mnemonic = add R8, R9, R9 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 94 : Instruction = 72.0.0 : PC = 111c : Mnemonic = lwz R12, 0(R9) : EA = 9 : Pipeline = LdSt
+DISPATCH : Cycle = 94 : Instruction = 91.0.0 : PC = 1168 : Addr = 0 : Mnemonic = add R7, R8, R9 : Opcode = 7ce84a14
+DISPATCH : Cycle = 94 : Instruction = 92.0.0 : PC = 116c : Addr = 9 : Mnemonic = lwz R10, 0(R8) : Opcode = 81480000
+ISSUE-IS2 : Cycle = 94 : Instruction = 82.0.0 : PC = 1144 : Addr = 5 : Mnemonic = lwz R6, 0(R4) : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 95 : Instruction = 73.0.0 : PC = 1120 : Mnemonic = add R3, R4, R5 : Pipeline = ALU
+DISPATCH : Cycle = 95 : Instruction = 93.0.0 : PC = 1170 : Addr = 0 : Mnemonic = add R4, R5, R5 : Opcode = 7c852a14
+DISPATCH : Cycle = 95 : Instruction = 94.0.0 : PC = 1174 : Addr = 5 : Mnemonic = lwz R11, 0(R5) : Opcode = 81650000
+ISSUE-IS2 : Cycle = 95 : Instruction = 83.0.0 : PC = 1148 : Addr = 0 : Mnemonic = add R7, R8, R9 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 95 : Instruction = 84.0.0 : PC = 114c : Addr = 9 : Mnemonic = lwz R10, 0(R8) : Pipeline = LdSt
+DISPATCH : Cycle = 96 : Instruction = 95.0.0 : PC = 1178 : Addr = 0 : Mnemonic = add R8, R9, R9 : Opcode = 7d094a14
+DISPATCH : Cycle = 96 : Instruction = 96.0.0 : PC = 117c : Addr = 9 : Mnemonic = lwz R12, 0(R9) : Opcode = 81890000
+ISSUE-IS2 : Cycle = 96 : Instruction = 85.0.0 : PC = 1150 : Addr = 0 : Mnemonic = add R4, R5, R5 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 96 : Instruction = 86.0.0 : PC = 1154 : Addr = 5 : Mnemonic = lwz R11, 0(R5) : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 97 : Instruction = 82.0.0 : Effective Address = 5 : Mnemonic = lwz R6, 0(R4)
+ISSUE-IS2 : Cycle = 97 : Instruction = 87.0.0 : PC = 1158 : Addr = 0 : Mnemonic = add R8, R9, R9 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 97 : Instruction = 88.0.0 : PC = 115c : Addr = 9 : Mnemonic = lwz R12, 0(R9) : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 98 : Instruction = 74.0.0 : PC = 1124 : Mnemonic = lwz R6, 0(R4) : EA = 5 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 98 : Instruction = 84.0.0 : Effective Address = 9 : Mnemonic = lwz R10, 0(R8)
+ISSUE-IS2 : Cycle = 98 : Instruction = 89.0.0 : PC = 1160 : Addr = 0 : Mnemonic = add R3, R4, R5 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 99 : Instruction = 75.0.0 : PC = 1128 : Mnemonic = add R7, R8, R9 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 99 : Instruction = 76.0.0 : PC = 112c : Mnemonic = lwz R10, 0(R8) : EA = 9 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 99 : Instruction = 86.0.0 : Effective Address = 5 : Mnemonic = lwz R11, 0(R5)
+COMPLETION-IS2 : Cycle = 100 : Instruction = 77.0.0 : PC = 1130 : Mnemonic = add R4, R5, R5 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 100 : Instruction = 78.0.0 : PC = 1134 : Mnemonic = lwz R11, 0(R5) : EA = 5 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 100 : Instruction = 88.0.0 : Effective Address = 9 : Mnemonic = lwz R12, 0(R9)
+COMPLETION-IS2 : Cycle = 101 : Instruction = 79.0.0 : PC = 1138 : Mnemonic = add R8, R9, R9 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 101 : Instruction = 80.0.0 : PC = 113c : Mnemonic = lwz R12, 0(R9) : EA = 9 : Pipeline = LdSt
+ISSUE-IS2 : Cycle = 101 : Instruction = 90.0.0 : PC = 1164 : Addr = 5 : Mnemonic = lwz R6, 0(R4) : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 102 : Instruction = 81.0.0 : PC = 1140 : Mnemonic = add R3, R4, R5 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 102 : Instruction = 91.0.0 : PC = 1168 : Addr = 0 : Mnemonic = add R7, R8, R9 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 102 : Instruction = 92.0.0 : PC = 116c : Addr = 9 : Mnemonic = lwz R10, 0(R8) : Pipeline = LdSt
+ISSUE-IS2 : Cycle = 103 : Instruction = 93.0.0 : PC = 1170 : Addr = 0 : Mnemonic = add R4, R5, R5 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 103 : Instruction = 94.0.0 : PC = 1174 : Addr = 5 : Mnemonic = lwz R11, 0(R5) : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 104 : Instruction = 90.0.0 : Effective Address = 5 : Mnemonic = lwz R6, 0(R4)
+ISSUE-IS2 : Cycle = 104 : Instruction = 95.0.0 : PC = 1178 : Addr = 0 : Mnemonic = add R8, R9, R9 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 104 : Instruction = 96.0.0 : PC = 117c : Addr = 9 : Mnemonic = lwz R12, 0(R9) : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 105 : Instruction = 82.0.0 : PC = 1144 : Mnemonic = lwz R6, 0(R4) : EA = 5 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 105 : Instruction = 92.0.0 : Effective Address = 9 : Mnemonic = lwz R10, 0(R8)
+COMPLETION-IS2 : Cycle = 106 : Instruction = 83.0.0 : PC = 1148 : Mnemonic = add R7, R8, R9 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 106 : Instruction = 84.0.0 : PC = 114c : Mnemonic = lwz R10, 0(R8) : EA = 9 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 106 : Instruction = 94.0.0 : Effective Address = 5 : Mnemonic = lwz R11, 0(R5)
+COMPLETION-IS2 : Cycle = 107 : Instruction = 85.0.0 : PC = 1150 : Mnemonic = add R4, R5, R5 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 107 : Instruction = 86.0.0 : PC = 1154 : Mnemonic = lwz R11, 0(R5) : EA = 5 : Pipeline = LdSt
+LOAD : L1 Initial Hit : Cycle = 107 : Instruction = 96.0.0 : Effective Address = 9 : Mnemonic = lwz R12, 0(R9)
+COMPLETION-IS2 : Cycle = 108 : Instruction = 87.0.0 : PC = 1158 : Mnemonic = add R8, R9, R9 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 108 : Instruction = 88.0.0 : PC = 115c : Mnemonic = lwz R12, 0(R9) : EA = 9 : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 109 : Instruction = 89.0.0 : PC = 1160 : Mnemonic = add R3, R4, R5 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 112 : Instruction = 90.0.0 : PC = 1164 : Mnemonic = lwz R6, 0(R4) : EA = 5 : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 113 : Instruction = 91.0.0 : PC = 1168 : Mnemonic = add R7, R8, R9 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 113 : Instruction = 92.0.0 : PC = 116c : Mnemonic = lwz R10, 0(R8) : EA = 9 : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 114 : Instruction = 93.0.0 : PC = 1170 : Mnemonic = add R4, R5, R5 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 114 : Instruction = 94.0.0 : PC = 1174 : Mnemonic = lwz R11, 0(R5) : EA = 5 : Pipeline = LdSt
+COMPLETION-IS2 : Cycle = 115 : Instruction = 95.0.0 : PC = 1178 : Mnemonic = add R8, R9, R9 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 115 : Instruction = 96.0.0 : PC = 117c : Mnemonic = lwz R12, 0(R9) : EA = 9 : Pipeline = LdSt
+Report for ACTUALL2 of type TYPE_TARPIT
+	Latency = 20.000000
+End report for ACTUALL2

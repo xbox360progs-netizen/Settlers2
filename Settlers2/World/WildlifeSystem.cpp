@@ -6,11 +6,13 @@
 namespace World {
 
 const float WildlifeSystem::SPAWN_COOLDOWN = 5.0f;
+const float WildlifeSystem::MOVE_INTERVAL = 2.0f;
 const int WildlifeSystem::MAX_PER_SPAWNER = 5;
 
 WildlifeSystem::WildlifeSystem(Map* map)
     : m_map(map)
     , m_spawnTimer(0.0f)
+    , m_moveTimer(0.0f)
 {
     ScanSpawners();
 }
@@ -91,13 +93,30 @@ void WildlifeSystem::AddAnimals(const std::vector<Animal>& animals)
 
 void WildlifeSystem::Update(float deltaTime)
 {
-    if (!m_map) return;
+    m_moveTimer += deltaTime;
+    if (m_moveTimer >= MOVE_INTERVAL) {
+        m_moveTimer = 0.0f;
+        MoveAnimals();
+    }
+}
 
-    m_spawnTimer += deltaTime;
-    if (m_spawnTimer >= SPAWN_COOLDOWN) {
-        m_spawnTimer = 0.0f;
-        for (size_t i = 0; i < m_spawners.size(); ++i) {
-            SpawnAtSpawner(m_spawners[i]);
+void WildlifeSystem::MoveAnimals()
+{
+    const int MOVE_RANGE = 6;
+    for (size_t i = 0; i < m_animals.size(); ++i) {
+        Animal& a = m_animals[i];
+        if (a.state != AnimalState_Alive) continue;
+
+        int dx = (rand() % 3) - 1;
+        int dy = (rand() % 3) - 1;
+        int nx = a.x + dx;
+        int ny = a.y + dy;
+
+        int dxs = nx - a.spawnerX;
+        int dys = ny - a.spawnerY;
+        if (dxs * dxs + dys * dys <= MOVE_RANGE * MOVE_RANGE) {
+            a.x = nx;
+            a.y = ny;
         }
     }
 }

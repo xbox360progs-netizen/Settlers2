@@ -66,6 +66,8 @@ namespace SpriteAtlasTool
                         rel.Y + m_colliderOffsetY));
                 }
                 UpdateColliderFromSelectedTiles();
+                m_colliderOffsetX = 0;
+                m_colliderOffsetY = 0;
             }
 
             previewPanel.Invalidate();
@@ -219,6 +221,8 @@ namespace SpriteAtlasTool
             if (!m_isSelectingTiles)
             {
                 UpdateColliderFromSelectedTiles();
+                m_colliderOffsetX = 0;
+                m_colliderOffsetY = 0;
             }
 
             UpdateEntranceButtonText();
@@ -511,13 +515,13 @@ namespace SpriteAtlasTool
                 foreach (Point abs in m_selectedTiles)
                 {
                     m_collisionInfo.MaskTiles.Add(new Point(
-                        abs.X - m_colliderOffsetX,
-                        abs.Y - m_colliderOffsetY));
+                        abs.X,
+                        abs.Y));
                 }
             }
 
-            m_collisionInfo.OffsetX = m_colliderOffsetX;
-            m_collisionInfo.OffsetY = m_colliderOffsetY;
+            m_collisionInfo.OffsetX = 0;
+            m_collisionInfo.OffsetY = 0;
 
             m_sprite.EntranceX = (int)numEntranceX.Value;
             m_sprite.EntranceY = (int)numEntranceY.Value;

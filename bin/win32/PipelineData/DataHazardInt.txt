@@ -1,0 +1,31 @@
+IFETCH : Cycle = 2 : Addresss = 1000 : Fetch Addresss = 1000 : ID = 0 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1
+IFETCH : L1 Hit : Cycle = 2 : ID = 0
+IFETCH : Cycle = 4 : Addresss = 1010 : Fetch Addresss = 1010 : ID = 1 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1
+IFETCH : L1 Hit : Cycle = 4 : ID = 1
+DISPATCH : Cycle = 8 : Instruction = 1.0.0 : PC = 1000 : Addr = 0 : Mnemonic = add R3, R3, R4 : Opcode = 7c632214
+DISPATCH : Cycle = 8 : Instruction = 2.0.0 : PC = 1004 : Addr = 0 : Mnemonic = add R3, R3, R5 : Opcode = 7c632a14
+DISPATCH : Cycle = 9 : Instruction = 3.0.0 : PC = 1008 : Addr = 0 : Mnemonic = add R3, R3, R6 : Opcode = 7c633214
+DISPATCH : Cycle = 9 : Instruction = 4.0.0 : PC = 100c : Addr = 0 : Mnemonic = add R3, R3, R7 : Opcode = 7c633a14
+DISPATCH : Cycle = 10 : Instruction = 5.0.0 : PC = 1010 : Addr = 0 : Mnemonic = add R3, R3, R8 : Opcode = 7c634214
+DISPATCH : Cycle = 10 : Instruction = 6.0.0 : PC = 1014 : Addr = 0 : Mnemonic = add R3, R3, R9 : Opcode = 7c634a14
+DISPATCH : Cycle = 11 : Instruction = 7.0.0 : PC = 1018 : Addr = 0 : Mnemonic = add R3, R3, R10 : Opcode = 7c635214
+DISPATCH : Cycle = 11 : Instruction = 8.0.0 : PC = 101c : Addr = 0 : Mnemonic = add R3, R3, R11 : Opcode = 7c635a14
+ISSUE-IS2 : Cycle = 13 : Instruction = 1.0.0 : PC = 1000 : Addr = 0 : Mnemonic = add R3, R3, R4 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 15 : Instruction = 2.0.0 : PC = 1004 : Addr = 0 : Mnemonic = add R3, R3, R5 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 17 : Instruction = 3.0.0 : PC = 1008 : Addr = 0 : Mnemonic = add R3, R3, R6 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 19 : Instruction = 4.0.0 : PC = 100c : Addr = 0 : Mnemonic = add R3, R3, R7 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 21 : Instruction = 5.0.0 : PC = 1010 : Addr = 0 : Mnemonic = add R3, R3, R8 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 23 : Instruction = 6.0.0 : PC = 1014 : Addr = 0 : Mnemonic = add R3, R3, R9 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 24 : Instruction = 1.0.0 : PC = 1000 : Mnemonic = add R3, R3, R4 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 25 : Instruction = 7.0.0 : PC = 1018 : Addr = 0 : Mnemonic = add R3, R3, R10 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 26 : Instruction = 2.0.0 : PC = 1004 : Mnemonic = add R3, R3, R5 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 27 : Instruction = 8.0.0 : PC = 101c : Addr = 0 : Mnemonic = add R3, R3, R11 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 28 : Instruction = 3.0.0 : PC = 1008 : Mnemonic = add R3, R3, R6 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 30 : Instruction = 4.0.0 : PC = 100c : Mnemonic = add R3, R3, R7 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 32 : Instruction = 5.0.0 : PC = 1010 : Mnemonic = add R3, R3, R8 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 34 : Instruction = 6.0.0 : PC = 1014 : Mnemonic = add R3, R3, R9 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 36 : Instruction = 7.0.0 : PC = 1018 : Mnemonic = add R3, R3, R10 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 38 : Instruction = 8.0.0 : PC = 101c : Mnemonic = add R3, R3, R11 : Pipeline = ALU
+Report for ACTUALL2 of type TYPE_TARPIT
+	Latency = 20.000000
+End report for ACTUALL2

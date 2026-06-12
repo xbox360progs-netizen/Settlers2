@@ -345,6 +345,14 @@
     <ClInclude Include="World\MapSerializer.h" />
     <ClInclude Include="World\Flag.h" />
     <ClInclude Include="World\FlagManager.h" />
+    <ClInclude Include="World\Handle.h" />
+    <ClInclude Include="World\ObjectState.h" />
+    <ClInclude Include="World\ObjectDeletionRules.h" />
+    <ClInclude Include="World\ObjectLifecycleManager.h" />
+    <ClInclude Include="World\Road.h" />
+    <ClInclude Include="World\RoadManager.h" />
+    <ClInclude Include="World\TransportJob.h" />
+    <ClInclude Include="World\TransportJobManager.h" />
     <ClInclude Include="World\ConstructionSite.h" />
     <ClInclude Include="World\ConstructionManager.h" />
     <ClInclude Include="World\ResourceNode.h" />
@@ -437,6 +445,10 @@
     <ClCompile Include="World\Components\Unit.cpp" />
     <ClCompile Include="World\CarrierManager.cpp" />
     <ClCompile Include="World\FlagManager.cpp" />
+    <ClCompile Include="World\RoadManager.cpp" />
+    <ClCompile Include="World\TransportJobManager.cpp" />
+    <ClCompile Include="World\ObjectDeletionRules.cpp" />
+    <ClCompile Include="World\ObjectLifecycleManager.cpp" />
     <ClCompile Include="World\ConstructionSite.cpp" />
     <ClCompile Include="World\ConstructionManager.cpp" />
     <ClCompile Include="World\Entity.cpp" />

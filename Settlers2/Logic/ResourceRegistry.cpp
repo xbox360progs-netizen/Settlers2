@@ -138,8 +138,12 @@ namespace Logic {
 
     void ResourceRegistry::BuildWorldResourceCache(World::Map* map) {
         ClearWorldResources();
-        for (int y = 0; y < map->GetHeight(); ++y) {
-            for (int x = 0; x < map->GetWidth(); ++x) {
+        // Resource map is stored at layer resolution (m_width*2 x m_height*4),
+        // NOT ground resolution (m_width x m_height). Scan all nodes.
+        int w = map->GetWidth() * 2;
+        int h = map->GetHeight() * 4;
+        for (int y = 0; y < h; ++y) {
+            for (int x = 0; x < w; ++x) {
                 const World::ResourceNode& node = map->GetResourceNode(x, y);
                 if (node.type != World::ResourceType_None) {
                     RegisterWorldResource(node.type, x, y);

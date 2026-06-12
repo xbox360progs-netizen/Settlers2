@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<XnaContent xmlns:Generic="System.Collections.Generic">
+  <Asset Type="Generic:Dictionary[string,string]">
+    <Item>
+      <Key>3DAvatarReadURL</Key>
+      <Value>http://avatarread.xboxlive.com/Manifest.svc</Value>
+    </Item>
+  </Asset>
+</XnaContent>

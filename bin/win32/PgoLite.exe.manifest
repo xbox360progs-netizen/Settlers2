@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<assembly xsi:schemaLocation="urn:schemas-microsoft-com:asm.v1 assembly.adaptive.xsd" manifestVersion="1.0" xmlns:asmv1="urn:schemas-microsoft-com:asm.v1" xmlns:asmv2="urn:schemas-microsoft-com:asm.v2" xmlns:asmv3="urn:schemas-microsoft-com:asm.v3" xmlns:dsig="http://www.w3.org/2000/09/xmldsig#" xmlns:co.v1="urn:schemas-microsoft-com:clickonce.v1" xmlns:co.v2="urn:schemas-microsoft-com:clickonce.v2" xmlns="urn:schemas-microsoft-com:asm.v1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <assemblyIdentity name="PgoLite.exe" version="1.0.4238.21764" processorArchitecture="x86" type="win32" />
+  <file name="msdia80.dll" asmv2:size="625152">
+    <hash xmlns="urn:schemas-microsoft-com:asm.v2">
+      <dsig:Transforms>
+        <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
+      </dsig:Transforms>
+      <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
+      <dsig:DigestValue>yba6bgteyKQkWnU71mb18QbMP54=</dsig:DigestValue>
+    </hash>
+    <typelib tlbid="{106173a0-0173-4e5c-84e7-e915422be997}" version="2.0" helpdir="" resourceid="0" flags="HASDISKIMAGE" />
+    <comClass clsid="{bce36434-2c24-499e-bf49-8bd99b0eeb68}" threadingModel="Both" tlbid="{106173a0-0173-4e5c-84e7-e915422be997}" description="DiaSource Class" />
+    <comClass clsid="{1fbd5ec4-b8e4-4d94-9efe-7ccaf9132c98}" threadingModel="Both" tlbid="{106173a0-0173-4e5c-84e7-e915422be997}" description="Local Heap DiaSource Class" />
+    <comClass clsid="{37dfdbcc-40a5-4f4a-8523-123c746d38f0}" threadingModel="Both" tlbid="{106173a0-0173-4e5c-84e7-e915422be997}" description="General Stackwalk Class" />
+  </file>
+</assembly>

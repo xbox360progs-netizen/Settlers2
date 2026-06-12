@@ -13,11 +13,18 @@ class Map;
 
 enum BuildingType {
     Building_None, Hut, Tower, Fortress, Castle, Forester, Woodcutter, Sawmill, Stonemason,
-    CoalMine, IronMine, GoldMine, IronSmelter, GoldSmelter, Farm, Mill, Bakery, Fisher, Hunter, Baker, Brewer, ToolWorkshop
+    CoalMine, IronMine, GoldMine, IronSmelter, GoldSmelter, Farm, Mill, Bakery, Fisher, Hunter, Baker, Brewer, ToolWorkshop, Storehouse,
+    Residence, Stronghold, Well, BronzeMine, ToolMaker, Barracks
 };
 
 enum BuildingState {
     State_Ghost, State_MaterialsNeeded, State_BuilderWorking, State_Construction, State_Finished
+};
+
+enum BuildingFSM {
+    BuildingFSM_Idle,
+    BuildingFSM_Producing,
+    BuildingFSM_OutputFull
 };
 
 struct ProductionRule {
@@ -79,6 +86,11 @@ public:
      bool m_hasTarget;
      Vector2i m_target;
  
+     // Production FSM
+     BuildingFSM m_fsmState;
+     float m_productionTimer;
+     float m_productionInterval;
+
      // Worker population
      int m_population;
      int m_maxPopulation;
@@ -89,7 +101,8 @@ public:
  
      Building(BuildingType t, int x, int y, uint8_t o, Map* m)
          : type(t), state(State_Ghost), owner(o), connectedFlag(NULL), map(m), m_numRules(0), 
-           m_hasTarget(false), m_population(0), m_maxPopulation(0)
+           m_hasTarget(false), m_fsmState(BuildingFSM_Idle), m_productionTimer(0.0f),
+           m_productionInterval(3.0f), m_population(0), m_maxPopulation(0)
      {
          pos.x = x;
          pos.y = y;
@@ -144,7 +157,37 @@ public:
 
     virtual ~Building() {}
 
-    virtual void Update() = 0;
+    // ── Central FSM dispatch ──────────────────────────────────────────
+    // Subclasses should NOT override Update() unless they have an entirely
+    // different production model (e.g. ProductionBuilding).
+    // Instead, override the virtual hooks below.
+    virtual void Update(float dt);
+
+    // Override to define per-building production. Return false if output
+    // is full and the building should stop.
+    virtual bool ProduceOne() { return false; }
+
+    // Override to define when production can start (target found, inputs
+    // available, etc.). Default: true.
+    virtual bool CanProduce() { return true; }
+
+    // Override to customize the output-full check. Default: >= 5 units of
+    // any resource in outputResources.
+    virtual bool IsOutputFull() const;
+
+protected:
+    // State handlers — override to inject per-state logic.
+    virtual void UpdateIdle(float dt);
+    virtual void UpdateProducing(float dt);
+    virtual void UpdateOutputFull(float dt);
+
+    // Helper: add to storage, returns false if output is full (caller
+    // should transition to OutputFull state).
+    bool AddOutput(ResourceType type, int amount = 1);
+
+public:
+
+    virtual bool IsWarehouse() const { return false; }
 
     int GetStorage(ResourceType type) const { return m_storage[type]; }
     void SetStorage(ResourceType type, int val) { m_storage[type] = val; }

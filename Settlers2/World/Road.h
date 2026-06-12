@@ -1,16 +1,31 @@
 #pragma once
 #include <vector>
-#include "MapNode.h"
+#include <stdint.h>
+#include "../Core/Vector2i.h"
+#include "ObjectState.h"
+#include "Handle.h"
+#include "Flag.h"
 
 namespace World {
-    class Flag; // Forward declaration
+    class Carrier;
 
-    class Road {
-    public:
-        Flag* start;
-        Flag* end;
-        std::vector<MapNode*> path;
+    struct RoadData {
+        uint32_t id;
+        uint32_t flagAId;
+        uint32_t flagBId;
+        std::vector<Vector2i> tiles;
+    };
 
-        Road(Flag* s, Flag* e) : start(s), end(e) {}
+    struct Road;
+    typedef Handle<Road> RoadHandle;
+
+    struct Road {
+        uint32_t id;
+        FlagHandle a, b;
+        std::vector<Vector2i> tiles;
+        Handle<Carrier> carrier;
+        ObjectState state;
+
+        Road() : id(0), state(Active) {}
     };
 }

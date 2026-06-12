@@ -98,6 +98,7 @@ void GameEngine::CreateScenes()
         OutputDebugStringA("[CreateScenes] AFTER GameScene::Initialize\n");
         gameScene->SetRenderer(m_renderer);
         gameScene->SetInputManager(m_inputManager);
+        gameScene->SetTextManager(m_textManager);
         OutputDebugStringA("[CreateScenes] AFTER SetRenderer\n");
     }
     OutputDebugStringA("[CreateScenes] BEFORE AddScene(gameScene)\n");

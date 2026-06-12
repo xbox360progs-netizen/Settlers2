@@ -1,0 +1,538 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Warnings Version="1.0">
+  <Warning>
+    <Name>DrPix_D3dCpu_TooManyPatches</Name>
+    <Category>D3D</Category>
+    <ExpressionPriority1>D3D.ShaderPatches &gt; 50</ExpressionPriority1>
+    <ExpressionPriority2>D3D.ShaderPatches &gt; 10</ExpressionPriority2>
+    <ExpressionPriority3>D3D.ShaderPatches &gt; 2</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_D3dCpu_TooManyCallbackInterrupts</Name>
+    <Category>D3D</Category>
+    <ExpressionPriority1>D3D.CallbackInterrupts &gt; 200</ExpressionPriority1>
+    <ExpressionPriority2>D3D.CallbackInterrupts &gt; 100</ExpressionPriority2>
+    <ExpressionPriority3>D3D.CallbackInterrupts &gt; 40</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_D3dCpu_PhysicalAllocations</Name>
+    <Category>D3D</Category>
+    <ExpressionPriority1>D3D.PhysicalAllocations &gt; 10</ExpressionPriority1>
+    <ExpressionPriority2>D3D.PhysicalAllocations &gt; 5</ExpressionPriority2>
+    <ExpressionPriority3>D3D.PhysicalAllocations &gt; 0</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_D3dCpu_PrimaryBufferOverruns</Name>
+    <Category>D3D</Category>
+    <ExpressionPriority1>D3D.PrimaryRingBufferOverruns &gt; 0</ExpressionPriority1>
+    <ExpressionPriority2>false</ExpressionPriority2>
+    <ExpressionPriority3>false</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_D3dCpu_SecondaryBufferOverruns</Name>
+    <Category>D3D</Category>
+    <ExpressionPriority1>D3D.SecondaryRingBufferOverruns &gt; 2</ExpressionPriority1>
+    <ExpressionPriority2>D3D.SecondaryRingBufferOverruns &gt; 1</ExpressionPriority2>
+    <ExpressionPriority3>D3D.SecondaryRingBufferOverruns &gt; 0</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_D3dCpu_BracketOutOfMemory</Name>
+    <Category>D3D</Category>
+    <ExpressionPriority1>D3D.BracketOutOfMemory &gt; 0</ExpressionPriority1>
+    <ExpressionPriority2>false</ExpressionPriority2>
+    <ExpressionPriority3>false</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_D3dCpu_NotUsingBuffer2Frames</Name>
+    <Category>D3D</Category>
+    <ExpressionPriority1>(D3D.TilingEnabled  == 1) &amp;&amp; (D3D.Buffer2FramesEnabled == 0)</ExpressionPriority1>
+    <ExpressionPriority2>false</ExpressionPriority2>
+    <ExpressionPriority3>false</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_D3dCpu_MoreThanHalfSecondaryBuffer</Name>
+    <Category>D3D</Category>
+    <ExpressionPriority1>(D3D.TilingEnabled != 0) &amp;&amp; (D3D.Buffer2FramesEnabled == 1) &amp;&amp; (D3D.SecondaryRingBufferUsedKB &gt; (D3D.SecondaryRingBufferSizeKB / 2))</ExpressionPriority1>
+    <ExpressionPriority2>false</ExpressionPriority2>
+    <ExpressionPriority3>false</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_D3dCpu_TooMuchBlockTime</Name>
+    <Category>D3D</Category>
+    <ExpressionPriority1>D3D.CpuBlockTimeMS &gt; 2</ExpressionPriority1>
+    <ExpressionPriority2>D3D.CpuBlockTimeMS &gt; 1</ExpressionPriority2>
+    <ExpressionPriority3>D3D.CpuBlockTimeMS &gt; 0.5</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_D3dCpu_GpuStarved</Name>
+    <Category>D3D</Category>
+    <ExpressionPriority1>(D3D.PresentInterval != 0) &amp;&amp; (D3D.IdlesAtKickOff &gt; 0)</ExpressionPriority1>
+    <ExpressionPriority2>false</ExpressionPriority2>
+    <ExpressionPriority3>false</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_D3dCpu_StarvedAtEndBracket</Name>
+    <Category>D3D</Category>
+    <ExpressionPriority1>D3D.IdlesAtEndBracket &gt; 0</ExpressionPriority1>
+    <ExpressionPriority2>false</ExpressionPriority2>
+    <ExpressionPriority3>false</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_D3dCpu_TooManyDrawCalls</Name>
+    <Category>D3D</Category>
+    <ExpressionPriority1>D3D.DrawApiCalls &gt; 10000</ExpressionPriority1>
+    <ExpressionPriority2>D3D.DrawApiCalls &gt; 6000</ExpressionPriority2>
+    <ExpressionPriority3>D3D.DrawApiCalls &gt; 3000</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_D3dCpu_FrameTooLong</Name>
+    <Category>D3D</Category>
+    <ExpressionPriority1>D3D.CpuFrameTimeMS &gt; 100</ExpressionPriority1>
+    <ExpressionPriority2>D3D.CpuFrameTimeMS &gt; 75</ExpressionPriority2>
+    <ExpressionPriority3>D3D.CpuFrameTimeMS &gt; 50</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_D3dCpu_FrameWayTooLong</Name>
+    <Category>D3D</Category>
+    <ExpressionPriority1>D3D.CpuFrameTimeMS &gt; 200</ExpressionPriority1>
+    <ExpressionPriority2>false</ExpressionPriority2>
+    <ExpressionPriority3>false</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_D3dCpu_TooManyKickOffs</Name>
+    <Category>D3D</Category>
+    <ExpressionPriority1>D3D.KickOffs &gt; 500</ExpressionPriority1>
+    <ExpressionPriority2>D3D.KickOffs &gt; 200</ExpressionPriority2>
+    <ExpressionPriority3>D3D.KickOffs &gt; 100</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_Odd_OversizedLayout</Name>
+    <Category>ODD</Category>
+    <ExpressionPriority1>ODD.HeadPos == 100</ExpressionPriority1>
+    <ExpressionPriority2>false</ExpressionPriority2>
+    <ExpressionPriority3>false</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_Odd_InefficientDriveUtilization</Name>
+    <Category>ODD</Category>
+    <ExpressionPriority1>false</ExpressionPriority1>
+    <ExpressionPriority2>ODD.HeadPos != 100 &amp;&amp; ODD.PercentODDSeek &gt; 50 &amp;&amp; ODD.PercentODDUtilization &gt; 70</ExpressionPriority2>
+    <ExpressionPriority3>false</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_SysMon_BufferOverrun</Name>
+    <Category>System Monitor</Category>
+    <ExpressionPriority1>SysMon.MissedDataTypes &gt; 0</ExpressionPriority1>
+    <ExpressionPriority2>false</ExpressionPriority2>
+    <ExpressionPriority3>false</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_CxSw0_TooMany</Name>
+    <Category>Context Switches</Category>
+    <ExpressionPriority1>CPU.ContextSwitchRate0 &gt; 2000</ExpressionPriority1>
+    <ExpressionPriority2>CPU.ContextSwitchRate0 &gt; 1000</ExpressionPriority2>
+    <ExpressionPriority3>CPU.ContextSwitchRate0 &gt; 500</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_CxSw1_TooMany</Name>
+    <Category>Context Switches</Category>
+    <ExpressionPriority1>CPU.ContextSwitchRate1 &gt; 2000</ExpressionPriority1>
+    <ExpressionPriority2>CPU.ContextSwitchRate1 &gt; 1000</ExpressionPriority2>
+    <ExpressionPriority3>CPU.ContextSwitchRate1 &gt; 500</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_CxSw2_TooMany</Name>
+    <Category>Context Switches</Category>
+    <ExpressionPriority1>CPU.ContextSwitchRate2 &gt; 3000</ExpressionPriority1>
+    <ExpressionPriority2>CPU.ContextSwitchRate2 &gt; 1500</ExpressionPriority2>
+    <ExpressionPriority3>CPU.ContextSwitchRate2 &gt; 750</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_CxSw3_TooMany</Name>
+    <Category>Context Switches</Category>
+    <ExpressionPriority1>CPU.ContextSwitchRate3 &gt; 2000</ExpressionPriority1>
+    <ExpressionPriority2>CPU.ContextSwitchRate3 &gt; 1000</ExpressionPriority2>
+    <ExpressionPriority3>CPU.ContextSwitchRate3 &gt; 500</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_CxSw4_TooMany</Name>
+    <Category>Context Switches</Category>
+    <ExpressionPriority1>CPU.ContextSwitchRate4 &gt; 4000</ExpressionPriority1>
+    <ExpressionPriority2>CPU.ContextSwitchRate4 &gt; 2500</ExpressionPriority2>
+    <ExpressionPriority3>CPU.ContextSwitchRate4 &gt; 1500</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_CxSw5_TooMany</Name>
+    <Category>Context Switches</Category>
+    <ExpressionPriority1>CPU.ContextSwitchRate5 &gt; 2000</ExpressionPriority1>
+    <ExpressionPriority2>CPU.ContextSwitchRate5 &gt; 1000</ExpressionPriority2>
+    <ExpressionPriority3>CPU.ContextSwitchRate5 &gt; 500</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_Streaming_Blocked</Name>
+    <Category>System Monitor</Category>
+    <ExpressionPriority1>SysMon.CCBlocked &gt; 0</ExpressionPriority1>
+    <ExpressionPriority2>false</ExpressionPriority2>
+    <ExpressionPriority3>false</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_SystemContention_TooHigh</Name>
+    <Category>Common</Category>
+    <ExpressionPriority1>CPU.PercentSpinContention &gt; 30</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentSpinContention &gt; 10</ExpressionPriority2>
+    <ExpressionPriority3>false</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_CriticalSectionBlockedThreads_TooHigh</Name>
+    <Category>Common</Category>
+    <ExpressionPriority1>CPU.CriticalSectionBlockedCounter &gt; 4</ExpressionPriority1>
+    <ExpressionPriority2>CPU.CriticalSectionBlockedCounter &gt; 2</ExpressionPriority2>
+    <ExpressionPriority3>false</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_CriticalSectionBlockingThreads_TooHigh</Name>
+    <Category>Common</Category>
+    <ExpressionPriority1>CPU.CriticalSectionBlockingCounter &gt; 4</ExpressionPriority1>
+    <ExpressionPriority2>CPU.CriticalSectionBlockingCounter &gt; 2</ExpressionPriority2>
+    <ExpressionPriority3>false</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_XAudio2_GlitchEvent</Name>
+    <Category>XAudio2</Category>
+    <ExpressionPriority1>XAudio2.GlitchEvent &gt; 0</ExpressionPriority1>
+    <ExpressionPriority2>false</ExpressionPriority2>
+    <ExpressionPriority3>false</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_MEC_GlitchEvent</Name>
+    <Category>NUISpeech</Category>
+    <ExpressionPriority1>MEC.GlitchEvent &gt; 0</ExpressionPriority1>
+    <ExpressionPriority2>false</ExpressionPriority2>
+    <ExpressionPriority3>false</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_MEC_ResetEvent</Name>
+    <Category>NUISpeech</Category>
+    <ExpressionPriority1>MEC.ResetEvent &gt; 0</ExpressionPriority1>
+    <ExpressionPriority2>false</ExpressionPriority2>
+    <ExpressionPriority3>false</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread01L2DataMissesTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="PMCPB.Thread01L2DataMisses">%Thread0/1 (Core 0) L2 Cache Data Misses</Counter>
+    <ExpressionPriority1>PMCPB.Thread01L2DataMisses &gt; 40</ExpressionPriority1>
+    <ExpressionPriority2>PMCPB.Thread01L2DataMisses &gt; 30</ExpressionPriority2>
+    <ExpressionPriority3>PMCPB.Thread01L2DataMisses &gt; 20</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread23L2DataMissesTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="PMCPB.Thread23L2DataMisses">%Thread2/3 (Core 1) L2 Cache Data Misses</Counter>
+    <ExpressionPriority1>PMCPB.Thread23L2DataMisses &gt; 40</ExpressionPriority1>
+    <ExpressionPriority2>PMCPB.Thread23L2DataMisses &gt; 30</ExpressionPriority2>
+    <ExpressionPriority3>PMCPB.Thread23L2DataMisses &gt; 20</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread45L2DataMissesTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="PMCPB.Thread45L2DataMisses">%Thread4/5 (Core 2) L2 Cache Data Misses</Counter>
+    <ExpressionPriority1>PMCPB.Thread45L2DataMisses &gt; 40</ExpressionPriority1>
+    <ExpressionPriority2>PMCPB.Thread45L2DataMisses &gt; 30</ExpressionPriority2>
+    <ExpressionPriority3>PMCPB.Thread45L2DataMisses &gt; 20</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread01TLBMissesTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="PMCPB.Thread01TLBMisses">Thread0/1 (Core 0) TLB Misses</Counter>
+    <ExpressionPriority1>PMCPB.Thread01TLBMisses &gt; 2000</ExpressionPriority1>
+    <ExpressionPriority2>PMCPB.Thread01TLBMisses &gt; 1400</ExpressionPriority2>
+    <ExpressionPriority3>PMCPB.Thread01TLBMisses &gt; 700</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread23TLBMissesTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="PMCPB.Thread23TLBMisses">Thread2/3 (Core 1) TLB Misses</Counter>
+    <ExpressionPriority1>PMCPB.Thread23TLBMisses &gt; 2000</ExpressionPriority1>
+    <ExpressionPriority2>PMCPB.Thread23TLBMisses &gt; 1400</ExpressionPriority2>
+    <ExpressionPriority3>PMCPB.Thread23TLBMisses &gt; 700</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread45TLBMissesTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="PMCPB.Thread45TLBMisses">Thread4/5 (Core 2) TLB Misses</Counter>
+    <ExpressionPriority1>PMCPB.Thread45TLBMisses &gt; 2000</ExpressionPriority1>
+    <ExpressionPriority2>PMCPB.Thread45TLBMisses &gt; 1400</ExpressionPriority2>
+    <ExpressionPriority3>PMCPB.Thread45TLBMisses &gt; 700</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread0DERATMissesTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread0Idle">%Thread0 Idle</Counter>
+    <Counter StringID="PMCPB.PercentThread0DERATMisses">%Thread0 D-ERAT Misses</Counter>
+    <ExpressionPriority1>CPU.PercentThread0Idle &lt; 20 &amp;&amp; PMCPB.PercentThread0DERATMisses &gt; 20</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread0Idle &lt; 20 &amp;&amp; PMCPB.PercentThread0DERATMisses &gt; 16</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread0Idle &lt; 20 &amp;&amp; PMCPB.PercentThread0DERATMisses &gt; 12</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread1DERATMissesTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread1Idle">%Thread1 Idle</Counter>
+    <Counter StringID="PMCPB.PercentThread1DERATMisses">%Thread1 D-ERAT Misses</Counter>
+    <ExpressionPriority1>CPU.PercentThread1Idle &lt; 20 &amp;&amp; PMCPB.PercentThread1DERATMisses &gt; 20</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread1Idle &lt; 20 &amp;&amp; PMCPB.PercentThread1DERATMisses &gt; 16</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread1Idle &lt; 20 &amp;&amp; PMCPB.PercentThread1DERATMisses &gt; 12</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread2DERATMissesTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread2Idle">%Thread2 Idle</Counter>
+    <Counter StringID="PMCPB.PercentThread2DERATMisses">%Thread2 D-ERAT Misses</Counter>
+    <ExpressionPriority1>CPU.PercentThread2Idle &lt; 20 &amp;&amp; PMCPB.PercentThread2DERATMisses &gt; 20</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread2Idle &lt; 20 &amp;&amp; PMCPB.PercentThread2DERATMisses &gt; 16</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread2Idle &lt; 20 &amp;&amp; PMCPB.PercentThread2DERATMisses &gt; 12</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread3DERATMissesTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread3Idle">%Thread3 Idle</Counter>
+    <Counter StringID="PMCPB.PercentThread3DERATMisses">%Thread3 D-ERAT Misses</Counter>
+    <ExpressionPriority1>CPU.PercentThread3Idle &lt; 20 &amp;&amp; PMCPB.PercentThread3DERATMisses &gt; 20</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread3Idle &lt; 20 &amp;&amp; PMCPB.PercentThread3DERATMisses &gt; 16</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread3Idle &lt; 20 &amp;&amp; PMCPB.PercentThread3DERATMisses &gt; 12</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread4DERATMissesTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread4Idle">%Thread4 Idle</Counter>
+    <Counter StringID="PMCPB.PercentThread4DERATMisses">%Thread4 D-ERAT Misses</Counter>
+    <ExpressionPriority1>CPU.PercentThread4Idle &lt; 20 &amp;&amp; PMCPB.PercentThread4DERATMisses &gt; 20</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread4Idle &lt; 20 &amp;&amp; PMCPB.PercentThread4DERATMisses &gt; 16</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread4Idle &lt; 20 &amp;&amp; PMCPB.PercentThread4DERATMisses &gt; 12</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread5DERATMissesTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread5Idle">%Thread5 Idle</Counter>
+    <Counter StringID="PMCPB.PercentThread5DERATMisses">%Thread5 D-ERAT Misses</Counter>
+    <ExpressionPriority1>CPU.PercentThread5Idle &lt; 20 &amp;&amp; PMCPB.PercentThread5DERATMisses &gt; 20</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread5Idle &lt; 20 &amp;&amp; PMCPB.PercentThread5DERATMisses &gt; 16</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread5Idle &lt; 20 &amp;&amp; PMCPB.PercentThread5DERATMisses &gt; 12</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread0ICacheMissCyclesTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread0Idle">%Thread0 Idle</Counter>
+    <Counter StringID="PMCPB.PercentThread0ICacheMissCycles">%Thread0 I-Cache Miss Cycles</Counter>
+    <ExpressionPriority1>CPU.PercentThread0Idle &lt; 20 &amp;&amp; PMCPB.PercentThread0ICacheMissCycles &gt; 13</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread0Idle &lt; 20 &amp;&amp; PMCPB.PercentThread0ICacheMissCycles &gt; 10</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread0Idle &lt; 20 &amp;&amp; PMCPB.PercentThread0ICacheMissCycles &gt; 7</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread1ICacheMissCyclesTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread1Idle">%Thread1 Idle</Counter>
+    <Counter StringID="PMCPB.PercentThread1ICacheMissCycles">%Thread1 I-Cache Miss Cycles</Counter>
+    <ExpressionPriority1>CPU.PercentThread1Idle &lt; 20 &amp;&amp; PMCPB.PercentThread1ICacheMissCycles &gt; 13</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread1Idle &lt; 20 &amp;&amp; PMCPB.PercentThread1ICacheMissCycles &gt; 10</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread1Idle &lt; 20 &amp;&amp; PMCPB.PercentThread1ICacheMissCycles &gt; 7</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread2ICacheMissCyclesTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread2Idle">%Thread2 Idle</Counter>
+    <Counter StringID="PMCPB.PercentThread2ICacheMissCycles">%Thread2 I-Cache Miss Cycles</Counter>
+    <ExpressionPriority1>CPU.PercentThread2Idle &lt; 20 &amp;&amp; PMCPB.PercentThread2ICacheMissCycles &gt; 13</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread2Idle &lt; 20 &amp;&amp; PMCPB.PercentThread2ICacheMissCycles &gt; 10</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread2Idle &lt; 20 &amp;&amp; PMCPB.PercentThread2ICacheMissCycles &gt; 7</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread3ICacheMissCyclesTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread3Idle">%Thread3 Idle</Counter>
+    <Counter StringID="PMCPB.PercentThread3ICacheMissCycles">%Thread3 I-Cache Miss Cycles</Counter>
+    <ExpressionPriority1>CPU.PercentThread3Idle &lt; 20 &amp;&amp; PMCPB.PercentThread3ICacheMissCycles &gt; 13</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread3Idle &lt; 20 &amp;&amp; PMCPB.PercentThread3ICacheMissCycles &gt; 10</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread3Idle &lt; 20 &amp;&amp; PMCPB.PercentThread3ICacheMissCycles &gt; 7</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread4ICacheMissCyclesTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread4Idle">%Thread4 Idle</Counter>
+    <Counter StringID="PMCPB.PercentThread4ICacheMissCycles">%Thread4 I-Cache Miss Cycles</Counter>
+    <ExpressionPriority1>CPU.PercentThread4Idle &lt; 20 &amp;&amp; PMCPB.PercentThread4ICacheMissCycles &gt; 13</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread4Idle &lt; 20 &amp;&amp; PMCPB.PercentThread4ICacheMissCycles &gt; 10</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread4Idle &lt; 20 &amp;&amp; PMCPB.PercentThread4ICacheMissCycles &gt; 7</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread5ICacheMissCyclesTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread5Idle">%Thread5 Idle</Counter>
+    <Counter StringID="PMCPB.PercentThread5ICacheMissCycles">%Thread5 I-Cache Miss Cycles</Counter>
+    <ExpressionPriority1>CPU.PercentThread5Idle &lt; 20 &amp;&amp; PMCPB.PercentThread5ICacheMissCycles &gt; 13</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread5Idle &lt; 20 &amp;&amp; PMCPB.PercentThread5ICacheMissCycles &gt; 10</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread5Idle &lt; 20 &amp;&amp; PMCPB.PercentThread5ICacheMissCycles &gt; 7</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread0InstructionsPerCycleTooLow</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread0Idle">%Thread0 Idle</Counter>
+    <Counter StringID="PMCPB.Thread0InstructionsPerCycle">Thread0 Instructions Per Cycle</Counter>
+    <ExpressionPriority1>CPU.PercentThread0Idle &lt; 20 &amp;&amp; PMCPB.Thread0InstructionsPerCycle &lt; 0.1</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread0Idle &lt; 20 &amp;&amp; PMCPB.Thread0InstructionsPerCycle &lt; 0.15</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread0Idle &lt; 20 &amp;&amp; PMCPB.Thread0InstructionsPerCycle &lt; 0.2</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread1InstructionsPerCycleTooLow</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread1Idle">%Thread1 Idle</Counter>
+    <Counter StringID="PMCPB.Thread1InstructionsPerCycle">Thread1 Instructions Per Cycle</Counter>
+    <ExpressionPriority1>CPU.PercentThread1Idle &lt; 20 &amp;&amp; PMCPB.Thread1InstructionsPerCycle &lt; 0.1</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread1Idle &lt; 20 &amp;&amp; PMCPB.Thread1InstructionsPerCycle &lt; 0.15</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread1Idle &lt; 20 &amp;&amp; PMCPB.Thread1InstructionsPerCycle &lt; 0.2</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread2InstructionsPerCycleTooLow</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread2Idle">%Thread2 Idle</Counter>
+    <Counter StringID="PMCPB.Thread2InstructionsPerCycle">Thread2 Instructions Per Cycle</Counter>
+    <ExpressionPriority1>CPU.PercentThread2Idle &lt; 20 &amp;&amp; PMCPB.Thread2InstructionsPerCycle &lt; 0.1</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread2Idle &lt; 20 &amp;&amp; PMCPB.Thread2InstructionsPerCycle &lt; 0.15</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread2Idle &lt; 20 &amp;&amp; PMCPB.Thread2InstructionsPerCycle &lt; 0.2</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread3InstructionsPerCycleTooLow</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread3Idle">%Thread3 Idle</Counter>
+    <Counter StringID="PMCPB.Thread3InstructionsPerCycle">Thread3 Instructions Per Cycle</Counter>
+    <ExpressionPriority1>CPU.PercentThread3Idle &lt; 20 &amp;&amp; PMCPB.Thread3InstructionsPerCycle &lt; 0.1</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread3Idle &lt; 20 &amp;&amp; PMCPB.Thread3InstructionsPerCycle &lt; 0.15</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread3Idle &lt; 20 &amp;&amp; PMCPB.Thread3InstructionsPerCycle &lt; 0.2</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread4InstructionsPerCycleTooLow</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread4Idle">%Thread4 Idle</Counter>
+    <Counter StringID="PMCPB.Thread4InstructionsPerCycle">Thread4 Instructions Per Cycle</Counter>
+    <ExpressionPriority1>CPU.PercentThread4Idle &lt; 20 &amp;&amp; PMCPB.Thread4InstructionsPerCycle &lt; 0.1</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread4Idle &lt; 20 &amp;&amp; PMCPB.Thread4InstructionsPerCycle &lt; 0.15</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread4Idle &lt; 20 &amp;&amp; PMCPB.Thread4InstructionsPerCycle &lt; 0.2</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread5InstructionsPerCycleTooLow</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread5Idle">%Thread5 Idle</Counter>
+    <Counter StringID="PMCPB.Thread5InstructionsPerCycle">Thread5 Instructions Per Cycle</Counter>
+    <ExpressionPriority1>CPU.PercentThread5Idle &lt; 20 &amp;&amp; PMCPB.Thread5InstructionsPerCycle &lt; 0.1</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread5Idle &lt; 20 &amp;&amp; PMCPB.Thread5InstructionsPerCycle &lt; 0.15</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread5Idle &lt; 20 &amp;&amp; PMCPB.Thread5InstructionsPerCycle &lt; 0.2</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread0L1MissesTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread0Idle">%Thread0 Idle</Counter>
+    <Counter StringID="PMCPB.PercentThread0L1Misses">%Thread0 L1 misses</Counter>
+    <ExpressionPriority1>CPU.PercentThread0Idle &lt; 20 &amp;&amp; PMCPB.PercentThread0L1Misses &gt; 25</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread0Idle &lt; 20 &amp;&amp; PMCPB.PercentThread0L1Misses &gt; 20</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread0Idle &lt; 20 &amp;&amp; PMCPB.PercentThread0L1Misses &gt; 15</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread1L1MissesTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread1Idle">%Thread1 Idle</Counter>
+    <Counter StringID="PMCPB.PercentThread1L1Misses">%Thread1 L1 misses</Counter>
+    <ExpressionPriority1>CPU.PercentThread1Idle &lt; 20 &amp;&amp; PMCPB.PercentThread1L1Misses &gt; 25</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread1Idle &lt; 20 &amp;&amp; PMCPB.PercentThread1L1Misses &gt; 20</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread1Idle &lt; 20 &amp;&amp; PMCPB.PercentThread1L1Misses &gt; 15</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread2L1MissesTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread2Idle">%Thread2 Idle</Counter>
+    <Counter StringID="PMCPB.PercentThread2L1Misses">%Thread2 L1 misses</Counter>
+    <ExpressionPriority1>CPU.PercentThread2Idle &lt; 20 &amp;&amp; PMCPB.PercentThread2L1Misses &gt; 25</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread2Idle &lt; 20 &amp;&amp; PMCPB.PercentThread2L1Misses &gt; 20</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread2Idle &lt; 20 &amp;&amp; PMCPB.PercentThread2L1Misses &gt; 15</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread3L1MissesTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread3Idle">%Thread3 Idle</Counter>
+    <Counter StringID="PMCPB.PercentThread3L1Misses">%Thread3 L1 misses</Counter>
+    <ExpressionPriority1>CPU.PercentThread3Idle &lt; 20 &amp;&amp; PMCPB.PercentThread3L1Misses &gt; 25</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread3Idle &lt; 20 &amp;&amp; PMCPB.PercentThread3L1Misses &gt; 20</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread3Idle &lt; 20 &amp;&amp; PMCPB.PercentThread3L1Misses &gt; 15</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread4L1MissesTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread4Idle">%Thread4 Idle</Counter>
+    <Counter StringID="PMCPB.PercentThread4L1Misses">%Thread4 L1 misses</Counter>
+    <ExpressionPriority1>CPU.PercentThread4Idle &lt; 20 &amp;&amp; PMCPB.PercentThread4L1Misses &gt; 25</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread4Idle &lt; 20 &amp;&amp; PMCPB.PercentThread4L1Misses &gt; 20</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread4Idle &lt; 20 &amp;&amp; PMCPB.PercentThread4L1Misses &gt; 15</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread5L1MissesTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread5Idle">%Thread5 Idle</Counter>
+    <Counter StringID="PMCPB.PercentThread5L1Misses">%Thread5 L1 misses</Counter>
+    <ExpressionPriority1>CPU.PercentThread5Idle &lt; 20 &amp;&amp; PMCPB.PercentThread5L1Misses &gt; 25</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread5Idle &lt; 20 &amp;&amp; PMCPB.PercentThread5L1Misses &gt; 20</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread5Idle &lt; 20 &amp;&amp; PMCPB.PercentThread5L1Misses &gt; 15</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread0LHSTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread0Idle">%Thread0 Idle</Counter>
+    <Counter StringID="PMCPB.PercentThread0LHS">%Thread0 Load-Hit-Stores</Counter>
+    <ExpressionPriority1>CPU.PercentThread0Idle &lt; 20 &amp;&amp; PMCPB.PercentThread0LHS &gt; 20</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread0Idle &lt; 20 &amp;&amp; PMCPB.PercentThread0LHS &gt; 16</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread0Idle &lt; 20 &amp;&amp; PMCPB.PercentThread0LHS &gt; 12</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread1LHSTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread1Idle">%Thread1 Idle</Counter>
+    <Counter StringID="PMCPB.PercentThread1LHS">%Thread1 Load-Hit-Stores</Counter>
+    <ExpressionPriority1>CPU.PercentThread1Idle &lt; 20 &amp;&amp; PMCPB.PercentThread1LHS &gt; 20</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread1Idle &lt; 20 &amp;&amp; PMCPB.PercentThread1LHS &gt; 16</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread1Idle &lt; 20 &amp;&amp; PMCPB.PercentThread1LHS &gt; 12</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread2LHSTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread2Idle">%Thread2 Idle</Counter>
+    <Counter StringID="PMCPB.PercentThread2LHS">%Thread2 Load-Hit-Stores</Counter>
+    <ExpressionPriority1>CPU.PercentThread2Idle &lt; 20 &amp;&amp; PMCPB.PercentThread2LHS &gt; 20</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread2Idle &lt; 20 &amp;&amp; PMCPB.PercentThread2LHS &gt; 16</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread2Idle &lt; 20 &amp;&amp; PMCPB.PercentThread2LHS &gt; 12</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread3LHSTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread3Idle">%Thread3 Idle</Counter>
+    <Counter StringID="PMCPB.PercentThread3LHS">%Thread3 Load-Hit-Stores</Counter>
+    <ExpressionPriority1>CPU.PercentThread3Idle &lt; 20 &amp;&amp; PMCPB.PercentThread3LHS &gt; 20</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread3Idle &lt; 20 &amp;&amp; PMCPB.PercentThread3LHS &gt; 16</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread3Idle &lt; 20 &amp;&amp; PMCPB.PercentThread3LHS &gt; 12</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread4LHSTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread4Idle">%Thread4 Idle</Counter>
+    <Counter StringID="PMCPB.PercentThread4LHS">%Thread4 Load-Hit-Stores</Counter>
+    <ExpressionPriority1>CPU.PercentThread4Idle &lt; 20 &amp;&amp; PMCPB.PercentThread4LHS &gt; 20</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread4Idle &lt; 20 &amp;&amp; PMCPB.PercentThread4LHS &gt; 16</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread4Idle &lt; 20 &amp;&amp; PMCPB.PercentThread4LHS &gt; 12</ExpressionPriority3>
+  </Warning>
+  <Warning>
+    <Name>DrPix_PMCPB_Thread5LHSTooHigh</Name>
+    <Category>PMCPB</Category>
+    <Counter StringID="CPU.PercentThread5Idle">%Thread5 Idle</Counter>
+    <Counter StringID="PMCPB.PercentThread5LHS">%Thread5 Load-Hit-Stores</Counter>
+    <ExpressionPriority1>CPU.PercentThread5Idle &lt; 20 &amp;&amp; PMCPB.PercentThread5LHS &gt; 20</ExpressionPriority1>
+    <ExpressionPriority2>CPU.PercentThread5Idle &lt; 20 &amp;&amp; PMCPB.PercentThread5LHS &gt; 16</ExpressionPriority2>
+    <ExpressionPriority3>CPU.PercentThread5Idle &lt; 20 &amp;&amp; PMCPB.PercentThread5LHS &gt; 12</ExpressionPriority3>
+  </Warning>
+</Warnings>

@@ -417,6 +417,13 @@ void GridMenu::Render()
         return;
     }
 
+    // Ensure correct textures are bound to our slots right before rendering
+    if (m_spriteRenderer) {
+        m_spriteRenderer->SetTextureSlot(m_backgroundSlot, m_backgroundTexture);
+        m_spriteRenderer->SetTextureSlot(m_cellSlot, m_cellBackgroundTexture);
+        m_spriteRenderer->SetTextureSlot(m_atlasSlot, m_atlasTexture);
+    }
+
     float menuLeft = m_screenX - (m_menuWidth * 0.5f);
     float menuTop = m_screenY - (m_menuHeight * 0.5f);
     float cellSpacingX = m_cellSpacingX;
@@ -528,7 +535,7 @@ void GridMenu::Render()
         }
     }
 
-    // 4. Selected cell highlight (только один раз!)
+    // 4. Selected cell highlight (пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅ!)
     if (m_selectedIndex >= 0 && m_selectedIndex < totalSprites) {
         int selRow = m_selectedIndex / kGridCols;
         int selCol = m_selectedIndex % kGridCols;

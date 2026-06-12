@@ -1,0 +1,47 @@
+IFETCH : Cycle = 2 : Addresss = 1000 : Fetch Addresss = 1000 : ID = 0 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1
+IFETCH : L1 Hit : Cycle = 2 : ID = 0
+IFETCH : Cycle = 4 : Addresss = 1010 : Fetch Addresss = 1010 : ID = 1 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1
+IFETCH : L1 Hit : Cycle = 4 : ID = 1
+DISPATCH : Cycle = 8 : Instruction = 1.0.0 : PC = 1000 : Addr = 0 : Mnemonic = vperm V5, V6, V7, V8 : Opcode = 10a63a2b
+DISPATCH : Cycle = 8 : Instruction = 2.0.0 : PC = 1004 : Addr = 0 : Mnemonic = vmaddfp128 V0, V1, V0, V32 : Opcode = 140100d1
+DISPATCH : Cycle = 9 : Instruction = 3.0.0 : PC = 1008 : Addr = 0 : Mnemonic = vmsum4fp128 V1, V2, V3 : Opcode = 142219d0
+DISPATCH : Cycle = 9 : Instruction = 4.0.0 : PC = 100c : Addr = 0 : Mnemonic = vmaddcfp128 V6, V32, V33, V6 : Opcode = 14c00931
+DISPATCH : Cycle = 10 : Instruction = 5.0.0 : PC = 1010 : Addr = 0 : Mnemonic = vmaddcfp128 V6, V34, V35, V6 : Opcode = 14c21931
+DISPATCH : Cycle = 10 : Instruction = 6.0.0 : PC = 1014 : Addr = 0 : Mnemonic = vmaddcfp128 V6, V36, V37, V6 : Opcode = 14c42931
+DISPATCH : Cycle = 11 : Instruction = 7.0.0 : PC = 1018 : Addr = 0 : Mnemonic = vmsum4fp128 V6, V6, V3 : Opcode = 14c619d0
+DISPATCH : Cycle = 11 : Instruction = 8.0.0 : PC = 101c : Addr = 0 : Mnemonic = vperm V2, V6, V6, V4 : Opcode = 1046312b
+ISSUE-IS2 : Cycle = 13 : Instruction = 1.0.0 : PC = 1000 : Addr = 0 : Mnemonic = vperm V5, V6, V7, V8 : Pipeline = VMX_VUP
+ISSUE-IS2 : Cycle = 13 : Instruction = 2.0.0 : PC = 1004 : Addr = 0 : Mnemonic = vmaddfp128 V0, V1, V0, V32 : Pipeline = VMX_VUS
+ISSUE-IS2 : Cycle = 14 : Instruction = 3.0.0 : PC = 1008 : Addr = 0 : Mnemonic = vmsum4fp128 V1, V2, V3 : Pipeline = VMX_VUS
+ISSUE-IS2 : Cycle = 14 : Instruction = 4.0.0 : PC = 100c : Addr = 0 : Mnemonic = vmaddcfp128 V6, V32, V33, V6 : Pipeline = VMX_VUS
+ISSUE-IS2 : Cycle = 15 : Instruction = 5.0.0 : PC = 1010 : Addr = 0 : Mnemonic = vmaddcfp128 V6, V34, V35, V6 : Pipeline = VMX_VUS
+ISSUE-IS2 : Cycle = 15 : Instruction = 6.0.0 : PC = 1014 : Addr = 0 : Mnemonic = vmaddcfp128 V6, V36, V37, V6 : Pipeline = VMX_VUS
+ISSUE-IS2 : Cycle = 16 : Instruction = 7.0.0 : PC = 1018 : Addr = 0 : Mnemonic = vmsum4fp128 V6, V6, V3 : Pipeline = VMX_VUS
+ISSUE-IS2 : Cycle = 16 : Instruction = 8.0.0 : PC = 101c : Addr = 0 : Mnemonic = vperm V2, V6, V6, V4 : Pipeline = VMX_VUP
+ISSUE-VQ8 : Cycle = 22 : Instruction = 1.0.0 : PC = 1000 : Addr = 0 : Mnemonic = vperm V5, V6, V7, V8 : Pipeline = VMX_VUP
+ISSUE-VQ8 : Cycle = 22 : Instruction = 2.0.0 : PC = 1004 : Addr = 0 : Mnemonic = vmaddfp128 V0, V1, V0, V32 : Pipeline = VMX_VUS
+ISSUE-VQ8 : Cycle = 23 : Instruction = 3.0.0 : PC = 1008 : Addr = 0 : Mnemonic = vmsum4fp128 V1, V2, V3 : Pipeline = VMX_VUS
+COMPLETION-IS2 : Cycle = 24 : Instruction = 1.0.0 : PC = 1000 : Mnemonic = vperm V5, V6, V7, V8 : Pipeline = VMX_VUP
+COMPLETION-IS2 : Cycle = 24 : Instruction = 2.0.0 : PC = 1004 : Mnemonic = vmaddfp128 V0, V1, V0, V32 : Pipeline = VMX_VUS
+ISSUE-VQ8 : Cycle = 24 : Instruction = 4.0.0 : PC = 100c : Addr = 0 : Mnemonic = vmaddcfp128 V6, V32, V33, V6 : Pipeline = VMX_VUS
+COMPLETION-IS2 : Cycle = 25 : Instruction = 3.0.0 : PC = 1008 : Mnemonic = vmsum4fp128 V1, V2, V3 : Pipeline = VMX_VUS
+COMPLETION-IS2 : Cycle = 25 : Instruction = 4.0.0 : PC = 100c : Mnemonic = vmaddcfp128 V6, V32, V33, V6 : Pipeline = VMX_VUS
+COMPLETION-IS2 : Cycle = 26 : Instruction = 5.0.0 : PC = 1010 : Mnemonic = vmaddcfp128 V6, V34, V35, V6 : Pipeline = VMX_VUS
+COMPLETION-IS2 : Cycle = 26 : Instruction = 6.0.0 : PC = 1014 : Mnemonic = vmaddcfp128 V6, V36, V37, V6 : Pipeline = VMX_VUS
+COMPLETION-IS2 : Cycle = 27 : Instruction = 7.0.0 : PC = 1018 : Mnemonic = vmsum4fp128 V6, V6, V3 : Pipeline = VMX_VUS
+COMPLETION-IS2 : Cycle = 27 : Instruction = 8.0.0 : PC = 101c : Mnemonic = vperm V2, V6, V6, V4 : Pipeline = VMX_VUP
+COMPLETION-VQ8 : Cycle = 34 : Instruction = 1.0.0 : PC = 1000 : Mnemonic = vperm V5, V6, V7, V8 : Pipeline = VMX_VUP
+COMPLETION-VQ8 : Cycle = 34 : Instruction = 2.0.0 : PC = 1004 : Mnemonic = vmaddfp128 V0, V1, V0, V32 : Pipeline = VMX_VUS
+COMPLETION-VQ8 : Cycle = 35 : Instruction = 3.0.0 : PC = 1008 : Mnemonic = vmsum4fp128 V1, V2, V3 : Pipeline = VMX_VUS
+COMPLETION-VQ8 : Cycle = 36 : Instruction = 4.0.0 : PC = 100c : Mnemonic = vmaddcfp128 V6, V32, V33, V6 : Pipeline = VMX_VUS
+ISSUE-VQ8 : Cycle = 36 : Instruction = 5.0.0 : PC = 1010 : Addr = 0 : Mnemonic = vmaddcfp128 V6, V34, V35, V6 : Pipeline = VMX_VUS
+COMPLETION-VQ8 : Cycle = 48 : Instruction = 5.0.0 : PC = 1010 : Mnemonic = vmaddcfp128 V6, V34, V35, V6 : Pipeline = VMX_VUS
+ISSUE-VQ8 : Cycle = 48 : Instruction = 6.0.0 : PC = 1014 : Addr = 0 : Mnemonic = vmaddcfp128 V6, V36, V37, V6 : Pipeline = VMX_VUS
+COMPLETION-VQ8 : Cycle = 60 : Instruction = 6.0.0 : PC = 1014 : Mnemonic = vmaddcfp128 V6, V36, V37, V6 : Pipeline = VMX_VUS
+ISSUE-VQ8 : Cycle = 60 : Instruction = 7.0.0 : PC = 1018 : Addr = 0 : Mnemonic = vmsum4fp128 V6, V6, V3 : Pipeline = VMX_VUS
+COMPLETION-VQ8 : Cycle = 72 : Instruction = 7.0.0 : PC = 1018 : Mnemonic = vmsum4fp128 V6, V6, V3 : Pipeline = VMX_VUS
+ISSUE-VQ8 : Cycle = 74 : Instruction = 8.0.0 : PC = 101c : Addr = 0 : Mnemonic = vperm V2, V6, V6, V4 : Pipeline = VMX_VUP
+COMPLETION-VQ8 : Cycle = 86 : Instruction = 8.0.0 : PC = 101c : Mnemonic = vperm V2, V6, V6, V4 : Pipeline = VMX_VUP
+Report for ACTUALL2 of type TYPE_TARPIT
+	Latency = 20.000000
+End report for ACTUALL2

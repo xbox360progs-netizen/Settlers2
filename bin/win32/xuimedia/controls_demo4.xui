@@ -1,0 +1,218 @@
+<XuiCanvas version="000c">
+<Properties>
+<Width>640.000000</Width>
+<Height>480.000000</Height>
+</Properties>
+<XuiFigure>
+<Properties>
+<Width>640.000000</Width>
+<Height>480.000000</Height>
+<Stroke>
+<Properties>
+<StrokeColor>0xff0f0f80</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>4,0.000000,0.000000,0.000000,0.000000,640.000000,0.000000,0,640.000000,0.000000,640.000000,0.000000,640.000000,480.000000,0,640.000000,480.000000,640.000000,480.000000,0.000000,480.000000,0,0.000000,480.000000,0.000000,480.000000,0.000000,0.000000,0,</Points>
+</Properties>
+</XuiFigure>
+<XuiScene>
+<Properties>
+<Id>XuiScene1</Id>
+<Width>592.000000</Width>
+<Height>432.000000</Height>
+<Position>24.000000,24.000000,0.000000</Position>
+<Text>Controls Demo: Scenes</Text>
+</Properties>
+<XuiFigure>
+<Properties>
+<Width>369.000000</Width>
+<Height>2.000000</Height>
+<Position>111.000000,40.000000,0.000000</Position>
+<Stroke>
+<Properties>
+<StrokeColor>0xff0f0f80</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillColor>0xff0f0f0f</FillColor>
+<Gradient>
+<Properties>
+<NumStops>1</NumStops>
+<StopColor index="0">0x00000000</StopColor>
+<StopPos index="0">0.000000</StopPos>
+</Properties>
+</Gradient>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>4,0.000000,0.000000,0.000000,0.000000,456.000000,0.000000,0,456.000000,0.000000,456.000000,0.000000,456.000000,8.000000,0,456.000000,8.000000,456.000000,8.000000,0.000000,8.000000,0,0.000000,8.000000,0.000000,8.000000,0.000000,0.000000,0,</Points>
+</Properties>
+</XuiFigure>
+<XuiNavButton>
+<Properties>
+<Id>navNext1</Id>
+<Width>160.000000</Width>
+<Height>40.000000</Height>
+<Position>416.000000,376.000000,0.000000</Position>
+<Text>Continue</Text>
+<PressPath>controls_demo5.xur</PressPath>
+</Properties>
+</XuiNavButton>
+<XuiHtmlElement>
+<Properties>
+<Id>XuiHtmlElement1</Id>
+<Width>544.000000</Width>
+<Height>320.000000</Height>
+<Position>24.000000,56.000000,0.000000</Position>
+<Text>&lt;font color="#000000" size=11&gt;
+
+&lt;i&gt;&lt;b&gt;Scenes&lt;/b&gt;&lt;/i&gt; are the root of most work done in XuiTool.
+They are container controls, and will usually be the first thing you put into a new XUI file.
+For most purposes, a &lt;i&gt;&lt;b&gt;Scene&lt;/b&gt;&lt;/i&gt; could be thought of as a 'window'.
+
+&lt;br/&gt;
+&lt;font size=8&gt;
+&lt;br/&gt;
+&lt;/font&gt;
+
+&lt;table&gt;
+&lt;tr&gt;
+&lt;td width="4%"/&gt;
+&lt;td width="3%" bgcolor="#808080"/&gt;
+&lt;td width="86%" bgcolor="#808080"&gt;
+
+&lt;font size=5&gt;
+&lt;br/&gt;
+&lt;/font&gt;
+
+&lt;font color="#FFFFFF" size=10&gt;
+To add or edit controls within a container, you need to open it by either double-clicking on it or using the 'Object &gt; Open' menu option.
+
+&lt;font size=5&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;/font&gt;
+
+&lt;/font&gt;
+&lt;/td&gt;
+&lt;td width="3%" bgcolor="#808080"/&gt;
+&lt;td width="4%"/&gt;
+&lt;/tr&gt;
+&lt;/table&gt;
+
+&lt;font size=8&gt;
+&lt;br/&gt;
+&lt;/font&gt;
+
+&lt;i&gt;&lt;b&gt;Scenes&lt;/b&gt;&lt;/i&gt; also support transition animations from one to another.
+Using the timeline, you can specify ranges of frames for various transition states.
+These consist of &lt;i&gt;TransTo&lt;/i&gt;, &lt;i&gt;TransFrom&lt;/i&gt;, &lt;i&gt;TransBackTo&lt;/i&gt;, and &lt;i&gt;TransBackFrom&lt;/i&gt;.
+The &lt;i&gt;&lt;b&gt;Visual&lt;/b&gt;&lt;/i&gt; for a &lt;i&gt;&lt;b&gt;Scene&lt;/b&gt;&lt;/i&gt; also has these states... which allows for a more general purpose transition, such as alpha blending the whole &lt;i&gt;&lt;b&gt;Scene&lt;/b&gt;&lt;/i&gt;.
+
+&lt;br/&gt;
+&lt;font size=8&gt;
+&lt;br/&gt;
+&lt;/font&gt;
+
+&lt;table&gt;
+&lt;tr&gt;
+&lt;td width="4%"/&gt;
+&lt;td width="3%" bgcolor="#808080"/&gt;
+&lt;td width="86%" bgcolor="#808080"&gt;
+
+&lt;font size=5&gt;
+&lt;br/&gt;
+&lt;/font&gt;
+
+&lt;font color="#FFFFFF" size=10&gt;
+The &lt;i&gt;&lt;b&gt;Buttons&lt;/b&gt;&lt;/i&gt; at the bottom were animated with &lt;i&gt;TransTo&lt;/i&gt; frames.
+The &lt;i&gt;Visual Assistant&lt;/i&gt; (F9) can also help manage &lt;i&gt;&lt;b&gt;Scene&lt;/b&gt;&lt;/i&gt; transition frames.
+
+&lt;font size=5&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;/font&gt;
+
+&lt;/font&gt;
+&lt;/td&gt;
+&lt;td width="3%" bgcolor="#808080"/&gt;
+&lt;td width="4%"/&gt;
+&lt;/tr&gt;
+&lt;/table&gt;
+
+</Text>
+</Properties>
+</XuiHtmlElement>
+<XuiBackButton>
+<Properties>
+<Id>XuiBackButton1</Id>
+<Width>184.000000</Width>
+<Height>40.000000</Height>
+<Position>16.000000,376.000000,0.000000</Position>
+<DisableFocusRecursion>true</DisableFocusRecursion>
+<UnfocusedInput>true</UnfocusedInput>
+<Text>Back Button</Text>
+<PressKey>22593</PressKey>
+</Properties>
+</XuiBackButton>
+<Timelines>
+<NamedFrames>
+<NamedFrame>
+<Name>TransTo</Name>
+<Time>0</Time>
+</NamedFrame>
+<NamedFrame>
+<Name>EndTransTo</Name>
+<Time>79</Time>
+<Command>stop</Command>
+</NamedFrame>
+</NamedFrames>
+<Timeline>
+<Id>XuiBackButton1</Id>
+<TimelineProp>Position</TimelineProp>
+<KeyFrame>
+<Time>0</Time>
+<Interpolation>0</Interpolation>
+<Prop>16.000000,376.000000,0.000000</Prop>
+</KeyFrame>
+<KeyFrame>
+<Time>38</Time>
+<Interpolation>0</Interpolation>
+<Prop>400.000000,376.000000,0.000000</Prop>
+</KeyFrame>
+<KeyFrame>
+<Time>79</Time>
+<Interpolation>0</Interpolation>
+<Prop>16.000000,376.000000,0.000000</Prop>
+</KeyFrame>
+</Timeline>
+<Timeline>
+<Id>navNext1</Id>
+<TimelineProp>Position</TimelineProp>
+<KeyFrame>
+<Time>0</Time>
+<Interpolation>0</Interpolation>
+<Prop>416.000000,376.000000,0.000000</Prop>
+</KeyFrame>
+<KeyFrame>
+<Time>38</Time>
+<Interpolation>0</Interpolation>
+<Prop>16.000000,376.000000,0.000000</Prop>
+</KeyFrame>
+<KeyFrame>
+<Time>79</Time>
+<Interpolation>0</Interpolation>
+<Prop>416.000000,376.000000,0.000000</Prop>
+</KeyFrame>
+</Timeline>
+</Timelines>
+</XuiScene>
+</XuiCanvas>

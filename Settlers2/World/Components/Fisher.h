@@ -11,25 +11,21 @@ class Fisher : public Building {
 public:
     Fisher(int x, int y, uint8_t o, Map* m)
         : Building(BuildingType::Fisher, x, y, o, m) {
-        inputResources.push_back(ResourceType_Meat);
+        m_productionInterval = 4.0f;
         outputResources.push_back(ResourceType_Fish);
     }
 
-    void Update() override {
-        if (m_storage[ResourceType_Fish] >= 5) return;
-        if (m_storage[ResourceType_Meat] <= 0) return;
-
+    bool CanProduce() override {
         if (!m_hasTarget) {
             Logic::ResourceRegistry* registry = map ? map->GetResourceRegistry() : NULL;
-            if (registry) {
+            if (registry)
                 m_hasTarget = registry->FindNearestWorldResource(ResourceType_Fish, pos, m_target);
-            }
         }
+        return m_hasTarget && !IsOutputFull();
+    }
 
-        if (m_hasTarget) {
-            m_storage[ResourceType_Meat]--;
-            m_storage[ResourceType_Fish]++;
-        }
+    bool ProduceOne() override {
+        return AddOutput(ResourceType_Fish, 1);
     }
 };
 

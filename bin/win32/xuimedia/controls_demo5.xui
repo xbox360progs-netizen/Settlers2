@@ -1,0 +1,140 @@
+<XuiCanvas version="000c">
+<Properties>
+<Width>640.000000</Width>
+<Height>480.000000</Height>
+</Properties>
+<XuiFigure>
+<Properties>
+<Width>640.000000</Width>
+<Height>480.000000</Height>
+<Stroke>
+<Properties>
+<StrokeColor>0xff0f0f80</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillColor>0xff80800f</FillColor>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>4,0.000000,0.000000,0.000000,0.000000,640.000000,0.000000,0,640.000000,0.000000,640.000000,0.000000,640.000000,480.000000,0,640.000000,480.000000,640.000000,480.000000,0.000000,480.000000,0,0.000000,480.000000,0.000000,480.000000,0.000000,0.000000,0,</Points>
+</Properties>
+</XuiFigure>
+<XuiScene>
+<Properties>
+<Id>XuiScene1</Id>
+<Width>592.000000</Width>
+<Height>432.000000</Height>
+<Position>24.000000,24.000000,0.000000</Position>
+<Text>Controls Demo: Lists (Part 1)</Text>
+</Properties>
+<XuiFigure>
+<Properties>
+<Width>369.000000</Width>
+<Height>2.000000</Height>
+<Position>111.000000,40.000000,0.000000</Position>
+<Stroke>
+<Properties>
+<StrokeColor>0xff0f0f80</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillColor>0xff0f0f0f</FillColor>
+<Gradient>
+<Properties>
+<NumStops>1</NumStops>
+<StopColor index="0">0x00000000</StopColor>
+<StopPos index="0">0.000000</StopPos>
+</Properties>
+</Gradient>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>4,0.000000,0.000000,0.000000,0.000000,456.000000,0.000000,0,456.000000,0.000000,456.000000,0.000000,456.000000,8.000000,0,456.000000,8.000000,456.000000,8.000000,0.000000,8.000000,0,0.000000,8.000000,0.000000,8.000000,0.000000,0.000000,0,</Points>
+</Properties>
+</XuiFigure>
+<XuiNavButton>
+<Properties>
+<Id>navNext1</Id>
+<Width>160.000000</Width>
+<Height>40.000000</Height>
+<Position>416.000000,376.000000,0.000000</Position>
+<NavUp>XuiCommonList2</NavUp>
+<Text>Continue</Text>
+<PressPath>controls_demo6.xur</PressPath>
+</Properties>
+</XuiNavButton>
+<XuiHtmlElement>
+<Properties>
+<Id>XuiHtmlElement1</Id>
+<Width>544.000000</Width>
+<Height>312.000000</Height>
+<Position>24.000000,56.000000,0.000000</Position>
+<Text>&lt;font color="#000000" size=11&gt;
+
+&lt;i&gt;&lt;b&gt;List&lt;/b&gt;&lt;/i&gt; controls can take many shapes.
+The skinned &lt;i&gt;&lt;b&gt;Visual&lt;/b&gt;&lt;/i&gt; shows its flexibilty here by demonstrating several types of list, even though they are all the same class of control.
+Here are examples of vertical &lt;i&gt;&lt;b&gt;Lists&lt;/b&gt;&lt;/i&gt; with and without &lt;i&gt;&lt;b&gt;Scroll Bars&lt;/b&gt;&lt;/i&gt;:
+
+</Text>
+</Properties>
+</XuiHtmlElement>
+<XuiBackButton>
+<Properties>
+<Id>XuiBackButton1</Id>
+<Width>184.000000</Width>
+<Height>40.000000</Height>
+<Position>16.000000,376.000000,0.000000</Position>
+<DisableFocusRecursion>true</DisableFocusRecursion>
+<UnfocusedInput>true</UnfocusedInput>
+<Text>Back Button</Text>
+<PressKey>22593</PressKey>
+</Properties>
+</XuiBackButton>
+<XuiCommonList>
+<Properties>
+<Id>XuiCommonList1</Id>
+<Width>216.000000</Width>
+<Height>224.000000</Height>
+<Position>56.000000,136.000000,0.000000</Position>
+<NavRight>XuiCommonList2</NavRight>
+<NavDown>navNext1</NavDown>
+<ItemsText>Vertical 1
+Vertical 2
+Vertical 3
+Vertical 4
+Vertical 5
+Vertical 6
+Vertical 7
+Vertical 8
+Vertical 9
+</ItemsText>
+</Properties>
+</XuiCommonList>
+<XuiCommonList>
+<Properties>
+<Id>XuiCommonList2</Id>
+<Width>240.000000</Width>
+<Height>179.000000</Height>
+<Position>312.000000,149.000000,0.000000</Position>
+<Visual>XuiList_ScrollV</Visual>
+<NavLeft>XuiCommonList1</NavLeft>
+<NavDown>navNext1</NavDown>
+<ItemsText>Scrolling 1
+Scrolling 2
+Scrolling 3
+Scrolling 4
+Scrolling 5
+Scrolling 6
+Scrolling 7
+Scrolling 8
+Scrolling 9
+</ItemsText>
+</Properties>
+</XuiCommonList>
+</XuiScene>
+</XuiCanvas>

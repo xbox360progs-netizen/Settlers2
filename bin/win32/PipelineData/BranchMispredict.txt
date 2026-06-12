@@ -1,0 +1,174 @@
+IFETCH : Cycle = 2 : Addresss = 1000 : Fetch Addresss = 1000 : ID = 0 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1
+IFETCH : L1 Hit : Cycle = 2 : ID = 0
+IFETCH : Cycle = 4 : Addresss = 1010 : Fetch Addresss = 1010 : ID = 1 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1
+IFETCH : L1 Hit : Cycle = 4 : ID = 1
+IFETCH : Cycle = 6 : Addresss = 1020 : Fetch Addresss = 1020 : ID = 2 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1
+IFETCH : L1 Hit : Cycle = 6 : ID = 2
+DISPATCH : Cycle = 8 : Instruction = 1.0.0 : PC = 1000 : Addr = 0 : Mnemonic = add R3, R3, R0 : Opcode = 7c630214
+IFETCH : Cycle = 8 : Addresss = 1024 : Fetch Addresss = 1020 : ID = 3 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1 : WRONG PATH
+DISPATCH : Cycle = 8 : Instruction = 2.0.0 : PC = 1004 : Addr = 0 : Mnemonic = add R3, R3, R1 : Opcode = 7c630a14
+IFETCH : L1 Hit : Cycle = 8 : ID = 3
+DISPATCH : Cycle = 9 : Instruction = 3.0.0 : PC = 1008 : Addr = 0 : Mnemonic = add R3, R3, R2 : Opcode = 7c631214
+DISPATCH : Cycle = 9 : Instruction = 4.0.0 : PC = 100c : Addr = 0 : Mnemonic = add R3, R3, R3 : Opcode = 7c631a14
+DISPATCH : Cycle = 10 : Instruction = 5.0.0 : PC = 1010 : Addr = 0 : Mnemonic = add R3, R3, R4 : Opcode = 7c632214
+IFETCH : Cycle = 10 : Addresss = 1024 : Fetch Addresss = 1020 : ID = 4 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1 : WRONG PATH
+DISPATCH : Cycle = 10 : Instruction = 6.0.0 : PC = 1014 : Addr = 0 : Mnemonic = add R3, R3, R5 : Opcode = 7c632a14
+IFETCH : L1 Hit : Cycle = 10 : ID = 4
+DISPATCH : Cycle = 11 : Instruction = 7.0.0 : PC = 1018 : Addr = 0 : Mnemonic = add R3, R3, R6 : Opcode = 7c633214
+DISPATCH : Cycle = 11 : Instruction = 8.0.0 : PC = 101c : Addr = 0 : Mnemonic = add R3, R3, R7 : Opcode = 7c633a14
+DISPATCH : Cycle = 12 : Instruction = 9.0.0 : PC = 1020 : Addr = 0 : Mnemonic = add R3, R3, R8 : Opcode = 7c634214
+DISPATCH : Cycle = 12 : Instruction = 10.0.0 : PC = 1024 : Addr = 0 : Mnemonic = bc_1z1zz_ : Opcode = 42800000
+ISSUE-IS2 : Cycle = 13 : Instruction = 1.0.0 : PC = 1000 : Addr = 0 : Mnemonic = add R3, R3, R0 : Pipeline = ALU
+IFETCH : Cycle = 14 : Addresss = 1010 : Fetch Addresss = 1010 : ID = 7 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1
+IFETCH : L1 Hit : Cycle = 14 : ID = 7
+ISSUE-IS2 : Cycle = 15 : Instruction = 2.0.0 : PC = 1004 : Addr = 0 : Mnemonic = add R3, R3, R1 : Pipeline = ALU
+BRANCH PREDICTION : Cycle = 16 : Instruction = 16.0.0 : Branch = Taken : Address = 1024 : GShare = 0 : Index = 409 : Value = 0 : Correct = false
+IFETCH : Cycle = 16 : Addresss = 1020 : Fetch Addresss = 1020 : ID = 8 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1
+IFETCH : L1 Hit : Cycle = 16 : ID = 8
+ISSUE-IS2 : Cycle = 17 : Instruction = 3.0.0 : PC = 1008 : Addr = 0 : Mnemonic = add R3, R3, R2 : Pipeline = ALU
+IFETCH : Cycle = 18 : Addresss = 1024 : Fetch Addresss = 1020 : ID = 9 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1 : WRONG PATH
+IFETCH : L1 Hit : Cycle = 18 : ID = 9
+ISSUE-IS2 : Cycle = 19 : Instruction = 4.0.0 : PC = 100c : Addr = 0 : Mnemonic = add R3, R3, R3 : Pipeline = ALU
+IFETCH : Cycle = 20 : Addresss = 1024 : Fetch Addresss = 1020 : ID = a : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1 : WRONG PATH
+IFETCH : L1 Hit : Cycle = 20 : ID = 10
+ISSUE-IS2 : Cycle = 21 : Instruction = 5.0.0 : PC = 1010 : Addr = 0 : Mnemonic = add R3, R3, R4 : Pipeline = ALU
+IFETCH : Cycle = 22 : Addresss = 1024 : Fetch Addresss = 1020 : ID = b : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1 : WRONG PATH
+IFETCH : L1 Hit : Cycle = 22 : ID = 11
+GSHARE : Update Speculative : Cycle = 23 : Instruction = 16.0.0 : Address = 1024 : Old Value = 0 : New Value = 20 : Bit to shift = 1
+DISPATCH : Cycle = 23 : Instruction = 11.0.0 : PC = 1010 : Addr = 0 : Mnemonic = add R3, R3, R4 : Opcode = 7c632214
+DISPATCH : Cycle = 23 : Instruction = 12.0.0 : PC = 1014 : Addr = 0 : Mnemonic = add R3, R3, R5 : Opcode = 7c632a14
+ISSUE-IS2 : Cycle = 23 : Instruction = 6.0.0 : PC = 1014 : Addr = 0 : Mnemonic = add R3, R3, R5 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 24 : Instruction = 1.0.0 : PC = 1000 : Mnemonic = add R3, R3, R0 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 25 : Instruction = 7.0.0 : PC = 1018 : Addr = 0 : Mnemonic = add R3, R3, R6 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 26 : Instruction = 2.0.0 : PC = 1004 : Mnemonic = add R3, R3, R1 : Pipeline = ALU
+DISPATCH : Cycle = 27 : Instruction = 13.0.0 : PC = 1018 : Addr = 0 : Mnemonic = add R3, R3, R6 : Opcode = 7c633214
+DISPATCH : Cycle = 27 : Instruction = 14.0.0 : PC = 101c : Addr = 0 : Mnemonic = add R3, R3, R7 : Opcode = 7c633a14
+ISSUE-IS2 : Cycle = 27 : Instruction = 8.0.0 : PC = 101c : Addr = 0 : Mnemonic = add R3, R3, R7 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 28 : Instruction = 3.0.0 : PC = 1008 : Mnemonic = add R3, R3, R2 : Pipeline = ALU
+DISPATCH : Cycle = 29 : Instruction = 15.0.0 : PC = 1020 : Addr = 0 : Mnemonic = add R3, R3, R8 : Opcode = 7c634214
+DISPATCH : Cycle = 29 : Instruction = 16.0.0 : PC = 1024 : Addr = 0 : Mnemonic = bc_011at_, CR1 : Opcode = 41840000
+ISSUE-IS2 : Cycle = 29 : Instruction = 9.0.0 : PC = 1020 : Addr = 0 : Mnemonic = add R3, R3, R8 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 29 : Instruction = 10.0.0 : PC = 1024 : Addr = 0 : Mnemonic = bc_1z1zz_ : Pipeline = Branch
+COMPLETION-IS2 : Cycle = 30 : Instruction = 4.0.0 : PC = 100c : Mnemonic = add R3, R3, R3 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 32 : Instruction = 5.0.0 : PC = 1010 : Mnemonic = add R3, R3, R4 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 32 : Instruction = 11.0.0 : PC = 1010 : Addr = 0 : Mnemonic = add R3, R3, R4 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 34 : Instruction = 6.0.0 : PC = 1014 : Mnemonic = add R3, R3, R5 : Pipeline = ALU
+IFETCH : Cycle = 34 : Addresss = 1024 : Fetch Addresss = 1020 : ID = 10 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1 : WRONG PATH
+IFETCH : L1 Hit : Cycle = 34 : ID = 16
+ISSUE-IS2 : Cycle = 34 : Instruction = 12.0.0 : PC = 1014 : Addr = 0 : Mnemonic = add R3, R3, R5 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 36 : Instruction = 7.0.0 : PC = 1018 : Mnemonic = add R3, R3, R6 : Pipeline = ALU
+IFETCH : Cycle = 36 : Addresss = 1024 : Fetch Addresss = 1020 : ID = 11 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1 : WRONG PATH
+IFETCH : L1 Hit : Cycle = 36 : ID = 17
+ISSUE-IS2 : Cycle = 36 : Instruction = 13.0.0 : PC = 1018 : Addr = 0 : Mnemonic = add R3, R3, R6 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 38 : Instruction = 8.0.0 : PC = 101c : Mnemonic = add R3, R3, R7 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 38 : Instruction = 14.0.0 : PC = 101c : Addr = 0 : Mnemonic = add R3, R3, R7 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 40 : Instruction = 9.0.0 : PC = 1020 : Mnemonic = add R3, R3, R8 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 40 : Instruction = 10.0.0 : PC = 1024 : Mnemonic = bc_1z1zz_ : Pipeline = Branch
+ISSUE-IS2 : Cycle = 40 : Instruction = 15.0.0 : PC = 1020 : Addr = 0 : Mnemonic = add R3, R3, R8 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 40 : Instruction = 16.0.0 : PC = 1024 : Addr = 0 : Mnemonic = bc_011at_, CR1 : Pipeline = Branch
+COMPLETION-IS2 : Cycle = 43 : Instruction = 11.0.0 : PC = 1010 : Mnemonic = add R3, R3, R4 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 45 : Instruction = 12.0.0 : PC = 1014 : Mnemonic = add R3, R3, R5 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 47 : Instruction = 13.0.0 : PC = 1018 : Mnemonic = add R3, R3, R6 : Pipeline = ALU
+IFETCH : Cycle = 48 : Addresss = 1024 : Fetch Addresss = 1020 : ID = 14 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1 : WRONG PATH
+IFETCH : L1 Hit : Cycle = 48 : ID = 20
+COMPLETION-IS2 : Cycle = 49 : Instruction = 14.0.0 : PC = 101c : Mnemonic = add R3, R3, R7 : Pipeline = ALU
+FLUSH : Branch Mispredict : Cycle = 49 : Instruction = 16.0.0 : Mnemonic = bc_011at_, CR1
+GSHARE : Update Architected : Cycle = 50 : Instruction = 16.0.0 : Mnemonic = bc_011at_, CR1 : Old Value = 0 : New Value = 20
+GSHARE : Update after flush : Branch Mispredict : Cycle = 50 : Instruction = 16.0.0 : Mnemonic = bc_011at_, CR1 : Old Value = 20 : New Value = 20
+COMPLETION-IS2 : Cycle = 51 : Instruction = 15.0.0 : PC = 1020 : Mnemonic = add R3, R3, R8 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 51 : Instruction = 16.0.0 : PC = 1024 : Mnemonic = bc_011at_, CR1 : Pipeline = Branch
+IFETCH : Cycle = 52 : Addresss = 1010 : Fetch Addresss = 1010 : ID = 17 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1
+IFETCH : L1 Hit : Cycle = 52 : ID = 23
+BRANCH PREDICTION : Cycle = 54 : Instruction = 22.0.0 : Branch = Taken : Address = 1024 : GShare = 20 : Index = c09 : Value = 0 : Correct = false
+IFETCH : Cycle = 54 : Addresss = 1020 : Fetch Addresss = 1020 : ID = 18 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1
+IFETCH : L1 Hit : Cycle = 54 : ID = 24
+IFETCH : Cycle = 56 : Addresss = 1024 : Fetch Addresss = 1020 : ID = 19 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1 : WRONG PATH
+IFETCH : L1 Hit : Cycle = 56 : ID = 25
+DISPATCH : Cycle = 58 : Instruction = 17.0.0 : PC = 1010 : Addr = 0 : Mnemonic = add R3, R3, R4 : Opcode = 7c632214
+IFETCH : Cycle = 58 : Addresss = 1024 : Fetch Addresss = 1020 : ID = 1a : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1 : WRONG PATH
+DISPATCH : Cycle = 58 : Instruction = 18.0.0 : PC = 1014 : Addr = 0 : Mnemonic = add R3, R3, R5 : Opcode = 7c632a14
+IFETCH : L1 Hit : Cycle = 58 : ID = 26
+DISPATCH : Cycle = 59 : Instruction = 19.0.0 : PC = 1018 : Addr = 0 : Mnemonic = add R3, R3, R6 : Opcode = 7c633214
+DISPATCH : Cycle = 59 : Instruction = 20.0.0 : PC = 101c : Addr = 0 : Mnemonic = add R3, R3, R7 : Opcode = 7c633a14
+DISPATCH : Cycle = 60 : Instruction = 21.0.0 : PC = 1020 : Addr = 0 : Mnemonic = add R3, R3, R8 : Opcode = 7c634214
+IFETCH : Cycle = 60 : Addresss = 1024 : Fetch Addresss = 1020 : ID = 1b : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1 : WRONG PATH
+DISPATCH : Cycle = 60 : Instruction = 22.0.0 : PC = 1024 : Addr = 0 : Mnemonic = bc_011at_, CR1 : Opcode = 41840000
+IFETCH : L1 Hit : Cycle = 60 : ID = 27
+GSHARE : Update Speculative : Cycle = 61 : Instruction = 22.0.0 : Address = 1024 : Old Value = 20 : New Value = 30 : Bit to shift = 1
+IFETCH : Cycle = 62 : Addresss = 1024 : Fetch Addresss = 1020 : ID = 1c : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1 : WRONG PATH
+IFETCH : L1 Hit : Cycle = 62 : ID = 28
+ISSUE-IS2 : Cycle = 63 : Instruction = 17.0.0 : PC = 1010 : Addr = 0 : Mnemonic = add R3, R3, R4 : Pipeline = ALU
+IFETCH : Cycle = 64 : Addresss = 1024 : Fetch Addresss = 1020 : ID = 1d : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1 : WRONG PATH
+IFETCH : L1 Hit : Cycle = 64 : ID = 29
+ISSUE-IS2 : Cycle = 65 : Instruction = 18.0.0 : PC = 1014 : Addr = 0 : Mnemonic = add R3, R3, R5 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 67 : Instruction = 19.0.0 : PC = 1018 : Addr = 0 : Mnemonic = add R3, R3, R6 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 69 : Instruction = 20.0.0 : PC = 101c : Addr = 0 : Mnemonic = add R3, R3, R7 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 71 : Instruction = 21.0.0 : PC = 1020 : Addr = 0 : Mnemonic = add R3, R3, R8 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 71 : Instruction = 22.0.0 : PC = 1024 : Addr = 0 : Mnemonic = bc_011at_, CR1 : Pipeline = Branch
+COMPLETION-IS2 : Cycle = 74 : Instruction = 17.0.0 : PC = 1010 : Mnemonic = add R3, R3, R4 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 76 : Instruction = 18.0.0 : PC = 1014 : Mnemonic = add R3, R3, R5 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 78 : Instruction = 19.0.0 : PC = 1018 : Mnemonic = add R3, R3, R6 : Pipeline = ALU
+IFETCH : Cycle = 78 : Addresss = 1024 : Fetch Addresss = 1020 : ID = 21 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1 : WRONG PATH
+IFETCH : L1 Hit : Cycle = 78 : ID = 33
+COMPLETION-IS2 : Cycle = 80 : Instruction = 20.0.0 : PC = 101c : Mnemonic = add R3, R3, R7 : Pipeline = ALU
+FLUSH : Branch Mispredict : Cycle = 80 : Instruction = 22.0.0 : Mnemonic = bc_011at_, CR1
+GSHARE : Update Architected : Cycle = 81 : Instruction = 22.0.0 : Mnemonic = bc_011at_, CR1 : Old Value = 20 : New Value = 30
+GSHARE : Update after flush : Branch Mispredict : Cycle = 81 : Instruction = 22.0.0 : Mnemonic = bc_011at_, CR1 : Old Value = 30 : New Value = 30
+COMPLETION-IS2 : Cycle = 82 : Instruction = 21.0.0 : PC = 1020 : Mnemonic = add R3, R3, R8 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 82 : Instruction = 22.0.0 : PC = 1024 : Mnemonic = bc_011at_, CR1 : Pipeline = Branch
+IFETCH : Cycle = 84 : Addresss = 1010 : Fetch Addresss = 1010 : ID = 23 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1
+IFETCH : L1 Hit : Cycle = 84 : ID = 35
+IFETCH : Cycle = 86 : Addresss = 1020 : Fetch Addresss = 1020 : ID = 24 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1
+IFETCH : L1 Hit : Cycle = 86 : ID = 36
+IFETCH : Cycle = 88 : Addresss = 1024 : Fetch Addresss = 1020 : ID = 25 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1 : WRONG PATH
+IFETCH : L1 Hit : Cycle = 88 : ID = 37
+DISPATCH : Cycle = 90 : Instruction = 23.0.0 : PC = 1010 : Addr = 0 : Mnemonic = add R3, R3, R4 : Opcode = 7c632214
+IFETCH : Cycle = 90 : Addresss = 1024 : Fetch Addresss = 1020 : ID = 26 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1 : WRONG PATH
+DISPATCH : Cycle = 90 : Instruction = 24.0.0 : PC = 1014 : Addr = 0 : Mnemonic = add R3, R3, R5 : Opcode = 7c632a14
+IFETCH : L1 Hit : Cycle = 90 : ID = 38
+DISPATCH : Cycle = 91 : Instruction = 25.0.0 : PC = 1018 : Addr = 0 : Mnemonic = add R3, R3, R6 : Opcode = 7c633214
+DISPATCH : Cycle = 91 : Instruction = 26.0.0 : PC = 101c : Addr = 0 : Mnemonic = add R3, R3, R7 : Opcode = 7c633a14
+DISPATCH : Cycle = 92 : Instruction = 27.0.0 : PC = 1020 : Addr = 0 : Mnemonic = add R3, R3, R8 : Opcode = 7c634214
+DISPATCH : Cycle = 92 : Instruction = 28.0.0 : PC = 1024 : Addr = 0 : Mnemonic = bc_1z1zz_ : Opcode = 42800000
+IFETCH : Cycle = 94 : Addresss = 1010 : Fetch Addresss = 1010 : ID = 29 : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1
+IFETCH : L1 Hit : Cycle = 94 : ID = 41
+ISSUE-IS2 : Cycle = 95 : Instruction = 23.0.0 : PC = 1010 : Addr = 0 : Mnemonic = add R3, R3, R4 : Pipeline = ALU
+IFETCH : Cycle = 96 : Addresss = 1020 : Fetch Addresss = 1020 : ID = 2a : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1
+IFETCH : L1 Hit : Cycle = 96 : ID = 42
+ISSUE-IS2 : Cycle = 97 : Instruction = 24.0.0 : PC = 1014 : Addr = 0 : Mnemonic = add R3, R3, R5 : Pipeline = ALU
+IFETCH : Cycle = 98 : Addresss = 1024 : Fetch Addresss = 1020 : ID = 2b : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1 : WRONG PATH
+IFETCH : L1 Hit : Cycle = 98 : ID = 43
+ISSUE-IS2 : Cycle = 99 : Instruction = 25.0.0 : PC = 1018 : Addr = 0 : Mnemonic = add R3, R3, R6 : Pipeline = ALU
+IFETCH : Cycle = 100 : Addresss = 1024 : Fetch Addresss = 1020 : ID = 2c : Cache Tag = 0 : Cache Index = 20 : ERAT Tag = 0 : ERAT Index = 1 : WRONG PATH
+IFETCH : L1 Hit : Cycle = 100 : ID = 44
+DISPATCH : Cycle = 101 : Instruction = 29.0.0 : PC = 1010 : Addr = 0 : Mnemonic = add R3, R3, R4 : Opcode = 7c632214
+DISPATCH : Cycle = 101 : Instruction = 30.0.0 : PC = 1014 : Addr = 0 : Mnemonic = add R3, R3, R5 : Opcode = 7c632a14
+ISSUE-IS2 : Cycle = 101 : Instruction = 26.0.0 : PC = 101c : Addr = 0 : Mnemonic = add R3, R3, R7 : Pipeline = ALU
+DISPATCH : Cycle = 103 : Instruction = 31.0.0 : PC = 1018 : Addr = 0 : Mnemonic = add R3, R3, R6 : Opcode = 7c633214
+DISPATCH : Cycle = 103 : Instruction = 32.0.0 : PC = 101c : Addr = 0 : Mnemonic = add R3, R3, R7 : Opcode = 7c633a14
+ISSUE-IS2 : Cycle = 103 : Instruction = 27.0.0 : PC = 1020 : Addr = 0 : Mnemonic = add R3, R3, R8 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 103 : Instruction = 28.0.0 : PC = 1024 : Addr = 0 : Mnemonic = bc_1z1zz_ : Pipeline = Branch
+DISPATCH : Cycle = 104 : Instruction = 33.0.0 : PC = 1020 : Addr = 0 : Mnemonic = add R3, R3, R8 : Opcode = 7c634214
+End of Trace Reached
+DISPATCH : Cycle = 104 : Instruction = 34.0.0 : PC = 1024 : Addr = 0 : Mnemonic = bc_1z1zz_ : Opcode = 42800000
+COMPLETION-IS2 : Cycle = 106 : Instruction = 23.0.0 : PC = 1010 : Mnemonic = add R3, R3, R4 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 107 : Instruction = 29.0.0 : PC = 1010 : Addr = 0 : Mnemonic = add R3, R3, R4 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 108 : Instruction = 24.0.0 : PC = 1014 : Mnemonic = add R3, R3, R5 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 109 : Instruction = 30.0.0 : PC = 1014 : Addr = 0 : Mnemonic = add R3, R3, R5 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 110 : Instruction = 25.0.0 : PC = 1018 : Mnemonic = add R3, R3, R6 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 111 : Instruction = 31.0.0 : PC = 1018 : Addr = 0 : Mnemonic = add R3, R3, R6 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 112 : Instruction = 26.0.0 : PC = 101c : Mnemonic = add R3, R3, R7 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 113 : Instruction = 32.0.0 : PC = 101c : Addr = 0 : Mnemonic = add R3, R3, R7 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 114 : Instruction = 27.0.0 : PC = 1020 : Mnemonic = add R3, R3, R8 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 114 : Instruction = 28.0.0 : PC = 1024 : Mnemonic = bc_1z1zz_ : Pipeline = Branch
+ISSUE-IS2 : Cycle = 115 : Instruction = 33.0.0 : PC = 1020 : Addr = 0 : Mnemonic = add R3, R3, R8 : Pipeline = ALU
+ISSUE-IS2 : Cycle = 115 : Instruction = 34.0.0 : PC = 1024 : Addr = 0 : Mnemonic = bc_1z1zz_ : Pipeline = Branch
+COMPLETION-IS2 : Cycle = 118 : Instruction = 29.0.0 : PC = 1010 : Mnemonic = add R3, R3, R4 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 120 : Instruction = 30.0.0 : PC = 1014 : Mnemonic = add R3, R3, R5 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 122 : Instruction = 31.0.0 : PC = 1018 : Mnemonic = add R3, R3, R6 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 124 : Instruction = 32.0.0 : PC = 101c : Mnemonic = add R3, R3, R7 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 126 : Instruction = 33.0.0 : PC = 1020 : Mnemonic = add R3, R3, R8 : Pipeline = ALU
+COMPLETION-IS2 : Cycle = 126 : Instruction = 34.0.0 : PC = 1024 : Mnemonic = bc_1z1zz_ : Pipeline = Branch
+Report for ACTUALL2 of type TYPE_TARPIT
+        Latency = 19.000000
+End report for ACTUALL2

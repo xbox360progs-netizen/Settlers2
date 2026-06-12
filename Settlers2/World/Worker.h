@@ -4,11 +4,11 @@
 namespace World {
     class Building; // Forward declaration
 
-    enum class WorkerState {
-        Idle,
-        Working,
-        ReturningHome,
-        MovingToJob
+    enum WorkerState {
+        WorkerState_Idle,
+        WorkerState_Working,
+        WorkerState_ReturningHome,
+        WorkerState_MovingToJob
     };
 
     class Worker {
@@ -16,7 +16,7 @@ namespace World {
         WorkerState state;
         Building* home;
 
-        Worker(Building* h) : state(WorkerState::Idle), home(h) {}
+        Worker(Building* h) : state(WorkerState_Idle), home(h) {}
         virtual ~Worker() {}
     };
 }

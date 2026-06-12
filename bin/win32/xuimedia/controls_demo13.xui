@@ -1,0 +1,139 @@
+<XuiCanvas version="000c">
+<Properties>
+<Width>640.000000</Width>
+<Height>480.000000</Height>
+</Properties>
+<XuiFigure>
+<Properties>
+<Width>640.000000</Width>
+<Height>480.000000</Height>
+<Stroke>
+<Properties>
+<StrokeColor>0xff0f0f80</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillColor>0xff80ebeb</FillColor>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>4,0.000000,0.000000,0.000000,0.000000,640.000000,0.000000,0,640.000000,0.000000,640.000000,0.000000,640.000000,480.000000,0,640.000000,480.000000,640.000000,480.000000,0.000000,480.000000,0,0.000000,480.000000,0.000000,480.000000,0.000000,0.000000,0,</Points>
+</Properties>
+</XuiFigure>
+<XuiScene>
+<Properties>
+<Id>XuiScene1</Id>
+<Width>592.000000</Width>
+<Height>432.000000</Height>
+<Position>24.000000,24.000000,0.000000</Position>
+<Text>Controls Demo: Presenters</Text>
+</Properties>
+<XuiFigure>
+<Properties>
+<Width>369.000000</Width>
+<Height>2.000000</Height>
+<Position>111.000000,40.000000,0.000000</Position>
+<Stroke>
+<Properties>
+<StrokeColor>0xff0f0f80</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillColor>0xff0f0f0f</FillColor>
+<Gradient>
+<Properties>
+<NumStops>1</NumStops>
+<StopColor index="0">0x00000000</StopColor>
+<StopPos index="0">0.000000</StopPos>
+</Properties>
+</Gradient>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>4,0.000000,0.000000,0.000000,0.000000,456.000000,0.000000,0,456.000000,0.000000,456.000000,0.000000,456.000000,8.000000,0,456.000000,8.000000,456.000000,8.000000,0.000000,8.000000,0,0.000000,8.000000,0.000000,8.000000,0.000000,0.000000,0,</Points>
+</Properties>
+</XuiFigure>
+<XuiHtmlElement>
+<Properties>
+<Id>XuiHtmlElement1</Id>
+<Width>544.000000</Width>
+<Height>312.000000</Height>
+<Position>24.000000,56.000000,0.000000</Position>
+<Text>&lt;font color="#000000" size=11&gt;
+
+Several control types have &lt;i&gt;&lt;b&gt;Presenter&lt;/b&gt;&lt;/i&gt; versions associated with them.
+These special controls are used within a skin file in order to create instance level differences between each control.
+
+&lt;br/&gt;
+&lt;br/&gt;
+
+For instance, a &lt;i&gt;&lt;b&gt;Visual&lt;/b&gt;&lt;/i&gt; for a &lt;i&gt;&lt;b&gt;Button&lt;/b&gt;&lt;/i&gt; would typically include a &lt;i&gt;&lt;b&gt;Text Presenter&lt;/b&gt;&lt;/i&gt; and an &lt;i&gt;&lt;b&gt;Image Presenter&lt;/b&gt;&lt;/i&gt;.
+Each &lt;i&gt;&lt;b&gt;Presenter&lt;/b&gt;&lt;/i&gt; will ask its parent control for the appropriate text or image path.
+The &lt;i&gt;&lt;b&gt;Button&lt;/b&gt;&lt;/i&gt; then has properties associated with each instance, which provide the data to the appropriate &lt;i&gt;&lt;b&gt;Presenter&lt;/b&gt;&lt;/i&gt;.
+This allows you to specify a different image path and text whenever you place a new &lt;i&gt;&lt;b&gt;Button&lt;/b&gt;&lt;/i&gt; control into a &lt;i&gt;&lt;b&gt;Scene&lt;/b&gt;&lt;/i&gt;.
+
+&lt;br/&gt;
+&lt;font size=8&gt;
+&lt;br/&gt;
+&lt;/font&gt;
+
+&lt;table&gt;
+&lt;tr&gt;
+&lt;td width="4%"/&gt;
+&lt;td width="3%" bgcolor="#808080"/&gt;
+&lt;td width="86%" bgcolor="#808080"&gt;
+
+&lt;font size=5&gt;
+&lt;br/&gt;
+&lt;/font&gt;
+
+&lt;font color="#FFFFFF" size=10&gt;
+
+Each &lt;i&gt;&lt;b&gt;Presenter&lt;/b&gt;&lt;/i&gt; variation has a 'DataAssociation' property that allows you to work with multiples of the same type of &lt;i&gt;&lt;b&gt;Presenter&lt;/b&gt;&lt;/i&gt; within a single &lt;i&gt;&lt;b&gt;Visual&lt;/b&gt;&lt;/i&gt;.
+This would be how you could create a &lt;i&gt;&lt;b&gt;Button&lt;/b&gt;&lt;/i&gt; that has two defined images instead of just one.
+
+&lt;font size=5&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;/font&gt;
+
+&lt;/font&gt;
+&lt;/td&gt;
+&lt;td width="3%" bgcolor="#808080"/&gt;
+&lt;td width="4%"/&gt;
+&lt;/tr&gt;
+&lt;/table&gt;
+
+&lt;/font&gt;
+
+</Text>
+</Properties>
+</XuiHtmlElement>
+<XuiBackButton>
+<Properties>
+<Id>XuiBackButton1</Id>
+<Width>184.000000</Width>
+<Height>40.000000</Height>
+<Position>16.000000,376.000000,0.000000</Position>
+<DisableFocusRecursion>true</DisableFocusRecursion>
+<UnfocusedInput>true</UnfocusedInput>
+<Text>Back Button</Text>
+<PressKey>22593</PressKey>
+</Properties>
+</XuiBackButton>
+<XuiNavButton>
+<Properties>
+<Id>navNext1</Id>
+<Width>160.000000</Width>
+<Height>40.000000</Height>
+<Position>416.000000,376.000000,0.000000</Position>
+<Text>Continue</Text>
+<PressPath>controls_demo14.xur</PressPath>
+</Properties>
+</XuiNavButton>
+</XuiScene>
+</XuiCanvas>

@@ -13,21 +13,23 @@ namespace World {
         std::map<ResourceType, int> resources;
         std::vector<Worker*> specialists;
 
-        Warehouse(int x, int y, uint8_t o) : Building(Building_None, x, y, o, NULL) {
+        Warehouse(int x, int y, uint8_t o) : Building(Storehouse, x, y, o, NULL) {
             for (int i = 0; i < ResourceType_Count; ++i) {
                 resources[(ResourceType)i] = 0;
             }
         }
 
-        virtual void Update() {
-            // Pull one unit per frame from flag into warehouse storage
+        virtual bool IsWarehouse() const { return true; }
+
+        void Update(float dt) override {
             if (connectedFlag) {
-                for (int t = 0; t < ResourceType_Count; ++t) {
-                    ResourceType type = (ResourceType)t;
-                    if (type == ResourceType_None) continue;
-                    if (connectedFlag->GetAvailable(type) > 0) {
-                        connectedFlag->RemoveResource(type, 1);
-                        AddResource(type, 1);
+                for (int si = 0; si < 8; ++si) {
+                    ResourceSlot& slot = connectedFlag->slots[si];
+                    if (slot.type == ResourceType_None || slot.amount <= 0) continue;
+                    if (slot.destFlagId != 0) continue;
+                    if (slot.amount - slot.reserved > 0) {
+                        connectedFlag->RemoveResource(slot.type, 1);
+                        AddResource(slot.type, 1);
                         break;
                     }
                 }

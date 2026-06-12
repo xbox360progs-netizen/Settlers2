@@ -318,6 +318,11 @@ void LoadingScene::SetupLoadTasks()
         TextureRegistry::instance().initializeFromManifest("game:\\Media\\Config\\textures.ini", "UI");
         LoadAtlasOrTexture("ui", "game:\\Media\\Textures\\UI\\UI.png");
     }, "Load Texture: UI", 0.5f);
+
+    // ===== ICON ATLAS (resource deposit icons for map editor) =====
+    AddLoadTask([this]() {
+        LoadAtlasOrTexture("Icon", "game:\\Media\\Textures\\UI\\Icon.png");
+    }, "Load Texture: Icon", 0.5f);
 }
 void LoadingScene::AddLoadTask(std::function<void()> task, const std::string& name, float weight)
 {

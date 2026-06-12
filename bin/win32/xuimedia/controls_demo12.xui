@@ -1,0 +1,159 @@
+<XuiCanvas version="000c">
+<Properties>
+<Width>640.000000</Width>
+<Height>480.000000</Height>
+</Properties>
+<XuiFigure>
+<Properties>
+<Width>640.000000</Width>
+<Height>480.000000</Height>
+<Stroke>
+<Properties>
+<StrokeColor>0xffebeb80</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillColor>0xffeb80eb</FillColor>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>4,0.000000,0.000000,0.000000,0.000000,640.000000,0.000000,0,640.000000,0.000000,640.000000,0.000000,640.000000,480.000000,0,640.000000,480.000000,640.000000,480.000000,0.000000,480.000000,0,0.000000,480.000000,0.000000,480.000000,0.000000,0.000000,0,</Points>
+</Properties>
+</XuiFigure>
+<XuiScene>
+<Properties>
+<Id>XuiScene1</Id>
+<Width>592.000000</Width>
+<Height>432.000000</Height>
+<Position>24.000000,24.000000,0.000000</Position>
+<Text>Controls Demo: Combo Boxes</Text>
+</Properties>
+<XuiFigure>
+<Properties>
+<Width>369.000000</Width>
+<Height>2.000000</Height>
+<Position>111.000000,40.000000,0.000000</Position>
+<Stroke>
+<Properties>
+<StrokeColor>0xff0f0f80</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillColor>0xff0f0f0f</FillColor>
+<Gradient>
+<Properties>
+<NumStops>1</NumStops>
+<StopColor index="0">0x00000000</StopColor>
+<StopPos index="0">0.000000</StopPos>
+</Properties>
+</Gradient>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>4,0.000000,0.000000,0.000000,0.000000,456.000000,0.000000,0,456.000000,0.000000,456.000000,0.000000,456.000000,8.000000,0,456.000000,8.000000,456.000000,8.000000,0.000000,8.000000,0,0.000000,8.000000,0.000000,8.000000,0.000000,0.000000,0,</Points>
+</Properties>
+</XuiFigure>
+<XuiNavButton>
+<Properties>
+<Id>navNext1</Id>
+<Width>160.000000</Width>
+<Height>40.000000</Height>
+<Position>416.000000,376.000000,0.000000</Position>
+<NavUp>XuiComboBox2</NavUp>
+<Text>Continue</Text>
+<PressPath>controls_demo13.xur</PressPath>
+</Properties>
+</XuiNavButton>
+<XuiHtmlElement>
+<Properties>
+<Id>XuiHtmlElement1</Id>
+<Width>544.000000</Width>
+<Height>312.000000</Height>
+<Position>24.000000,56.000000,0.000000</Position>
+<Text>&lt;font color="#000000" size=11&gt;
+
+The &lt;i&gt;&lt;b&gt;Combo Box&lt;/b&gt;&lt;/i&gt; control has two available styles to choose from.
+One of them is a fixed set of items to choose from, and the other allows the user to input their own text.
+This can be set using the 'ComboBoxStyle' property, and by choosing the appropriate &lt;i&gt;&lt;b&gt;Visual&lt;/b&gt;&lt;/i&gt;.
+
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+
+&lt;br/&gt;
+&lt;font size=8&gt;
+&lt;br/&gt;
+&lt;/font&gt;
+
+&lt;table&gt;
+&lt;tr&gt;
+&lt;td width="4%"/&gt;
+&lt;td width="3%" bgcolor="#808080"/&gt;
+&lt;td width="86%" bgcolor="#808080"&gt;
+
+&lt;font size=5&gt;
+&lt;br/&gt;
+&lt;/font&gt;
+
+&lt;font color="#FFFFFF" size=10&gt;
+
+In XuiTool, &lt;i&gt;&lt;b&gt;Combo Boxes&lt;/b&gt;&lt;/i&gt; (as well as &lt;i&gt;&lt;b&gt;Lists&lt;/b&gt;&lt;/i&gt;) pull their items from a common set that can be specified in the 'Tools &gt; Options' dialog, under the 'Default' tab.
+Normally, the parent application is asked to provide a list of text descriptions and images for each list item... which would allow each &lt;i&gt;&lt;b&gt;Combo Box&lt;/b&gt;&lt;/i&gt; to be populated with different information.
+
+&lt;font size=5&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;/font&gt;
+
+&lt;/font&gt;
+&lt;/td&gt;
+&lt;td width="3%" bgcolor="#808080"/&gt;
+&lt;td width="4%"/&gt;
+&lt;/tr&gt;
+&lt;/table&gt;
+</Text>
+</Properties>
+</XuiHtmlElement>
+<XuiBackButton>
+<Properties>
+<Id>XuiBackButton1</Id>
+<Width>184.000000</Width>
+<Height>40.000000</Height>
+<Position>16.000000,376.000000,0.000000</Position>
+<DisableFocusRecursion>true</DisableFocusRecursion>
+<UnfocusedInput>true</UnfocusedInput>
+<Text>Back Button</Text>
+<PressKey>22593</PressKey>
+</Properties>
+</XuiBackButton>
+<XuiComboBox>
+<Properties>
+<Id>XuiComboBox1</Id>
+<Width>208.000000</Width>
+<Height>44.000000</Height>
+<Position>56.000000,152.000000,0.000000</Position>
+<NavRight>XuiComboBox2</NavRight>
+<NavDown>navNext1</NavDown>
+<MaxVisibleVertItems>3</MaxVisibleVertItems>
+</Properties>
+</XuiComboBox>
+<XuiComboBox>
+<Properties>
+<Id>XuiComboBox2</Id>
+<Width>240.000000</Width>
+<Height>44.000000</Height>
+<Position>312.000000,152.000000,0.000000</Position>
+<Visual>XuiComboBoxDropEdit</Visual>
+<NavLeft>XuiComboBox1\ComboBoxValue</NavLeft>
+<NavDown>navNext1</NavDown>
+<ComboBoxStyle>1</ComboBoxStyle>
+<MaxVisibleVertItems>3</MaxVisibleVertItems>
+</Properties>
+</XuiComboBox>
+</XuiScene>
+</XuiCanvas>

@@ -15,7 +15,7 @@ struct Header {
 };
 #pragma pack(pop)
 
-static const int CURRENT_VERSION = 4;  // v4 adds full flag data (IDs, types)
+static const int CURRENT_VERSION = 5;  // v4 adds flag data, v5 adds road data
 
 // Вспомогательные функции для буферизации
 static void Append(std::vector<BYTE>& buf, const void* data, size_t size) {
@@ -244,7 +244,7 @@ bool MapSerializer::Load(World::Map& map, const std::string& path, std::vector<s
     return true;
 }
 
-bool MapSerializer::SaveV4(const World::Map& map, const std::string& path, const std::vector<World::FlagData>* flags)
+bool MapSerializer::SaveV4(const World::Map& map, const std::string& path, const std::vector<World::FlagData>* flags, const std::vector<World::RoadData>* roads)
 {
     std::vector<BYTE> buffer;
     buffer.reserve(1024 * 1024);
@@ -256,7 +256,7 @@ bool MapSerializer::SaveV4(const World::Map& map, const std::string& path, const
 
     Header hdr;
     memcpy(hdr.magic, "SMAP", 4);
-    hdr.version = 4;
+    hdr.version = CURRENT_VERSION;
     hdr.groundW = groundW;
     hdr.groundH = groundH;
     hdr.otherW = otherW;
@@ -320,7 +320,7 @@ bool MapSerializer::SaveV4(const World::Map& map, const std::string& path, const
         }
     }
 
-    // V4 flag format: count + array of { x, y, id, type, pendingBuilding, hasBuilding, neighborCount, neighborIds... }
+    // V4 flag format: count + array of { x, y, id, type, pendingBuilding, hasBuilding }
     if (flags) {
         int fcount = (int)flags->size();
         Append(buffer, &fcount, sizeof(fcount));
@@ -335,15 +335,31 @@ bool MapSerializer::SaveV4(const World::Map& map, const std::string& path, const
             Append(buffer, &pb, sizeof(pb));
             BYTE hb = fd.hasBuilding ? 1 : 0;
             Append(buffer, &hb, 1);
-            int nc = (int)fd.neighborIds.size();
-            Append(buffer, &nc, sizeof(nc));
-            for (int ni = 0; ni < nc; ++ni) {
-                Append(buffer, &fd.neighborIds[ni], sizeof(fd.neighborIds[ni]));
-            }
         }
     } else {
         int fcount = -1;
         Append(buffer, &fcount, sizeof(fcount));
+    }
+
+    // Road data: count + array of { id, startFlagId, endFlagId, tileCount, tiles[] }
+    if (roads) {
+        int rcount = (int)roads->size();
+        Append(buffer, &rcount, sizeof(rcount));
+        for (size_t i = 0; i < roads->size(); ++i) {
+            const World::RoadData& rd = (*roads)[i];
+            Append(buffer, &rd.id, sizeof(rd.id));
+            Append(buffer, &rd.flagAId, sizeof(rd.flagAId));
+            Append(buffer, &rd.flagBId, sizeof(rd.flagBId));
+            int tc = (int)rd.tiles.size();
+            Append(buffer, &tc, sizeof(tc));
+            for (int ti = 0; ti < tc; ++ti) {
+                Append(buffer, &rd.tiles[ti].x, sizeof(rd.tiles[ti].x));
+                Append(buffer, &rd.tiles[ti].y, sizeof(rd.tiles[ti].y));
+            }
+        }
+    } else {
+        int rcount = -1;
+        Append(buffer, &rcount, sizeof(rcount));
     }
 
     HANDLE hFile = CreateFileA(path.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -354,7 +370,7 @@ bool MapSerializer::SaveV4(const World::Map& map, const std::string& path, const
     return success;
 }
 
-bool MapSerializer::LoadV4(World::Map& map, const std::string& path, std::vector<World::FlagData>* flags)
+bool MapSerializer::LoadV4(World::Map& map, const std::string& path, std::vector<World::FlagData>* flags, std::vector<World::RoadData>* roads)
 {
     HANDLE hFile = CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hFile == INVALID_HANDLE_VALUE) return false;
@@ -369,7 +385,7 @@ bool MapSerializer::LoadV4(World::Map& map, const std::string& path, std::vector
     Header hdr;
     if (!reader.Read(&hdr, sizeof(hdr))) return false;
     if (memcmp(hdr.magic, "SMAP", 4) != 0) return false;
-    if (hdr.version < 1 || hdr.version > 4) return false;
+    if (hdr.version < 1 || hdr.version > CURRENT_VERSION) return false;
 
     map.Clear();
     map.InitializeWeights(World::Weight_Land);
@@ -445,7 +461,8 @@ bool MapSerializer::LoadV4(World::Map& map, const std::string& path, std::vector
         map.SetNodeWeight(x, y, weight);
     }
 
-    // V4 flags (with neighbor graph)
+    // V4 flags (neighbor graph reconstructed from road tiles on load;
+    // old save files may have neighbor data that we skip)
     if (flags) {
         int fcount;
         if (reader.Read(&fcount, sizeof(fcount))) {
@@ -466,11 +483,12 @@ bool MapSerializer::LoadV4(World::Map& map, const std::string& path, std::vector
                     BYTE hb;
                     reader.Read(&hb, 1);
                     fd.hasBuilding = (hb != 0);
+                    // Skip legacy neighbor data if present (backward compat)
                     int nc;
                     if (reader.Read(&nc, sizeof(nc))) {
-                        fd.neighborIds.resize(nc);
                         for (int ni = 0; ni < nc; ++ni) {
-                            reader.Read(&fd.neighborIds[ni], sizeof(fd.neighborIds[ni]));
+                            uint32_t skip;
+                            reader.Read(&skip, sizeof(skip));
                         }
                     }
                     flags->push_back(fd);
@@ -478,5 +496,28 @@ bool MapSerializer::LoadV4(World::Map& map, const std::string& path, std::vector
             }
         }
     }
+
+    // Road data — only in v5+ (present in saves written by new code; v4 won't have it)
+    if (hdr.version >= 5 && roads) {
+        int rcount;
+        if (reader.Read(&rcount, sizeof(rcount)) && rcount >= 0) {
+            roads->clear();
+            for (int i = 0; i < rcount; ++i) {
+                World::RoadData rd;
+                if (!reader.Read(&rd.id, sizeof(rd.id))) break;
+                if (!reader.Read(&rd.flagAId, sizeof(rd.flagAId))) break;
+                if (!reader.Read(&rd.flagBId, sizeof(rd.flagBId))) break;
+                int tc;
+                if (!reader.Read(&tc, sizeof(tc))) break;
+                rd.tiles.resize(tc);
+                for (int ti = 0; ti < tc; ++ti) {
+                    if (!reader.Read(&rd.tiles[ti].x, sizeof(rd.tiles[ti].x))) break;
+                    if (!reader.Read(&rd.tiles[ti].y, sizeof(rd.tiles[ti].y))) break;
+                }
+                roads->push_back(rd);
+            }
+        }
+    }
+
     return true;
 }

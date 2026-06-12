@@ -16,5 +16,4 @@ D:\development\Settlers2\Settlers2\SpriteAtlasTool\SpriteAtlasTool\obj\x86\Relea
 D:\development\Settlers2\Settlers2\SpriteAtlasTool\SpriteAtlasTool\obj\x86\Release\SpriteAtlasTool.Properties.Resources.resources
 D:\development\Settlers2\Settlers2\SpriteAtlasTool\SpriteAtlasTool\obj\x86\Release\SpriteAtlasTool.csproj.GenerateResource.Cache
 D:\development\Settlers2\Settlers2\SpriteAtlasTool\SpriteAtlasTool\obj\x86\Release\SpriteAtlasTool.EditNodeWeightForm.resources
-D:\development\Settlers2\Settlers2\SpriteAtlasTool\SpriteAtlasTool\obj\x86\Release\SpriteAtlasTool.csproj.AssemblyReference.cache
-D:\development\Settlers2\Settlers2\SpriteAtlasTool\SpriteAtlasTool\obj\x86\Release\SpriteAtlasTool.csproj.CoreCompileInputs.cache
+D:\development\Settlers2\Settlers2\SpriteAtlasTool\SpriteAtlasTool\obj\x86\Release\SpriteAtlasTool.csprojResolveAssemblyReference.cache

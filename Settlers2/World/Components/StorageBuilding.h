@@ -15,7 +15,7 @@ namespace World {
                 }
             }
 
-        virtual void Update() {
+        void Update(float dt) override {
             // Storage buildings do not produce or consume by themselves
         }
 

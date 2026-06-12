@@ -1,0 +1,437 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<GCPluginConfig>
+    <Locales>
+        <Locale id="1" locale="en-US">English</Locale>
+        <Locale id="2" locale="ja-JP">Japanese</Locale>
+        <Locale id="3" locale="de-DE">German</Locale>
+        <Locale id="4" locale="fr-FR">French</Locale>
+        <Locale id="5" locale="es-ES">Spanish</Locale>
+        <Locale id="6" locale="it-IT">Italian</Locale>
+        <Locale id="7" locale="ko-KR">Korean</Locale>
+        <Locale id="8" locale="zh-CHT">Traditional Chinese</Locale>
+        <Locale id="9" locale="pt-PT">Portuguese</Locale>
+        <Locale id="10" locale="zh-CN">Simplified Chinese</Locale>
+        <Locale id="11" locale="pl-PL">Polish</Locale>
+        <Locale id="12" locale="ru-RU">Russian</Locale>
+    </Locales>
+    <DataTypes>
+        <DataType value="0x10000000" size="4" type="Int32">Integer (4 bytes)</DataType>
+        <DataType value="0x20000000" size="8" type="Int64">Long Integer (8 bytes)</DataType>
+        <DataType value="0x30000000" size="8" type="Double">Long Float (8 bytes)</DataType>
+        <DataType value="0x40000000" size="0" type="Unicode" hidden="true">String</DataType>
+        <DataType value="0x50000000" size="4" type="Float">Float (4 bytes)</DataType>
+        <DataType value="0x70000000" size="8" type="DateTime">DateTime (8 bytes)</DataType>
+    </DataTypes>
+    <AchievementTypes>
+        <AchievementType value="1">Completion</AchievementType>
+        <AchievementType value="2">Leveling</AchievementType>
+        <AchievementType value="3">Unlock</AchievementType>
+        <AchievementType value="4">Event</AchievementType>
+        <AchievementType value="5">Tournament</AchievementType>
+        <AchievementType value="6">Checkpoint</AchievementType>
+        <AchievementType value="7">Other</AchievementType>
+    </AchievementTypes>
+    <TitleTypes>
+        <TitleType type="1" name="Full Game Title" maxAchievements="50" maxGamerscore="1000" maxAvatarAwards="5"/>
+        <TitleType type="0" name="System Title" />
+        <TitleType type="2" name="Demo Title" />
+        <TitleType type="3" name="Downloadable Game Title" maxAchievements="12" maxGamerscore="200" maxAvatarAwards="2"/>
+    </TitleTypes>
+    <Platforms>
+        <Platform name="Xbox 360" id="2" />
+        <Platform name="PC" id="4" />
+    </Platforms> />
+
+    <!-- From private\sql\hash\uodb\p_pcat_UpdateProductFeatureData.sql -->
+    <Features>
+        <Feature name="camera">Camera</Feature>
+        <Feature name="coOp">Cooperative Play</Feature>
+        <Feature name="customSoundtrack">Custom Soundtracks</Feature>
+        <Feature name="dolby51">Dolby 5.1</Feature>
+        <Feature name="hardDriveEnhanced">Hard Drive Enhanced</Feature>
+        <Feature name="hardDriveRequired">Hard Drive Required</Feature>
+        <Feature name="liveAware">Xbox Live</Feature>
+        <Feature name="liveCoOp">Xbox Live Cooperative Play</Feature>
+        <Feature name="liveClans">Xbox Live Clans</Feature>
+        <Feature name="liveDownloads">Xbox Live Downloads</Feature>
+        <Feature name="liveFriends">Xbox Live Friends</Feature>
+        <Feature name="liveMessaging">Xbox Live Messaging</Feature>
+        <Feature name="liveMultiplayer">Xbox Live Multiplayer</Feature>
+        <Feature name="liveScoreboard">Xbox Live Scoreboard</Feature>
+        <Feature name="liveServiceProxy">Xbox Live Service Proxy</Feature>
+        <Feature name="liveStats">Xbox Live Stats</Feature>
+        <Feature name="liveTournaments">Xbox Live Tournaments</Feature>
+        <Feature name="liveVoice">Xbox Live Voice</Feature>
+        <Feature name="liveVoiceMessaging">Xbox Live Voice Messaging</Feature>
+        <Feature name="memoryUnit">Memory Unit</Feature>
+        <Feature name="multiplayerVersus">Multiplayer Versus</Feature>
+        <Feature name="peripherals">Special Peripherals</Feature>
+        <Feature name="systemLink">System Link</Feature>
+        <Feature name="premiumOffers">Premium Offers</Feature>
+        <Feature name="userCreatableContent">User Creatable Content</Feature>
+        <Feature name="xboxSupport">Xbox</Feature>
+        <Feature name="xbox2Support">Xbox 360</Feature>
+    </Features>
+
+    <!-- From private\sql\hash\uodb\ratings_data.xml -->
+    <ratingsettings>
+        <ratingsystems>
+            <ratingsystem description="NONE" resourcename="STRING_RATINGSYSTEM_NONE">
+                <ratings>
+                    <rating ratingid="0" rank="100" description="[None]" minage="0" resourcename="STRING_RATING_NONE"/>
+                </ratings>
+            </ratingsystem>
+            <ratingsystem ratingsystemid="0" description="ESRB (Entertainment Software Rating Board)" resourcename="STRING_RATINGSYSTEM_ESRB">
+                <ratings>
+                    <rating ratingid="0" rank="100" description="[None]" minage="0" resourcename="STRING_RATING_NONE"/>
+                    <rating ratingid="1" rank="0" description="ESRB - eC (Early Childhood)" minage="3" resourcename="STRING_RATING_ESRB_EC"/>
+                    <rating ratingid="2" rank="2" description="ESRB - E (Everyone)" minage="6" resourcename="STRING_RATING_ESRB_E"/>
+                    <rating ratingid="3" rank="4" description="ESRB - E10 (10+)" minage="10" resourcename="STRING_RATING_ESRB_E10"/>
+                    <rating ratingid="4" rank="6" description="ESRB - T (Teen)" minage="13" resourcename="STRING_RATING_ESRB_T"/>
+                    <rating ratingid="5" rank="8" description="ESRB - M (Mature)" minage="17" resourcename="STRING_RATING_ESRB_M"/>
+                    <rating ratingid="6" rank="14" description="ESRB - AO (Adult Oriented)" minage="18" resourcename="STRING_RATING_ESRB_AO"/>
+                    <rating ratingid="7" rank="255" description="ESRB - RP (Rating Pending)" minage="18" resourcename="STRING_RATING_ESRB_RP"/>
+                    <rating ratingid="8" rank="5" description="ESRB - RP E10+" minage="10" resourcename="STRING_RATING_ESRB_RPE"/>
+                </ratings>
+                <cultures>
+                    <culture cultureid="1033" name="English (US)"/>
+                    <culture cultureid="4105" name="English (Canada)"/>
+                    <culture cultureid="3084" name="French (Canada)"/>
+                    <culture cultureid="9226" name="Spanish (Colombia)"/>
+                    <culture cultureid="2058" name="Spanish (Mexico)"/>
+                </cultures>
+                <countries>
+                    <country countryid="103" name="United States"/>
+                    <country countryid="16" name="Canada"/>
+                    <country countryid="21" name="Colombia"/>
+                    <country countryid="71" name="Mexico"/>
+                </countries>
+            </ratingsystem>
+            <ratingsystem ratingsystemid="1" description="PEGI (Pan European Game Information)" resourcename="STRING_RATINGSYSTEM_PEGI">
+                <ratings>
+                    <rating ratingid="0" rank="100" description="[None]" minage="0" resourcename="STRING_RATING_NONE"/>
+                    <rating ratingid="11" rank="0" description="PEGI - Ages 3+" minage="3" resourcename="STRING_RATING_PEGI_3"/>
+                    <rating ratingid="12" rank="4" description="PEGI - Ages 7+" minage="7" resourcename="STRING_RATING_PEGI_7"/>
+                    <rating ratingid="13" rank="9" description="PEGI - Ages 12+" minage="12" resourcename="STRING_RATING_PEGI_12"/>
+                    <rating ratingid="14" rank="13" description="PEGI - Ages 16+" minage="16" resourcename="STRING_RATING_PEGI_16"/>
+                    <rating ratingid="15" rank="14" description="PEGI - Ages 18+" minage="17" resourcename="STRING_RATING_PEGI_18"/>
+                </ratings>
+                <cultures>
+                    <culture cultureid="2060" name="French (Belgium)"/>
+                    <culture cultureid="2067" name="Dutch (Belgium)"/>
+                    <culture cultureid="3079" name="German (Austria)"/>
+                    <culture cultureid="1030" name="Danish (Denmark)"/>
+                    <culture cultureid="1036" name="French (France)"/>
+                    <culture cultureid="1032" name="Greek (Greece)"/>
+                    <culture cultureid="1040" name="Italian (Italy)"/>
+                    <culture cultureid="1043" name="Dutch (Netherlands)"/>
+                    <culture cultureid="1044" name="Norwegian (Norway)"/>
+                    <culture cultureid="3082" name="Spanish (Spain)"/>
+                    <culture cultureid="1053" name="Swedish (Sweden)"/>
+                    <culture cultureid="4108" name="French (Switzerland)"/>
+                    <culture cultureid="2055" name="German (Switzerland)"/>
+                </cultures>
+                <countries>
+                    <country countryid="8" name="Belgium"/>
+                    <country countryid="5" name="Austria"/>
+                    <country countryid="25" name="Denmark"/>
+                    <country countryid="34" name="France"/>
+                    <country countryid="37" name="Greece"/>
+                    <country countryid="50" name="Italy"/>
+                    <country countryid="74" name="Netherlands"/>
+                    <country countryid="75" name="Norway"/>
+                    <country countryid="31" name="Spain"/>
+                    <country countryid="90" name="Sweden"/>
+                    <country countryid="18" name="Switzerland"/>
+                </countries>
+            </ratingsystem>
+            <ratingsystem ratingsystemid="2" description="PEGI (Pan European Game Information) - Finland" resourcename="STRING_RATINGSYSTEM_PEGI_FINLAND">
+                <ratings>
+                    <rating ratingid="0" rank="100" description="[None]" minage="0" resourcename="STRING_RATING_NONE"/>
+                    <rating ratingid="21" rank="0" description="PEGI (Finland) - Ages 3+" minage="3" resourcename="STRING_RATING_PEGI_FINLAND_3"/>
+                    <rating ratingid="22" rank="4" description="PEGI (Finland) - Ages 7+" minage="7" resourcename="STRING_RATING_PEGI_FINLAND_7"/>
+                    <rating ratingid="23" rank="8" description="PEGI (Finland) - Ages 12+" minage="12" resourcename="STRING_RATING_PEGI_FINLAND_12"/>
+                    <rating ratingid="24" rank="12" description="PEGI (Finland) - Ages 16+" minage="16" resourcename="STRING_RATING_PEGI_FINLAND_16"/>
+                    <rating ratingid="25" rank="14" description="PEGI (Finland) - Ages 18+" minage="17" resourcename="STRING_RATING_PEGI_FINLAND_18"/>
+                </ratings>
+                <cultures>
+                    <culture cultureid="1035" name="Finnish (Finland)"/>
+                </cultures>
+                <countries>
+                    <country countryid="32" name="Finland"/>
+                </countries>
+            </ratingsystem>
+            <ratingsystem ratingsystemid="3" description="PEGI (Pan European Game Information) - Portugal" resourcename="STRING_RATINGSYSTEM_PEGI_PORTUGAL">
+                <ratings>
+                    <rating ratingid="0" rank="100" description="[None]" minage="0" resourcename="STRING_RATING_NONE"/>
+                    <rating ratingid="31" rank="1" description="PEGI (Portugal) - Ages 4+" minage="4" resourcename="STRING_RATING_PEGI_PORTUGAL_4"/>
+                    <rating ratingid="32" rank="3" description="PEGI (Portugal) - Ages 6+" minage="6" resourcename="STRING_RATING_PEGI_PORTUGAL_6"/>
+                    <rating ratingid="33" rank="9" description="PEGI (Portugal) - Ages 12+" minage="12" resourcename="STRING_RATING_PEGI_PORTUGAL_12"/>
+                    <rating ratingid="34" rank="13" description="PEGI (Portugal) - Ages 16+" minage="16" resourcename="STRING_RATING_PEGI_PORTUGAL_16"/>
+                    <rating ratingid="35" rank="14" description="PEGI (Portugal) - Ages 18+" minage="17" resourcename="STRING_RATING_PEGI_PORTUGAL_18"/>
+                </ratings>
+                <cultures>
+                    <culture cultureid="2070" name="Portuguese (Portugal)"/>
+                </cultures>
+                <countries>
+                    <country countryid="84" name="Portugal"/>
+                </countries>
+            </ratingsystem>
+            <ratingsystem ratingsystemid="4" description="BBFC - UK/Ireland" resourcename="STRING_RATINGSYSTEM_PEGI_BBFC">
+                <ratings>
+                    <rating ratingid="0" rank="100" description="[None]" minage="0" resourcename="STRING_RATING_NONE"/>
+                    <rating ratingid="41" rank="0" description="PEGI/BBFC - Ages 3+" minage="3" resourcename="STRING_RATING_PEGI_BBFC_3"/>
+                    <rating ratingid="42" rank="1" description="PEGI/BBFC - Universal" minage="4" resourcename="STRING_RATING_PEGI_BBFC_4"/>
+                    <rating ratingid="43" rank="4" description="PEGI/BBFC - Ages 7+" minage="7" resourcename="STRING_RATING_PEGI_BBFC_7"/>
+                    <rating ratingid="44" rank="5" description="PEGI/BBFC - Parental Guidance" minage="8" resourcename="STRING_RATING_PEGI_BBFC_8"/>
+                    <rating ratingid="45" rank="9" description="PEGI/BBFC - Ages 12+" minage="12" resourcename="STRING_RATING_PEGI_BBFC_12"/>
+                    <rating ratingid="46" rank="12" description="PEGI/BBFC - Ages 15+" minage="15" resourcename="STRING_RATING_PEGI_BBFC_15"/>
+                    <rating ratingid="47" rank="13" description="PEGI/BBFC - Ages 16+" minage="16" resourcename="STRING_RATING_PEGI_BBFC_16"/>
+                    <rating ratingid="48" rank="14" description="PEGI/BBFC - Ages 18+" minage="17" resourcename="STRING_RATING_PEGI_BBFC_18"/>
+                </ratings>
+                <cultures>
+                    <culture cultureid="6153" name="English (Ireland)"/>
+                    <culture cultureid="2057" name="English (UK)"/>
+                </cultures>
+                <countries>
+                    <country countryid="44" name="Ireland"/>
+                    <country countryid="35" name="Great Britain (UK)"/>
+                </countries>
+            </ratingsystem>
+            <ratingsystem ratingsystemid="5" description="CERO (Computer Entertainment Rating Organization)" resourcename="STRING_RATINGSYSTEM_CERO">
+                <ratings>
+                    <rating ratingid="0" rank="100" description="[None]" minage="0" resourcename="STRING_RATING_NONE"/>
+                    <rating ratingid="51" rank="0" description="CERO A - All Ages" minage="0" resourcename="STRING_RATING_CERO_ALL"/>
+                    <rating ratingid="52" rank="2" description="CERO B - 12+" minage="12" resourcename="STRING_RATING_CERO_12"/>
+                    <rating ratingid="53" rank="4" description="CERO C - 15+" minage="15" resourcename="STRING_RATING_CERO_15"/>
+                    <rating ratingid="54" rank="6" description="CERO D - 17+" minage="17" resourcename="STRING_RATING_CERO_17"/>
+                    <rating ratingid="56" rank="8" description="CERO Z - 18+" minage="18" resourcename="STRING_RATING_CERO_18"/>
+                </ratings>
+                <cultures>
+                    <culture cultureid="1041" name="Japanese (Japan)"/>
+                </cultures>
+                <countries>
+                    <country countryid="53" name="Japan"/>
+                </countries>
+            </ratingsystem>
+            <ratingsystem ratingsystemid="6" description="USK (Unterhaltungssoftware SelbstKontrolle)" resourcename="STRING_RATINGSYSTEM_USK">
+                <ratings>
+                    <rating ratingid="0" rank="100" description="[None]" minage="0" resourcename="STRING_RATING_NONE"/>
+                    <rating ratingid="61" rank="0" description="USK - Released without age restriction" minage="0" resourcename="STRING_RATING_USK_ALL"/>
+                    <rating ratingid="62" rank="2" description="USK - Released starting from 6 years" minage="6" resourcename="STRING_RATING_USK_6"/>
+                    <rating ratingid="63" rank="4" description="USK - Released starting from 12 years" minage="12" resourcename="STRING_RATING_USK_12"/>
+                    <rating ratingid="64" rank="6" description="USK - Released starting from 16 years" minage="16" resourcename="STRING_RATING_USK_16"/>
+                    <rating ratingid="65" rank="8" description="USK - No youth release" minage="17" resourcename="STRING_RATING_USK_ADULT"/>
+                </ratings>
+                <cultures>
+                    <culture cultureid="1031" name="German (Germany)"/>
+                </cultures>
+                <countries>
+                    <country countryid="24" name="Germany"/>
+                </countries>
+            </ratingsystem>
+            <ratingsystem ratingsystemid="7" description="OFLC (Office of Film and Literature Classification) - Australia" resourcename="STRING_RATINGSYSTEM_OFLC_AU">
+                <ratings>
+                    <rating ratingid="0" rank="100" description="[None]" minage="0" resourcename="STRING_RATING_NONE"/>
+                    <rating ratingid="71" rank="0" description="OFLC - G" minage="0" resourcename="STRING_RATING_OFLC_G"/>
+                    <rating ratingid="72" rank="2" description="OFLC - PG" minage="8" resourcename="STRING_RATING_OFLC_G8"/>
+                    <rating ratingid="73" rank="4" description="OFLC - M" minage="15" resourcename="STRING_RATING_OFLC_M15"/>
+                    <rating ratingid="74" rank="6" description="OFLC - MA15+" minage="15" resourcename="STRING_RATING_OFLC_MA15"/>
+                </ratings>
+                <cultures>
+                    <culture cultureid="3081" name="English (Australia)"/>
+                </cultures>
+                <countries>
+                    <country countryid="6" name="Australia"/>
+                </countries>
+            </ratingsystem>
+            <ratingsystem ratingsystemid="8" description="OFLC (Office of Film and Literature Classification) - New Zealand" resourcename="STRING_RATINGSYSTEM_OFLC_AU">
+                <ratings>
+                    <rating ratingid="0" rank="100" description="[None]" minage="0" resourcename="STRING_RATING_NONE"/>
+                    <rating ratingid="81" rank="0" description="OFLC - G" minage="0" resourcename="STRING_RATING_OFLC_G"/>
+                    <rating ratingid="82" rank="2" description="OFLC - PG" minage="8" resourcename="STRING_RATING_OFLC_G8"/>
+                    <rating ratingid="83" rank="4" description="OFLC - M" minage="15" resourcename="STRING_RATING_OFLC_M15"/>
+                    <rating ratingid="84" rank="6" description="OFLC - MA15+" minage="15" resourcename="STRING_RATING_OFLC_MA15"/>
+                </ratings>
+                <cultures>
+                    <culture cultureid="5129" name="English (New Zealand)"/>
+                </cultures>
+                <countries>
+                    <country countryid="76" name="New Zealand"/>
+                </countries>
+            </ratingsystem>
+            <ratingsystem ratingsystemid="9" description="GRB" resourcename="STRING_RATINGSYSTEM_GRB">
+                <ratings>
+                    <rating ratingid="0" rank="100" description="[None]" minage="0" resourcename="STRING_RATING_NONE"/>
+                    <rating ratingid="91" rank="0" description="All" minage="0" resourcename="STRING_RATING_GRB_ALL"/>
+                    <rating ratingid="92" rank="2" description="12-year+" minage="12" resourcename="STRING_RATING_GRB_12"/>
+                    <rating ratingid="93" rank="4" description="15-year+" minage="15" resourcename="STRING_RATING_GRB_15"/>
+                    <rating ratingid="94" rank="6" description="18 Teenager restricted" minage="18" resourcename="STRING_RATING_GRB_18"/>
+                </ratings>
+                <cultures>
+                    <culture cultureid="1042" name="Korean (Korea)"/>
+                </cultures>
+                <countries>
+                    <country countryid="56" name="Korea"/>
+                </countries>
+            </ratingsystem>
+            <ratingsystem ratingsystemid="10" description="Brazil" resourcename="STRING_RATINGSYSTEM_BRAZIL">
+                <ratings>
+                    <rating ratingid="0" rank="100" description="[None]" minage="0" resourcename="STRING_RATING_NONE"/>
+                    <rating ratingid="101" rank="0" description="All" minage="0" resourcename="STRING_RATING_BRAZIL_ALL"/>
+                    <rating ratingid="102" rank="2" description="12+" minage="12" resourcename="STRING_RATING_BRAZIL_12"/>
+                    <rating ratingid="103" rank="4" description="14+" minage="14" resourcename="STRING_RATING_BRAZIL_14"/>
+                    <rating ratingid="104" rank="5" description="16+" minage="16" resourcename="STRING_RATING_BRAZIL_16"/>
+                    <rating ratingid="105" rank="8" description="18+" minage="18" resourcename="STRING_RATING_BRAZIL_18"/>
+                </ratings>
+                <cultures>
+                    <culture cultureid="1046" name="Portuguese (Brazil)"/>
+                </cultures>
+                <countries>
+                    <country countryid="13" name="Brazil"/>
+                </countries>
+            </ratingsystem>
+            <ratingsystem ratingsystemid="11" description="FPB (Film and Publication Board)" resourcename="STRING_RATINGSYSTEM_FPB">
+                <ratings>
+                    <rating ratingid="0" rank="100" description="[None]" minage="0" resourcename="STRING_RATING_NONE"/>
+                    <rating ratingid="111" rank="0" description="All" minage="0" resourcename="STRING_RATING_FPB_ALL"/>
+                    <rating ratingid="112" rank="6" description="PG" minage="0" resourcename="STRING_RATING_FPB_PG"/>
+                    <rating ratingid="113" rank="7" description="10+" minage="10" resourcename="STRING_RATING_FPB_10"/>
+                    <rating ratingid="114" rank="10" description="13+" minage="13" resourcename="STRING_RATING_FPB_13"/>
+                    <rating ratingid="115" rank="13" description="16+" minage="16" resourcename="STRING_RATING_FPB_16"/>
+                    <rating ratingid="116" rank="14" description="18+" minage="18" resourcename="STRING_RATING_FPB_18"/>
+                </ratings>
+                <cultures>
+                </cultures>
+                <countries>
+                </countries>
+            </ratingsystem>
+        </ratingsystems>
+    </ratingsettings>
+
+    <!-- 
+    
+        Displayed ratings can be one of the following:
+        
+        1.  Display an entire rating system as defined in the <ratingsettings> section above:
+        
+            <displayedratingsystem ratingsystemid="" />
+
+        2.  Group multiple rating systems together into one logical display, overriding some or all names.
+            In this case the ratingsystemid from the <displayedratingsystem> element, and the ratingid
+            from the <displayedrating> element are used to look up the display string for that rating
+            from the list above.  In this case the <displayedratingsystem> element can contain a
+            description attribute which overrides the description on the rating system above.  Currently
+            the <displayedrating> element CANNOT contain a description attribute.  The <mappedrating>
+            elements indicate what is actually saved to the XLAST file when the <displayedrating> is
+            selected by the user.
+            
+        !!!! NOTE !!!! This section MUST occur after the <ratingsettings> element.
+        
+    -->
+
+    <displayedratingsystems>
+        <displayedratingsystem ratingsystemid="0" /><!-- ESRB -->
+        <displayedratingsystem ratingsystemid="1" description="PEGI (Pan European Game Information)">
+            <displayedrating ratingid="0"><!-- [None] -->
+                <mappedrating ratingsystemid="1" ratingid="0" />
+                <mappedrating ratingsystemid="2" ratingid="0" />
+                <mappedrating ratingsystemid="3" ratingid="0" />
+            </displayedrating>
+            <displayedrating ratingid="11"><!-- PEGI - Ages 3+ -->
+                <mappedrating ratingsystemid="1" ratingid="11" />
+                <mappedrating ratingsystemid="2" ratingid="21" />
+                <mappedrating ratingsystemid="3" ratingid="31" />
+            </displayedrating>
+            <displayedrating ratingid="12"><!-- PEGI - Ages 7+ -->
+                <mappedrating ratingsystemid="1" ratingid="12" />
+                <mappedrating ratingsystemid="2" ratingid="22" />
+                <mappedrating ratingsystemid="3" ratingid="32" />
+            </displayedrating>
+            <displayedrating ratingid="13"><!-- PEGI - Ages 12+ -->
+                <mappedrating ratingsystemid="1" ratingid="13" />
+                <mappedrating ratingsystemid="2" ratingid="23" />
+                <mappedrating ratingsystemid="3" ratingid="33" />
+            </displayedrating>
+            <displayedrating ratingid="14"><!-- PEGI - Ages 16+ -->
+                <mappedrating ratingsystemid="1" ratingid="14" />
+                <mappedrating ratingsystemid="2" ratingid="24" />
+                <mappedrating ratingsystemid="3" ratingid="34" />
+            </displayedrating>
+            <displayedrating ratingid="15"><!-- PEGI - Ages 18+ -->
+                <mappedrating ratingsystemid="1" ratingid="15" />
+                <mappedrating ratingsystemid="2" ratingid="25" />
+                <mappedrating ratingsystemid="3" ratingid="35" />
+            </displayedrating>
+        </displayedratingsystem>
+        <displayedratingsystem ratingsystemid="4" description="BBFC - UK/Ireland" /><!-- BBFC - UK/Ireland -->
+        <displayedratingsystem ratingsystemid="5" /><!-- CERO (Computer Entertainment Rating Organization) -->
+        <displayedratingsystem ratingsystemid="6" /><!-- USK (Unterhaltungssoftware SelbstKontrolle) -->
+        <displayedratingsystem ratingsystemid="7" description="OFLC (Office of Film and Literature Classification) - Australia" ><!-- OFLC -->
+            <displayedrating ratingid="0"><!-- [None] -->
+                <mappedrating ratingsystemid="7" ratingid="0" />
+                <mappedrating ratingsystemid="8" ratingid="0" />
+            </displayedrating>
+            <displayedrating ratingid="71"><!-- OFLC - G -->
+                <mappedrating ratingsystemid="7" ratingid="71" />
+                <mappedrating ratingsystemid="8" ratingid="81" />
+            </displayedrating>
+            <displayedrating ratingid="72"><!-- OFLC - G8+ -->
+                <mappedrating ratingsystemid="7" ratingid="72" />
+                <mappedrating ratingsystemid="8" ratingid="82" />
+            </displayedrating>
+            <displayedrating ratingid="73"><!-- OFLC - M15+ -->
+                <mappedrating ratingsystemid="7" ratingid="73" />
+                <mappedrating ratingsystemid="8" ratingid="83" />
+            </displayedrating>
+            <displayedrating ratingid="74"><!-- OFLC - MA15+ -->
+                <mappedrating ratingsystemid="7" ratingid="74" />
+                <mappedrating ratingsystemid="8" ratingid="84" />
+            </displayedrating>
+            <displayedrating ratingid="75"><!-- OFLC - RC -->
+                <mappedrating ratingsystemid="7" ratingid="75" />
+                <mappedrating ratingsystemid="8" ratingid="85" />
+            </displayedrating>
+        </displayedratingsystem>
+        <displayedratingsystem ratingsystemid="9" /><!-- KMRB (Korea Media Rating Board) -->
+        <displayedratingsystem ratingsystemid="11" /><!-- FPB (Film and Publication Board) -->
+    </displayedratingsystems>
+
+
+    <!-- From private\sql\hash\uodb\genre_data.xml -->
+    <genres>
+        <!-- genre ids should be in this format: (1 digit productid)(2 digit base genre id)(2 digit sub genre id)(2 digit sub-sub genre id)(2 digit sub-sub-sub genre id)-->
+        <producttype producttypeid="NULL">
+            <genre genreid="0" genrename="[None]" resourcename="STRING_GENRE_NONE"/>
+        </producttype>
+        <producttype producttypeid="1">
+            <genre genreid="102000000" genrename="Action &amp; Adventure"/>
+            <genre genreid="116020000" genrename="Card &amp; Board"/>
+            <genre genreid="116030000" genrename="Classics"/>
+            <genre genreid="999999998" genrename="Educational"/>
+            <genre genreid="105000000" genrename="Family"/>
+            <genre genreid="106000000" genrename="Fighting"/>
+            <genre genreid="108000000" genrename="Music"/>
+            <genre genreid="101000000" genrename="Other"/>
+            <genre genreid="109000000" genrename="Platformer"/>
+            <genre genreid="116040000" genrename="Puzzle &amp; Trivia"/>
+            <genre genreid="110000000" genrename="Racing &amp; Flying"/>
+            <genre genreid="111000000" genrename="Role Playing"/>
+            <genre genreid="112000000" genrename="Shooter"/>
+            <genre genreid="113000000" genrename="Strategy &amp; Simulation"/>
+            <genre genreid="114000000" genrename="Sports &amp; Recreation"/>
+            <!--Demo-->
+        </producttype>
+        <!--This product type = 7 below only has special genres used for specific marketplace organization needs-->
+        <producttype producttypeid="7">
+            <!--The demo titles genre below should never be requested in marketplace and is intended to be hidden. 
+            The offers in this will be cross-sold under the main title which is the only place they are displayed
+            on marketplace. The string for this will not be displayed on marketplace and need not be localized.
+            XLAST must import this genre and allow titles to be in this genre. The display string in the dropdown should
+            preferably be changed to something like "Demo Titles (should be in this genre only)"-->
+            <genre genreid="701000000" genrename="Demo titles (should be in this genre only)"/>
+        </producttype>
+    </genres>
+
+</GCPluginConfig>
+

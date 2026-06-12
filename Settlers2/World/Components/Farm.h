@@ -11,22 +11,21 @@ class Farm : public Building {
 public:
     Farm(int x, int y, uint8_t o, Map* m)
         : Building(BuildingType::Farm, x, y, o, m) {
+        m_productionInterval = 4.0f;
         outputResources.push_back(ResourceType_Wheat);
     }
 
-    void Update() override {
-        if (m_storage[ResourceType_Wheat] >= 5) return;
-
+    bool CanProduce() override {
         if (!m_hasTarget) {
             Logic::ResourceRegistry* registry = map ? map->GetResourceRegistry() : NULL;
-            if (registry) {
+            if (registry)
                 m_hasTarget = registry->FindNearestWorldResource(ResourceType_Field, pos, m_target);
-            }
         }
+        return m_hasTarget && !IsOutputFull();
+    }
 
-        if (m_hasTarget) {
-            m_storage[ResourceType_Wheat]++;
-        }
+    bool ProduceOne() override {
+        return AddOutput(ResourceType_Wheat, 1);
     }
 };
 

@@ -100,8 +100,62 @@ inline const char* ResourceTypeToString(ResourceType type)
 
 inline const char* ResourceTypeToIconName(ResourceType type)
 {
-    // Simplified for now, map to atlas icon names if needed
-    return "";
+    switch (type) {
+        case ResourceType_Wood:       return "r_wood";
+        case ResourceType_Stone:      return "r_stone";
+        case ResourceType_Planks:     return "r_planks";
+        case ResourceType_Fish:       return "r_fish";
+        case ResourceType_Meat:       return "r_meat";
+        case ResourceType_Bread:      return "r_bread";
+        case ResourceType_Coal:       return "r_coal";
+        case ResourceType_IronOre:    return "r_ironore";
+        case ResourceType_GoldOre:    return "r_goldore";
+        case ResourceType_IronBar:    return "r_ironbar";
+        case ResourceType_GoldBar:    return "r_goldbar";
+        case ResourceType_Tools:      return "r_tools";
+        case ResourceType_Wheat:      return "r_wheat";
+        case ResourceType_Flour:      return "r_flour";
+        case ResourceType_Water:      return "r_water";
+        case ResourceType_WildlifeSpawner_Deer: return "r_deer";
+        case ResourceType_WildlifeSpawner_Rabbit: return "r_rabbit";
+        case ResourceType_WildlifeSpawner_Crocodile: return "r_crocodile";
+        case ResourceType_WildlifeSpawner_Snake: return "r_snake";
+        default: return "";
+    }
+}
+
+inline const char* ResourceTypeToDepositIconName(ResourceType type)
+{
+    switch (type) {
+        case ResourceType_Wood:       return "deposit_wood";
+        case ResourceType_Planks:     return "deposit_planks";
+        case ResourceType_Fish:       return "deposit_fish";
+        case ResourceType_Meat:       return "deposit_meat";
+        case ResourceType_Bread:      return "deposit_bread";
+        case ResourceType_Coal:       return "deposit_coal";
+        case ResourceType_IronOre:    return "deposit_iron";
+        case ResourceType_GoldOre:    return "deposit_gold";
+        case ResourceType_IronBar:    return "deposit_iron_bar";
+        case ResourceType_GoldBar:    return "deposit_gold_bar";
+        case ResourceType_Stone:      return "deposit_stone";
+        case ResourceType_Tools:      return "deposit_tools";
+        case ResourceType_Wheat:      return "deposit_corn";
+        case ResourceType_Flour:      return "deposit_flour";
+        case ResourceType_Water:      return "deposit_water";
+        case ResourceType_WildlifeSpawner_Deer: return "deposit_deer";
+        case ResourceType_WildlifeSpawner_Rabbit: return "deposit_rabbit";
+        case ResourceType_WildlifeSpawner_Crocodile: return "deposit_crocodile";
+        case ResourceType_WildlifeSpawner_Snake: return "deposit_snake";
+        case ResourceType_RealWood:   return "deposit_real_wood";
+        case ResourceType_ExoticWood: return "deposit_exotic_wood";
+        case ResourceType_BronzeOre:  return "deposit_bronze";
+        case ResourceType_Marble:     return "deposit_marble";
+        case ResourceType_Granite:    return "deposit_granite";
+        case ResourceType_Titanium:   return "deposit_titanium";
+        case ResourceType_Salpeter:   return "deposit_salpeter";
+        case ResourceType_Trap:       return "deposit_trap";
+        default: return "";
+    }
 }
 
 inline int GetDefaultResourceAmount(ResourceType type)

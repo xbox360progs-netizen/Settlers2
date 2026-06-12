@@ -250,7 +250,7 @@ void MenuScene::Render(RenderQueue* renderQueue) {
         return;
     }
 
-    OutputDebugStringA("[MenuScene::Render] submitting background\n");
+//    OutputDebugStringA("[MenuScene::Render] submitting background\n");
     // Background sprite
     Graphics::RenderCommand bgCmd = {};
     bgCmd.shaderID = SHADER_SPRITE;

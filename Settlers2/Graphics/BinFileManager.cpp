@@ -572,8 +572,8 @@ bool BinFileManager::ParseMultiLevelAtlas(BYTE* buffer, DWORD bufferSize, Sprite
         if (pivotX == 0xFFFF) pivotX = width / 2;
         if (pivotY == 0xFFFF) pivotY = height / 2;
 
-        sprintf(debugMsg, "[ParseMultiLevelAtlas] Sprite %d: %dx%d, pivot=(%d,%d), UV=(%.3f,%.3f)-(%.3f,%.3f)\n",
-                spriteIdx, width, height, pivotX, pivotY, uv_min_x, uv_min_y, uv_max_x, uv_max_y);
+        sprintf(debugMsg, "[ParseMultiLevelAtlas] Sprite %d '%s': %dx%d, pivot=(%d,%d), UV=(%.3f,%.3f)-(%.3f,%.3f)\n",
+                spriteIdx, spriteName.c_str(), width, height, pivotX, pivotY, uv_min_x, uv_min_y, uv_max_x, uv_max_y);
         OutputDebugStringA(debugMsg);
 
         // Create SpriteRegion for Xbox 360 rendering

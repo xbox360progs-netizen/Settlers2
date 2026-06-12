@@ -8,7 +8,9 @@ namespace World {
 class ProductionBuilding : public Building {
 public:
     ProductionBuilding(BuildingType t, int x, int y, uint8_t o, Map* m)
-        : Building(t, x, y, o, m) {}
+        : Building(t, x, y, o, m) {
+        m_productionInterval = 3.0f;
+    }
 
     void SyncIOFromRules() {
         for (int r = 0; r < m_numRules; ++r) {
@@ -19,10 +21,16 @@ public:
         }
     }
 
-    void Update() override {
+    void Update(float dt) override {
         if (state != State_Finished) return;
 
-        for (int r = 0; r < m_numRules; ++r) {
+        m_productionTimer += dt;
+
+        while (m_productionTimer >= m_productionInterval) {
+            m_productionTimer -= m_productionInterval;
+
+            bool produced = false;
+            for (int r = 0; r < m_numRules; ++r) {
             ProductionRule& rule = m_rules[r];
 
             // Check input availability
@@ -56,7 +64,10 @@ public:
             for (int o = 0; o < rule.numOutputs; ++o) {
                 m_storage[rule.output[o]] += rule.outputAmount[o];
             }
+            produced = true;
         }
+        if (!produced) break;  // no rule could fire — avoid infinite loop
+    }
     }
 };
 

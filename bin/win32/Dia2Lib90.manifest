@@ -1,0 +1,34 @@
+
+HKEY_CLASSES_ROOT\CLSID\
+HKEY_CLASSES_ROOT\CLSID\
+HKEY_CLASSES_ROOT\CLSID\
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" 
+  manifestVersion="1.0">
+
+<assemblyIdentity
+   type="win32"
+   name="Dia2Lib90"
+   version="9.0.21022.8" />
+
+<file name = "msdia90.dll">
+
+<comClass
+    clsid="{4C41678E-887B-4365-A09E-925D28DB33C2}"
+    threadingModel = "Both" />
+
+<comClass
+    clsid="{8557EAC0-2A06-4E08-A6D8-ABBA2AF173E1}"
+    threadingModel = "Both" />
+
+<comClass
+    clsid="{FF5FAFD8-CBCB-4EF9-ADC0-45A62B681E96}"
+    threadingModel = "Both" />
+
+<typelib tlbid="{106173A0-0173-4e5c-84E7-E915422BE99}"
+       version="2.0" helpdir=""/>
+
+</file>
+
+</assembly>

@@ -125,6 +125,12 @@ void MapEditor::Initialize(World::Map* map, Renderer* renderer,
         m_spriteRenderer->SetTextureSlot(4, uiAtlas->GetTexture());
     }
 
+    // Icon atlas for resource deposit icons — slot 9
+    std::tr1::shared_ptr<SpriteAtlas> iconAtlas = registry.getAtlas("Icon");
+    if (iconAtlas && m_spriteRenderer) {
+        m_spriteRenderer->SetTextureSlot(9, iconAtlas->GetTexture());
+    }
+
     // Load roads atlas
     m_roadTexture = registry.getTextureOrLoad("streets");
     m_roadAtlas = registry.getAtlas("streets");
@@ -602,16 +608,19 @@ void MapEditor::RenderGridLayer() {
 
     if (m_currentLayer == World::Resources) {
         TextureRegistry& registry = TextureRegistry::instance();
-        std::tr1::shared_ptr<SpriteAtlas> uiAtl = registry.getAtlas("ui");
-        if (uiAtl) {
+        std::tr1::shared_ptr<SpriteAtlas> iconAtl = registry.getAtlas("Icon");
+        if (iconAtl) {
+            // Use unique slot 12 (never conflicts with objects/buildings which use 0-11)
+            if (m_spriteRenderer) {
+                m_spriteRenderer->SetTextureSlot(12, iconAtl->GetTexture());
+            }
             // Cache resource icon indices on first access
             if (m_resourceIconIndices[World::ResourceType_Wood] < 0) {
-                // ResourceIcons group order is atlas-defined; map enum values by sprite name instead.
                 for (int i = 1; i < World::ResourceType_Count; ++i) {
                     World::ResourceType rt = static_cast<World::ResourceType>(i);
-                    const char* iconName = World::ResourceTypeToIconName(rt);
+                    const char* iconName = World::ResourceTypeToDepositIconName(rt);
                     if (iconName && iconName[0]) {
-                        uint32_t idx = uiAtl->GetIndex(iconName);
+                        uint32_t idx = iconAtl->GetIndex(iconName);
                         m_resourceIconIndices[i] = (idx != 0xFFFFFFFF) ? (int)idx : -1;
                     }
                 }
@@ -633,7 +642,7 @@ void MapEditor::RenderGridLayer() {
                     int iconIdx = m_resourceIconIndices[rn.type];
                     if (iconIdx < 0) continue;
 
-                    const SpriteRegion* iconRegion = uiAtl->GetRegion(iconIdx);
+                    const SpriteRegion* iconRegion = iconAtl->GetRegion(iconIdx);
                     if (!iconRegion) continue;
 
                     float iconW = (float)iconRegion->width;
@@ -654,7 +663,7 @@ void MapEditor::RenderGridLayer() {
                     cmd.u1 = iconRegion->u1;
                     cmd.v1 = iconRegion->v1;
                     cmd.color = 0xFFFFFFFF;
-                    cmd.textureID = 4;
+                    cmd.textureID = 12;
                     cmd.shaderID = SHADER_WORLD;
                     cmd.blendMode = 1;
                     cmd.layer = LAYER_EFFECTS;
@@ -713,36 +722,33 @@ void MapEditor::RenderGridLayer() {
         }
     }
 
-    // Render road flags (FlagStreets) on top of roads
-    if (m_roadAtlas && !m_roadFlags.empty()) {
+    // Render road flags on top of roads (from Buildings atlas, sprite "flag")
+    if (m_buildingsAtlas && !m_roadFlags.empty()) {
         CoordinateSystem& coords = CoordinateSystem::GetInstance();
-        const std::vector<uint32_t>* flagGroup = m_roadAtlas->GetGroup("FlagStreets");
-        if (flagGroup && !flagGroup->empty()) {
-            uint32_t flagIdx = (*flagGroup)[0];
-            const SpriteRegion* flagRegion = m_roadAtlas->GetRegion(flagIdx);
-            if (flagRegion) {
-                for (size_t fi = 0; fi < m_roadFlags.size(); ++fi) {
-                    int fx = m_roadFlags[fi].first;
-                    int fy = m_roadFlags[fi].second;
-                    float wx, wy;
-                    coords.NodeTileToWorld(fx, fy, wx, wy);
-                    Graphics::RenderCommand cmd = {};
-                    cmd.x = wx - flagRegion->pivotX;
-                    cmd.y = wy - flagRegion->pivotY;
-                    cmd.width = (float)flagRegion->width;
-                    cmd.height = (float)flagRegion->height;
-                    cmd.u0 = flagRegion->u0;
-                    cmd.v0 = flagRegion->v0;
-                    cmd.u1 = flagRegion->u1;
-                    cmd.v1 = flagRegion->v1;
-                    cmd.color = 0xFFFFFFFF;
-                    cmd.textureID = 3;
-                    cmd.shaderID = SHADER_TERRAIN;
-                    cmd.blendMode = 1;
-                    cmd.layer = LAYER_WORLD;
-                    cmd.depth = static_cast<WORD>(30010 + fy * 400);
-                    m_renderQueue->Submit(cmd);
-                }
+        uint32_t flagIdx = m_buildingsAtlas->GetIndex("flag");
+        const SpriteRegion* flagRegion = m_buildingsAtlas->GetRegion(flagIdx);
+        if (flagRegion) {
+            for (size_t fi = 0; fi < m_roadFlags.size(); ++fi) {
+                int fx = m_roadFlags[fi].first;
+                int fy = m_roadFlags[fi].second;
+                float wx, wy;
+                coords.NodeTileToWorld(fx, fy, wx, wy);
+                Graphics::RenderCommand cmd = {};
+                cmd.x = wx - flagRegion->pivotX;
+                cmd.y = wy - flagRegion->pivotY;
+                cmd.width = (float)flagRegion->width;
+                cmd.height = (float)flagRegion->height;
+                cmd.u0 = flagRegion->u0;
+                cmd.v0 = flagRegion->v0;
+                cmd.u1 = flagRegion->u1;
+                cmd.v1 = flagRegion->v1;
+                cmd.color = 0xFFFFFFFF;
+                cmd.textureID = 1;
+                cmd.shaderID = SHADER_TERRAIN;
+                cmd.blendMode = 1;
+                cmd.layer = LAYER_WORLD;
+                cmd.depth = static_cast<WORD>(30010 + fy * 400);
+                m_renderQueue->Submit(cmd);
             }
         }
     }
@@ -1185,16 +1191,8 @@ void MapEditor::ClearPlacementFootprint(int tx, int ty, World::TileLayer* object
             if (oldRegion) {
                 oldCollW = oldRegion->collWidth;
                 oldCollH = oldRegion->collHeight;
-                CoordinateSystem& coords = CoordinateSystem::GetInstance();
-                if (oldRegion->collOffX != 0 || oldRegion->collOffY != 0) {
-                    offX = oldRegion->collOffX;
-                    offY = oldRegion->collOffY;
-                } else {
-                    float pivotDX = oldRegion->pivotX - oldRegion->width * 0.5f;
-                    float pivotDY = oldRegion->pivotY - oldRegion->height * 0.5f;
-                    offX = -(int)(pivotDX / coords.GetNodeWidth());
-                    offY = -(int)(pivotDY / coords.GetNodeHeight());
-                }
+                offX = oldRegion->collOffX;
+                offY = oldRegion->collOffY;
                 collMask = oldRegion->collMask;
             }
         }
@@ -1300,16 +1298,8 @@ void MapEditor::MarkObjectInteractionZone(int tx, int ty, const World::Tile& obj
     marked += MarkObjectInteractionTile(zoneLayer, tx, ty, tx, ty, objectTile);
 
     // Mark the collision footprint when authored.
-    int offX, offY;
-    if (region->collOffX != 0 || region->collOffY != 0) {
-        offX = region->collOffX;
-        offY = region->collOffY;
-    } else {
-        float pivotDX = region->pivotX - region->width * 0.5f;
-        float pivotDY = region->pivotY - region->height * 0.5f;
-        offX = -(int)(pivotDX / coords.GetNodeWidth());
-        offY = -(int)(pivotDY / coords.GetNodeHeight());
-    }
+    int offX = region->collOffX;
+    int offY = region->collOffY;
 
     if (!region->collMask.empty()) {
         for (size_t i = 0; i < region->collMask.size(); ++i) {
@@ -1463,17 +1453,8 @@ void MapEditor::PaintCurrentTile() {
         tile.walkable = true;
 
         // Calculate collision offset
-        CoordinateSystem& coords = CoordinateSystem::GetInstance();
-        int offX, offY;
-        if (region->collOffX != 0 || region->collOffY != 0) {
-            offX = region->collOffX;
-            offY = region->collOffY;
-        } else {
-            float pivotDX = region->pivotX - region->width * 0.5f;
-            float pivotDY = region->pivotY - region->height * 0.5f;
-            offX = -(int)(pivotDX / coords.GetNodeWidth());
-            offY = -(int)(pivotDY / coords.GetNodeHeight());
-        }
+        int offX = region->collOffX;
+        int offY = region->collOffY;
 
         // Fill Placement layer for building collision footprint
         World::TileLayer* placementLayer = m_map->GetLayer(World::Placement);
@@ -1590,20 +1571,9 @@ void MapEditor::PaintCurrentTile() {
         tile.atlasName = "maptiles";
         tile.walkable = !region->blocksMovement;
 
-        // Collision tile offset: use stored collOffX/collOffY if set, else compute from pivot
-        CoordinateSystem& coords = CoordinateSystem::GetInstance();
-        int offX, offY;
-        if (region->collOffX != 0 || region->collOffY != 0) {
-            offX = region->collOffX;
-            offY = region->collOffY;
-        } else {
-            float pivotDX = region->pivotX - region->width * 0.5f;
-            float pivotDY = region->pivotY - region->height * 0.5f;
-            offX = -(int)(pivotDX / coords.GetNodeWidth());
-            offY = -(int)(pivotDY / coords.GetNodeHeight());
-        }
-
         // Fill Placement layer for collision footprint
+        int offX = region->collOffX;
+        int offY = region->collOffY;
         World::TileLayer* placementLayer = m_map->GetLayer(World::Placement);
         if (placementLayer) {
             int pw = placementLayer->GetWidth();
@@ -2230,16 +2200,8 @@ static bool IsTileInRegionFootprint(int tileX, int tileY, int objectX, int objec
     if (!region) return false;
 
     CoordinateSystem& coords = CoordinateSystem::GetInstance();
-    int offX, offY;
-    if (region->collOffX != 0 || region->collOffY != 0) {
-        offX = region->collOffX;
-        offY = region->collOffY;
-    } else {
-        float pivotDX = region->pivotX - region->width * 0.5f;
-        float pivotDY = region->pivotY - region->height * 0.5f;
-        offX = -(int)(pivotDX / coords.GetNodeWidth());
-        offY = -(int)(pivotDY / coords.GetNodeHeight());
-    }
+    int offX = region->collOffX;
+    int offY = region->collOffY;
 
     if (!region->collMask.empty()) {
         for (size_t i = 0; i < region->collMask.size(); ++i) {
@@ -2470,16 +2432,8 @@ bool MapEditor::IsPlacementFootprintFree(int tx, int ty, const SpriteRegion* reg
     if (region->collWidth == 0 || region->collHeight == 0) return true;
 
     CoordinateSystem& coords = CoordinateSystem::GetInstance();
-    int offX, offY;
-    if (region->collOffX != 0 || region->collOffY != 0) {
-        offX = region->collOffX;
-        offY = region->collOffY;
-    } else {
-        float pivotDX = region->pivotX - region->width * 0.5f;
-        float pivotDY = region->pivotY - region->height * 0.5f;
-        offX = -(int)(pivotDX / coords.GetNodeWidth());
-        offY = -(int)(pivotDY / coords.GetNodeHeight());
-    }
+    int offX = region->collOffX;
+    int offY = region->collOffY;
 
     World::TileLayer* placementLayer = m_map->GetLayer(World::Placement);
     if (!placementLayer) return true;

@@ -75,10 +75,10 @@ void TileRenderer::RenderTileLayer(World::LayerType layer, int layerOffset) {
             }
         }
     }
-    char buf[256];
-    _snprintf(buf, sizeof(buf), "[TileRenderer] Layer %d (%s): %dx%d, non-None=%d, submitted=%d\n",
-              (int)layer, layerName, width, height, nonNoneCount, submittedCount);
-    OutputDebugStringA(buf);
+//    char buf[256];
+//    _snprintf(buf, sizeof(buf), "[TileRenderer] Layer %d (%s): %dx%d, non-None=%d, submitted=%d\n",
+//              (int)layer, layerName, width, height, nonNoneCount, submittedCount);
+//    OutputDebugStringA(buf);
 
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {

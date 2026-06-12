@@ -1,0 +1,125 @@
+<XuiCanvas version="000c">
+<Properties>
+<Width>640.000000</Width>
+<Height>480.000000</Height>
+</Properties>
+<XuiFigure>
+<Properties>
+<Width>640.000000</Width>
+<Height>480.000000</Height>
+<Stroke>
+<Properties>
+<StrokeColor>0xff0f0f80</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillColor>0xff0f0f0f</FillColor>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>4,0.000000,0.000000,0.000000,0.000000,640.000000,0.000000,0,640.000000,0.000000,640.000000,0.000000,640.000000,480.000000,0,640.000000,480.000000,640.000000,480.000000,0.000000,480.000000,0,0.000000,480.000000,0.000000,480.000000,0.000000,0.000000,0,</Points>
+</Properties>
+</XuiFigure>
+<XuiScene>
+<Properties>
+<Id>XuiScene1</Id>
+<Width>592.000000</Width>
+<Height>432.000000</Height>
+<Position>24.000000,24.000000,0.000000</Position>
+<Text>Controls Demo: Conclusion</Text>
+</Properties>
+<XuiFigure>
+<Properties>
+<Width>369.000000</Width>
+<Height>2.000000</Height>
+<Position>111.000000,40.000000,0.000000</Position>
+<Stroke>
+<Properties>
+<StrokeColor>0xff0f0f80</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillColor>0xff0f0f0f</FillColor>
+<Gradient>
+<Properties>
+<NumStops>1</NumStops>
+<StopColor index="0">0x00000000</StopColor>
+<StopPos index="0">0.000000</StopPos>
+</Properties>
+</Gradient>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>4,0.000000,0.000000,0.000000,0.000000,456.000000,0.000000,0,456.000000,0.000000,456.000000,0.000000,456.000000,8.000000,0,456.000000,8.000000,456.000000,8.000000,0.000000,8.000000,0,0.000000,8.000000,0.000000,8.000000,0.000000,0.000000,0,</Points>
+</Properties>
+</XuiFigure>
+<XuiHtmlElement>
+<Properties>
+<Id>XuiHtmlElement1</Id>
+<Width>544.000000</Width>
+<Height>312.000000</Height>
+<Position>24.000000,56.000000,0.000000</Position>
+<Text>&lt;font color="#000000" size=11&gt;
+
+This demonstration has shown a few possibilties for using &lt;i&gt;&lt;b&gt;Controls&lt;/b&gt;&lt;/i&gt; in your XUI files.
+For information on other &lt;i&gt;&lt;b&gt;Controls&lt;/b&gt;&lt;/i&gt;, or more information on the ones that you've seen here... please consult the XUI documentation and other available samples.
+
+&lt;br/&gt;
+&lt;br/&gt;
+
+If you'd like to start making your own &lt;i&gt;&lt;b&gt;Controls&lt;/b&gt;&lt;/i&gt;, you can start by exploring the &lt;i&gt;skin_default.xui&lt;/i&gt; file that is used for this demonstration, and using that as a reference for creating your own look and feel.
+
+&lt;br/&gt;
+&lt;font size=8&gt;
+&lt;br/&gt;
+&lt;/font&gt;
+
+&lt;table&gt;
+&lt;tr&gt;
+&lt;td width="4%"/&gt;
+&lt;td width="3%" bgcolor="#808080"/&gt;
+&lt;td width="86%" bgcolor="#808080"&gt;
+
+&lt;font size=5&gt;
+&lt;br/&gt;
+&lt;/font&gt;
+
+&lt;font color="#FFFFFF" size=10&gt;
+
+For a quick test of your new controls, you can even use the 'File &gt; Load Skin' menu option to apply your skin to this demo... and run through it again to see your changes.
+
+&lt;font size=5&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;/font&gt;
+
+&lt;/font&gt;
+&lt;/td&gt;
+&lt;td width="3%" bgcolor="#808080"/&gt;
+&lt;td width="4%"/&gt;
+&lt;/tr&gt;
+&lt;/table&gt;
+
+&lt;/font&gt;
+
+</Text>
+</Properties>
+</XuiHtmlElement>
+<XuiBackButton>
+<Properties>
+<Id>XuiBackButton1</Id>
+<Width>184.000000</Width>
+<Height>40.000000</Height>
+<Position>16.000000,376.000000,0.000000</Position>
+<DisableFocusRecursion>true</DisableFocusRecursion>
+<UnfocusedInput>true</UnfocusedInput>
+<Text>Back Button</Text>
+<PressKey>22593</PressKey>
+</Properties>
+</XuiBackButton>
+</XuiScene>
+</XuiCanvas>

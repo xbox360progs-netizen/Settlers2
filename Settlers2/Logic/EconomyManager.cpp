@@ -3,23 +3,26 @@
 #include "../World/Components/Building.h"
 #include "../World/Flag.h"
 #include "../World/Warehouse.h"
+#include "../World/Worker.h"
 
 namespace Logic {
 
     EconomyManager::EconomyManager()
-        : m_warehouse(NULL), m_validateCounter(0)
+        : m_warehouse(NULL), m_flagManager(NULL), m_roadManager(NULL), m_validateCounter(0)
     {
         for (int i = 0; i < MAX_REQUESTS; ++i)
             m_requests[i].active = false;
 
         for (int i = 0; i < MAX_CONSTRUCTION_REQUESTS; ++i)
             m_constructionRequests[i].active = false;
-
-        for (int i = 0; i < World::ResourceType_Count; ++i)
-            m_deliveryReserved[i] = 0;
     }
 
     void EconomyManager::RequestResource(World::Building* requester, World::ResourceType type, int amount, int priority) {
+        for (int i = 0; i < MAX_REQUESTS; ++i) {
+            if (m_requests[i].active && m_requests[i].requester == requester && m_requests[i].type == type) {
+                return;
+            }
+        }
         for (int i = 0; i < MAX_REQUESTS; ++i) {
             if (!m_requests[i].active) {
                 m_requests[i].requester = requester;
@@ -33,42 +36,28 @@ namespace Logic {
     }
 
     void EconomyManager::RequestConstructionResource(World::Flag* destFlag, World::ResourceType type, int amount, int priority) {
+        uint32_t fid = destFlag ? destFlag->id : 0;
+        for (int i = 0; i < MAX_CONSTRUCTION_REQUESTS; ++i) {
+            if (m_constructionRequests[i].active && m_constructionRequests[i].destFlagId == fid && m_constructionRequests[i].type == type) {
+                return;
+            }
+        }
         for (int i = 0; i < MAX_CONSTRUCTION_REQUESTS; ++i) {
             if (!m_constructionRequests[i].active) {
+                m_constructionRequests[i].destFlagId = fid;
                 m_constructionRequests[i].destFlag = destFlag;
                 m_constructionRequests[i].type = type;
                 m_constructionRequests[i].amount = amount;
                 m_constructionRequests[i].priority = priority;
                 m_constructionRequests[i].active = true;
+
+                char buf[256];
+                _snprintf(buf, sizeof(buf),
+                    "[Economy] Request created: %s -> flag %u\n",
+                    World::ResourceTypeToString(type), fid);
+                OutputDebugStringA(buf);
+
                 return;
-            }
-        }
-    }
-
-    void EconomyManager::ComputeDeliveryReserved() {
-        for (int t = 0; t < World::ResourceType_Count; ++t)
-            m_deliveryReserved[t] = 0;
-
-        for (size_t i = 0; i < m_buildings.size(); ++i) {
-            World::Building* b = m_buildings[i];
-            if (!b->connectedFlag) continue;
-
-            for (int s = 0; s < 8; ++s) {
-                World::ResourceType type = b->connectedFlag->slots[s].type;
-                int reserved = b->connectedFlag->slots[s].reserved;
-                if (type != World::ResourceType_None && reserved > 0) {
-                    m_deliveryReserved[type] += reserved;
-                }
-            }
-        }
-
-        if (m_warehouse && m_warehouse->connectedFlag) {
-            for (int s = 0; s < 8; ++s) {
-                World::ResourceType type = m_warehouse->connectedFlag->slots[s].type;
-                int reserved = m_warehouse->connectedFlag->slots[s].reserved;
-                if (type != World::ResourceType_None && reserved > 0) {
-                    m_deliveryReserved[type] += reserved;
-                }
             }
         }
     }
@@ -79,7 +68,7 @@ namespace Logic {
         World::Building* exclude,
         const Vector2i& requesterPos)
     {
-        World::Building* b = m_registry.FindBestSupplier(type, outAmount, exclude, requesterPos, m_deliveryReserved);
+        World::Building* b = m_registry.FindBestSupplier(type, outAmount, exclude, requesterPos, NULL);
         if (b) return b;
 
         if (m_warehouse && m_warehouse->resources[type] > 0) {
@@ -90,41 +79,47 @@ namespace Logic {
         return NULL;
     }
 
-    void EconomyManager::Update(World::CarrierManager* carrierManager) {
-        ComputeDeliveryReserved();
+    void EconomyManager::Update(float dt) {
         m_registry.ClearPlanningReservations();
 
         // ─── Phase 1a: Process pending construction resource requests ─────
         for (int r = 0; r < MAX_CONSTRUCTION_REQUESTS; ++r) {
             if (!m_constructionRequests[r].active) continue;
+
+            if (!m_constructionRequests[r].destFlagId) { m_constructionRequests[r].active = false; continue; }
+            if (!m_constructionRequests[r].destFlag) {
+                m_constructionRequests[r].destFlag = m_flagManager ? m_flagManager->GetFlagById(m_constructionRequests[r].destFlagId) : NULL;
+            }
             if (!m_constructionRequests[r].destFlag) { m_constructionRequests[r].active = false; continue; }
 
-            // Construction resources come from warehouse for now
-            if (!m_warehouse || !m_warehouse->connectedFlag) continue;
-            if (m_warehouse->resources[m_constructionRequests[r].type] <= 0) continue;
-
-            World::Flag* destFlag = m_constructionRequests[r].destFlag;
-            int toDeliver = m_constructionRequests[r].amount;
-            int available = m_warehouse->resources[m_constructionRequests[r].type];
-            if (toDeliver > available) toDeliver = available;
-
-            if (!m_warehouse->connectedFlag->AddResource(m_constructionRequests[r].type, toDeliver))
+            if (!m_warehouse || !m_warehouse->connectedFlag) {
+                m_constructionRequests[r].active = false;
                 continue;
-
-            if (!m_warehouse->connectedFlag->Reserve(m_constructionRequests[r].type, toDeliver))
+            }
+            if (m_warehouse->resources[m_constructionRequests[r].type] <= 0) {
                 continue;
+            }
 
-            m_registry.ReservePlanning(m_constructionRequests[r].type, toDeliver);
+            // Check if destination flag is reachable via road network
+            World::Flag* whFlag = m_warehouse->connectedFlag;
+            bool reachable = false;
+            if (m_flagManager) {
+                std::vector<World::Flag*> path = m_roadManager->FindFlagPath(
+                    whFlag, m_constructionRequests[r].destFlag);
+                reachable = !path.empty();
+            }
+            if (!reachable) continue;
 
-            World::TransportJob job;
-            job.cargo = World::Cargo(m_constructionRequests[r].type, (uint8_t)toDeliver);
-            job.source = m_warehouse->connectedFlag;
-            job.destination = destFlag;
-            job.priority = m_constructionRequests[r].priority;
-            carrierManager->AssignJob(job);
+            // Stop releasing once budget is exhausted — keep request active for
+            // Phase 8 cleanup (stops GenerateRequests from recreating it).
+            if (m_constructionRequests[r].amount <= 0) continue;
 
-            m_warehouse->RemoveResource(m_constructionRequests[r].type, toDeliver);
-            m_constructionRequests[r].active = false;
+            if (!whFlag->AddResource(m_constructionRequests[r].type, 1, m_constructionRequests[r].destFlagId)) {
+                continue;
+            }
+
+            m_warehouse->RemoveResource(m_constructionRequests[r].type, 1);
+            m_constructionRequests[r].amount--;
         }
 
         // ─── Phase 1b: Process pending building ResourceRequests ──────────
@@ -139,33 +134,21 @@ namespace Logic {
 
             if (!producer->connectedFlag || !m_requests[r].requester->connectedFlag) continue;
 
-            int toDeliver = m_requests[r].amount;
-            if (toDeliver > available) toDeliver = available;
-
-            if (!producer->connectedFlag->AddResource(m_requests[r].type, toDeliver))
+            if (!producer->connectedFlag->AddResource(m_requests[r].type, 1, m_requests[r].requester->connectedFlag->id))
                 continue;
-
-            if (!producer->connectedFlag->Reserve(m_requests[r].type, toDeliver))
-                continue;
-
-            m_registry.ReservePlanning(m_requests[r].type, toDeliver);
-
-            World::TransportJob job;
-            job.cargo = World::Cargo(m_requests[r].type, (uint8_t)toDeliver);
-            job.source = producer->connectedFlag;
-            job.destination = m_requests[r].requester->connectedFlag;
-            job.priority = m_settings.routeConfig[m_requests[r].type].transferPriority;
-            carrierManager->AssignJob(job);
 
             if (producer == static_cast<World::Building*>(m_warehouse)) {
-                m_warehouse->RemoveResource(m_requests[r].type, toDeliver);
+                m_warehouse->RemoveResource(m_requests[r].type, 1);
             } else {
-                producer->m_storage[m_requests[r].type] -= toDeliver;
+                producer->m_storage[m_requests[r].type]--;
                 if (producer->m_storage[m_requests[r].type] < 0)
                     producer->m_storage[m_requests[r].type] = 0;
             }
 
-            m_requests[r].active = false;
+            m_requests[r].amount--;
+            if (m_requests[r].amount <= 0) {
+                m_requests[r].active = false;
+            }
         }
 
         // ─── Phase 2: Generate requests for buildings that need inputs ───
@@ -228,18 +211,7 @@ namespace Logic {
         for (size_t i = 0; i < m_buildings.size(); ++i) {
             World::Building* b = m_buildings[i];
             if (b->state != World::State_Finished) continue;
-            b->Update();
-        }
-
-        // ─── Phase 5: Warehouse collects from its flag ───────────────────
-        if (m_warehouse && m_warehouse->connectedFlag) {
-            for (int t = 0; t < World::ResourceType_Count; ++t) {
-                World::ResourceType type = (World::ResourceType)t;
-                if (m_warehouse->connectedFlag->GetAvailable(type) > 0) {
-                    m_warehouse->connectedFlag->RemoveResource(type, 1);
-                    m_warehouse->AddResource(type, 1);
-                }
-            }
+            b->Update(dt);
         }
 
         // ─── Phase 6: Outbound — routing-aware surplus distribution ──────
@@ -258,18 +230,8 @@ namespace Logic {
 
                         if (cfg.routing == ROUTE_DIRECT) continue;
 
-                        if (!m_warehouse || !m_warehouse->connectedFlag) continue;
                         if (!b->connectedFlag->AddResource(outType, 1)) continue;
                         b->m_storage[outType]--;
-
-                        m_registry.ReservePlanning(outType, 1);
-
-                        World::TransportJob job;
-                        job.cargo = World::Cargo(outType, 1);
-                        job.source = b->connectedFlag;
-                        job.destination = m_warehouse->connectedFlag;
-                        job.priority = cfg.transferPriority;
-                        carrierManager->AssignJob(job);
                     }
                 }
             } else {
@@ -281,23 +243,65 @@ namespace Logic {
 
                     if (cfg.routing == ROUTE_DIRECT) continue;
 
-                    if (!m_warehouse || !m_warehouse->connectedFlag) continue;
                     if (!b->connectedFlag->AddResource(outType, 1)) continue;
                     b->m_storage[outType]--;
+                }
+            }
+        }
+        // ─── Phase 7: Reroute orphaned resources ─────────────────────────
+        // Resources whose destination is no longer reachable get redirected
+        // to the warehouse flag (or cleared if warehouse is unreachable).
+        // Uses flag IDs to safely handle deleted destination flags.
+        if (m_flagManager && m_warehouse && m_warehouse->connectedFlag) {
+            uint32_t whFlagId = m_warehouse->connectedFlag->id;
+            for (size_t fi = 0; fi < m_flagManager->GetCount(); ++fi) {
+                World::Flag* f = m_flagManager->GetFlag(fi);
+                if (!f) continue;
+                for (int si = 0; si < 8; ++si) {
+                    World::ResourceSlot& slot = f->slots[si];
+                    if (slot.type == World::ResourceType_None || slot.amount <= 0) continue;
+                    if (!slot.destFlagId) continue;
 
-                    m_registry.ReservePlanning(outType, 1);
-
-                    World::TransportJob job;
-                    job.cargo = World::Cargo(outType, 1);
-                    job.source = b->connectedFlag;
-                    job.destination = m_warehouse->connectedFlag;
-                    job.priority = cfg.transferPriority;
-                    carrierManager->AssignJob(job);
+                    // Look up destination flag by ID (NULL if flag was deleted)
+                    World::Flag* destFlag = m_flagManager->GetFlagById(slot.destFlagId);
+                    if (destFlag) {
+                        if (f == destFlag) continue; // already at destination
+                        std::vector<World::Flag*> path = m_roadManager->FindFlagPath(f, destFlag);
+                        if (!path.empty()) continue; // still reachable
+                    }
+                    // Destination is deleted or unreachable — reroute
+                    if (f->id != whFlagId) {
+                        World::Flag* whFlag = m_warehouse->connectedFlag;
+                        if (whFlag && whFlag->id == whFlagId) {
+                            std::vector<World::Flag*> whPath = m_roadManager->FindFlagPath(f, whFlag);
+                            if (!whPath.empty()) {
+                                slot.destFlagId = whFlagId;
+                                continue;
+                            }
+                        }
+                    }
+                    // Clear destination — resource becomes free (warehouse or any flag can collect it)
+                    slot.destFlagId = 0;
                 }
             }
         }
 
-        // ─── Periodic validation ─────────────────────────────────────────
+        // ─── Phase 8: Clean up stale construction requests ───────────────
+        // Remove requests whose destFlag is gone or whose resources are no
+        // longer needed (building already finished). Uses flag ID for safety.
+        for (int r = 0; r < MAX_CONSTRUCTION_REQUESTS; ++r) {
+            if (!m_constructionRequests[r].active) continue;
+            if (!m_constructionRequests[r].destFlagId) { m_constructionRequests[r].active = false; continue; }
+            // If the flag was deleted (ID lookup returns NULL), the request is stale
+            if (!m_flagManager) { m_constructionRequests[r].active = false; continue; }
+            World::Flag* df = m_flagManager->GetFlagById(m_constructionRequests[r].destFlagId);
+            if (!df) { m_constructionRequests[r].active = false; continue; }
+            // If the flag now has a finished building, the construction request is stale
+            if (df->hasBuilding && df->building && df->building->state == World::State_Finished) {
+                m_constructionRequests[r].active = false;
+            }
+        }
+
         m_validateCounter++;
         if (m_validateCounter >= 300) {
             m_validateCounter = 0;
@@ -342,10 +346,38 @@ namespace Logic {
         }
     }
 
+    bool EconomyManager::HasActiveConstructionRequest(World::Flag* destFlag) const {
+        if (!destFlag) return false;
+        for (int i = 0; i < MAX_CONSTRUCTION_REQUESTS; ++i) {
+            if (m_constructionRequests[i].active && m_constructionRequests[i].destFlagId == destFlag->id) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool EconomyManager::HasWorkers(World::Building* building) const {
+        if (!building || !m_warehouse) return false;
+        for (size_t i = 0; i < m_warehouse->specialists.size(); ++i) {
+            if (m_warehouse->specialists[i]->home == building) return true;
+        }
+        return false;
+    }
+
     void EconomyManager::AddBuilding(World::Building* building) {
         m_buildings.push_back(building);
         if (building->state == World::State_Finished)
             m_registry.Register(building);
+    }
+
+    void EconomyManager::RemoveBuilding(World::Building* building) {
+        for (size_t i = 0; i < m_buildings.size(); ++i) {
+            if (m_buildings[i] == building) {
+                m_buildings.erase(m_buildings.begin() + i);
+                break;
+            }
+        }
+        m_registry.Unregister(building);
     }
 
     bool EconomyManager::HasBuilding(World::BuildingType type) const {
@@ -355,5 +387,22 @@ namespace Logic {
             }
         }
         return false;
+    }
+
+    void EconomyManager::CollectWarehouse() {
+        if (m_warehouse && m_warehouse->connectedFlag) {
+            World::Flag* whFlag = m_warehouse->connectedFlag;
+            for (int si = 0; si < 8; ++si) {
+                World::ResourceSlot& slot = whFlag->slots[si];
+                if (slot.type == World::ResourceType_None || slot.amount <= 0) continue;
+                // Only collect resources without a destination (free surplus flowing back).
+                // Resources with destFlagId are in-transit and must stay on the flag.
+                if (slot.destFlagId != 0) continue;
+                if (slot.amount > 0) {
+                    whFlag->RemoveResource(slot.type, 1);
+                    m_warehouse->AddResource(slot.type, 1);
+                }
+            }
+        }
     }
 }

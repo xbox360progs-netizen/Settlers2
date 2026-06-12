@@ -1,0 +1,467 @@
+<XuiCanvas version="000c">
+<Properties>
+<Width>640.000000</Width>
+<Height>480.000000</Height>
+</Properties>
+<XuiFigure>
+<Properties>
+<Width>640.000000</Width>
+<Height>480.000000</Height>
+<Stroke>
+<Properties>
+<StrokeColor>0xff0f0f80</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillColor>0xff80eb80</FillColor>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>4,0.000000,0.000000,0.000000,0.000000,640.000000,0.000000,0,640.000000,0.000000,640.000000,0.000000,640.000000,480.000000,0,640.000000,480.000000,640.000000,480.000000,0.000000,480.000000,0,0.000000,480.000000,0.000000,480.000000,0.000000,0.000000,0,</Points>
+</Properties>
+</XuiFigure>
+<XuiScene>
+<Properties>
+<Id>XuiScene1</Id>
+<Width>592.000000</Width>
+<Height>432.000000</Height>
+<Position>24.000000,24.000000,0.000000</Position>
+<Text>Controls Demo: Figures</Text>
+</Properties>
+<XuiFigure>
+<Properties>
+<Width>369.000000</Width>
+<Height>2.000000</Height>
+<Position>111.000000,40.000000,0.000000</Position>
+<Stroke>
+<Properties>
+<StrokeColor>0xff0f0f80</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillColor>0xff0f0f0f</FillColor>
+<Gradient>
+<Properties>
+<NumStops>1</NumStops>
+<StopColor index="0">0x00000000</StopColor>
+<StopPos index="0">0.000000</StopPos>
+</Properties>
+</Gradient>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>4,0.000000,0.000000,0.000000,0.000000,456.000000,0.000000,0,456.000000,0.000000,456.000000,0.000000,456.000000,8.000000,0,456.000000,8.000000,456.000000,8.000000,0.000000,8.000000,0,0.000000,8.000000,0.000000,8.000000,0.000000,0.000000,0,</Points>
+</Properties>
+</XuiFigure>
+<XuiNavButton>
+<Properties>
+<Id>navNext1</Id>
+<Width>160.000000</Width>
+<Height>40.000000</Height>
+<Position>416.000000,376.000000,0.000000</Position>
+<Text>Continue</Text>
+<PressPath>controls_demo10.xur</PressPath>
+</Properties>
+</XuiNavButton>
+<XuiHtmlElement>
+<Properties>
+<Id>XuiHtmlElement1</Id>
+<Width>544.000000</Width>
+<Height>312.000000</Height>
+<Position>24.000000,56.000000,0.000000</Position>
+<Text>&lt;font color="#000000" size=11&gt;
+
+While &lt;i&gt;&lt;b&gt;Figures&lt;/b&gt;&lt;/i&gt; themselves are not actually controls, they can be used to create the visual look and feel of a control.
+There is a palette of shapes you can use as a base, or you can start drawing one by hand.
+
+&lt;br/&gt;
+&lt;font size=8&gt;
+&lt;br/&gt;
+&lt;/font&gt;
+
+&lt;table&gt;
+&lt;tr&gt;
+&lt;td width="4%"/&gt;
+&lt;td width="3%" bgcolor="#808080"/&gt;
+&lt;td width="86%" bgcolor="#808080"&gt;
+
+&lt;font size=5&gt;
+&lt;br/&gt;
+&lt;/font&gt;
+
+&lt;font color="#FFFFFF" size=10&gt;
+
+
+&lt;i&gt;&lt;b&gt;Figures&lt;/b&gt;&lt;/i&gt; can be filled will a solid color, linear / radial gradient, or texture... and they support an optional stroke with size and color.
+You can also use the 'View &gt; Multisampling' menu option to render anti-aliased.
+
+&lt;font size=5&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;/font&gt;
+
+&lt;/font&gt;
+&lt;/td&gt;
+&lt;td width="3%" bgcolor="#808080"/&gt;
+&lt;td width="4%"/&gt;
+&lt;/tr&gt;
+&lt;/table&gt;
+</Text>
+</Properties>
+</XuiHtmlElement>
+<XuiBackButton>
+<Properties>
+<Id>XuiBackButton1</Id>
+<Width>184.000000</Width>
+<Height>40.000000</Height>
+<Position>16.000000,376.000000,0.000000</Position>
+<DisableFocusRecursion>true</DisableFocusRecursion>
+<UnfocusedInput>true</UnfocusedInput>
+<Text>Back Button</Text>
+<PressKey>22593</PressKey>
+</Properties>
+</XuiBackButton>
+<XuiFigure>
+<Properties>
+<Width>83.000000</Width>
+<Height>83.000000</Height>
+<Position>262.537262,229.502563,0.000000</Position>
+<Rotation>0.000000,0.000000,0.057704,0.998334</Rotation>
+<Pivot>41.500000,41.500000,0.000000</Pivot>
+<Stroke>
+<Properties>
+<StrokeWidth>1.000000</StrokeWidth>
+<StrokeColor>0xff0f0f80</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillType>3</FillType>
+<FillColor>0x00ebebeb</FillColor>
+<Gradient>
+<Properties>
+<Radial>true</Radial>
+<NumStops>2</NumStops>
+<StopColor index="0">0xffebebeb</StopColor>
+<StopColor index="1">0xffebeb0f</StopColor>
+<StopPos index="0">0.349020</StopPos>
+<StopPos index="1">0.352941</StopPos>
+</Properties>
+</Gradient>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>8,25.618622,0.000000,37.529663,31.125000,45.470337,31.125000,0,57.381378,0.000000,45.470337,31.125000,51.875000,37.529663,0,83.000000,25.618637,51.875000,37.529663,51.875000,45.470337,0,83.000000,57.381363,51.875000,45.470337,45.470337,51.875000,0,57.381378,83.000000,45.470337,51.875000,37.529663,51.875000,0,25.618622,83.000000,37.529663,51.875000,31.125000,45.470337,0,0.000000,57.381363,31.125000,45.470337,31.125000,37.529663,0,0.000000,25.618637,31.125000,37.529663,37.529663,31.125000,0,</Points>
+</Properties>
+</XuiFigure>
+<XuiFigure>
+<Properties>
+<Width>120.000000</Width>
+<Height>32.000000</Height>
+<Position>264.000000,328.000000,0.000000</Position>
+<Stroke>
+<Properties>
+<StrokeWidth>3.000000</StrokeWidth>
+<StrokeColor>0xff0f0f0f</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillType>2</FillType>
+<FillColor>0xffebebeb</FillColor>
+<Gradient>
+<Properties>
+<NumStops>2</NumStops>
+<StopColor index="0">0xffebeb0f</StopColor>
+<StopColor index="1">0xff5e0f5e</StopColor>
+<StopPos index="0">0.000000</StopPos>
+<StopPos index="1">1.000000</StopPos>
+</Properties>
+</Gradient>
+<Rotation>-90.000000</Rotation>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>8,0.000000,8.799988,0.000000,3.939880,3.939911,0.000000,0,8.800003,0.000000,8.800003,0.000000,111.200012,0.000000,0,111.200012,0.000000,116.060120,0.000000,120.000000,3.939880,0,120.000000,8.799988,120.000000,8.799988,120.000000,23.200012,0,120.000000,23.200012,120.000000,28.060120,116.060120,32.000000,0,111.200012,32.000000,111.200012,32.000000,8.800003,32.000000,0,8.800003,32.000000,3.939911,32.000000,0.000000,28.060120,0,0.000000,23.200012,0.000000,23.200012,0.000000,8.799988,0,</Points>
+</Properties>
+</XuiFigure>
+<XuiGroup>
+<Properties>
+<Width>134.213928</Width>
+<Height>128.000000</Height>
+<Position>408.000000,216.000000,0.000000</Position>
+</Properties>
+<XuiFigure>
+<Properties>
+<Width>128.000000</Width>
+<Height>128.000000</Height>
+<Stroke>
+<Properties>
+<StrokeColor>0xff0f0f80</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillType>3</FillType>
+<FillColor>0xff0f0f9f</FillColor>
+<Gradient>
+<Properties>
+<Radial>true</Radial>
+<NumStops>2</NumStops>
+<StopColor index="0">0xff0f0f80</StopColor>
+<StopColor index="1">0xff4040eb</StopColor>
+<StopPos index="0">0.000000</StopPos>
+<StopPos index="1">1.000000</StopPos>
+</Properties>
+</Gradient>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>4,64.000000,0.000000,99.346191,0.000000,128.000000,28.653824,0,128.000000,64.000000,128.000000,99.346191,99.346191,128.000000,0,64.000000,128.000000,28.653809,128.000000,0.000000,99.346191,0,0.000000,64.000000,0.000000,28.653824,28.653809,0.000000,0,</Points>
+</Properties>
+</XuiFigure>
+<XuiFigure>
+<Properties>
+<Width>64.000000</Width>
+<Height>64.000000</Height>
+<Position>64.000000,0.000000,0.000000</Position>
+<Pivot>0.000183,63.999939,0.000000</Pivot>
+<Stroke>
+<Properties>
+<StrokeColor>0xff0f0f80</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillColor>0xff0feb11</FillColor>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>3,0.000000,64.000000,0.000000,64.000000,0.000031,0.000000,0,0.000031,0.000000,35.346191,0.000000,64.000000,28.653824,0,64.000000,64.000000,64.000000,64.000000,0.000000,64.000000,0,</Points>
+</Properties>
+</XuiFigure>
+<XuiFigure>
+<Properties>
+<Id>bad</Id>
+<Width>64.000000</Width>
+<Height>29.055374</Height>
+<Position>64.000000,34.944626,0.000000</Position>
+<Rotation>0.000000,0.000000,0.233657,0.972319</Rotation>
+<Pivot>0.000122,29.055374,0.000000</Pivot>
+<Stroke>
+<Properties>
+<StrokeColor>0xff0f0f80</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillColor>0xff800f0f</FillColor>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>3,0.000000,29.055374,0.000000,29.055374,57.024414,0.000000,0,57.024414,0.000000,61.838470,9.448105,64.000000,18.451523,0,64.000000,29.055374,64.000000,29.055374,0.000000,29.055374,0,</Points>
+</Properties>
+</XuiFigure>
+<XuiFigure>
+<Properties>
+<Width>128.000000</Width>
+<Height>128.000000</Height>
+<Stroke>
+<Properties>
+<StrokeWidth>3.000000</StrokeWidth>
+<StrokeColor>0xff0f0f0f</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillType>0</FillType>
+<FillColor>0xff0f0f9f</FillColor>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>4,64.000000,0.000000,99.346191,0.000000,128.000000,28.653824,0,128.000000,64.000000,128.000000,99.346191,99.346191,128.000000,0,64.000000,128.000000,28.653809,128.000000,0.000000,99.346191,0,0.000000,64.000000,0.000000,28.653824,28.653809,0.000000,0,</Points>
+</Properties>
+</XuiFigure>
+<Timelines>
+<Timeline>
+<Id>bad</Id>
+<TimelineProp>Fill.FillColor</TimelineProp>
+<KeyFrame>
+<Time>0</Time>
+<Interpolation>0</Interpolation>
+<Prop>0xff800f0f</Prop>
+</KeyFrame>
+<KeyFrame>
+<Time>30</Time>
+<Interpolation>0</Interpolation>
+<Prop>0xffeb0f0f</Prop>
+</KeyFrame>
+<KeyFrame>
+<Time>60</Time>
+<Interpolation>0</Interpolation>
+<Prop>0xff800f0f</Prop>
+</KeyFrame>
+</Timeline>
+</Timelines>
+</XuiGroup>
+<XuiGroup>
+<Properties>
+<Width>159.864014</Width>
+<Height>153.609741</Height>
+<Position>48.000000,216.000000,0.000000</Position>
+</Properties>
+<XuiFigure>
+<Properties>
+<Id>gear1</Id>
+<Width>94.113968</Width>
+<Height>90.998596</Height>
+<Position>0.000008,0.000000,0.000000</Position>
+<Rotation>0.000000,0.000000,0.000000,1.000000</Rotation>
+<Pivot>47.056984,45.499298,0.000000</Pivot>
+<Stroke>
+<Properties>
+<StrokeWidth>2.000000</StrokeWidth>
+<StrokeColor>0xff0f0f0f</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillType>3</FillType>
+<FillColor>0xff0f0feb</FillColor>
+<Gradient>
+<Properties>
+<Radial>true</Radial>
+<NumStops>2</NumStops>
+<StopColor index="0">0x00ebebeb</StopColor>
+<StopColor index="1">0xff0f0feb</StopColor>
+<StopPos index="0">0.411765</StopPos>
+<StopPos index="1">0.415686</StopPos>
+</Properties>
+</Gradient>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>24,94.113968,36.031433,94.113968,36.031433,94.113968,54.967163,0,94.113968,54.967163,94.113968,54.967163,84.152710,55.422394,0,84.152710,55.422394,84.152710,55.422394,74.209900,72.652191,0,74.209900,72.652191,74.209900,72.652191,78.799957,81.504639,0,78.799957,81.504639,78.799957,81.504639,62.376556,90.988983,0,62.376556,90.988983,62.376556,90.988983,57.003433,82.588776,0,57.003433,82.588776,57.003433,82.588776,37.133865,82.595001,0,37.133865,82.595001,37.133865,82.595001,31.765984,90.998596,0,31.765984,90.998596,31.765984,90.998596,15.314003,81.504608,0,15.314003,81.504608,15.314003,81.504608,19.904099,72.652222,0,19.904099,72.652222,19.904099,72.652222,9.967514,55.445709,0,9.967514,55.445709,9.967514,55.445709,0.005962,54.996704,0,0.005962,54.996704,0.005962,54.996704,0.000000,36.031464,0,0.000000,36.031464,0.000000,36.031464,9.961273,35.576202,0,9.961273,35.576202,9.961273,35.576202,19.904099,18.346390,0,19.904099,18.346390,19.904099,18.346390,15.313995,9.493988,0,15.313995,9.493988,15.313995,9.493988,31.737404,0.009628,0,31.737404,0.009628,31.737404,0.009628,37.110558,8.409836,0,37.110558,8.409836,37.110558,8.409836,56.980095,8.403580,0,56.980095,8.403580,56.980095,8.403580,62.347969,0.000000,0,62.347969,0.000000,62.347969,0.000000,78.799957,9.493958,0,78.799957,9.493958,78.799957,9.493958,74.209885,18.346390,0,74.209885,18.346390,74.209885,18.346390,84.152710,35.576202,0,84.152710,35.576202,84.152710,35.576202,94.113968,36.031433,0,</Points>
+</Properties>
+</XuiFigure>
+<XuiFigure>
+<Properties>
+<Id>gear2</Id>
+<Width>94.113968</Width>
+<Height>90.998596</Height>
+<Position>65.171333,64.925964,0.000000</Position>
+<Rotation>0.000000,0.000000,0.000000,1.000000</Rotation>
+<Pivot>47.056976,45.499298,0.000000</Pivot>
+<Stroke>
+<Properties>
+<StrokeWidth>2.000000</StrokeWidth>
+<StrokeColor>0xff0f0f0f</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillType>3</FillType>
+<FillColor>0xff0f0feb</FillColor>
+<Gradient>
+<Properties>
+<Radial>true</Radial>
+<NumStops>3</NumStops>
+<StopColor index="0">0x00ebebeb</StopColor>
+<StopColor index="1">0xffdf240f</StopColor>
+<StopColor index="2">0xffdf240f</StopColor>
+<StopPos index="0">0.407843</StopPos>
+<StopPos index="1">0.411765</StopPos>
+<StopPos index="2">0.454902</StopPos>
+</Properties>
+</Gradient>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>24,94.113968,36.031433,94.113968,36.031433,94.113968,54.967163,0,94.113968,54.967163,94.113968,54.967163,84.152710,55.422394,0,84.152710,55.422394,84.152710,55.422394,74.209900,72.652191,0,74.209900,72.652191,74.209900,72.652191,78.799957,81.504639,0,78.799957,81.504639,78.799957,81.504639,62.376556,90.988983,0,62.376556,90.988983,62.376556,90.988983,57.003433,82.588776,0,57.003433,82.588776,57.003433,82.588776,37.133865,82.595001,0,37.133865,82.595001,37.133865,82.595001,31.765984,90.998596,0,31.765984,90.998596,31.765984,90.998596,15.314003,81.504608,0,15.314003,81.504608,15.314003,81.504608,19.904099,72.652222,0,19.904099,72.652222,19.904099,72.652222,9.967514,55.445709,0,9.967514,55.445709,9.967514,55.445709,0.005962,54.996704,0,0.005962,54.996704,0.005962,54.996704,0.000000,36.031464,0,0.000000,36.031464,0.000000,36.031464,9.961273,35.576202,0,9.961273,35.576202,9.961273,35.576202,19.904099,18.346390,0,19.904099,18.346390,19.904099,18.346390,15.313995,9.493988,0,15.313995,9.493988,15.313995,9.493988,31.737404,0.009628,0,31.737404,0.009628,31.737404,0.009628,37.110558,8.409836,0,37.110558,8.409836,37.110558,8.409836,56.980095,8.403580,0,56.980095,8.403580,56.980095,8.403580,62.347969,0.000000,0,62.347969,0.000000,62.347969,0.000000,78.799957,9.493958,0,78.799957,9.493958,78.799957,9.493958,74.209885,18.346390,0,74.209885,18.346390,74.209885,18.346390,84.152710,35.576202,0,84.152710,35.576202,84.152710,35.576202,94.113968,36.031433,0,</Points>
+</Properties>
+</XuiFigure>
+<Timelines>
+<Timeline>
+<Id>gear2</Id>
+<TimelineProp>Rotation</TimelineProp>
+<KeyFrame>
+<Time>0</Time>
+<Interpolation>0</Interpolation>
+<Prop>0.000000,0.000000,0.000000,1.000000</Prop>
+</KeyFrame>
+<KeyFrame>
+<Time>90</Time>
+<Interpolation>0</Interpolation>
+<Prop>0.000000,0.000000,0.707107,0.707107</Prop>
+</KeyFrame>
+<KeyFrame>
+<Time>180</Time>
+<Interpolation>0</Interpolation>
+<Prop>0.000000,-0.000000,-1.000000,0.000000</Prop>
+</KeyFrame>
+</Timeline>
+<Timeline>
+<Id>gear1</Id>
+<TimelineProp>Rotation</TimelineProp>
+<KeyFrame>
+<Time>0</Time>
+<Interpolation>0</Interpolation>
+<Prop>0.000000,0.000000,0.000000,1.000000</Prop>
+</KeyFrame>
+<KeyFrame>
+<Time>90</Time>
+<Interpolation>0</Interpolation>
+<Prop>0.000000,0.000000,-0.707107,0.707107</Prop>
+</KeyFrame>
+<KeyFrame>
+<Time>180</Time>
+<Interpolation>0</Interpolation>
+<Prop>-0.000000,0.000000,1.000000,0.000000</Prop>
+</KeyFrame>
+</Timeline>
+</Timelines>
+</XuiGroup>
+<XuiFigure>
+<Properties>
+<Width>180.138733</Width>
+<Height>208.000000</Height>
+<Position>213.967865,167.002563,0.000000</Position>
+<Stroke>
+<Properties>
+<StrokeColor>0xff0f0f0f</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillColor>0x40ebeb0f</FillColor>
+<Gradient>
+<Properties>
+<Radial>true</Radial>
+<NumStops>2</NumStops>
+<StopColor index="0">0xffebebeb</StopColor>
+<StopColor index="1">0xffebeb0f</StopColor>
+<StopPos index="0">0.349020</StopPos>
+<StopPos index="1">0.352941</StopPos>
+</Properties>
+</Gradient>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>6,90.061218,0.000000,90.061188,104.000000,90.061188,104.000000,0,180.138733,52.018890,90.061188,104.000000,90.061188,104.000000,0,180.138733,155.981110,90.061188,104.000000,90.061188,104.000000,0,90.061218,208.000000,90.061188,104.000000,90.061188,104.000000,0,0.000000,156.009460,90.061188,104.000000,90.061188,104.000000,0,0.000000,51.990540,90.061188,104.000000,90.061188,104.000000,0,</Points>
+</Properties>
+</XuiFigure>
+</XuiScene>
+</XuiCanvas>

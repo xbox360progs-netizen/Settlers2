@@ -11,22 +11,21 @@ class Stonemason : public Building {
 public:
     Stonemason(int x, int y, uint8_t o, Map* m)
         : Building(BuildingType::Stonemason, x, y, o, m) {
+        m_productionInterval = 5.0f;
         outputResources.push_back(ResourceType_Stone);
     }
 
-    void Update() override {
-        if (m_storage[ResourceType_Stone] >= 5) return;
-
+    bool CanProduce() override {
         if (!m_hasTarget) {
             Logic::ResourceRegistry* registry = map ? map->GetResourceRegistry() : NULL;
-            if (registry) {
+            if (registry)
                 m_hasTarget = registry->FindNearestWorldResource(ResourceType_Granite, pos, m_target);
-            }
         }
+        return m_hasTarget && !IsOutputFull();
+    }
 
-        if (m_hasTarget) {
-            m_storage[ResourceType_Stone]++;
-        }
+    bool ProduceOne() override {
+        return AddOutput(ResourceType_Stone, 1);
     }
 };
 

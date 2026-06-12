@@ -1,0 +1,616 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<xs:schema
+    targetNamespace="http://www.xboxlive.com/xlast"
+    elementFormDefault="qualified"
+    xmlns="http://www.xboxlive.com/xlast"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="XboxLiveSubmissionProject">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="GameConfigProject">
+                    <xs:complexType>
+                        <xs:all>
+
+                            <xs:element name="LocalizedStrings" minOccurs="1" maxOccurs="1">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="SupportedLocale" minOccurs="1" maxOccurs="unbounded" >
+                                            <xs:complexType>
+                                                <xs:attribute name="locale" type="xs:string" />
+                                            </xs:complexType>
+                                        </xs:element>
+                                        <xs:element name="LocalizedString" minOccurs="1" maxOccurs="unbounded">
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                    <xs:element name="Translation" minOccurs="1" maxOccurs="unbounded">
+                                                        <xs:complexType>
+                                                            <xs:simpleContent>
+                                                                <xs:extension base="xs:string">
+                                                                    <xs:attribute name="locale" type="xs:string" />
+                                                                </xs:extension>
+                                                            </xs:simpleContent>
+                                                        </xs:complexType>
+                                                    </xs:element>
+                                                    <xs:element name="Presence" minOccurs="0" maxOccurs="1" />
+                                                </xs:sequence>
+                                                <xs:attribute name="clsid" type="ClsidType" />
+                                                <xs:attribute name="friendlyName" type="xs:string" />
+                                                <xs:attribute name="id" type="xs:unsignedShort" />
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                    <xs:attribute name="clsid" type="ClsidType" />
+                                    <xs:attribute name="nextId" type="xs:unsignedShort" />
+                                    <xs:attribute name="defaultLocale" type="xs:string" />
+                                </xs:complexType>
+                            </xs:element>           <!-- End LocalizedStrings -->
+
+                            <xs:element name="Privileges" minOccurs="0" maxOccurs="1">
+                                 <xs:complexType>
+                                     <xs:sequence>
+                                        <xs:element name="Privilege" minOccurs="0" maxOccurs="unbounded">
+                                            <xs:complexType>
+                                                <xs:attribute name="name">
+                                                    <xs:simpleType>
+                                                        <xs:restriction base="xs:string">
+                                                            <xs:enumeration value="XPRIVILEGE_PII_ACCESS"/>
+                                                        </xs:restriction>
+                                                    </xs:simpleType>
+                                                </xs:attribute>
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element> <!-- End Privileges -->
+
+                            <xs:element name="GameModes" minOccurs="1" maxOccurs="1">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="GameMode" minOccurs="0" maxOccurs="unbounded">
+                                            <xs:complexType>
+                                                <xs:attribute name="value" type="xs:unsignedShort" />
+                                                <xs:attribute name="stringId" type="xs:unsignedShort" />
+                                                <xs:attribute name="friendlyName" type="FriendlyNameType" />
+                                                <xs:attribute name="drawProbability" use="required">
+                                                    <xs:simpleType>
+                                                        <xs:restriction base="xs:unsignedByte">
+                                                            <xs:minInclusive value="0" />
+                                                            <xs:maxInclusive value="100" />
+                                                        </xs:restriction>
+                                                    </xs:simpleType>
+                                                </xs:attribute>
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                    <xs:attribute name="clsid" type="ClsidType" />
+                                    <xs:attribute name="defaultValue" type="xs:unsignedShort" use="optional" />
+                                </xs:complexType>
+                            </xs:element>           <!-- End GameModes -->
+
+                            <xs:element name="Contexts" minOccurs="0" maxOccurs="1">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="Context" minOccurs="0" maxOccurs="unbounded">
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                    <xs:element name="ContextValue" minOccurs="0" maxOccurs="unbounded">
+                                                        <xs:complexType>
+                                                            <xs:attribute name="value" type="xs:unsignedShort" />
+                                                            <xs:attribute name="stringId" type="xs:unsignedShort" />
+                                                            <xs:attribute name="friendlyName" type="FriendlyNameType" />
+                                                        </xs:complexType>
+                                                    </xs:element>
+                                                </xs:sequence>
+                                                <xs:attribute name="clsid" type="ClsidType" />
+                                                <xs:attribute name="defaultValue" type="xs:unsignedShort" />
+                                                <xs:attribute name="friendlyName" type="FriendlyNameType" />
+                                                <xs:attribute name="id" type="HexDword" />
+                                                <xs:attribute name="stringId" type="xs:unsignedShort" />
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                    <xs:attribute name="clsid" type="ClsidType" />
+                                    <xs:attribute name="nextId" type="HexDword" />
+                                </xs:complexType>
+                            </xs:element>           <!-- End Contexts -->
+
+                            <xs:element name="Images" minOccurs="0" maxOccurs="1">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="Image" minOccurs="0" maxOccurs="unbounded">
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                    <xs:element name="Path" minOccurs="1" type="xs:string" />
+                                                </xs:sequence>
+                                                <xs:attribute name="friendlyName" type="xs:string"/>
+                                                <xs:attribute name="id" type="xs:unsignedInt" />
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                    <xs:attribute name="clsid" type="ClsidType" />
+                                </xs:complexType>
+                            </xs:element>           <!-- End Images -->
+
+                            <xs:element name="Achievements" minOccurs="0" maxOccurs="1">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="Achievement" minOccurs="0" maxOccurs="unbounded">
+                                            <xs:complexType>
+                                                <xs:attribute name="achievementType">
+                                                    <xs:simpleType>
+                                                        <xs:restriction base="xs:string">
+                                                            <xs:enumeration value="Completion"/>
+                                                            <xs:enumeration value="Leveling"/>
+                                                            <xs:enumeration value="Unlock"/>
+                                                            <xs:enumeration value="Event"/>
+                                                            <xs:enumeration value="Tournament"/>
+                                                            <xs:enumeration value="Checkpoint"/>
+                                                            <xs:enumeration value="Other"/>
+                                                        </xs:restriction>
+                                                    </xs:simpleType>
+                                                </xs:attribute>
+                                                <xs:attribute name="clsid" type="ClsidType" />
+                                                <xs:attribute name="descriptionStringId" type="xs:unsignedShort" />
+                                                <xs:attribute name="friendlyName" type="FriendlyNameType" />
+                                                <xs:attribute name="id" type="xs:unsignedShort" />
+                                                <xs:attribute name="imageId" type="xs:unsignedInt" use="optional" />
+                                                <xs:attribute name="showUnachieved" type="xs:boolean" default="true" />
+                                                <xs:attribute name="titleStringId" type="xs:unsignedShort" />
+                                                <xs:attribute name="unachievedStringId" type="xs:unsignedShort" />
+                                                <xs:attribute name="webDescriptionStringId" type="xs:unsignedShort" use="optional" />
+                                                <xs:attribute name="cred" type="xs:unsignedShort" />
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                    <xs:attribute name="clsid" type="ClsidType" />
+                                    <xs:attribute name="nextId" type="xs:unsignedShort" />
+                                </xs:complexType>
+                            </xs:element>           <!-- End Achievements -->
+
+
+                                <xs:element name="AvatarItems" minOccurs="0" maxOccurs="1">
+                                        <xs:complexType>
+                                          <xs:sequence>
+                                            <xs:element name="AvatarItem" minOccurs="0" maxOccurs="unbounded">
+                                              <xs:complexType>
+						<xs:attribute name="clsid" type="ClsidType" />
+						<xs:attribute name="id" type="xs:unsignedShort" />
+                                                <xs:attribute name="showUnachieved" type="xs:boolean" default="true" />
+                                                <xs:attribute name="unachievedStringId" type="xs:unsignedShort" />
+                                                <xs:attribute name="descriptionStringId" type="xs:unsignedShort" />
+                                                <xs:attribute name="friendlyName" type="FriendlyNameType" />
+
+                                                <!-- Attributes for gender1 -->
+                                                <xs:attribute name="guid1" type="ClsidType" />
+                                                <xs:attribute name="imageId1" type="xs:unsignedInt" />        
+                                                <xs:attribute name="displayStringId1" type="xs:unsignedShort" />
+                                                <xs:attribute name="subCategory1" type="xs:unsignedInt" />                        
+                                                <xs:attribute name="binLocation1" type="xs:string" />                         
+                                                <xs:attribute name="imageMedLocation1" type="xs:string" />
+
+                                                <!-- Attributes for gender2 -->
+                                                <xs:attribute name="guid2" type="ClsidType" />                        
+                                                <xs:attribute name="imageId2" type="xs:unsignedInt" />                                              
+                                                <xs:attribute name="displayStringId2" type="xs:unsignedShort" />                        
+                                                <xs:attribute name="subCategory2" type="xs:unsignedInt" />                        
+                                                <xs:attribute name="binLocation2" type="xs:string" />                 
+                                                <xs:attribute name="imageMedLocation2" type="xs:string" />            
+
+                                              </xs:complexType>
+                                            </xs:element>
+                                          </xs:sequence>
+					  <xs:attribute name="clsid" type="ClsidType" />
+					  <xs:attribute name="nextId" type="xs:unsignedShort" />
+                                        </xs:complexType>
+                                </xs:element>           <!-- End AvatarItems -->   
+
+
+                            <xs:element name="Properties" minOccurs="0" maxOccurs="1">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="Property" minOccurs="0" maxOccurs="unbounded">
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                    <xs:element name="DefaultValue" minOccurs="0" maxOccurs="1" />
+                                                    <xs:element name="Format" minOccurs="0">
+                                                        <xs:complexType>
+                                                            <xs:attribute name="decimals" type="xs:unsignedByte" default="2" />
+                                                            <xs:attribute name="year" type="xs:boolean" default="true" />
+                                                            <xs:attribute name="month" type="xs:boolean" default="true" />
+                                                            <xs:attribute name="day" type="xs:boolean" default="true" />
+                                                            <xs:attribute name="hours" type="xs:boolean" default="true" />
+                                                            <xs:attribute name="minutes" type="xs:boolean" default="true" />
+                                                            <xs:attribute name="seconds" type="xs:boolean" default="true" />
+                                                            <xs:attribute name="milliseconds" type="xs:boolean" default="true" />
+                                                        </xs:complexType>
+                                                    </xs:element>
+                                                </xs:sequence>
+                                                <xs:attribute name="clsid" type="ClsidType" />
+                                                <xs:attribute name="dataSize" type="xs:unsignedShort" />
+                                                <xs:attribute name="id" type="HexDword" />
+                                                <xs:attribute name="friendlyName" type="FriendlyNameType" />
+                                                <xs:attribute name="stringId" type="xs:unsignedShort" />
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                    <xs:attribute name="clsid" type="ClsidType" />
+                                    <xs:attribute name="nextId" type="xs:unsignedShort" />
+                                </xs:complexType>
+                            </xs:element>           <!-- End Properties -->
+
+                            <xs:element name="Presence" minOccurs="1" maxOccurs="1">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="PresenceMode" minOccurs="0" maxOccurs="unbounded">
+                                            <xs:complexType>
+                                                <xs:attribute name="clsid" type="ClsidType" />
+                                                <xs:attribute name="contextValue" type="xs:unsignedShort" />
+                                                <xs:attribute name="stringId" type="xs:unsignedShort" />
+                                                <xs:attribute name="friendlyName" type="FriendlyNameType" />
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                    <xs:attribute name="clsid" type="ClsidType" />
+                                    <xs:attribute name="nextContextValue" type="xs:unsignedShort" />
+                                </xs:complexType>
+                            </xs:element>           <!-- End Presence -->
+
+                            <xs:element name="StatsViews" minOccurs="0" maxOccurs="1">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="StatsView" minOccurs="0" maxOccurs="unbounded">
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                    <xs:element name="Columns" type="ViewAxisType" minOccurs="1" maxOccurs="1" />
+                                                </xs:sequence>
+                                                <xs:attribute name="friendlyName" type="FriendlyNameType" />
+                                                <xs:attribute name="clsid" type="ClsidType" />
+                                                <xs:attribute name="id" type="xs:unsignedInt" />
+                                                <xs:attribute name="resetType">
+                                                    <xs:simpleType>
+                                                        <xs:restriction base="xs:string">
+                                                            <xs:enumeration value="Weekly"/>
+                                                            <xs:enumeration value="Biweekly"/>
+                                                            <xs:enumeration value="Monthly"/>
+                                                            <xs:enumeration value="Bimonthly"/>
+                                                            <xs:enumeration value="Annually"/>
+                                                            <xs:enumeration value="Never"/>
+                                                        </xs:restriction>
+                                                    </xs:simpleType>
+                                                </xs:attribute>
+                                                <xs:attribute name="stringId" type="xs:unsignedShort" />
+                                                <xs:attribute name="entryExpiration" type="xs:unsignedShort" />
+                                                <xs:attribute name="topEntries" type="xs:unsignedInt" />
+                                                <xs:attribute name="arbitrated" type="xs:boolean" />
+                                                <xs:attribute name="hidden" type="xs:boolean" />
+                                                <xs:attribute name="maxAttachments" type="xs:unsignedShort" />
+                                                <xs:attribute name="onlineOnly" type="xs:boolean" />
+                                                <xs:attribute name="flipAxes" type="xs:boolean" />
+                                                <xs:attribute name="viewType" type="xs:string" />
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                    <xs:attribute name="clsid" type="ClsidType" />
+                                    <xs:attribute name="nextViewId" type="xs:unsignedInt" />
+                                </xs:complexType>
+                            </xs:element>       <!-- End StatsViews -->
+
+                            <xs:element name="Matchmaking" minOccurs="0" maxOccurs="1">
+                                <xs:complexType>
+                                    <xs:all>
+                                        <xs:element name="Schema" minOccurs="1" maxOccurs="1">
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                    <xs:element name="Attribute" minOccurs="0" maxOccurs="unbounded">
+                                                        <xs:complexType>
+                                                            <xs:attribute name="id" type="HexDword"/>
+                                                            <xs:attribute name="minValue" type="xs:integer" use="optional" />
+                                                            <xs:attribute name="maxValue" type="xs:integer" use="optional" />
+                                                        </xs:complexType>
+                                                    </xs:element>
+                                                </xs:sequence>
+                                                <xs:attribute name="clsid" type="ClsidType" />
+                                            </xs:complexType>
+                                        </xs:element>
+                                        <xs:element name="Constants" minOccurs="1" maxOccurs="1">
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                    <xs:element name="Constant" minOccurs="0" maxOccurs="unbounded">
+                                                        <xs:complexType>
+                                                            <xs:attribute name="name" type="xs:string"/>
+                                                            <xs:attribute name="id" type="HexDword"/>
+                                                            <xs:attribute name="value" type="xs:string"/>
+                                                        </xs:complexType>
+                                                    </xs:element>
+                                                </xs:sequence>
+                                                <xs:attribute name="clsid" type="ClsidType" />
+                                                <xs:attribute name="nextId" type="xs:unsignedInt" />
+                                            </xs:complexType>
+                                        </xs:element>
+                                        <xs:element name="Queries" minOccurs="1" maxOccurs="1">
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                    <xs:element name="Query" minOccurs="0"  maxOccurs="unbounded">
+                                                        <xs:complexType>
+                                                            <xs:all>
+                                                                <xs:element name="Parameters" minOccurs="1" maxOccurs="1">
+                                                                    <xs:complexType>
+                                                                        <xs:sequence>
+                                                                            <xs:element name="Parameter" minOccurs="0" maxOccurs="unbounded">
+                                                                                <xs:complexType>
+                                                                                    <xs:attribute name="id" type="HexDword"/>
+                                                                                    <xs:attribute name="weighted" type="xs:boolean" use="optional" />
+                                                                                    <xs:attribute name="exactMatch" type="xs:boolean" use="optional" />
+                                                                                </xs:complexType>
+                                                                            </xs:element>
+                                                                        </xs:sequence>
+                                                                    </xs:complexType>
+                                                                </xs:element>
+                                                                <xs:element name="Filters" minOccurs="1" maxOccurs="1">
+                                                                    <xs:complexType>
+                                                                        <xs:sequence>
+                                                                            <xs:element name="Filter" minOccurs="0" maxOccurs="unbounded">
+                                                                                <xs:complexType>
+                                                                                    <xs:attribute name="left" type="HexDword"/>
+                                                                                    <xs:attribute name="leftType" type="MatchFilterItemType"/>
+                                                                                    <xs:attribute name="op" type="xs:string"/>
+                                                                                    <xs:attribute name="right" type="HexDword"/>
+                                                                                    <xs:attribute name="rightType" type="MatchFilterItemType"/>
+                                                                                </xs:complexType>
+                                                                            </xs:element>
+                                                                        </xs:sequence>
+                                                                    </xs:complexType>
+                                                                </xs:element>
+                                                                <xs:element name="SortOperations" minOccurs="1" maxOccurs="1">
+                                                                    <xs:complexType>
+                                                                        <xs:sequence>
+                                                                            <xs:element name="SortOperation" minOccurs="0" maxOccurs="unbounded">
+                                                                                <xs:complexType>
+                                                                                    <xs:attribute name="id" type="HexDword"/>
+                                                                                    <xs:attribute name="ordinal" type="xs:unsignedShort"/>
+                                                                                    <xs:attribute name="type">
+                                                                                        <xs:simpleType>
+                                                                                            <xs:restriction base="xs:string">
+                                                                                                <xs:enumeration value="Ascending"/>
+                                                                                                <xs:enumeration value="Descending"/>
+                                                                                                <xs:enumeration value="Near"/>
+                                                                                                <xs:enumeration value="Far"/>
+                                                                                            </xs:restriction>
+                                                                                        </xs:simpleType>
+                                                                                    </xs:attribute>
+                                                                                    <xs:attribute name="distanceid" type="HexDword"/>
+                                                                                </xs:complexType>
+                                                                            </xs:element>
+                                                                        </xs:sequence>
+                                                                    </xs:complexType>
+                                                                </xs:element>
+                                                                <xs:element name="Returns" minOccurs="1" maxOccurs="1">
+                                                                    <xs:complexType>
+                                                                        <xs:sequence>
+                                                                            <xs:element name="Return" minOccurs="0" maxOccurs="unbounded">
+                                                                                <xs:complexType>
+                                                                                    <xs:attribute name="id" type="HexDword"/>
+                                                                                    <xs:attribute name="type">
+                                                                                        <xs:simpleType>
+                                                                                            <xs:restriction base="xs:string">
+                                                                                                <xs:enumeration value="Normal"/>
+                                                                                                <xs:enumeration value="Average"/>
+                                                                                                <xs:enumeration value="Sum"/>
+                                                                                                <xs:enumeration value="Minimum"/>
+                                                                                                <xs:enumeration value="Maximum"/>
+                                                                                                <xs:enumeration value="Count"/>
+                                                                                            </xs:restriction>
+                                                                                        </xs:simpleType>
+                                                                                    </xs:attribute>
+                                                                                    <xs:attribute name="ordinal" type="xs:unsignedShort"/>
+                                                                                </xs:complexType>
+                                                                            </xs:element>
+                                                                        </xs:sequence>
+                                                                    </xs:complexType>
+                                                                </xs:element>
+                                                            </xs:all>
+                                                            <xs:attribute name="clsid" type="ClsidType" />
+                                                            <xs:attribute name="id" type="xs:unsignedInt" />
+                                                            <xs:attribute name="friendlyName" type="FriendlyNameType" />
+                                                            <xs:attribute name="maxResults" type="xs:unsignedShort" />
+                                                            <xs:attribute name="type">
+                                                                <xs:simpleType>
+                                                                    <xs:restriction base="xs:string">
+                                                                        <xs:enumeration value="Normal"/>
+                                                                        <xs:enumeration value="Findfromid"/>
+                                                                        <xs:enumeration value="Aggregate"/>
+                                                                    </xs:restriction>
+                                                                </xs:simpleType>
+                                                            </xs:attribute>
+                                                            <xs:attribute name="qosProbe" type="xs:boolean"/>
+                                                            <xs:attribute name="groupBy" type="HexDword"/>
+                                                        </xs:complexType>
+                                                    </xs:element> <!-- End Query Element -->
+                                                </xs:sequence>
+                                                <xs:attribute name="clsid" type="ClsidType" />
+                                                <xs:attribute name="nextId" type="xs:unsignedInt" />
+                                            </xs:complexType>
+                                        </xs:element> <!-- End Queries Element -->
+                                    </xs:all>
+                                    <xs:attribute name="clsid" type="ClsidType" />
+                                    <xs:attribute name="isV1Title" type="xs:boolean" default="false" use="optional"/>
+                                </xs:complexType>
+                            </xs:element>       <!-- End Matchmaking -->
+
+                            <xs:element name="ProductInformation" minOccurs="0" maxOccurs="1">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="Rating" minOccurs="0" maxOccurs="unbounded">
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                    <xs:element name="Description" minOccurs="0" maxOccurs="1" type="xs:string" />
+                                                </xs:sequence>
+                                                <xs:attribute name="ratingSystemId" type="xs:unsignedInt" />
+                                                <xs:attribute name="ratingId" type="xs:unsignedInt" />
+                                                <xs:attribute name="imageId" type="xs:unsignedInt" use="optional" />
+                                            </xs:complexType>
+                                        </xs:element>
+                                        <xs:element name="Genre" minOccurs="0" maxOccurs="unbounded" >
+                                            <xs:complexType>
+                                                <xs:attribute name="genreId" type="xs:unsignedInt" />
+                                            </xs:complexType>
+                                        </xs:element>
+                                        <xs:element name="Feature" minOccurs="0" maxOccurs="unbounded" >
+                                            <xs:complexType>
+                                                <xs:attribute name="name" type="xs:string" />
+                                                <xs:attribute name="enabled" type="xs:boolean" default="true" />
+                                            </xs:complexType>
+                                        </xs:element>
+                                        <xs:element name="Platform" minOccurs="0" maxOccurs="unbounded" >
+                                            <xs:complexType>
+                                                <xs:attribute name="name" type="xs:string" />
+                                                <xs:attribute name="id" type="xs:unsignedInt" />
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                    <xs:attribute name="offlinePlayersMax" type="xs:unsignedShort" />
+                                    <xs:attribute name="systemLinkPlayersMax" type="xs:unsignedShort" />
+                                    <xs:attribute name="livePlayersMax" type="xs:unsignedShort" />
+                                    <xs:attribute name="shortDescriptionStringId" type="xs:unsignedShort" />
+                                    <xs:attribute name="sellTextStringId" type="xs:unsignedShort" />
+                                    <xs:attribute name="publisherStringId" type="xs:unsignedShort" />
+                                    <xs:attribute name="developerStringId" type="xs:unsignedShort" />
+                                    <xs:attribute name="genreTextStringId" type="xs:unsignedShort" />
+                                    <xs:attribute name="arcadeDescriptionStringId" type="xs:unsignedShort" />
+                                </xs:complexType>
+                            </xs:element>       <!-- End ProductInformation -->
+
+                            <xs:element name="GamerPictures" minOccurs="0" maxOccurs="1">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="Picture" minOccurs="0" maxOccurs="unbounded">
+                                            <xs:complexType>
+                                                <xs:attribute name="friendlyName" type="FriendlyNameType" />
+                                                <xs:attribute name="id" type="xs:unsignedInt" />
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                    <xs:attribute name="clsid" type="ClsidType" />
+                                </xs:complexType>
+                            </xs:element>       <!-- End GamerPictures -->
+
+                        </xs:all>
+                        <xs:attribute name="clsid" type="ClsidType" />
+                        <xs:attribute name="titleId" type="HexDword" />
+                        <xs:attribute name="titleName" type="xs:string" />
+                        <xs:attribute name="titleType" type="xs:unsignedInt" use="optional" />
+                        <xs:attribute name="multiplayer" type="xs:string" />
+                        <xs:attribute name="name" type="xs:string" />
+                        <xs:attribute name="projectVersion" type="VersionType" />
+			<xs:attribute name="schemaVersion" type="VersionType" />
+                        <xs:attribute name="arn" type="xs:string" />
+                    </xs:complexType>
+                </xs:element>       <!-- End GameConfigProject -->
+            </xs:sequence>
+            <xs:attribute name="Version" type="xs:string" />
+        </xs:complexType>
+    </xs:element>               <!-- End XboxLiveSubmissionProject -->
+
+    <!-- Type declarations -->
+
+    <xs:simpleType name="ClsidType">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\{[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\}" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="ContextFieldType">
+        <xs:attribute name="id" type="xs:unsignedInt" />
+    </xs:complexType>
+
+    <xs:simpleType name="FriendlyNameType">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:maxLength value="64" />
+            <xs:pattern value="[0-9a-zA-Z_ ]+" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="HexDword">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="0x[0-9a-fA-F]{1,8}" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="HexDwordSans0x">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9a-fA-F]{1,8}" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="PropertyFieldType">
+        <xs:sequence>
+            <xs:element name="Aggregation" minOccurs="1" maxOccurs="1">
+                <xs:complexType>
+                    <xs:attribute name="type" >
+                        <xs:simpleType>
+                            <xs:restriction base="xs:string">
+                                <xs:enumeration value="Min" />
+                                <xs:enumeration value="Max" />
+                                <xs:enumeration value="Sum" />
+                                <xs:enumeration value="Last" />
+                            </xs:restriction>
+                        </xs:simpleType>
+                    </xs:attribute>
+                </xs:complexType>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="id" type="HexDword" />
+    </xs:complexType>
+
+    <xs:simpleType name="VersionType">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]{1,10}\.[0-9]{1,10}\.[0-9]{1,10}\.[0-9]{1,10}" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="ViewAxisType">
+        <xs:sequence>
+            <xs:element name="Field" type="ViewFieldType" minOccurs="1" maxOccurs="unbounded" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:simpleType name="ArcadeLeaderboardSortType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Ascending"/>
+            <xs:enumeration value="Descending"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="ViewFieldType">
+        <xs:choice minOccurs="1" maxOccurs="1">
+            <xs:element name="Context" type="ContextFieldType" />
+            <xs:element name="Property" type="PropertyFieldType" />
+        </xs:choice>
+        <xs:attribute name="attributeId" type="xs:unsignedShort" />
+        <xs:attribute name="friendlyName" type="xs:string"/>
+        <xs:attribute name="hidden" type="xs:boolean" />
+        <xs:attribute name="stringId" type="xs:unsignedShort" />
+        <xs:attribute name="ordinal" type="xs:unsignedShort" />
+        <xs:attribute name="arcadeLeaderboard" type="xs:boolean" default="false" />
+        <xs:attribute name="arcadeSort" type="ArcadeLeaderboardSortType" default="Ascending" use="optional"/>
+        <xs:attribute name="arcadeStringId" type="xs:unsignedShort" use="optional"/>
+    </xs:complexType>
+
+    <xs:complexType name="NonValidatedElement">
+        <xs:sequence>
+            <xs:any namespace="##any" minOccurs="0" maxOccurs="unbounded" processContents="skip" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:simpleType name="MatchFilterItemType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Attribute"/>
+            <xs:enumeration value="Parameter"/>
+            <xs:enumeration value="Constant"/>
+            <xs:enumeration value="ContextValue"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+</xs:schema>
+

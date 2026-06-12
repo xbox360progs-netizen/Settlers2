@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" 
+  manifestVersion="1.0">
+
+<assemblyIdentity
+   type="win32"
+   name="Dia2Lib"
+   version="8.0.50727.762" />
+
+<file name = "msdia80.dll">
+
+<comClass
+    clsid="{BCE36434-2C24-499E-BF49-8BD99B0EEB68}"
+    threadingModel = "Both" />
+
+<comClass
+    clsid="{1FBD5EC4-B8E4-4D94-9EFE-7CCAF9132C98}"
+    threadingModel = "Both" />
+
+<comClass
+    clsid="{37DFDBCC-40A5-4F4A-8523-123C746D38F0}"
+    threadingModel = "Both" />
+
+<typelib tlbid="{106173A0-0173-4E5C-84E7-E915422BE997}"
+       version="2.0" helpdir=""/>
+
+</file>
+
+</assembly>

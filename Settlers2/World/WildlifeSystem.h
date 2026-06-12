@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <cstdlib>
 #include "Animal.h"
 #include "ResourceNode.h"
 #include "Map.h"
@@ -29,11 +30,14 @@ public:
     void RemoveAnimal(int index);
 
     int GetAnimalCount() const { return (int)m_animals.size(); }
+    const std::vector<Animal>& GetAllAnimals() const { return m_animals; }
 
 private:
     void ScanSpawners();
     void SpawnAtSpawner(const SpawnerInfo& spawner);
     int CountAnimalsAtSpawner(int sx, int sy, AnimalType type) const;
+
+    void MoveAnimals();
 
     Map* m_map;
     std::vector<Animal> m_animals;
@@ -41,7 +45,10 @@ private:
     float m_spawnTimer;
 
     static const float SPAWN_COOLDOWN;
+    static const float MOVE_INTERVAL;
     static const int MAX_PER_SPAWNER;
+
+    float m_moveTimer;
 };
 
 } // namespace World

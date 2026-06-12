@@ -1,0 +1,95 @@
+<root>
+<data name="strings.IDS_OK"><value><!-- _locID_text="strings.IDS_OK" _locComment="" -->OK</value></data>
+<data name="strings.IDS_YES"><value><!-- _locID_text="strings.IDS_YES" _locComment="" -->Yes</value></data>
+<data name="strings.IDS_NO"><value><!-- _locID_text="strings.IDS_NO" _locComment="" -->No</value></data>
+<data name="strings.IDS_ERROR_SPACE"><value><!-- _locID_text="strings.IDS_ERROR_SPACE" _locComment="" -->There is not enough space to install this expansion pack. You can free up space in the System area of the Xbox Dashboard. Go there now?</value></data>
+<data name="strings.IDS_APP_TITLE"><value><!-- _locID_text="strings.IDS_APP_TITLE" _locComment="" -->Expansion Pack Installer</value></data>
+<data name="strings.IDS_ERROR_SELECTITEM"><value><!-- _locID_text="strings.IDS_ERROR_SELECTITEM" _locComment="" -->Select at least one item to install.</value></data>
+<data name="strings.IDS_ERROR_INSTALLING"><value><!-- _locID_text="strings.IDS_ERROR_INSTALLING" _locComment="" -->Can't install one or more items.</value></data>
+<data name="strings.IDS_INSTALL_INFO"><value><!-- _locID_text="strings.IDS_INSTALL_INFO" _locComment="" -->Clear the items you don't want to install.</value></data>
+<data name="strings.IDS_DEVICE_REQUIRED"><value><!-- _locID_text="strings.IDS_DEVICE_REQUIRED" _locComment="" -->You must select a storage device to install this expansion pack. Attach an Xbox 360 storage device and try again.</value></data>
+<data name="strings.IDS_DVD_REQUIRED"><value><!-- _locID_text="strings.IDS_DVD_REQUIRED" _locComment="" -->Can't load expansion pack. Please try again.</value></data>
+<data name="strings.IDS_UPDATE_NOW"><value><!-- _locID_text="strings.IDS_UPDATE_NOW" _locComment="" -->Yes, update now</value></data>
+<data name="strings.IDS_NO_CANCEL"><value><!-- _locID_text="strings.IDS_NO_CANCEL" _locComment="" -->No, cancel</value></data>
+<data name="strings.IDS_UPDATE_REQUIRED"><value><!-- _locID_text="strings.IDS_UPDATE_REQUIRED" _locComment="" -->An update is required to install this expansion pack. Update now?</value></data>
+<data name="strings.IDS_NOSPACE_FOR_UPDATE"><value><!-- _locID_text="strings.IDS_NOSPACE_FOR_UPDATE" _locComment="" -->There is not enough space to apply this update. You can free up space in the System area of the Xbox Dashboard. Select OK to go there now.</value></data>
+<data name="BeginInstallation.scene.PointSize"><value><!-- _locID_text="BeginInstallation.scene.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="BeginInstallation.scene.Text"><value><!-- _locID_text="BeginInstallation.scene.Text" _locComment="" --></value></data>
+<data name="BeginInstallation.scene.XuiButton1.PointSize"><value><!-- _locID_text="BeginInstallation.scene.XuiButton1.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="BeginInstallation.scene.XuiButton1.Text"><value><!-- _locID_text="BeginInstallation.scene.XuiButton1.Text" _locComment="" -->Install Expansion Pack</value></data>
+<data name="BeginInstallation.scene.XuiLabel1.PointSize"><value><!-- _locID_text="BeginInstallation.scene.XuiLabel1.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="BeginInstallation.scene.XuiLabel1.Text"><value><!-- _locID_text="BeginInstallation.scene.XuiLabel1.Text" _locComment="" --></value></data>
+<data name="BeginInstallation.scene.ctlWait.PointSize"><value><!-- _locID_text="BeginInstallation.scene.ctlWait.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="BeginInstallation.scene.ctlWait.Text"><value><!-- _locID_text="BeginInstallation.scene.ctlWait.Text" _locComment="" --></value></data>
+<data name="BeginInstallation.scene.legend_a.PointSize"><value><!-- _locID_text="BeginInstallation.scene.legend_a.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="BeginInstallation.scene.legend_a.Text"><value><!-- _locID_text="BeginInstallation.scene.legend_a.Text" _locComment="" -->Select</value></data>
+<data name="BeginInstallation.scene.legend_b.PointSize"><value><!-- _locID_text="BeginInstallation.scene.legend_b.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="BeginInstallation.scene.legend_b.Text"><value><!-- _locID_text="BeginInstallation.scene.legend_b.Text" _locComment="" --></value></data>
+<data name="BeginInstallation.scene.legend_x.PointSize"><value><!-- _locID_text="BeginInstallation.scene.legend_x.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="BeginInstallation.scene.legend_x.Text"><value><!-- _locID_text="BeginInstallation.scene.legend_x.Text" _locComment="" --></value></data>
+<data name="BeginInstallation.scene.legend_y.PointSize"><value><!-- _locID_text="BeginInstallation.scene.legend_y.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="BeginInstallation.scene.legend_y.Text"><value><!-- _locID_text="BeginInstallation.scene.legend_y.Text" _locComment="" --></value></data>
+<data name="Finish_Installation.scene.PointSize"><value><!-- _locID_text="Finish_Installation.scene.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="Finish_Installation.scene.Text"><value><!-- _locID_text="Finish_Installation.scene.Text" _locComment="" --></value></data>
+<data name="Finish_Installation.scene.XuiLabel1.PointSize"><value><!-- _locID_text="Finish_Installation.scene.XuiLabel1.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="Finish_Installation.scene.XuiLabel1.Text"><value><!-- _locID_text="Finish_Installation.scene.XuiLabel1.Text" _locComment="" --></value></data>
+<data name="Finish_Installation.scene.XuiText1.PointSize"><value><!-- _locID_text="Finish_Installation.scene.XuiText1.PointSize" _locComment="" -->16.000000</value></data>
+<data name="Finish_Installation.scene.XuiText1.Text"><value><!-- _locID_text="Finish_Installation.scene.XuiText1.Text" _locComment="" -->Insert your game disc to play the game.</value></data>
+<data name="Finish_Installation.scene.btnEject.PointSize"><value><!-- _locID_text="Finish_Installation.scene.btnEject.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="Finish_Installation.scene.btnEject.Text"><value><!-- _locID_text="Finish_Installation.scene.btnEject.Text" _locComment="" -->Finish and Eject Disc</value></data>
+<data name="Finish_Installation.scene.legend_a.PointSize"><value><!-- _locID_text="Finish_Installation.scene.legend_a.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="Finish_Installation.scene.legend_a.Text"><value><!-- _locID_text="Finish_Installation.scene.legend_a.Text" _locComment="" -->Select</value></data>
+<data name="Finish_Installation.scene.legend_b.PointSize"><value><!-- _locID_text="Finish_Installation.scene.legend_b.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="Finish_Installation.scene.legend_b.Text"><value><!-- _locID_text="Finish_Installation.scene.legend_b.Text" _locComment="" -->Back</value></data>
+<data name="Finish_Installation.scene.legend_x.PointSize"><value><!-- _locID_text="Finish_Installation.scene.legend_x.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="Finish_Installation.scene.legend_x.Text"><value><!-- _locID_text="Finish_Installation.scene.legend_x.Text" _locComment="" --></value></data>
+<data name="Finish_Installation.scene.legend_y.PointSize"><value><!-- _locID_text="Finish_Installation.scene.legend_y.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="Finish_Installation.scene.legend_y.Text"><value><!-- _locID_text="Finish_Installation.scene.legend_y.Text" _locComment="" --></value></data>
+<data name="InProgress_Installation.scene.PointSize"><value><!-- _locID_text="InProgress_Installation.scene.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="InProgress_Installation.scene.Text"><value><!-- _locID_text="InProgress_Installation.scene.Text" _locComment="" --></value></data>
+<data name="InProgress_Installation.scene.XuiLabel1.PointSize"><value><!-- _locID_text="InProgress_Installation.scene.XuiLabel1.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="InProgress_Installation.scene.XuiLabel1.Text"><value><!-- _locID_text="InProgress_Installation.scene.XuiLabel1.Text" _locComment="" --></value></data>
+<data name="InProgress_Installation.scene.XuiProgressBar1.PointSize"><value><!-- _locID_text="InProgress_Installation.scene.XuiProgressBar1.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="InProgress_Installation.scene.XuiProgressBar1.Text"><value><!-- _locID_text="InProgress_Installation.scene.XuiProgressBar1.Text" _locComment="" --></value></data>
+<data name="InProgress_Installation.scene.XuiText1.PointSize"><value><!-- _locID_text="InProgress_Installation.scene.XuiText1.PointSize" _locComment="" -->16.000000</value></data>
+<data name="InProgress_Installation.scene.XuiText1.Text"><value><!-- _locID_text="InProgress_Installation.scene.XuiText1.Text" _locComment="" -->Installing</value></data>
+<data name="InProgress_Installation.scene.ctlWait.PointSize"><value><!-- _locID_text="InProgress_Installation.scene.ctlWait.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="InProgress_Installation.scene.ctlWait.Text"><value><!-- _locID_text="InProgress_Installation.scene.ctlWait.Text" _locComment="" --></value></data>
+<data name="InProgress_Installation.scene.legend_a.PointSize"><value><!-- _locID_text="InProgress_Installation.scene.legend_a.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="InProgress_Installation.scene.legend_a.Text"><value><!-- _locID_text="InProgress_Installation.scene.legend_a.Text" _locComment="" --></value></data>
+<data name="InProgress_Installation.scene.legend_b.PointSize"><value><!-- _locID_text="InProgress_Installation.scene.legend_b.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="InProgress_Installation.scene.legend_b.Text"><value><!-- _locID_text="InProgress_Installation.scene.legend_b.Text" _locComment="" --></value></data>
+<data name="InProgress_Installation.scene.legend_x.PointSize"><value><!-- _locID_text="InProgress_Installation.scene.legend_x.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="InProgress_Installation.scene.legend_x.Text"><value><!-- _locID_text="InProgress_Installation.scene.legend_x.Text" _locComment="" --></value></data>
+<data name="InProgress_Installation.scene.legend_y.PointSize"><value><!-- _locID_text="InProgress_Installation.scene.legend_y.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="InProgress_Installation.scene.legend_y.Text"><value><!-- _locID_text="InProgress_Installation.scene.legend_y.Text" _locComment="" --></value></data>
+<data name="InstallSelected.scene.PointSize"><value><!-- _locID_text="InstallSelected.scene.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="InstallSelected.scene.Text"><value><!-- _locID_text="InstallSelected.scene.Text" _locComment="" --></value></data>
+<data name="InstallSelected.scene.btnDeselectAll.PointSize"><value><!-- _locID_text="InstallSelected.scene.btnDeselectAll.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="InstallSelected.scene.btnDeselectAll.Text"><value><!-- _locID_text="InstallSelected.scene.btnDeselectAll.Text" _locComment="" -->Clear All</value></data>
+<data name="InstallSelected.scene.btnInstall.PointSize"><value><!-- _locID_text="InstallSelected.scene.btnInstall.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="InstallSelected.scene.btnInstall.Text"><value><!-- _locID_text="InstallSelected.scene.btnInstall.Text" _locComment="" -->Install Selected</value></data>
+<data name="InstallSelected.scene.legend_a.PointSize"><value><!-- _locID_text="InstallSelected.scene.legend_a.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="InstallSelected.scene.legend_a.Text"><value><!-- _locID_text="InstallSelected.scene.legend_a.Text" _locComment="" -->Select</value></data>
+<data name="InstallSelected.scene.legend_b.PointSize"><value><!-- _locID_text="InstallSelected.scene.legend_b.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="InstallSelected.scene.legend_b.Text"><value><!-- _locID_text="InstallSelected.scene.legend_b.Text" _locComment="" -->Back</value></data>
+<data name="InstallSelected.scene.legend_x.PointSize"><value><!-- _locID_text="InstallSelected.scene.legend_x.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="InstallSelected.scene.legend_x.Text"><value><!-- _locID_text="InstallSelected.scene.legend_x.Text" _locComment="" -->Select All</value></data>
+<data name="InstallSelected.scene.list.PointSize"><value><!-- _locID_text="InstallSelected.scene.list.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="InstallSelected.scene.list.Text"><value><!-- _locID_text="InstallSelected.scene.list.Text" _locComment="" --></value></data>
+<data name="InstallSelected.scene.metaPanelScene.PointSize"><value><!-- _locID_text="InstallSelected.scene.metaPanelScene.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="InstallSelected.scene.metaPanelScene.Text"><value><!-- _locID_text="InstallSelected.scene.metaPanelScene.Text" _locComment="" --></value></data>
+<data name="InstallSelected.scene.metaPanelScene.graphic_Metapanel.PointSize"><value><!-- _locID_text="InstallSelected.scene.metaPanelScene.graphic_Metapanel.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="InstallSelected.scene.metaPanelScene.graphic_Metapanel.Text"><value><!-- _locID_text="InstallSelected.scene.metaPanelScene.graphic_Metapanel.Text" _locComment="" --></value></data>
+<data name="InstallSelected.scene.metaPanelScene.imgThumb.PointSize"><value><!-- _locID_text="InstallSelected.scene.metaPanelScene.imgThumb.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="InstallSelected.scene.metaPanelScene.imgThumb.Text"><value><!-- _locID_text="InstallSelected.scene.metaPanelScene.imgThumb.Text" _locComment="" --></value></data>
+<data name="InstallSelected.scene.metaPanelScene.labInfo.AllowedChars"><value><!-- _locID_text="InstallSelected.scene.metaPanelScene.labInfo.AllowedChars" _locComment="" --></value></data>
+<data name="InstallSelected.scene.metaPanelScene.labInfo.PointSize"><value><!-- _locID_text="InstallSelected.scene.metaPanelScene.labInfo.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="InstallSelected.scene.metaPanelScene.labInfo.Text"><value><!-- _locID_text="InstallSelected.scene.metaPanelScene.labInfo.Text" _locComment="" --></value></data>
+<data name="InstallSelected.scene.metaPanelScene.labMeta1.PointSize"><value><!-- _locID_text="InstallSelected.scene.metaPanelScene.labMeta1.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="InstallSelected.scene.metaPanelScene.labMeta1.Text"><value><!-- _locID_text="InstallSelected.scene.metaPanelScene.labMeta1.Text" _locComment="" --></value></data>
+<data name="main_scene.XuiScene1.PointSize"><value><!-- _locID_text="main_scene.XuiScene1.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="main_scene.XuiScene1.Text"><value><!-- _locID_text="main_scene.XuiScene1.Text" _locComment="" --></value></data>
+<data name="main_scene.XuiScene1.labHeader.PointSize"><value><!-- _locID_text="main_scene.XuiScene1.labHeader.PointSize" _locComment="" -->-1.000000</value></data>
+<data name="main_scene.XuiScene1.labHeader.Text"><value><!-- _locID_text="main_scene.XuiScene1.labHeader.Text" _locComment="" -->&lt;TitleName&gt; Expansion Pack</value></data>
+</root>

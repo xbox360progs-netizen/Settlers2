@@ -1,0 +1,10 @@
+On Error Resume Next
+[Strings]
+errNo="(Error No.:"
+errNotEnoughFreeSpace="Could not create temporary file. Please ensure that you have enough free space and try again."
+errCouldNotInvokeCS="This functionality requires that you have an installed copy of Adobe(R) Illustrator(R) CS and that it be launched."
+errUnknownGradient="Skipping unknown gradient color "
+errUnknownType="Skipping unknown type "
+errGeneric="An error has occured."
+errCMYKNotSupported="CMYK documents are not supported.  Please select an RGB document and try again."
+errCMYKNotRunning="Illustrator is not running. Please run it and try again."

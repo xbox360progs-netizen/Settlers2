@@ -1,0 +1,147 @@
+<XuiCanvas version="000c">
+<Properties>
+<Width>640.000000</Width>
+<Height>480.000000</Height>
+</Properties>
+<XuiFigure>
+<Properties>
+<Width>640.000000</Width>
+<Height>480.000000</Height>
+<Stroke>
+<Properties>
+<StrokeColor>0xff0f0f80</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillColor>0xff800f0f</FillColor>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>4,0.000000,0.000000,0.000000,0.000000,640.000000,0.000000,0,640.000000,0.000000,640.000000,0.000000,640.000000,480.000000,0,640.000000,480.000000,640.000000,480.000000,0.000000,480.000000,0,0.000000,480.000000,0.000000,480.000000,0.000000,0.000000,0,</Points>
+</Properties>
+</XuiFigure>
+<XuiScene>
+<Properties>
+<Id>XuiScene1</Id>
+<Width>592.000000</Width>
+<Height>432.000000</Height>
+<Position>24.000000,24.000000,0.000000</Position>
+<Text>Controls Demo: Buttons (Part 1)</Text>
+</Properties>
+<XuiFigure>
+<Properties>
+<Width>369.000000</Width>
+<Height>2.000000</Height>
+<Position>111.000000,40.000000,0.000000</Position>
+<Stroke>
+<Properties>
+<StrokeColor>0xff0f0f80</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillColor>0xff0f0f0f</FillColor>
+<Gradient>
+<Properties>
+<NumStops>1</NumStops>
+<StopColor index="0">0x00000000</StopColor>
+<StopPos index="0">0.000000</StopPos>
+</Properties>
+</Gradient>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>4,0.000000,0.000000,0.000000,0.000000,456.000000,0.000000,0,456.000000,0.000000,456.000000,0.000000,456.000000,8.000000,0,456.000000,8.000000,456.000000,8.000000,0.000000,8.000000,0,0.000000,8.000000,0.000000,8.000000,0.000000,0.000000,0,</Points>
+</Properties>
+</XuiFigure>
+<XuiNavButton>
+<Properties>
+<Id>navNext1</Id>
+<Width>160.000000</Width>
+<Height>40.000000</Height>
+<Position>416.000000,376.000000,0.000000</Position>
+<Text>Continue</Text>
+<PressPath>controls_demo3.xur</PressPath>
+</Properties>
+</XuiNavButton>
+<XuiHtmlElement>
+<Properties>
+<Id>XuiHtmlElement1</Id>
+<Width>544.000000</Width>
+<Height>312.000000</Height>
+<Position>24.000000,56.000000,0.000000</Position>
+<Text>&lt;font color="#000000" size=11&gt;
+
+The most commonly used control is the &lt;i&gt;&lt;b&gt;Button&lt;/b&gt;&lt;/i&gt;.
+There are several different types of &lt;i&gt;&lt;b&gt;Buttons&lt;/b&gt;&lt;/i&gt;, including the &lt;i&gt;&lt;b&gt;Nav Button&lt;/b&gt;&lt;/i&gt;, &lt;i&gt;&lt;b&gt;Back Button&lt;/b&gt;&lt;/i&gt;, &lt;i&gt;&lt;b&gt;Checkbox&lt;/b&gt;&lt;/i&gt;, and &lt;i&gt;&lt;b&gt;Radio Button&lt;/b&gt;&lt;/i&gt;.
+
+&lt;br/&gt;
+&lt;br/&gt;
+
+The 'Continue' &lt;i&gt;&lt;b&gt;Button&lt;/b&gt;&lt;/i&gt; at the bottom of each demonstration &lt;i&gt;&lt;b&gt;Scene&lt;/b&gt;&lt;/i&gt; is an example of a &lt;i&gt;&lt;b&gt;Nav Button&lt;/b&gt;&lt;/i&gt;.
+These &lt;i&gt;&lt;b&gt;Buttons&lt;/b&gt;&lt;/i&gt; have a destination path to another XUI file (specified as an exported binary &lt;i&gt;.xur&lt;/i&gt; file) and will cause navigation to the first &lt;i&gt;&lt;b&gt;Scene&lt;/b&gt;&lt;/i&gt; found in that file.
+As you interact with &lt;i&gt;&lt;b&gt;Nav Buttons&lt;/b&gt;&lt;/i&gt;, a stack is created to preserve the locations that you came from.
+A &lt;i&gt;&lt;b&gt;Back Button&lt;/b&gt;&lt;/i&gt; will return you to the previous &lt;i&gt;&lt;b&gt;Scene&lt;/b&gt;&lt;/i&gt; in the stack.
+
+&lt;br/&gt;
+&lt;font size=8&gt;
+&lt;br/&gt;
+&lt;/font&gt;
+
+&lt;table&gt;
+&lt;tr&gt;
+&lt;td width="4%"/&gt;
+&lt;td width="3%" bgcolor="#808080"/&gt;
+&lt;td width="86%" bgcolor="#808080"&gt;
+
+&lt;font size=5&gt;
+&lt;br/&gt;
+&lt;/font&gt;
+
+&lt;font color="#FFFFFF" size=10&gt;
+
+The &lt;i&gt;&lt;b&gt;Back Button&lt;/b&gt;&lt;/i&gt; used in this demo has 'UnfocusedInput' enabled, which means that it can be pressed without actually navigating to the control.  Just press the key assigned in the 'PressKey' property (in this case, 'B').
+
+&lt;font size=5&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;/font&gt;
+
+&lt;/font&gt;
+&lt;/td&gt;
+&lt;td width="3%" bgcolor="#808080"/&gt;
+&lt;td width="4%"/&gt;
+&lt;/tr&gt;
+&lt;/table&gt;
+</Text>
+</Properties>
+</XuiHtmlElement>
+<XuiBackButton>
+<Properties>
+<Id>XuiBackButton1</Id>
+<Width>184.000000</Width>
+<Height>40.000000</Height>
+<Position>16.000000,376.000000,0.000000</Position>
+<DisableFocusRecursion>true</DisableFocusRecursion>
+<UnfocusedInput>true</UnfocusedInput>
+<Text>Back Button</Text>
+<PressKey>22593</PressKey>
+</Properties>
+</XuiBackButton>
+</XuiScene>
+<XuiText>
+<Properties>
+<Id>XuiText1</Id>
+<Width>216.000000</Width>
+<Height>80.000000</Height>
+<Position>208.000000,376.000000,0.000000</Position>
+<Text>This text will not be displayed if you navigated here during preview (F5), because it is not contained in the Scene.</Text>
+<TextColor>0xffe7e70f</TextColor>
+<PointSize>10.000000</PointSize>
+<TextStyle>0</TextStyle>
+</Properties>
+</XuiText>
+</XuiCanvas>

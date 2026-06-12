@@ -1,0 +1,293 @@
+<job>
+
+'Firstly pull in the error strings
+<script language="VBScript" src="illexpcserr.txt"/>
+
+'Now the main body
+<script language="VBScript">
+
+'If we hit an error continue to next statement - need to ensure there is a call to checkerror after statements we want to trap errors for
+on error resume next
+
+'Checkerror - called after statements we want to trap errors for. Checks err.number and displays corresponding error message - error strings are in the illexpcserr.txt file
+sub checkerror()
+	select case err.number
+	case 0
+	case 76, 424, -2147024784
+	' -2147024784 = 0x80070070 = ERROR_DISK_FULL
+	' 424 = Could not create object
+	' 76 = Path not found
+		MsgBox (errNotEnoughFreeSpace)
+		wscript.quit
+	case 429
+	' 429 = Active X initialization error
+		MsgBox (errCouldNotInvokeCS)
+		wscript.quit
+	case else 
+	' Throw the err.number and err.description
+		MsgBox (errGeneric & vbCrLf & err.description & vbCrLf & errNo & err.number & ")")
+		wscript.quit
+	end select
+end sub
+
+function GetPointCollString(coll)
+    dim i
+    dim s2
+
+    i = 0
+    s = ""
+    for each p in coll
+        s = s & CStr(p)
+        if i = 0 then s = s & ","
+        i = i + 1
+    next
+    GetPointCollString = s
+end function
+
+function GetPointString(point)
+    dim s1
+    s1 = "anchor=" + GetPointCollString(point.Anchor) + Chr(10)
+    s1 = s1 + "left=" + GetPointCollString(point.leftDirection) + Chr(10)
+    s1 = s1 + "right=" + GetPointCollString(point.rightDirection) + Chr(10)
+    GetPointString =  s1
+end function
+
+function GetObjectStrokeStr(obj)
+    dim s
+    s = "Stroked="
+    if obj.Stroked then
+        s = s + "1" + Chr(10)
+        s = s + "StrokeWidth=" + CStr(obj.StrokeWidth) + Chr(10)
+         s = s + "StrokeColor="+CStr(CInt(obj.StrokeColor.Red)) + "," + CStr(CInt(obj.StrokeColor.Green)) + "," + CStr(CInt(obj.StrokeColor.Blue)) + Chr(10)
+    else
+        s = s + "0" + Chr(10)
+    end if
+    GetObjectStrokeStr = s
+end function
+
+function GetGrayColorStr(grayColor)
+    dim s
+    
+    dim val
+    val = CInt((100-grayColor.Gray)*255/100)
+    s = CStr(val) + "," + CStr(val) + "," + CStr(val)
+    GetGrayColorStr = s
+end function
+
+function GetGradientStopStr(gradientStop)
+    dim s
+    s = "Color="
+    if (Typename(gradientStop.Color) = "RGBColor") then
+        ' rgb
+        s = s + GetRGBColorStr(gradientStop.Color) + Chr(10)
+    elseif (Typename(gradientStop.Color) = "GrayColor") then
+        s = s + GetGrayColorStr(gradientStop.Color) + Chr(10)
+    else
+        WScript.Echo(errUnknownGradient + Typename(gradientStop.Color) + Chr(10))
+        s = s + "0,0,0" + Chr(10)
+    end if
+    s = s + "RampPoint=" + CStr(gradientStop.RampPoint) + Chr(10)
+    GetGradientStopStr = s
+end function
+
+function GetGradientStr(gradientColor)
+    dim s
+    s = "Angle=" + CStr(gradientColor.Angle) + Chr(10)
+
+    ' loop through the stops
+    dim numStops
+    numStops = gradientColor.Gradient.GradientStops.Count
+    s = s + "NumStops=" + CStr(numStops) + Chr(10)
+
+    for each gradientStop in gradientColor.Gradient.GradientStops
+        s = s + GetGradientStopStr(gradientStop)
+    next
+
+    s = s + "GradientLength=" + CStr(gradientColor.Length) + Chr(10)
+    s = s + "GradientOrigin=" + GetPointCollString(gradientColor.Origin) + Chr(10)
+    
+    GetGradientStr = s
+end function
+
+function GetRGBColorStr(rgbColor)
+    dim s
+    s = CStr(CInt(rgbColor.Red)) + "," + CStr(CInt(rgbColor.Green)) + "," + CStr(CInt(rgbColor.Blue))
+    GetRGBColorStr = s
+end function
+
+function GetObjectFillStr(obj)
+    dim s
+    s = "Filled="
+    if obj.Filled then
+        select case Typename(obj.FillColor)
+            case "RGBColor" ' solid
+                s = s + "1" + Chr(10)
+                s = s + "FillColor="
+                s = s + GetRGBColorStr(obj.FillColor) + Chr(10)
+            case "GradientColor" ' Gradient
+                if (obj.FillColor.Gradient.Type = 2) then   ' check for radial gradient
+                    s = s + "3" + Chr(10)
+                else
+                    s = s + "2" + Chr(10)
+                end if
+                s = s + GetGradientStr(obj.FillColor)
+            case "GrayColor" ' gray scale solid
+                s = s + "1" + Chr(10)
+                s = s + "FillColor="
+                s = s + GetGrayColorStr(obj.FillColor) + Chr(10)
+            case else
+                s = s + "1" + Chr(10)
+                s = s + "FillColor=255,255,255" + Chr(10)
+        end select
+    else
+        s = s + "0" + Chr(10)
+    end if
+
+    GetObjectFillStr = s
+end function
+
+function GetPathItemString(obj, byref index)
+    dim s
+
+    s = "[Item" + CStr(index) + "]" + Chr(10)
+    s = s + "Type=Path" + Chr(10)
+    s = s + "Closed="
+    if obj.Closed then
+        s = s + "1" + Chr(10)
+    else
+        s = s + "0" + Chr(10)
+    end if
+    
+    s = s + "Left=" + CStr(obj.Left) + Chr(10)
+    s = s + "Top=" + CStr(obj.Top) + Chr(10)
+    s = s + "Width=" + CStr(obj.Width) + Chr(10)
+    s = s + "Height=" + CStr(obj.Height) + Chr(10)
+    s = s + "Opacity=" + CStr(obj.Opacity) + Chr(10)
+    s = s + GetObjectStrokeStr(obj)
+    s = s + GetObjectFillStr(obj)
+
+    s = s + "PointCount=" + CStr(obj.PathPoints.Count) + Chr(10)
+    for each point in obj.PathPoints
+        s = s + GetPointString(point)
+    next
+   
+    index = index + 1
+
+    GetPathItemString = s
+end function
+
+
+function GetRasterItemString(obj, byref index)
+    dim s
+    s = "[Item" + CStr(index) + "]" + Chr(10)
+    s = s + "Type=Raster" + Chr(10)
+    s = s + "Left=" + CStr(obj.Left) + Chr(10)
+    s = s + "Top=" + CStr(obj.Top) + Chr(10)
+    s = s + "Width=" + CStr(obj.Width) + Chr(10)
+    s = s + "Height=" + CStr(obj.Width) + Chr(10)
+    s = s + "File=" + obj.File + Chr(10)
+
+    index = index + 1
+
+    GetRasterItemString = s
+end function
+
+function GetGroupItemString(obj, byref index)
+    dim s
+    s = "[Item" + CStr(index) + "]" + Chr(10)
+    s = s + "Type=Group" + Chr(10)
+    if (obj.Name <> "") then s = s + "Name=" + obj.Name + Chr(10)
+    s = s + "Left=" + CStr(obj.Left) + Chr(10)
+    s = s + "Top=" + CStr(obj.Top) + Chr(10)
+    s = s + "Width=" + CStr(obj.Width) + Chr(10)
+    s = s + "Height=" + CStr(obj.Height) + Chr(10)
+    s = s + "NumChildren=" + CStr(obj.PageItems.Count) + Chr(10)
+
+    index = index + 1
+    
+    dim idx
+    idx = 0
+    s = s + GetItemCollectionString(obj.PageItems, idx)
+
+    GetGroupItemString = s
+end function
+
+function GetItemString(obj, byref index)
+    dim str
+    str = ""
+    select case typename(obj)
+        case "PathItem"
+            str = str + GetPathItemString(obj, index)
+        case "RasterItem"
+            if (obj.Embedded = false) then
+                str = str + GetRasterItemString(obj, index)
+            end if
+        case "GroupItem"
+            str = str + GetGroupItemString(obj, index)
+
+        case "PageItem"
+            if obj.PageItemType = 5 then
+                ' path item
+                 str = str + GetItemString(obj.PathItem, index)
+            elseif obj.PageItemType = 3 then
+                ' Group item
+                str = str + GetItemString(obj.GroupItem, index)
+            elseif obj.PageItemType = 8 then
+                str = str + GetItemString(obj.RasterItem, index)
+            end if
+        case else
+            WScript.echo errUnknownType + typename(obj) + Chr(10)
+    end select
+    GetItemString = str
+end function
+
+function GetItemCollectionString(coll, byref index)
+    dim s
+    s = ""
+    for each obj in coll
+        s = s + GetItemString(obj, index)
+    next
+    GetItemCollectionString = s
+end function
+
+
+Dim objArgs
+Dim tempxuidir
+Dim tempxuifile
+Dim tempdir
+
+tempxuifile="illexport.xuimp"
+
+set appRef = GetObject(, "Illustrator.Application.2")
+if (appRef Is Nothing) then
+    MsgBox (errCMYKNotRunning)
+    wscript.quit
+end if
+set appRef = CreateObject("Illustrator.Application.2")
+checkerror() 
+
+if (appRef.ActiveDocument.DocumentColorSpace <> 1) then
+	MsgBox (errCMYKNotSupported)
+	wscript.quit
+end if
+
+sel = appRef.ActiveDocument.Selection
+
+dim index
+index = 0
+dim str
+str = "Height=" + CStr(appRef.ActiveDocument.Height) + Chr(10)
+str = str + GetItemCollectionString(sel, index)
+
+set fs = CreateObject("Scripting.FileSystemObject")
+Set tempdir = fs.GetSpecialFolder(2) ' Determine what the system temporary directory is
+tempxuifile=trim(tempdir) & "\" & tempxuifile
+set a = fs.CreateTextFile(tempxuifile, True)
+checkerror()
+a.Write(str)
+checkerror()
+a.Close
+set fs = nothing
+
+</script>
+</job>

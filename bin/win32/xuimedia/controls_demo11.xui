@@ -1,0 +1,117 @@
+<XuiCanvas version="000c">
+<Properties>
+<Width>640.000000</Width>
+<Height>480.000000</Height>
+</Properties>
+<XuiFigure>
+<Properties>
+<Width>640.000000</Width>
+<Height>480.000000</Height>
+<Stroke>
+<Properties>
+<StrokeColor>0xffebeb80</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillColor>0xffebeb80</FillColor>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>4,0.000000,0.000000,0.000000,0.000000,640.000000,0.000000,0,640.000000,0.000000,640.000000,0.000000,640.000000,480.000000,0,640.000000,480.000000,640.000000,480.000000,0.000000,480.000000,0,0.000000,480.000000,0.000000,480.000000,0.000000,0.000000,0,</Points>
+</Properties>
+</XuiFigure>
+<XuiScene>
+<Properties>
+<Id>XuiScene1</Id>
+<Width>592.000000</Width>
+<Height>432.000000</Height>
+<Position>24.000000,24.000000,0.000000</Position>
+<Text>Controls Demo: Text</Text>
+</Properties>
+<XuiFigure>
+<Properties>
+<Width>369.000000</Width>
+<Height>2.000000</Height>
+<Position>111.000000,40.000000,0.000000</Position>
+<Stroke>
+<Properties>
+<StrokeColor>0xff0f0f80</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillColor>0xff0f0f0f</FillColor>
+<Gradient>
+<Properties>
+<NumStops>1</NumStops>
+<StopColor index="0">0x00000000</StopColor>
+<StopPos index="0">0.000000</StopPos>
+</Properties>
+</Gradient>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>4,0.000000,0.000000,0.000000,0.000000,456.000000,0.000000,0,456.000000,0.000000,456.000000,0.000000,456.000000,8.000000,0,456.000000,8.000000,456.000000,8.000000,0.000000,8.000000,0,0.000000,8.000000,0.000000,8.000000,0.000000,0.000000,0,</Points>
+</Properties>
+</XuiFigure>
+<XuiNavButton>
+<Properties>
+<Id>navNext1</Id>
+<Width>160.000000</Width>
+<Height>40.000000</Height>
+<Position>416.000000,376.000000,0.000000</Position>
+<NavUp>XuiEdit1</NavUp>
+<Text>Continue</Text>
+<PressPath>controls_demo12.xur</PressPath>
+</Properties>
+</XuiNavButton>
+<XuiHtmlElement>
+<Properties>
+<Id>XuiHtmlElement1</Id>
+<Width>544.000000</Width>
+<Height>312.000000</Height>
+<Position>24.000000,56.000000,0.000000</Position>
+<Text>&lt;font color="#000000" size=11&gt;
+
+There are a few different options for dealing with text in your &lt;i&gt;&lt;b&gt;Scenes&lt;/b&gt;&lt;/i&gt;.
+The &lt;i&gt;&lt;b&gt;Text&lt;/b&gt;&lt;/i&gt; control is the most basic of them, giving you some simple font and color choices.
+
+&lt;br/&gt;
+&lt;br/&gt;
+
+The next step up is a &lt;i&gt;&lt;b&gt;Label&lt;/b&gt;&lt;/i&gt; control, which has the capability of being skinned with a &lt;i&gt;&lt;b&gt;Visual&lt;/b&gt;&lt;/i&gt;.
+This means that all of your font settings are pulling from the skin file, allowing you to have a more consistent standard from page to page.
+
+&lt;br/&gt;
+&lt;br/&gt;
+
+There is also an &lt;i&gt;&lt;b&gt;Edit&lt;/b&gt;&lt;/i&gt; control for situations that require the user to input something.
+To type text into this &lt;i&gt;&lt;b&gt;Edit&lt;/b&gt;&lt;/i&gt; control using the keyboard, first enable the 'Tools &gt; Keyboard Input' menu option.</Text>
+</Properties>
+</XuiHtmlElement>
+<XuiBackButton>
+<Properties>
+<Id>XuiBackButton1</Id>
+<Width>184.000000</Width>
+<Height>40.000000</Height>
+<Position>16.000000,376.000000,0.000000</Position>
+<DisableFocusRecursion>true</DisableFocusRecursion>
+<UnfocusedInput>true</UnfocusedInput>
+<Text>Back Button</Text>
+<PressKey>22593</PressKey>
+</Properties>
+</XuiBackButton>
+<XuiEdit>
+<Properties>
+<Id>XuiEdit1</Id>
+<Width>312.000000</Width>
+<Height>40.000000</Height>
+<Position>136.000000,312.000000,0.000000</Position>
+<NavDown>navNext1</NavDown>
+</Properties>
+</XuiEdit>
+</XuiScene>
+</XuiCanvas>

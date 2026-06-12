@@ -28,7 +28,10 @@ namespace World {
         , woodNeeded(0), stoneNeeded(0)
         , woodDelivered(0), stoneDelivered(0)
         , woodRequested(0), stoneRequested(0)
-        , progress(0.0f)
+        , buildProgress(0.0f)
+        , builderState(Builder_None)
+        , builderRouteIndex(0)
+        , builderEp(0.0f), builderWalkDir(1.0f)
     {
         GetResourceRequirements(type, woodNeeded, stoneNeeded);
     }

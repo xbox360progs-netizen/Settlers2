@@ -3,6 +3,7 @@
 #include <queue>
 #include <map>
 #include "Flag.h"
+#include "Road.h"
 
 namespace World {
 
@@ -30,8 +31,9 @@ namespace World {
                     return step;
                 }
 
-                for (size_t i = 0; i < current->neighbors.size(); ++i) {
-                    Flag* neighbor = current->neighbors[i];
+                for (size_t i = 0; i < current->roads.size(); ++i) {
+                    Road* r = current->roads[i];
+                    Flag* neighbor = (r->a == current) ? r->b : r->a;
                     if (!neighbor) continue;
                     if (parent.find(neighbor) == parent.end()) {
                         parent[neighbor] = current;
@@ -39,6 +41,11 @@ namespace World {
                     }
                 }
             }
+            char buf[256];
+            _snprintf(buf, sizeof(buf),
+                "[Path] NO PATH: flag %u -> flag %u (start roads=%u)\n",
+                start->id, end->id, (unsigned)start->roads.size());
+            OutputDebugStringA(buf);
             return NULL;
         }
     };

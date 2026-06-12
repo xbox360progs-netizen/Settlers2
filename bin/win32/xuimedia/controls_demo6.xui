@@ -1,0 +1,176 @@
+<XuiCanvas version="000c">
+<Properties>
+<Width>640.000000</Width>
+<Height>480.000000</Height>
+</Properties>
+<XuiFigure>
+<Properties>
+<Width>640.000000</Width>
+<Height>480.000000</Height>
+<Stroke>
+<Properties>
+<StrokeColor>0xff0f0f80</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillColor>0xff800f80</FillColor>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>4,0.000000,0.000000,0.000000,0.000000,640.000000,0.000000,0,640.000000,0.000000,640.000000,0.000000,640.000000,480.000000,0,640.000000,480.000000,640.000000,480.000000,0.000000,480.000000,0,0.000000,480.000000,0.000000,480.000000,0.000000,0.000000,0,</Points>
+</Properties>
+</XuiFigure>
+<XuiScene>
+<Properties>
+<Id>XuiScene1</Id>
+<Width>592.000000</Width>
+<Height>432.000000</Height>
+<Position>24.000000,24.000000,0.000000</Position>
+<Text>Controls Demo: Lists (Part 2)</Text>
+</Properties>
+<XuiFigure>
+<Properties>
+<Width>369.000000</Width>
+<Height>2.000000</Height>
+<Position>111.000000,40.000000,0.000000</Position>
+<Stroke>
+<Properties>
+<StrokeColor>0xff0f0f80</StrokeColor>
+</Properties>
+</Stroke>
+<Fill>
+<Properties>
+<FillColor>0xff0f0f0f</FillColor>
+<Gradient>
+<Properties>
+<NumStops>1</NumStops>
+<StopColor index="0">0x00000000</StopColor>
+<StopPos index="0">0.000000</StopPos>
+</Properties>
+</Gradient>
+<TransformVersion>1</TransformVersion>
+</Properties>
+</Fill>
+<Closed>true</Closed>
+<Points>4,0.000000,0.000000,0.000000,0.000000,456.000000,0.000000,0,456.000000,0.000000,456.000000,0.000000,456.000000,8.000000,0,456.000000,8.000000,456.000000,8.000000,0.000000,8.000000,0,0.000000,8.000000,0.000000,8.000000,0.000000,0.000000,0,</Points>
+</Properties>
+</XuiFigure>
+<XuiNavButton>
+<Properties>
+<Id>navNext1</Id>
+<Width>160.000000</Width>
+<Height>40.000000</Height>
+<Position>416.000000,376.000000,0.000000</Position>
+<NavUp>XuiCommonList3</NavUp>
+<Text>Continue</Text>
+<PressPath>controls_demo7.xur</PressPath>
+</Properties>
+</XuiNavButton>
+<XuiHtmlElement>
+<Properties>
+<Id>XuiHtmlElement1</Id>
+<Width>544.000000</Width>
+<Height>312.000000</Height>
+<Position>24.000000,56.000000,0.000000</Position>
+<Text>&lt;font color="#000000" size=11&gt;
+
+Other common &lt;i&gt;&lt;b&gt;List&lt;/b&gt;&lt;/i&gt; variations include the horizontal layout, grid layout, and single item chooser.
+The &lt;i&gt;&lt;b&gt;List Items&lt;/b&gt;&lt;/i&gt; can also be used as &lt;i&gt;&lt;b&gt;Checkbox&lt;/b&gt;&lt;/i&gt; controls instead of standard &lt;i&gt;&lt;b&gt;Buttons&lt;/b&gt;&lt;/i&gt;.
+Here are some more examples:
+
+</Text>
+</Properties>
+</XuiHtmlElement>
+<XuiBackButton>
+<Properties>
+<Id>XuiBackButton1</Id>
+<Width>184.000000</Width>
+<Height>40.000000</Height>
+<Position>16.000000,376.000000,0.000000</Position>
+<DisableFocusRecursion>true</DisableFocusRecursion>
+<UnfocusedInput>true</UnfocusedInput>
+<Text>Back Button</Text>
+<PressKey>22593</PressKey>
+</Properties>
+</XuiBackButton>
+<XuiCommonList>
+<Properties>
+<Id>XuiCommonList1</Id>
+<Width>224.000000</Width>
+<Height>184.000000</Height>
+<Position>56.000000,168.000000,0.000000</Position>
+<Visual>XuiListCheckable</Visual>
+<NavRight>XuiCommonList3</NavRight>
+<NavUp>XuiCommonList2</NavUp>
+<NavDown>navNext1</NavDown>
+<ItemsText>Checkbox 1
+Checkbox 2
+Checkbox 3
+Checkbox 4
+Checkbox 5
+Checkbox 6
+Checkbox 7
+Checkbox 8
+Checkbox 9
+</ItemsText>
+</Properties>
+</XuiCommonList>
+<XuiCommonList>
+<Properties>
+<Id>XuiCommonList2</Id>
+<Width>248.000000</Width>
+<Height>40.000000</Height>
+<Position>176.000000,136.000000,0.000000</Position>
+<Visual>XuiListChooser</Visual>
+<NavLeft>XuiCommonList1</NavLeft>
+<NavRight>XuiCommonList3</NavRight>
+<NavDown>XuiCommonList1</NavDown>
+<ItemsText>Chooser 1
+Chooser 2
+Chooser 3
+Chooser 4
+Chooser 5
+Chooser 6
+Chooser 7
+Chooser 8
+Chooser 9
+</ItemsText>
+</Properties>
+</XuiCommonList>
+<XuiCommonList>
+<Properties>
+<Id>XuiCommonList3</Id>
+<Width>216.000000</Width>
+<Height>184.000000</Height>
+<Position>320.000000,176.000000,0.000000</Position>
+<Visual>XuiGrid</Visual>
+<NavLeft>XuiCommonList1</NavLeft>
+<NavUp>XuiCommonList2</NavUp>
+<NavDown>navNext1</NavDown>
+<ItemsText>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+</ItemsText>
+</Properties>
+</XuiCommonList>
+</XuiScene>
+</XuiCanvas>
