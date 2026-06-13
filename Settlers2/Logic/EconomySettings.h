@@ -28,7 +28,7 @@ namespace Logic {
             // Raw materials: keep at flag for direct delivery to processing buildings
             routeConfig[World::ResourceType_Wood]  = ResourceRouteConfig(ROUTE_DIRECT, 30);
             routeConfig[World::ResourceType_Wheat] = ResourceRouteConfig(ROUTE_DIRECT, 30);
-            routeConfig[World::ResourceType_Meat]  = ResourceRouteConfig(ROUTE_DIRECT, 25);
+            routeConfig[World::ResourceType_Meat]  = ResourceRouteConfig(ROUTE_WAREHOUSE, 25);
 
             // Processed goods (produced by processing buildings, consumed by advanced buildings)
             routeConfig[World::ResourceType_Planks]  = ResourceRouteConfig(ROUTE_WAREHOUSE, 20);

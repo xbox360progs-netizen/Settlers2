@@ -48,6 +48,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="ReadMe.txt" />
+    <None Include="ClassDiagram1.cd" />
+    <None Include="ClassDiagram2.cd" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -344,9 +346,6 @@
     <ClInclude Include="World\Components\Resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="World\Animal.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Core\LanguageManager.h">
       <Filter>Core</Filter>
     </ClInclude>
@@ -360,6 +359,9 @@
       <Filter>Core</Filter>
     </ClInclude>
     <ClInclude Include="World\WildlifeSystem.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\AnimalManager.h">
       <Filter>World</Filter>
     </ClInclude>
     <ClInclude Include="World\Components\Bakery.h">
@@ -409,6 +411,90 @@
     </ClInclude>
     <ClInclude Include="World\Components\Resource.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="World\AnimalHabitat.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\AnimalTypes.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Builder.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Carrier.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\CarrierManager.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\MapNode.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Pathfinding.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Soldier.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Unit.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Warehouse.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Worker.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Animal.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\RoadManager.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\BuildingFactory.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\ConstructionManager.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\ConstructionSite.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Flag.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\FlagManager.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Handle.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\ObjectDeletionRules.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\ObjectLifecycleManager.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\ObjectState.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\ProductionBuilding.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\Resource.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Road.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\TransportJob.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\TransportJobManager.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="HabitatRegistry.h">
+      <Filter>World</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -643,9 +729,6 @@
     <ClCompile Include="UI\TilePalette.cpp">
       <Filter>UI</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\SpriteShadow.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Graphics\BatchBuilder.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
@@ -655,8 +738,41 @@
     <ClCompile Include="World\WildlifeSystem.cpp">
       <Filter>World</Filter>
     </ClCompile>
+    <ClCompile Include="World\AnimalManager.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
     <ClCompile Include="World\Components\Building.cpp">
       <Filter>World\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="World\Components\BuildingFactory.cpp">
+      <Filter>World\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="World\ConstructionManager.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="World\ConstructionSite.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="World\ObjectDeletionRules.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="World\FlagManager.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="World\ObjectLifecycleManager.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="World\RoadManager.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\SpriteShadow.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="World\TransportJobManager.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="World\HabitatRegistry.cpp">
+      <Filter>World</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

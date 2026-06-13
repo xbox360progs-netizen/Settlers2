@@ -7,7 +7,7 @@
 #include "ResourceNode.h"
 #include "MapNode.h"
 #include <d3dx9math.h>
-
+#include "HabitatRegistry.h"
 class Camera;
 
 namespace Logic {
@@ -61,7 +61,8 @@ public:
     const ResourceNode& GetResourceNode(int x, int y) const;
     void SetResourceNode(int x, int y, ResourceType type, int amount, bool isVisible = true);
     void ClearResources();
-    
+    void GenerateWildlife();
+
     // Find resource in radius
     bool FindResourceInRadius(int centerX, int centerY, int radius, ResourceType type, int& foundX, int& foundY) const;
     
@@ -81,14 +82,23 @@ public:
     void SetWildlifeSystem(WildlifeSystem* ws) { m_wildlifeSystem = ws; }
     WildlifeSystem* GetWildlifeSystem() const { return m_wildlifeSystem; }
 
+    // Regenerate wildlife resource node amounts
+    void RegenerateWildlifeResources();
+
     // Resource registry
-    void SetResourceRegistry(Logic::ResourceRegistry* rr) { m_resourceRegistry = rr; }
+    void SetResourceRegistry(Logic::ResourceRegistry* rr);
     Logic::ResourceRegistry* GetResourceRegistry() const { return m_resourceRegistry; }
+
+    // Habitat registry access (read-only)
+    const HabitatRegistry& GetHabitatRegistry() const { return m_habitatRegistry; }
+    HabitatRegistry& GetHabitatRegistry() { return m_habitatRegistry; }
 
 private:
     int m_width;
     int m_height;
     std::vector<TileLayer*> m_layers;
+
+	World::HabitatRegistry m_habitatRegistry;
 
     // Resource map for the logical grid (staggered, same size as Objects layer)
     std::vector<ResourceNode> m_resourceMap;

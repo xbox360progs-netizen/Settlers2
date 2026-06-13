@@ -187,6 +187,11 @@ protected:
 
 public:
 
+    // Worker rendering info for moving workers (Hunter, etc.)
+    // Returns false if the worker is not visible (inside building).
+    // When true, fills outX/outY (float node coords) and outSpriteIdx (flat Units atlas index).
+    virtual bool GetWorkerRenderInfo(float& outX, float& outY, int& outSpriteIdx) const { return false; }
+
     virtual bool IsWarehouse() const { return false; }
 
     int GetStorage(ResourceType type) const { return m_storage[type]; }

@@ -6,50 +6,19 @@
 namespace World {
 
 const float WildlifeSystem::SPAWN_COOLDOWN = 5.0f;
-const float WildlifeSystem::MOVE_INTERVAL = 2.0f;
 const int WildlifeSystem::MAX_PER_SPAWNER = 5;
+const float DIAG_SPEED = 0.3f;
 
-WildlifeSystem::WildlifeSystem(Map* map)
+WildlifeSystem::WildlifeSystem(Map* map, AnimalManager* animalManager)
     : m_map(map)
+    , m_animalManager(animalManager)
     , m_spawnTimer(0.0f)
-    , m_moveTimer(0.0f)
+    , m_dirTimer(0.0f)
 {
-    ScanSpawners();
 }
 
 WildlifeSystem::~WildlifeSystem()
 {
-}
-
-void WildlifeSystem::ScanSpawners()
-{
-    m_spawners.clear();
-    if (!m_map) return;
-
-    int layerWidth = m_map->GetWidth() * 2;
-    int layerHeight = m_map->GetHeight() * 4;
-
-    for (int y = 0; y < layerHeight; ++y) {
-        for (int x = 0; x < layerWidth; ++x) {
-            const ResourceNode& node = m_map->GetResourceNode(x, y);
-            AnimalType animalType;
-            bool isSpawner = true;
-            switch (node.type) {
-                case ResourceType_WildlifeSpawner_Deer:   animalType = AnimalType_Deer; break;
-                case ResourceType_WildlifeSpawner_Rabbit: animalType = AnimalType_Rabbit; break;
-                case ResourceType_WildlifeSpawner_Crocodile: animalType = AnimalType_Crocodile; break;
-                case ResourceType_WildlifeSpawner_Snake:  animalType = AnimalType_Snake; break;
-                default: isSpawner = false; break;
-            }
-            if (isSpawner && node.amount > 0) {
-                SpawnerInfo si;
-                si.x = x;
-                si.y = y;
-                si.type = animalType;
-                m_spawners.push_back(si);
-            }
-        }
-    }
 }
 
 bool WildlifeSystem::ShouldSpawn(float dt)
@@ -62,129 +31,126 @@ bool WildlifeSystem::ShouldSpawn(float dt)
     return false;
 }
 
-void WildlifeSystem::ProcessSpawnerRange(int start, int end, std::vector<Animal>& outNewAnimals)
+void WildlifeSystem::Update(float deltaTime, const HabitatRegistry& habitats)
 {
-    for (int i = start; i < end; ++i) {
-        const SpawnerInfo& spawner = m_spawners[i];
-        int count = CountAnimalsAtSpawner(spawner.x, spawner.y, spawner.type);
-        if (count >= MAX_PER_SPAWNER) continue;
+    MoveAnimals(deltaTime);
 
-        int missing = MAX_PER_SPAWNER - count;
-        int chance = missing * 20;
-        if (chance > 100) chance = 100;
-
-        if ((rand() % 100) < chance) {
-            Animal a;
-            a.type = spawner.type;
-            a.state = AnimalState_Alive;
-            a.x = spawner.x + (rand() % 7) - 3;
-            a.y = spawner.y + (rand() % 7) - 3;
-            a.spawnerX = spawner.x;
-            a.spawnerY = spawner.y;
-            outNewAnimals.push_back(a);
+    if (ShouldSpawn(deltaTime)) {
+        for (size_t i = 0; i < habitats.GetCount(); ++i) {
+            const AnimalHabitat* hab = habitats.GetById((uint32_t)(i + 1));
+            if (hab) {
+                SpawnAtHabitat(*hab);
+            }
         }
     }
 }
 
-void WildlifeSystem::AddAnimals(const std::vector<Animal>& animals)
+void WildlifeSystem::SpawnAtHabitat(const AnimalHabitat& habitat)
 {
-    m_animals.insert(m_animals.end(), animals.begin(), animals.end());
-}
+    int maxAnimals = (habitat.maxAnimals > 0) ? habitat.maxAnimals : MAX_PER_SPAWNER;
+    int count = CountAnimalsAtHabitat(habitat.center.x, habitat.center.y, habitat.type);
+    if (count >= maxAnimals) return;
 
-void WildlifeSystem::Update(float deltaTime)
-{
-    m_moveTimer += deltaTime;
-    if (m_moveTimer >= MOVE_INTERVAL) {
-        m_moveTimer = 0.0f;
-        MoveAnimals();
-    }
-}
-
-void WildlifeSystem::MoveAnimals()
-{
-    const int MOVE_RANGE = 6;
-    for (size_t i = 0; i < m_animals.size(); ++i) {
-        Animal& a = m_animals[i];
-        if (a.state != AnimalState_Alive) continue;
-
-        int dx = (rand() % 3) - 1;
-        int dy = (rand() % 3) - 1;
-        int nx = a.x + dx;
-        int ny = a.y + dy;
-
-        int dxs = nx - a.spawnerX;
-        int dys = ny - a.spawnerY;
-        if (dxs * dxs + dys * dys <= MOVE_RANGE * MOVE_RANGE) {
-            a.x = nx;
-            a.y = ny;
-        }
-    }
-}
-
-void WildlifeSystem::SpawnAtSpawner(const SpawnerInfo& spawner)
-{
-    int count = CountAnimalsAtSpawner(spawner.x, spawner.y, spawner.type);
-    if (count >= MAX_PER_SPAWNER) return;
-
-    int missing = MAX_PER_SPAWNER - count;
+    int missing = maxAnimals - count;
     int chance = missing * 20;
     if (chance > 100) chance = 100;
 
     if ((rand() % 100) < chance) {
-        Animal a;
-        a.type = spawner.type;
-        a.state = AnimalState_Alive;
-        a.x = spawner.x + (rand() % 7) - 3;
-        a.y = spawner.y + (rand() % 7) - 3;
-        a.spawnerX = spawner.x;
-        a.spawnerY = spawner.y;
-        m_animals.push_back(a);
+        Vector2i pos;
+        pos.x = habitat.center.x;
+        pos.y = habitat.center.y;
+        m_animalManager->Spawn(habitat.type, pos);
     }
 }
 
-int WildlifeSystem::CountAnimalsAtSpawner(int sx, int sy, AnimalType type) const
+int WildlifeSystem::CountAnimalsAtHabitat(int hx, int hy, AnimalType type) const
 {
+    const std::vector<Animal>& animals = m_animalManager->GetAllAnimals();
     int count = 0;
-    for (size_t i = 0; i < m_animals.size(); ++i) {
-        if (m_animals[i].spawnerX == sx && m_animals[i].spawnerY == sy && m_animals[i].type == type) {
+    for (size_t i = 0; i < animals.size(); ++i) {
+        if (animals[i].spawnerX == hx && animals[i].spawnerY == hy && animals[i].type == type) {
             ++count;
         }
     }
     return count;
 }
 
-int WildlifeSystem::FindAliveAnimal(int x, int y, int radius, AnimalType type) const
+void WildlifeSystem::AddAnimals(const std::vector<Animal>& animals)
 {
-    for (size_t i = 0; i < m_animals.size(); ++i) {
-        const Animal& a = m_animals[i];
-        if (a.state == AnimalState_Alive && a.type == type) {
-            int dx = a.x - x;
-            int dy = a.y - y;
-            if (dx * dx + dy * dy <= radius * radius) {
-                return (int)i;
+    for (size_t i = 0; i < animals.size(); ++i) {
+        m_animalManager->AddExisting(animals[i]);
+    }
+}
+
+static void RandomDiagDir(float& vx, float& vy)
+{
+    int dir = rand() % 4;
+    switch (dir) {
+        case 0: vx =  DIAG_SPEED; vy = -DIAG_SPEED; break;
+        case 1: vx =  DIAG_SPEED; vy =  DIAG_SPEED; break;
+        case 2: vx = -DIAG_SPEED; vy =  DIAG_SPEED; break;
+        case 3: vx = -DIAG_SPEED; vy = -DIAG_SPEED; break;
+    }
+}
+
+void WildlifeSystem::MoveAnimals(float dt)
+{
+    const float MOVE_RANGE = 6.0f;
+    const float DIR_CHANGE_INTERVAL = 1.2f;
+    const float STOP_DURATION = 0.1f;
+
+    m_dirTimer += dt;
+    bool dirChangeTick = false;
+    if (m_dirTimer >= DIR_CHANGE_INTERVAL) {
+        m_dirTimer = 0.0f;
+        dirChangeTick = true;
+    }
+
+    std::vector<Animal>& animals = m_animalManager->GetAllAnimals();
+    for (size_t i = 0; i < animals.size(); ++i) {
+        Animal& a = animals[i];
+        if (a.state != AnimalState_Alive) continue;
+
+        if (a.stopTimer > 0.0f) {
+            a.vx = 0.0f;
+            a.vy = 0.0f;
+            a.stopTimer -= dt;
+            if (a.stopTimer <= 0.0f) {
+                a.stopTimer = 0.0f;
+                RandomDiagDir(a.vx, a.vy);
             }
+            continue;
         }
-    }
-    return -1;
-}
 
-void WildlifeSystem::TrapAnimal(int index)
-{
-    if (index >= 0 && index < (int)m_animals.size()) {
-        m_animals[index].state = AnimalState_Trapped;
-    }
-}
+        if (dirChangeTick && (rand() % 3) == 0) {
+            a.vx = 0.0f;
+            a.vy = 0.0f;
+            a.stopTimer = STOP_DURATION;
+            continue;
+        }
 
-bool WildlifeSystem::IsAlive(int index) const
-{
-    return index >= 0 && index < (int)m_animals.size()
-        && m_animals[index].state == AnimalState_Alive;
-}
+        float nx = a.x + a.vx * dt;
+        float ny = a.y + a.vy * dt;
 
-void WildlifeSystem::RemoveAnimal(int index)
-{
-    if (index >= 0 && index < (int)m_animals.size()) {
-        m_animals.erase(m_animals.begin() + index);
+        // Don't walk on water
+        int destX = (int)(nx + 0.5f);
+        int destY = (int)(ny + 0.5f);
+        BYTE weight = m_map->GetNodeWeight(destX, destY);
+        if (weight == Weight_Deep || weight == Weight_Shallow) {
+            a.vx = -a.vx;
+            a.vy = -a.vy;
+            continue;
+        }
+
+        float dxs = nx - (float)a.spawnerX;
+        float dys = ny - (float)a.spawnerY;
+        if (dxs * dxs + dys * dys <= MOVE_RANGE * MOVE_RANGE) {
+            a.x = nx;
+            a.y = ny;
+        } else {
+            a.vx = -a.vx;
+            a.vy = -a.vy;
+        }
     }
 }
 

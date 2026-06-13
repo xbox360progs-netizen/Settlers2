@@ -6,7 +6,7 @@
 #include "Flag.h"
 #include "Road.h"
 
-namespace World { class Map; }
+namespace Logic { class ResourceRegistry; }
 
 class MapSerializer {
 public:

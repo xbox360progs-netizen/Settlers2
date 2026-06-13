@@ -30,7 +30,6 @@ namespace Scene {
     const uint32_t GameScene::CONSTRUCTION_PIXEL_W = 196;
     const uint32_t GameScene::CONSTRUCTION_PIXEL_H = 139;
 
-    static void WildlifeSectorFunc(void* data);
     static void AIChunkJobFunc(void* data);
     static void AdjustEntranceForParity(bool buildingEvenY, int& entranceX, int entranceY);
     static void AdjustEntranceForParity(bool buildingEvenY, int& entranceX, int entranceY);
@@ -40,6 +39,7 @@ namespace Scene {
         , m_jobManager(NULL)
         , m_transportJobManager(NULL)
         , m_map(NULL)
+        , m_animalManager(NULL)
         , m_wildlife(NULL)
         , m_economyManager(NULL)
         , m_carrierManager(NULL)
@@ -77,6 +77,7 @@ namespace Scene {
         , m_confirmTargetX(-1)
         , m_confirmTargetY(-1)
         , m_resourceHudLoaded(false)
+        , m_wildlifeRegenTimer(0.0f)
     {
         for (int i = 0; i < RESOURCE_HUD_COUNT; ++i) {
             m_resourceHud[i].type = World::ResourceType_None;
@@ -258,7 +259,8 @@ namespace Scene {
 
         // Set up wildlife system
         OutputDebugStringA("[GameScene::Load] Creating WildlifeSystem\n");
-        m_wildlife = new World::WildlifeSystem(m_map);
+        m_animalManager = new World::AnimalManager();
+        m_wildlife = new World::WildlifeSystem(m_map, m_animalManager);
         m_map->SetWildlifeSystem(m_wildlife);
         OutputDebugStringA("[GameScene::Load] WildlifeSystem ready\n");
 
@@ -266,7 +268,7 @@ namespace Scene {
         OutputDebugStringA("[GameScene::Load] Creating EconomyManager\n");
         m_economyManager = new Logic::EconomyManager();
         m_map->SetResourceRegistry(&m_economyManager->GetRegistry());
-        m_economyManager->GetRegistry().BuildWorldResourceCache(m_map);
+        m_map->GenerateWildlife();
         OutputDebugStringA("[GameScene::Load] EconomyManager ready\n");
 
         // Set up carrier manager (flag manager wired after it's created below)
@@ -701,6 +703,10 @@ void GameScene::Unload()
     if (m_wildlife) {
         delete m_wildlife;
         m_wildlife = NULL;
+    }
+    if (m_animalManager) {
+        delete m_animalManager;
+        m_animalManager = NULL;
     }
     if (m_map) {
         delete m_map;
@@ -1193,38 +1199,18 @@ void GameScene::Update(float deltaTime)
         }
     }
 
-    // ─── Wildlife sectors (background threads) ────────────────────────
-    {
-        bool doWildlifeSpawn = m_wildlife && m_wildlife->ShouldSpawn(deltaTime);
-        if (doWildlifeSpawn)
-        {
-            int totalSpawners = m_wildlife ? m_wildlife->GetSpawnerCount() : 0;
-            if (totalSpawners > 0)
-            {
-                int spawnersPerSector = totalSpawners / 4;
-                int sectorStart = 0;
-                for (int i = 0; i < 4; ++i)
-                {
-                    m_wildlifeSectors[i].wildlife = m_wildlife;
-                    m_wildlifeSectors[i].startSpawner = sectorStart;
-                    m_wildlifeSectors[i].endSpawner = (i == 3) ? totalSpawners : sectorStart + spawnersPerSector;
-                    m_wildlifeSectors[i].newAnimals.clear();
-                    m_jobManager->Submit(WildlifeSectorFunc, &m_wildlifeSectors[i]);
-                }
-            }
-        }
-        if (m_jobManager) {
-            m_jobManager->WaitAll();
-
-                // Merge wildlife spawns from sector buffers
-                for (int i = 0; i < 4; ++i)
-                    m_wildlife->AddAnimals(m_wildlifeSectors[i].newAnimals);
-            }
-        }
-
-        // ─── Wildlife movement update ──────────────────────────────────
+    // ─── Wildlife movement & spawn update ───────────────────────────
         if (m_wildlife) {
-            m_wildlife->Update(deltaTime);
+            m_wildlife->Update(deltaTime, m_map->GetHabitatRegistry());
+        }
+
+        // ─── Wildlife resource node regeneration ─────────────────────
+        if (m_map) {
+            m_wildlifeRegenTimer += deltaTime;
+            if (m_wildlifeRegenTimer >= 60.0f) {
+                m_wildlifeRegenTimer = 0.0f;
+                m_map->RegenerateWildlifeResources();
+            }
         }
 
         // ─── Phase B: TransportJob management ──────────────────────────
@@ -1672,23 +1658,29 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                 }
             }
 
-            // Render static building workers (Fisher, Hunter)
+            // Render building workers (Fisher static, Hunter moving)
             if (m_flagManager) {
                 for (size_t fi = 0; fi < m_flagManager->GetCount(); ++fi) {
                     World::Flag* flag = m_flagManager->GetFlag((int)fi);
                     if (!flag || !flag->building) continue;
-                    bool se = (flag->building->pos.x % 2 == 0);
+
+                    float wx, wy;
                     int wSpriteIdx = -1;
-                    if (flag->building->type == World::Fisher) {
+                    bool moving = false;
+
+                    // Hunter has a moving worker – query its position via virtual method
+                    if (flag->building->GetWorkerRenderInfo(wx, wy, wSpriteIdx)) {
+                        moving = true;
+                        coords.NodeTileToWorld(wx, wy, wx, wy);
+                    } else if (flag->building->type == World::Fisher) {
+                        bool se = (flag->building->pos.x % 2 == 0);
                         wSpriteIdx = se ? 16 : 17; // fisher_work_SE / fisher_work_SW
-                    } else if (flag->building->type == World::Hunter) {
-                        wSpriteIdx = se ? 12 : 13; // hunter_SE / hunter_SW
+                        coords.NodeTileToWorld(flag->building->pos.x, flag->building->pos.y, wx, wy);
                     }
                     if (wSpriteIdx < 0) continue;
                     const SpriteRegion* wr = unitsAtlas->GetRegion(wSpriteIdx);
                     if (!wr) continue;
-                    float wx, wy;
-                    coords.NodeTileToWorld(flag->building->pos.x, flag->building->pos.y, wx, wy);
+
                     Graphics::RenderCommand wcmd = {};
                     wcmd.x = wx - wr->pivotX;
                     wcmd.y = wy - wr->pivotY;
@@ -1701,7 +1693,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                     wcmd.shaderID = SHADER_TERRAIN;
                     wcmd.blendMode = 1;
                     wcmd.layer = LAYER_WORLD;
-                    wcmd.depth = static_cast<WORD>(30020 + flag->building->pos.y * 400);
+                    wcmd.depth = static_cast<WORD>(30020 + (moving ? (int)(wy + 0.5f) : flag->building->pos.y) * 400);
                     renderQueue->Submit(wcmd);
                 }
             }
@@ -1792,41 +1784,54 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         }
     }
 
-    // ─── Render wildlife (animal icons) ─────────────────────────────
+    // ─── Render wildlife (animal sprites) ───────────────────────────
     if (m_wildlife) {
         const std::vector<World::Animal>& animals = m_wildlife->GetAllAnimals();
         if (!animals.empty()) {
-            std::tr1::shared_ptr<SpriteAtlas> iconAtlas = reg.getAtlas("Icon");
-            if (iconAtlas && iconAtlas->GetTexture()) {
-                LPDIRECT3DTEXTURE9 iconTex = iconAtlas->GetTexture();
-                if (spriteRenderer) spriteRenderer->SetTextureSlot(SLOT_UI_MENU_ICON, iconTex);
-                CoordinateSystem& coords = CoordinateSystem::GetInstance();
-                for (size_t i = 0; i < animals.size(); ++i) {
-                    const World::Animal& a = animals[i];
-                    if (a.state != World::AnimalState_Alive) continue;
-                    const char* iconName = World::AnimalTypeToIconName(a.type);
-                    if (!iconName || !iconName[0]) continue;
-                    uint32_t idx = iconAtlas->GetIndex(iconName);
-                    if (idx == 0xFFFFFFFF) continue;
-                    const SpriteRegion* r = iconAtlas->GetRegion(idx);
-                    if (!r) continue;
-                    float wx, wy;
-                    coords.NodeTileToWorld(a.x, a.y, wx, wy);
-                    float iconSize = 16.0f;
-                    Graphics::RenderCommand cmd = {};
-                    cmd.x = wx - iconSize * 0.5f;
-                    cmd.y = wy - iconSize * 0.5f;
-                    cmd.width = iconSize;
-                    cmd.height = iconSize;
-                    cmd.u0 = r->u0; cmd.v0 = r->v0;
-                    cmd.u1 = r->u1; cmd.v1 = r->v1;
-                    cmd.color = 0xAAFFFFFF;
-                    cmd.textureID = SLOT_UI_MENU_ICON;
-                    cmd.shaderID = SHADER_TERRAIN;
-                    cmd.blendMode = 1;
-                    cmd.layer = LAYER_WORLD;
-                    cmd.depth = static_cast<WORD>(30005 + a.y * 400);
-                    renderQueue->Submit(cmd);
+            reg.getTextureOrLoad("Units");
+            std::tr1::shared_ptr<SpriteAtlas> unitsAtlas = reg.getAtlas("Units");
+            if (unitsAtlas && unitsAtlas->GetTexture()) {
+                LPDIRECT3DTEXTURE9 unitsTex = unitsAtlas->GetTexture();
+                spriteRenderer->SetTextureSlot(SLOT_UNITS, unitsTex);
+                const std::vector<uint32_t>* animalGroup = unitsAtlas->GetGroup("Animals");
+                if (animalGroup && !animalGroup->empty()) {
+                    CoordinateSystem& coords = CoordinateSystem::GetInstance();
+                    for (size_t i = 0; i < animals.size(); ++i) {
+                        const World::Animal& a = animals[i];
+                        if (a.state != World::AnimalState_Alive) continue;
+                        if (a.type < 0 || a.type >= World::AnimalType_Count) continue;
+
+                        int rawIdx = (int)a.type;
+                        int dirIdx = World::VelocityToDirIndex(a.vx, a.vy);
+                        int dirSpriteIdx = rawIdx * World::AnimalDirSpriteCount() + dirIdx;
+                        int spriteIdx;
+                        if (dirSpriteIdx < (int)animalGroup->size()) {
+                            spriteIdx = dirSpriteIdx;
+                        } else if (rawIdx < (int)animalGroup->size()) {
+                            spriteIdx = rawIdx;
+                        } else {
+                            continue;
+                        }
+                        uint32_t regionIdx = (*animalGroup)[spriteIdx];
+                        const SpriteRegion* r = unitsAtlas->GetRegion(regionIdx);
+                        if (!r) continue;
+                        float wx, wy;
+                        coords.NodeTileToWorld(a.x, a.y, wx, wy);
+                        Graphics::RenderCommand cmd = {};
+                        cmd.x = wx - r->pivotX;
+                        cmd.y = wy - r->pivotY;
+                        cmd.width = (float)r->width;
+                        cmd.height = (float)r->height;
+                        cmd.u0 = r->u0; cmd.v0 = r->v0;
+                        cmd.u1 = r->u1; cmd.v1 = r->v1;
+                        cmd.color = 0xFFFFFFFF;
+                        cmd.textureID = SLOT_UNITS;
+                        cmd.shaderID = SHADER_TERRAIN;
+                        cmd.blendMode = 1;
+                        cmd.layer = LAYER_WORLD;
+                        cmd.depth = static_cast<WORD>(30005 + (int)(a.y + 0.5f) * 400);
+                        renderQueue->Submit(cmd);
+                    }
                 }
             }
         }
@@ -2081,6 +2086,53 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
     // ─── Render road/flag menu (if active) ───────────────────────────────
     if (m_roadMenu && m_roadMenuActive) {
         m_roadMenu->Render();
+    }
+
+    // ─── Hunting spots overlay when hunter building is selected ─────────
+    if (m_roadMenuActive && m_flagManager && m_map && m_textManager) {
+        World::Flag* flag = m_flagManager->GetFlagAt(m_confirmTargetX, m_confirmTargetY);
+        if (flag && flag->building && flag->building->type == World::Hunter) {
+            Logic::ResourceRegistry* registry = m_map->GetResourceRegistry();
+            CoordinateSystem& coords = CoordinateSystem::GetInstance();
+            std::tr1::shared_ptr<SpriteAtlas> iconAtlas = TextureRegistry::instance().getAtlas("Icon");
+            if (registry && iconAtlas) {
+                uint32_t deerIcon = iconAtlas->GetIndex("r_deer");
+                if (deerIcon != 0xFFFFFFFF) {
+                    const SpriteRegion* deerR = iconAtlas->GetRegion(deerIcon);
+                    const std::vector<Vector2i>& spawners = registry->GetWorldResources(World::ResourceType_WildlifeSpawner_Deer);
+                    for (size_t si = 0; si < spawners.size(); ++si) {
+                        const World::ResourceNode& node = m_map->GetResourceNode(spawners[si].x, spawners[si].y);
+                        if (node.type != World::ResourceType_WildlifeSpawner_Deer) continue;
+                        float wx, wy;
+                        coords.NodeTileToWorld((float)spawners[si].x, (float)spawners[si].y, wx, wy);
+                        // Render deer icon
+                        if (deerR) {
+                            float iconSize = 20.0f;
+                            Graphics::RenderCommand icmd = {};
+                            icmd.x = wx - iconSize * 0.5f;
+                            icmd.y = wy - iconSize;
+                            icmd.width = iconSize;
+                            icmd.height = iconSize;
+                            icmd.u0 = deerR->u0;
+                            icmd.v0 = deerR->v0;
+                            icmd.u1 = deerR->u1;
+                            icmd.v1 = deerR->v1;
+                            icmd.color = D3DCOLOR_ARGB(200, 255, 255, 255);
+                            icmd.textureID = SLOT_UI_MENU_ICON;
+                            icmd.shaderID = SHADER_TERRAIN;
+                            icmd.blendMode = 1;
+                            icmd.layer = LAYER_FOREGROUND;
+                            icmd.depth = static_cast<WORD>(0.99f * 65535.0f);
+                            renderQueue->Submit(icmd);
+                        }
+                        // Render amount text
+                        char buf[8];
+                        _snprintf(buf, sizeof(buf), "%d", node.amount);
+                        m_textManager->DrawTextToWorld(buf, wx, wy - 28.0f, D3DCOLOR_ARGB(255, 255, 255, 0), 0.07f);
+                    }
+                }
+            }
+        }
     }
 
     if (!m_menuActive && !m_roadMenuActive && !m_townHallPanelOpen) {
@@ -4301,13 +4353,6 @@ void GameScene::CancelRoad()
     }
 
     // ─── Job function implementations ───────────────────────────────────────
-    static void WildlifeSectorFunc(void* data)
-    {
-        WildlifeSectorData* d = (WildlifeSectorData*)data;
-        if (d->wildlife)
-            d->wildlife->ProcessSpawnerRange(d->startSpawner, d->endSpawner, d->newAnimals);
-    }
-
     static void AIChunkJobFunc(void* data)
     {
         AIChunkData* d = (AIChunkData*)data;

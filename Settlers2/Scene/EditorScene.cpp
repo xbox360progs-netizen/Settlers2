@@ -74,6 +74,8 @@ EditorScene::EditorScene()
     , m_gridMenu(nullptr)
     , m_mapEditor(nullptr)
     , m_unitManager(nullptr)
+    , m_animalManager(nullptr)
+    , m_wildlife(nullptr)
     , m_currentLayer(World::Ground)
     , m_objectGroupIndex(0)
     , m_yButtonWasPressed(false)
@@ -109,6 +111,10 @@ EditorScene::EditorScene()
 }
 
 EditorScene::~EditorScene() {
+    delete m_wildlife;
+    m_wildlife = nullptr;
+    delete m_animalManager;
+    m_animalManager = nullptr;
     delete m_unitManager;
     m_unitManager = nullptr;
     if (m_mapEditor) {
@@ -424,11 +430,31 @@ void EditorScene::Load() {
 		}
 	}
 
+	// Initialize WildlifeSystem for animal rendering in editor
+	if (m_mapEditor && m_mapEditor->GetMap()) {
+		World::Map* map = m_mapEditor->GetMap();
+		m_animalManager = new World::AnimalManager();
+		m_wildlife = new World::WildlifeSystem(map, m_animalManager);
+		map->SetWildlifeSystem(m_wildlife);
+		OutputDebugStringA("[EditorScene] WildlifeSystem initialized\n");
+	}
+
 	OutputDebugStringA("[EditorScene] Load() complete\n");
 	m_loaded = true;
 }
 
 void EditorScene::Unload() {
+    if (m_wildlife) {
+        if (m_mapEditor && m_mapEditor->GetMap()) {
+            m_mapEditor->GetMap()->SetWildlifeSystem(NULL);
+        }
+        delete m_wildlife;
+        m_wildlife = NULL;
+    }
+    if (m_animalManager) {
+        delete m_animalManager;
+        m_animalManager = NULL;
+    }
     if (m_radialMenu) {
         m_radialMenu->Shutdown();
     }
@@ -491,6 +517,11 @@ void EditorScene::Update(float deltaTime) {
             s_lastFlagCount = flagCount;
         }
         m_unitManager->Update(deltaTime);
+    }
+
+    // Update wildlife (spawning, movement)
+    if (m_wildlife && m_mapEditor && m_mapEditor->GetMap()) {
+        m_wildlife->Update(deltaTime, m_mapEditor->GetMap()->GetHabitatRegistry());
     }
 }
 
@@ -1515,6 +1546,60 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
     // Render units after roads/flags
     if (m_unitManager) {
         m_unitManager->Render();
+    }
+
+    // ─── Render wildlife (animal sprites) ───────────────────────────
+    if (m_wildlife && m_spriteRenderer) {
+        const std::vector<World::Animal>& animals = m_wildlife->GetAllAnimals();
+        if (!animals.empty()) {
+            TextureRegistry& registry = TextureRegistry::instance();
+            registry.getTextureOrLoad("Units");
+            std::tr1::shared_ptr<SpriteAtlas> unitsAtlas = registry.getAtlas("Units");
+            if (unitsAtlas && unitsAtlas->GetTexture()) {
+                LPDIRECT3DTEXTURE9 unitsTex = unitsAtlas->GetTexture();
+                m_spriteRenderer->SetTextureSlot(SLOT_UNITS, unitsTex);
+                const std::vector<uint32_t>* animalGroup = unitsAtlas->GetGroup("Animals");
+                if (animalGroup && !animalGroup->empty()) {
+                    CoordinateSystem& coords = CoordinateSystem::GetInstance();
+                    for (size_t i = 0; i < animals.size(); ++i) {
+                        const World::Animal& a = animals[i];
+                        if (a.state != World::AnimalState_Alive) continue;
+                        if (a.type < 0 || a.type >= World::AnimalType_Count) continue;
+
+                        int rawIdx = (int)a.type;
+                        int dirIdx = World::VelocityToDirIndex(a.vx, a.vy);
+                        int dirSpriteIdx = rawIdx * World::AnimalDirSpriteCount() + dirIdx;
+                        int spriteIdx;
+                        if (dirSpriteIdx < (int)animalGroup->size()) {
+                            spriteIdx = dirSpriteIdx;
+                        } else if (rawIdx < (int)animalGroup->size()) {
+                            spriteIdx = rawIdx;
+                        } else {
+                            continue;
+                        }
+                        uint32_t regionIdx = (*animalGroup)[spriteIdx];
+                        const SpriteRegion* r = unitsAtlas->GetRegion(regionIdx);
+                        if (!r) continue;
+                        float wx, wy;
+                        coords.NodeTileToWorld(a.x, a.y, wx, wy);
+                        Graphics::RenderCommand cmd = {};
+                        cmd.x = wx - r->pivotX;
+                        cmd.y = wy - r->pivotY;
+                        cmd.width = (float)r->width;
+                        cmd.height = (float)r->height;
+                        cmd.u0 = r->u0; cmd.v0 = r->v0;
+                        cmd.u1 = r->u1; cmd.v1 = r->v1;
+                        cmd.color = 0xFFFFFFFF;
+                        cmd.textureID = SLOT_UNITS;
+                        cmd.shaderID = SHADER_TERRAIN;
+                        cmd.blendMode = 1;
+                        cmd.layer = LAYER_WORLD;
+                        cmd.depth = static_cast<WORD>(30005 + (int)(a.y + 0.5f) * 400);
+                        renderQueue->Submit(cmd);
+                    }
+                }
+            }
+        }
     }
 
     if (m_saveLoadMenuActive) {

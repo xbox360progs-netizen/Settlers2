@@ -15,7 +15,7 @@ struct Header {
 };
 #pragma pack(pop)
 
-static const int CURRENT_VERSION = 5;  // v4 adds flag data, v5 adds road data
+static const int CURRENT_VERSION = 6;  // v4 adds flag data, v5 adds road data
 
 // Вспомогательные функции для буферизации
 static void Append(std::vector<BYTE>& buf, const void* data, size_t size) {
@@ -362,6 +362,22 @@ bool MapSerializer::SaveV4(const World::Map& map, const std::string& path, const
         Append(buffer, &rcount, sizeof(rcount));
     }
 
+    // Habitat data (version 6+)
+    const World::HabitatRegistry& hr = map.GetHabitatRegistry();
+    int hcount = (int)hr.GetCount();
+    Append(buffer, &hcount, sizeof(hcount));
+    for (size_t hi = 0; hi < hr.GetCount(); ++hi) {
+        const World::AnimalHabitat* hab = hr.GetByIndex(hi);
+        if (!hab) continue;
+        Append(buffer, &hab->id, sizeof(hab->id));
+        Append(buffer, &hab->center.x, sizeof(hab->center.x));
+        Append(buffer, &hab->center.y, sizeof(hab->center.y));
+        Append(buffer, &hab->radius, sizeof(hab->radius));
+        int ht = static_cast<int>(hab->type);
+        Append(buffer, &ht, sizeof(ht));
+        Append(buffer, &hab->maxAnimals, sizeof(hab->maxAnimals));
+    }
+
     HANDLE hFile = CreateFileA(path.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hFile == INVALID_HANDLE_VALUE) return false;
     DWORD written = 0;
@@ -515,6 +531,26 @@ bool MapSerializer::LoadV4(World::Map& map, const std::string& path, std::vector
                     if (!reader.Read(&rd.tiles[ti].y, sizeof(rd.tiles[ti].y))) break;
                 }
                 roads->push_back(rd);
+            }
+        }
+    }
+
+    // Habitat data — v6+
+    if (hdr.version >= 6) {
+        int hcount = 0;
+        if (reader.Read(&hcount, sizeof(hcount)) && hcount > 0) {
+            map.GetHabitatRegistry().Clear();
+            for (int hi = 0; hi < hcount; ++hi) {
+                World::AnimalHabitat hab;
+                reader.Read(&hab.id, sizeof(hab.id));
+                reader.Read(&hab.center.x, sizeof(hab.center.x));
+                reader.Read(&hab.center.y, sizeof(hab.center.y));
+                reader.Read(&hab.radius, sizeof(hab.radius));
+                int ht;
+                reader.Read(&ht, sizeof(ht));
+                hab.type = static_cast<World::AnimalType>(ht);
+                reader.Read(&hab.maxAnimals, sizeof(hab.maxAnimals));
+                map.GetHabitatRegistry().Restore(hab);
             }
         }
     }

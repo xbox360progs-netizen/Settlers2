@@ -301,9 +301,9 @@ void MenuScene::Render(RenderQueue* renderQueue) {
     if (m_textManager && m_spriteRenderer) {
         if (m_menuState == MENU_STATE_SIZE_SELECT) {
             // Title
-            m_textManager->DrawString("Select Map Size", 140.0f, 170.0f, 0xFFFFD700, 0.35f);
+            m_textManager->DrawString("Select Map Size", 125.0f, 208.0f, 0xFFFFD700, 0.30f);
 
-            float startY = 230.0f;
+            float startY = 278.0f;
             float spacingY = 70.0f;
             for (int i = 0; i < MAP_SIZE_COUNT; ++i) {
                 char sizeText[32];

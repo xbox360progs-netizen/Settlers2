@@ -3,15 +3,19 @@
 #include "../Graphics/Camera.h"
 #include "../Graphics/TileRenderer.h"
 #include "../Logic/CoordinateSystem.h"
+#include "../Logic/ResourceRegistry.h"
+#include "../World/AnimalHabitat.h"
+#include "../World/AnimalTypes.h"
 #include "TileLayer.h"
 #include "../Graphics/Camera.h"
-
+#include "HabitatRegistry.h"
 
 namespace World {
 
 Map::Map(int groundWidth, int groundHeight, int otherWidth, int otherHeight)
     : m_width(groundWidth)
     , m_height(groundHeight)
+    , m_resourceRegistry(NULL)
 {
     InitializeCriticalSection(&m_cs);
     m_layers.resize(static_cast<int>(LayerCount), NULL);
@@ -115,6 +119,10 @@ void Map::Resize(int width, int height)
 
 void Map::Clear()
 {
+	if (m_resourceRegistry)
+		m_resourceRegistry->ClearWorldResources();
+    m_habitatRegistry.Clear();
+
     for (size_t i = 0; i < m_layers.size(); ++i)
     {
         if (m_layers[i])
@@ -393,16 +401,85 @@ void Map::SetResourceNode(int x, int y, ResourceType type, int amount, bool isVi
     
     int index = y * layerWidth + x;
     if (index >= 0 && index < static_cast<int>(m_resourceMap.size())) {
+        ResourceType oldType = m_resourceMap[index].type;
         m_resourceMap[index].type = type;
         m_resourceMap[index].amount = amount;
         m_resourceMap[index].isVisible = isVisible;
+
+        // Keep ResourceRegistry in sync at runtime
+        if (m_resourceRegistry) {
+            if (oldType != ResourceType_None && oldType != type) {
+                m_resourceRegistry->UnregisterWorldResource(oldType, x, y);
+                // Also unregister spawner counterpart if applicable
+                if (oldType == ResourceType_Meat)
+                    m_resourceRegistry->UnregisterWorldResource(ResourceType_WildlifeSpawner_Deer, x, y);
+            }
+            m_resourceRegistry->RegisterWorldResource(type, x, y);
+            // Register WildlifeSpawner counterpart so hunters/buildings can find it
+            if (type == ResourceType_Meat)
+                m_resourceRegistry->RegisterWorldResource(ResourceType_WildlifeSpawner_Deer, x, y);
+        }
+        
+        // Register habitat if type is a wildlife spawner
+        if (type != oldType) {
+            World::AnimalType animalType;
+            bool isSpawner = true;
+            switch (type) {
+                case ResourceType_WildlifeSpawner_Deer:      animalType = AnimalType_Deer; break;
+                case ResourceType_WildlifeSpawner_Rabbit:    animalType = AnimalType_Rabbit; break;
+                case ResourceType_WildlifeSpawner_Crocodile: animalType = AnimalType_Crocodile; break;
+                case ResourceType_WildlifeSpawner_Snake:     animalType = AnimalType_Snake; break;
+                case ResourceType_Meat:                      animalType = AnimalType_Deer; break;
+                default: isSpawner = false; break;
+            }
+            if (isSpawner) {
+                World::AnimalHabitat hab;
+                hab.center.x = x;
+                hab.center.y = y;
+                hab.type = animalType;
+                hab.maxAnimals = (amount > 0) ? amount : 5;
+                hab.radius = 10;
+                m_habitatRegistry.Register(hab);
+            }
+        }
     }
 }
 
 void Map::ClearResources()
 {
+    if (m_resourceRegistry) {
+        int w = m_width * 2;
+        int h = m_height * 4;
+        for (int y = 0; y < h; ++y)
+            for (int x = 0; x < w; ++x) {
+                ResourceType rt = m_resourceMap[y * w + x].type;
+                if (rt != ResourceType_None)
+                    m_resourceRegistry->UnregisterWorldResource(rt, x, y);
+                if (rt == ResourceType_Meat)
+                    m_resourceRegistry->UnregisterWorldResource(ResourceType_WildlifeSpawner_Deer, x, y);
+            }
+    }
     for (size_t i = 0; i < m_resourceMap.size(); ++i) {
         m_resourceMap[i] = World::ResourceNode();
+    }
+}
+
+void Map::SetResourceRegistry(Logic::ResourceRegistry* rr) {
+    m_resourceRegistry = rr;
+    if (m_resourceRegistry) {
+        // Register all existing resource nodes so the registry is in sync
+        int w = m_width * 2;
+        int h = m_height * 4;
+        for (int y = 0; y < h; ++y) {
+            for (int x = 0; x < w; ++x) {
+                const ResourceNode& node = m_resourceMap[y * w + x];
+                if (node.type != ResourceType_None) {
+                    m_resourceRegistry->RegisterWorldResource(node.type, x, y);
+                    if (node.type == ResourceType_Meat)
+                        m_resourceRegistry->RegisterWorldResource(ResourceType_WildlifeSpawner_Deer, x, y);
+                }
+            }
+        }
     }
 }
 
@@ -516,6 +593,47 @@ void Map::SetTileOwner(int x, int y, uint8_t owner)
 {
     if (x >= 0 && x < m_width * 2 && y >= 0 && y < m_height * 4) {
         m_nodes[y * (m_width * 2) + x].owner = owner;
+    }
+}
+
+void Map::GenerateWildlife() {
+    World::AnimalHabitat hab;
+    hab.center.x = 10;
+	hab.center.y = 10;
+    hab.type = World::AnimalType_Deer;
+    m_habitatRegistry.Register(hab);
+
+    // Generate fish resources on water tiles
+    int w = m_width * 2;
+    int h = m_height * 4;
+    for (int y = 0; y < h; ++y) {
+        for (int x = 0; x < w; ++x) {
+            int idx = y * w + x;
+            BYTE weight = m_resourceMap[idx].weight;
+            // Water tiles have Weight_Deep or Weight_Shallow
+            if (weight <= Weight_Shallow && m_resourceMap[idx].type == ResourceType_None) {
+                SetResourceNode(x, y, ResourceType_Fish, 5, false);
+            }
+        }
+    }
+}
+
+void Map::RegenerateWildlifeResources() {
+    int w = m_width * 2;
+    int h = m_height * 4;
+    for (int y = 0; y < h; ++y) {
+        for (int x = 0; x < w; ++x) {
+            ResourceNode& node = m_resourceMap[y * w + x];
+            if (node.type == ResourceType_WildlifeSpawner_Deer ||
+                node.type == ResourceType_WildlifeSpawner_Rabbit ||
+                node.type == ResourceType_WildlifeSpawner_Crocodile ||
+                node.type == ResourceType_WildlifeSpawner_Snake ||
+                node.type == ResourceType_Fish) {
+                if (node.amount < 5) {
+                    node.amount++;
+                }
+            }
+        }
     }
 }
 

@@ -15,6 +15,7 @@
 #include "../Game/Unit.h"
 #include "../World/Map.h"
 #include "../World/ResourceNode.h"
+#include "../World/WildlifeSystem.h"
 #include "../Graphics/Renderer.h"
 #include "../Input/InputManager.h"
 #include "../Input/InputController.h"
@@ -131,12 +132,19 @@ public:
     Texture m_bgEditorTexture;
     Editor::MapEditor* m_mapEditor;
     Game::UnitManager* m_unitManager;
+    World::AnimalManager* m_animalManager;
+    World::WildlifeSystem* m_wildlife;
     World::LayerType m_currentLayer;
 
     // Object group cycling (maptiles groups)
     static const char* kObjectGroupNames[];
     static const int kObjectGroupCount;
     int m_objectGroupIndex;
+
+    // Texture slot constants (mirrors GameScene.h for consistency)
+    enum {
+        SLOT_UNITS = 29,
+    };
     bool m_yButtonWasPressed;
     bool m_blockCameraUntilStickNeutral;
 

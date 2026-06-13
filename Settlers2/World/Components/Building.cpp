@@ -1,7 +1,12 @@
 #include "stdafx.h"
 #include "Building.h"
+#include "Hunter.h"
 
 namespace World {
+
+const float Hunter::IDLE_DURATION = 15.0f;
+const float Hunter::HUNT_DURATION = 5.0f;
+const float Hunter::WORKER_SPEED = 2.0f;
 
     void Building::Update(float dt)
     {

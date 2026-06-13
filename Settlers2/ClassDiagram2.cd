@@ -1,0 +1,1558 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="Game::UnitManager" Collapsed="true">
+    <Position X="45" Y="8.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>IAQAACIAACAACUAAAAAAAMEAAAAAAQACgBAQAACCAAA=</HashCode>
+      <FileName>Game\Unit.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="BinFileManager" Collapsed="true">
+    <Position X="43.25" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAACAAAAIAggEAAAAAAAAACQFCgIAAAAAAgDABgAAA=</HashCode>
+      <FileName>Graphics\BinFileManager.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="BitmapFont" Collapsed="true">
+    <Position X="45" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAQECBAAFAWEAABAAAAAAEABANBgEBDkCCQCAkIA=</HashCode>
+      <FileName>Graphics\BitmapFont.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="BitmapText" Collapsed="true">
+    <Position X="46.75" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAQAAABMAAACiAAAIAAAAAAQAAAQgAAgAgAAggAAAA=</HashCode>
+      <FileName>Graphics\BitmapText.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Camera" Collapsed="true">
+    <Position X="52" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEQSQAEAEIAABQAAEAAACAAQQCMAAhggAAABABAAYAQ=</HashCode>
+      <FileName>Graphics\Camera.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="OverlayFPS" Collapsed="true">
+    <Position X="53.75" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>IAAAABADIAECAAABAAAASAAAEACBAAQAgJAQCAAAAAQ=</HashCode>
+      <FileName>Graphics\OverlayFPS.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Quad" Collapsed="true">
+    <Position X="45" Y="5.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAIAAAAAAAAQABAAAAAQAAAAAABACAABAACAEAAAA=</HashCode>
+      <FileName>Graphics\Quad.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Renderer" Collapsed="true">
+    <Position X="50.25" Y="5.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>APCgMgRAQAAChQAABAAQAQAAAeMgAAqABACIAAFAYQU=</HashCode>
+      <FileName>Graphics\Renderer.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SpriteAtlas" Collapsed="true">
+    <Position X="53.75" Y="6.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAgAICAIBEACERAAEAAgACACAgAIgkBAFgCACAAAA=</HashCode>
+      <FileName>Graphics\SpriteAtlas.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="TextManager" Collapsed="true">
+    <Position X="43.25" Y="7.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAIBAAgCBQAAAAAAAAQAIAAAgAhBAQAJAAIAA=</HashCode>
+      <FileName>Graphics\TextManager.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Texture" Collapsed="true">
+    <Position X="45" Y="7.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAACAIAAgAABAAAAAABAACAAAACAAAIAAFAAAAA=</HashCode>
+      <FileName>Graphics\Texture.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="TextureLoader" Collapsed="true">
+    <Position X="46.75" Y="7.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAQgAgAAAAAAAAAAAAAAAAAgACAAAgAAAAACAAgABQ=</HashCode>
+      <FileName>Graphics\TextureLoader.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="TextureRegistry" Collapsed="true">
+    <Position X="48.5" Y="7.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>CEABpAABAYAIAgAAAAFAAiEAAgBYQAIALABAGACAKAg=</HashCode>
+      <FileName>Graphics\TextureRegistry.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="TileRenderer" Collapsed="true">
+    <Position X="38" Y="8.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>QAIIYCAAAIAAAAAACUQgSAEQAEAAQAAggAAQAQAAAAA=</HashCode>
+      <FileName>Graphics\TileRenderer.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="MenuScene" Collapsed="true">
+    <Position X="8.5" Y="7.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>IAQkgJCBBAASAwACKJgAAAAhAAAwAIQAAJIVCQAAAAA=</HashCode>
+      <FileName>Scene\MenuScene.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="MapSerializer" Collapsed="true">
+    <Position X="46.75" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAgIAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAgAAA=</HashCode>
+      <FileName>World\MapSerializer.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="EditorUI" Collapsed="true">
+    <Position X="52" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>FAQAAAAAAAAAAAAAAAAAACAAAAAAAAAAABAAAAAAAAA=</HashCode>
+      <FileName>UI\EditorUI.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="GridMenu" Collapsed="true">
+    <Position X="39.75" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>gCQQgJEQFRACE4kC8SCgBTA6FGI2AwrIqBEeoweWBIE=</HashCode>
+      <FileName>UI\GridMenu.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="RadialMenu" Collapsed="true">
+    <Position X="46.75" Y="5.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAwAggAISAAAETgCMBACASAA0SgUICBgAhASq0AYhAQ=</HashCode>
+      <FileName>UI\RadialMenu.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="CoordinateSystem" Collapsed="true">
+    <Position X="45" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAABEAAAAAAQAAARCQEBARhAEAAoAUEgKAAGYAAAI=</HashCode>
+      <FileName>Logic\CoordinateSystem.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="GameEngine" Collapsed="true">
+    <Position X="46.75" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAQAAIAEQAAABQAAABQAQQAgAAACgAgAABAEAQoAAAI=</HashCode>
+      <FileName>Core\GameEngine.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="LanguageManager" Collapsed="true">
+    <Position X="52" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAgAAAAAAAAAAAASBAAEAABAAAAAAABAAAAAEAA=</HashCode>
+      <FileName>Core\LanguageManager.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="ThreadSync" Collapsed="true">
+    <Position X="50.25" Y="7.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAACAIAAAAAQAIEAAEACEAAAAAAAAAAAAAAAAEIAA=</HashCode>
+      <FileName>Core\ThreadSync.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="JobManager" Collapsed="true">
+    <Position X="50.25" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAACgAABAAAUCACAEAAYAAEAAAAAgAIAAAAwAACAA=</HashCode>
+      <FileName>Core\JobManager.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Graphics::BatchBuilder" Collapsed="true">
+    <Position X="41.5" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AACwEIEIAEAAAAAcCAAgBAAAAAAiAAQgEBAAEQBAAAA=</HashCode>
+      <FileName>Graphics\BatchBuilder.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Graphics::ShaderManager" Collapsed="true">
+    <Position X="52" Y="6.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>CtiwDEAAABECwQSAAxECAwmSMuQIiAoCAABCBABABAE=</HashCode>
+      <FileName>Graphics\ShaderManager.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Graphics::FallbackResources" Collapsed="true">
+    <Position X="39.75" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>BFAIEAAEBAQgAQAAAAABEQAAgAAKAAAABAAADCAAAAA=</HashCode>
+      <FileName>Graphics\FallbackResources.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Graphics::Light" Collapsed="true">
+    <Position X="53.75" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>EAARIAAAASAIEIDQABUAIiAAAAIBAgGRAAiAQAiABYg=</HashCode>
+      <FileName>Graphics\Light.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Graphics::LightManager" Collapsed="true">
+    <Position X="38" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAQCBCACAAABAAgIQAAQAAAIgACQQBCIIAgAQjCACAA=</HashCode>
+      <FileName>Graphics\Light.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Graphics::LightOptimizer" Collapsed="true">
+    <Position X="39.75" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAEAIAAAiEADEAABAQJgkBABAICAgAIABBCAJAAADCA=</HashCode>
+      <FileName>Graphics\LightOptimizer.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Graphics::RenderQueue" Collapsed="true">
+    <Position X="53.75" Y="5.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAEAAIAAAAAAAAAAAQAAEIAAQAAAAAgAAAAQBAFAA=</HashCode>
+      <FileName>Graphics\RenderQueue.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Graphics::GPUTimer" Collapsed="true">
+    <Position X="38" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>CgSAGAAAAgAAAQAgAAAAAYQABAAAAAIACQCABgABAEQ=</HashCode>
+      <FileName>Graphics\GPUTimer.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Graphics::GPUPerformanceCounters" Collapsed="true">
+    <Position X="52" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AACAEAAABAEAAQAAAAgAgQAAQAIAYAOSACCAAqAAAAA=</HashCode>
+      <FileName>Graphics\GPUTimer.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Graphics::PostFXManager" Collapsed="true">
+    <Position X="41.5" Y="5.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ABCAEAAkAAAAASQTQQAAAQABAAAAAAKAABQCAAAAAEA=</HashCode>
+      <FileName>Graphics\PostFX.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Graphics::BloomEffect" Collapsed="true">
+    <Position X="48.5" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAEAAAAEDwAEAaABKIEAQQAgAAAhCAKAABgCAAAAAYA=</HashCode>
+      <FileName>Graphics\PostFX.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Graphics::SSAOEffect" Collapsed="true">
+    <Position X="41.5" Y="7.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAEAgAIAYAFQAEAQwAAAAABAAKEABwAAAiAAYA=</HashCode>
+      <FileName>Graphics\PostFX.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Graphics::FogEffect" Collapsed="true">
+    <Position X="45" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAEIAAAgwAACAkQAQAAAAABAAKwQBgAoAgBBKA=</HashCode>
+      <FileName>Graphics\PostFX.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Graphics::ToneMapEffect" Collapsed="true">
+    <Position X="39.75" Y="8.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAIEAAAAAQACABEAAQAAAAABIAIAAhAAQAMAAIA=</HashCode>
+      <FileName>Graphics\PostFX.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Graphics::ColorGradeEffect" Collapsed="true">
+    <Position X="39.75" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>IAACAQAEAAAAIRAAEAEAAQAAAAABAgMAABAAAAAgApA=</HashCode>
+      <FileName>Graphics\PostFX.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Graphics::PostProcessingSystem" Collapsed="true">
+    <Position X="43.25" Y="5.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ABQBCRBCsgAhQUkAAQEQQQBEQCZhETIQADCAABaAEMk=</HashCode>
+      <FileName>Graphics\PostProcessing.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Graphics::RenderDebugOverlay" Collapsed="true">
+    <Position X="48.5" Y="5.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>iACAEAEIZIFJAwAwKAAQiQEAwQOgAA8aACAgICGBkog=</HashCode>
+      <FileName>Graphics\RenderDebugOverlay.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Graphics::GPUProfiler" Collapsed="true">
+    <Position X="53.75" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AACAFAEAEiSAAQAAJAEAGQAYAAABAAIAAAAAAgACAIA=</HashCode>
+      <FileName>Graphics\RenderDebugOverlay.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Graphics::SpriteRenderer" Collapsed="true">
+    <Position X="38" Y="7.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ABDQEBAQUAAAhUQBAABAAQEACmAABAqABAAAQACiMAA=</HashCode>
+      <FileName>Graphics\SpriteRenderer.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Graphics::RenderFrame" Collapsed="true">
+    <Position X="52" Y="5.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>BACAEEAEAAAAAQQGAEgIAQAgAAIIgYIAgAAYBIEAAQg=</HashCode>
+      <FileName>Graphics\RenderFrame.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Graphics::RenderStateValidator" Collapsed="true">
+    <Position X="38" Y="6.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>BoAAcAQIAACBAABAAAAAAACiAAgQwAAAAIIgCAAARBA=</HashCode>
+      <FileName>Graphics\RenderStateValidator.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Graphics::RenderTargetManager" Collapsed="true">
+    <Position X="41.5" Y="6.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>gASCEIAAAAgAQQUBAgAAAQEAkAAAAECAJAAkCBABAAA=</HashCode>
+      <FileName>Graphics\RenderTargetManager.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Graphics::SpriteShadowSystem" Collapsed="true">
+    <Position X="39.75" Y="7.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAKAkAAAAAAAAQAAAAkAAQCAAAABgCIAABAAAAAAKIA=</HashCode>
+      <FileName>Graphics\SpriteShadow.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Graphics::Xbox360EDRAMBudget" Collapsed="true">
+    <Position X="52" Y="8.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AACAmEAAAADBgSAAIgAAEQABQAMFAAIBAAAAiwkDAQA=</HashCode>
+      <FileName>Graphics\Xbox360EDRAM.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Graphics::ResolveOptimizer" Collapsed="true">
+    <Position X="43.25" Y="6.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>BACAEAAAAAAAASAAAAAAAYAAABABEAIAAIAAIA0BAEA=</HashCode>
+      <FileName>Graphics\Xbox360EDRAM.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Graphics::MSAAOptimizer" Collapsed="true">
+    <Position X="50.25" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAACAQAAAAAAAQABAAAiEAIAAQAAAAAAAAE=</HashCode>
+      <FileName>Graphics\Xbox360EDRAM.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Graphics::DebugOverlay" Collapsed="true">
+    <Position X="46.75" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAQIAAAAAAIEUACEABAAQAAAEgAABAAABEAKAAACAA=</HashCode>
+      <FileName>Graphics\Debug\DebugOverlay.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scene::EditorScene" Collapsed="true">
+    <Position X="50.25" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>MGwgiNKVUbMjBIRUR5I0miYmSoIQaAWQBJAJxQmpYaA=</HashCode>
+      <FileName>Scene\EditorScene.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scene::GameScene" Collapsed="true">
+    <Position X="50.25" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>gi0gpLqkBQNeQYUFEFSJFJQIE8K1FeQloRAAKUjYcMI=</HashCode>
+      <FileName>Scene\GameScene.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scene::LoadingScene" Collapsed="true">
+    <Position X="41.5" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>IQQYguCAACkCAAAAEBAAAFQhMoQSoCRQABAMRQBDQAA=</HashCode>
+      <FileName>Scene\LoadingScene.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scene::SceneManager" Collapsed="true">
+    <Position X="48.5" Y="6.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>gEQUGERAgEECAEAgUAAQAAAwQA5YsCQA2BkYAQFAQAY=</HashCode>
+      <FileName>Scene\SceneManager.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Scene::Scene" Collapsed="true">
+    <Position X="8.5" Y="6.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>UCQAgEigRAAAAQAIgAIAAAAAQoAQAAQAAJABAAAABiA=</HashCode>
+      <FileName>Scene\Scene.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::Entity" Collapsed="true">
+    <Position X="53.75" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>EAAAAAAAAAAAAAAAAAgAgAAAAAAAAAQAAAAAAAAAAAA=</HashCode>
+      <FileName>World\Entity.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::IComponent" Collapsed="true">
+    <Position X="5" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAQAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAIAAAAAA=</HashCode>
+      <FileName>World\Components\IComponent.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::EntityManager" Collapsed="true">
+    <Position X="38" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AACRAAQAAAAJAAAAABAABAAABACAAQAEQAAgAABAAAA=</HashCode>
+      <FileName>World\EntityManager.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::WildlifeSystem" Collapsed="true">
+    <Position X="50.25" Y="8.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>BSYkACAAAAAAAAAAAwAABGAIKgAAkABAAIIBAIAAAgA=</HashCode>
+      <FileName>World\WildlifeSystem.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::Map" Collapsed="true">
+    <Position X="43.25" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>owVQAQAAIBAACABBEEAQAABBAAAKQACAIAgKCEFgAog=</HashCode>
+      <FileName>World\Map.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::TileLayer" Collapsed="true">
+    <Position X="52" Y="7.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ARAAIAAAAAAAAAARQAAAAABAAAABAAGAAAAAAEEAAgg=</HashCode>
+      <FileName>World\TileLayer.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::Builder" Collapsed="true">
+    <Position X="2.5" Y="7.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAgAAAAAgAAAAAAAAAAAAAA=</HashCode>
+      <FileName>World\Builder.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::Carrier" Collapsed="true">
+    <Position X="53.75" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>BAUiAiAAAAEBAAAAIQgggCIAACAgAABEAAJBgQAAAQA=</HashCode>
+      <FileName>World\Carrier.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::Flag" Collapsed="true">
+    <Position X="41.5" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>EAAAAgAAACAAAAAQAAgBAICACAABAAAEAgBiCAQAAgA=</HashCode>
+      <FileName>World\Flag.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::FlagManager" Collapsed="true">
+    <Position X="43.25" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>lAQACBAAAkAAARAAAJEBEAFAAAACAAEAAAEQEQBAACA=</HashCode>
+      <FileName>World\FlagManager.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::TransportJobManager" Collapsed="true">
+    <Position X="41.5" Y="8.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AQSwAAEEAABgCACEIAAAEQQgAQACGKAiEAACAAAAQAI=</HashCode>
+      <FileName>World\TransportJobManager.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::RoadManager" Collapsed="true">
+    <Position X="46.75" Y="6.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAYggAAAABAABAAAAAAAAABAEAAAAAEQAABwCQRgQAA=</HashCode>
+      <FileName>World\RoadManager.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::CarrierManager" Collapsed="true">
+    <Position X="38" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAQgAAEgCABgQAIIABYAQAKgIgAAABgAAQAAYAAAQAA=</HashCode>
+      <FileName>World\CarrierManager.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::Pathfinding" Collapsed="true">
+    <Position X="39.75" Y="5.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>World\Pathfinding.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::Soldier" Collapsed="true">
+    <Position X="5.5" Y="7.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAQAAAAAAQAAAAAAAAAAAAAAAgAAAACAAAAAAAAAAAo=</HashCode>
+      <FileName>World\Soldier.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::Worker" Collapsed="true">
+    <Position X="2.5" Y="6.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAABAAAAEAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAA=</HashCode>
+      <FileName>World\Worker.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::Warehouse" Collapsed="true">
+    <Position X="15.25" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAQAAAAAAAAAACAAAAAAAAAAABAAAAAACAAgAAQAAAA=</HashCode>
+      <FileName>World\Warehouse.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::Building" Collapsed="true">
+    <Position X="19.75" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>BFQCEVAQAAAFgEIJAAAAAJAAABEBIQAFIgBBCAAAggA=</HashCode>
+      <FileName>World\Components\Building.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::ConstructionManager" Collapsed="true">
+    <Position X="41.5" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AIQgAAkACAAAAACAAAqACQAgABIAQAAAAIAgUGBAQAA=</HashCode>
+      <FileName>World\ConstructionManager.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::ConstructionSite" Collapsed="true">
+    <Position X="43.25" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AwIACAIAAAAAAAAQQIgAAAAIkAAAZBAEAAJgQBBAQgA=</HashCode>
+      <FileName>World\ConstructionSite.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::HandleRegistry" Collapsed="true">
+    <Position X="43.25" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAABAAEAAACAEAAAAAAAAAAAAAABAAAAAAAAAABAEAA=</HashCode>
+      <FileName>World\Handle.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::ObjectLifecycleManager" Collapsed="true">
+    <Position X="52" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AGAgAAAAAAAAgAAAAAABAAAAMIgBACAEAYAAAAAAQAA=</HashCode>
+      <FileName>World\ObjectLifecycleManager.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::ProductionBuilding" Collapsed="true">
+    <Position X="25.25" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAQAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAQAAAA=</HashCode>
+      <FileName>World\Components\ProductionBuilding.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::HabitatRegistry" Collapsed="true">
+    <Position X="41.5" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAQAAAAAAAAAQCAAAAAAAAAAAAABAAAAAAAAAABAAIA=</HashCode>
+      <FileName>HabitatRegistry.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::Bakery" Collapsed="true">
+    <Position X="22" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQA=</HashCode>
+      <FileName>World\Components\Bakery.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::CoalMine" Collapsed="true">
+    <Position X="6.25" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEAAAEAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAACAQAA=</HashCode>
+      <FileName>World\Components\CoalMine.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::Farm" Collapsed="true">
+    <Position X="8.5" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEAAAEAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>World\Components\Farm.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::Fisher" Collapsed="true">
+    <Position X="13" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEAAAEAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAA=</HashCode>
+      <FileName>World\Components\Fisher.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::GoldMine" Collapsed="true">
+    <Position X="17.5" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEAAAEAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAACAQAA=</HashCode>
+      <FileName>World\Components\GoldMine.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::GoldSmelter" Collapsed="true">
+    <Position X="28.75" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>World\Components\GoldSmelter.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::Hunter" Collapsed="true">
+    <Position X="33.25" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEQAAEAAAAAAAAAAIAAAAAAAAEAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>World\Components\Hunter.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::IronMine" Collapsed="true">
+    <Position X="35.5" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEAAAEAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAACAQAA=</HashCode>
+      <FileName>World\Components\IronMine.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::IronSmelter" Collapsed="true">
+    <Position X="31" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>World\Components\IronSmelter.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::Mill" Collapsed="true">
+    <Position X="19.75" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>World\Components\Mill.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::Sawmill" Collapsed="true">
+    <Position X="24.25" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAA=</HashCode>
+      <FileName>World\Components\Sawmill.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::Stonemason" Collapsed="true">
+    <Position X="4" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>World\Components\Stonemason.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::ToolWorkshop" Collapsed="true">
+    <Position X="26.5" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>World\Components\ToolWorkshop.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::Woodcutter" Collapsed="true">
+    <Position X="10.75" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEAAAEAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>World\Components\Woodcutter.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="World::RenderSystem" Collapsed="true">
+    <Position X="39.75" Y="6.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>World\Systems\RenderSystem.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Logic::ResourceRegistry" Collapsed="true">
+    <Position X="45" Y="6.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AgAAAAAAEACAAAAAAEAAAACEgABBAECAAAACAAgBEAA=</HashCode>
+      <FileName>Logic\ResourceRegistry.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Logic::EconomyManager" Collapsed="true">
+    <Position X="48.5" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>IQUgAAEAAQEEBgAQgFgAEgQADAAAiAABAAAAAQAASAA=</HashCode>
+      <FileName>logic\economymanager.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Logic::InputController" Collapsed="true">
+    <Position X="45" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAwAAAAAAAAAAaASEEAAAIAAAAAABAIAAAAAAAAAAAA=</HashCode>
+      <FileName>Input\InputController.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Logic::AStarOpenList" Collapsed="true">
+    <Position X="39.75" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEAAAAAAAAAAAAAAAAAAAIACEAAAAAAAAAAIAAAAAAA=</HashCode>
+      <FileName>Logic\AStar.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Logic::AStar" Collapsed="true">
+    <Position X="38" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>QAAAAAAAIAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAA=</HashCode>
+      <FileName>Logic\AStar.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Logic::IsoGrid" Collapsed="true">
+    <Position X="48.5" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>QQIAAAgQAACAEQABAAiAIABEAAACAACAAABAAEgAAAE=</HashCode>
+      <FileName>Logic\IsoGrid.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Logic::WeightMap" Collapsed="true">
+    <Position X="46.75" Y="8.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAIAACBAAEAABAEAAAABAAAAAAAKAAAAAAEFABAg=</HashCode>
+      <FileName>Logic\WeightMap.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Input::Gamepad" Collapsed="true">
+    <Position X="48.5" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AFwACAAIAAIBAUBQAAAIAQAAAAAAEABAAAAABEBAAC4=</HashCode>
+      <FileName>Input\Gamepad.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Input::InputManager" Collapsed="true">
+    <Position X="46.75" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAQAAAAAACAAAQACAAAAAQAAAAAAAAEAAAAAKgBAAAA=</HashCode>
+      <FileName>Input\InputManager.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Input::ScreenKeyboard" Collapsed="true">
+    <Position X="50.25" Y="6.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAYgQAGAQACbFQAIEIgiESAAKAIEAAAAABBgKACAAAI=</HashCode>
+      <FileName>Input\ScreenKeyboard.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="UI::Button" Collapsed="true">
+    <Position X="50.25" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AGQAAAAACAQAAwgIAIAAIQUAABEAAQBoIBAMAAECAAI=</HashCode>
+      <FileName>UI\Button.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="UI::UIManager" Collapsed="true">
+    <Position X="43.25" Y="8.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAQCACAAAAKAYQAAABAQAQAsQJICQAAAIBAACAgjAAA=</HashCode>
+      <FileName>UI\UIManager.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="UI::Minimap" Collapsed="true">
+    <Position X="48.5" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ABYACCAEAQAAIaIAAGAAAQEAABBQAAAQIBAFIgACBAA=</HashCode>
+      <FileName>UI\Minimap.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="UI::Panel" Collapsed="true">
+    <Position X="38" Y="5.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>IYQAAACEQAAAIQIAgCRAAQBAcpAAAFgBYBYAAAAiAAA=</HashCode>
+      <FileName>UI\Panel.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="UI::TilePalette" Collapsed="true">
+    <Position X="53.75" Y="7.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>0AQAAAABAAAEAAgAACAAAAQAAAAIAAAAABCEAAEACQA=</HashCode>
+      <FileName>UI\TilePalette.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="UI::WeightMenu" Collapsed="true">
+    <Position X="48.5" Y="8.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AIwEAIAAASAAMSYAAAEABAAgBAAAAgIQgBCQCASABAA=</HashCode>
+      <FileName>UI\WeightMenu.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Editor::MapEditor" Collapsed="true">
+    <Position X="45" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>vzxIDvCIizdhY4SUqACP+SmzhPIGAFscgizYJy/gUlg=</HashCode>
+      <FileName>Editor\MapEditor.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Struct Name="Game::RoadOnlyPassable" Collapsed="true">
+    <Position X="52" Y="13.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAECAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Game\UnitManager.cpp</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Game::RoadCost" Collapsed="true">
+    <Position X="48.5" Y="13.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Game\UnitManager.cpp</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Game::Unit" Collapsed="true">
+    <Position X="5.5" Y="6.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AIAAEAAAAAAgAAAAAAAQAAAAAAAAAQAAAAQAICAAAAA=</HashCode>
+      <FileName>Game\Unit.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="QuadVertex" Collapsed="true">
+    <Position X="45" Y="12.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABpgAQAAAAA=</HashCode>
+      <FileName>Graphics\Quad.cpp</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="FontChar" Collapsed="true">
+    <Position X="43.25" Y="10.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAQAQAAAAAAAABIAAAAAABMwAAAAAAA=</HashCode>
+      <FileName>Graphics\BitmapFont.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="CommonVertex2D" Collapsed="true">
+    <Position X="50.25" Y="9.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAIEAAAAAAACAAAAAAAACAgA=</HashCode>
+      <FileName>Graphics\CommonVertex.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="SpriteVertex" Collapsed="true">
+    <Position X="45" Y="14.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAABJgAQACAAA=</HashCode>
+      <FileName>Graphics\RenderTypes.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="RenderStateBlock" Collapsed="true">
+    <Position X="50.25" Y="12.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>QAAAAAAAAAAACAAAAAAAAAAABAAAAAAIAAAQAEAAAAA=</HashCode>
+      <FileName>Graphics\RenderTypes.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="NodeWeightEntry" Collapsed="true">
+    <Position X="39.75" Y="12.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAgAAAAAAAAABA=</HashCode>
+      <FileName>Graphics\SpriteAtlas.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="SpriteRegion" Collapsed="true">
+    <Position X="41.5" Y="14.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>IAAAAAgBBCAAACQAQAAAAQABABIkAAAAQBNhEAAAAAA=</HashCode>
+      <FileName>Graphics\SpriteAtlas.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="SpriteAnimation" Collapsed="true">
+    <Position X="39.75" Y="14.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAgAAACAAAAAAAAIAABAEEIAAgAAAAAAAAAAA=</HashCode>
+      <FileName>Graphics\SpriteAtlas.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Glyph" Collapsed="true">
+    <Position X="50.25" Y="10.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAQAQAAAAAAAABIAAAAAABMwAAAAAAA=</HashCode>
+      <FileName>Graphics\TextManager.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="FontData" Collapsed="true">
+    <Position X="45" Y="10.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AQAAAAAAAAAAAAAAAAAAAAAACAAAIgAAAAAAAAAAAAA=</HashCode>
+      <FileName>Graphics\TextManager.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="IsoTransform" Collapsed="true">
+    <Position X="43.25" Y="11.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAEAAAAQAAAAAgAQACBAAAAAAABAAA=</HashCode>
+      <FileName>Graphics\TileRenderer.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Header" Collapsed="true">
+    <Position X="53.75" Y="10.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAACAAAAAAAAAAAAAAAAAAACAAAAAQAAAAAAQAABA=</HashCode>
+      <FileName>World\MapSerializer.cpp</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="BufferReader" Collapsed="true">
+    <Position X="45" Y="9.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAIAAAIAgAAAAAAAAAAAQAAEAAAA=</HashCode>
+      <FileName>World\MapSerializer.cpp</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="LogicRenderCmd" Collapsed="true">
+    <Position X="50.25" Y="11.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAEAAGABKAQAhgIAAAAAA=</HashCode>
+      <FileName>Core\ThreadSync.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="LogicFrameBuffer" Collapsed="true">
+    <Position X="48.5" Y="11.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAMAAAAAAAAAAAAAAAQIAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Core\ThreadSync.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Vector2i" Collapsed="true">
+    <Position X="53.75" Y="14.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABgAAAAAAA=</HashCode>
+      <FileName>Core\Vector2i.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Job" Collapsed="true">
+    <Position X="45" Y="11.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAQAAAAAAA=</HashCode>
+      <FileName>Core\JobManager.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Graphics::RenderBatch" Collapsed="true">
+    <Position X="46.75" Y="12.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAACAAAAAAAAAIBEAAACAAAAAAAA=</HashCode>
+      <FileName>Graphics\BatchBuilder.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Graphics::LightDesc" Collapsed="true">
+    <Position X="46.75" Y="11.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAACAEAIAAAAACAICAAACABCACAAAAAAAAAAAA=</HashCode>
+      <FileName>Graphics\Light.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Graphics::GPUTimerResult" Collapsed="true">
+    <Position X="52" Y="10.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAEAAAAAAAAAAAAAAAAAAAAAQBEAAAIAAAAAAAAAAA=</HashCode>
+      <FileName>Graphics\GPUTimer.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Graphics::BloomSettings" Collapsed="true">
+    <Position X="43.25" Y="9.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAACAAAAAAAAAAAAAAAAAAACCAAgAAAAAAAAAA=</HashCode>
+      <FileName>Graphics\PostProcessing.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Graphics::ToneMappingSettings" Collapsed="true">
+    <Position X="50.25" Y="14.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>CAEAAAAAAAAAAAACBAAAAAAQAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Graphics\PostProcessing.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Graphics::ColorGradingSettings" Collapsed="true">
+    <Position X="48.5" Y="9.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AgEAggAAEAAAAAAAAAAAAAAAAAAAAAAAAQQABAAAAAA=</HashCode>
+      <FileName>Graphics\PostProcessing.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Graphics::FogSettings" Collapsed="true">
+    <Position X="41.5" Y="10.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>BIAAAQAAAAAAAAAAAACAAAAAAAAAABAAABgAJAAAAAA=</HashCode>
+      <FileName>Graphics\PostProcessing.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Graphics::RenderStats" Collapsed="true">
+    <Position X="53.75" Y="12.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAIAAABAAAFAAIIBQAgQwAABAQAEQAAAAAAAEAAAA=</HashCode>
+      <FileName>Graphics\RenderDebugOverlay.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Graphics::RenderTargetInfo" Collapsed="true">
+    <Position X="38" Y="13.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAgCQAQAQACAAAAAAEAAAAAAgAgAAAAgA=</HashCode>
+      <FileName>Graphics\RenderTargetManager.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Graphics::RenderCommand" Collapsed="true">
+    <Position X="48.5" Y="12.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AQAAAAAAAAAAAAQAQACAAAAAABIAIBCAABJgJAAAAAA=</HashCode>
+      <FileName>Graphics\RenderTypes.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Graphics::RenderStateCache" Collapsed="true">
+    <Position X="52" Y="12.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>QAQBAEAAAAAAGAAAAAAAAAAABAAEIAAIBAAQICgAAAA=</HashCode>
+      <FileName>Graphics\SpriteRenderer.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Graphics::SpriteShadowData" Collapsed="true">
+    <Position X="43.25" Y="14.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAATAQAABAAAAAAAAAACAAABgAAAAAAA=</HashCode>
+      <FileName>Graphics\SpriteShadow.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Graphics::MRTFormatConfig" Collapsed="true">
+    <Position X="53.75" Y="11.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAIAAAAAAAAAAAAAAAAACAAAAAAgAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Graphics\Xbox360EDRAM.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Graphics::EDRAMTileStats" Collapsed="true">
+    <Position X="38" Y="10.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAQAAAAAAQAAAAAAAAAAAAAAgAAAAAAABAAA=</HashCode>
+      <FileName>Graphics\Xbox360EDRAM.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Graphics::FrameStats" Collapsed="true">
+    <Position X="48.5" Y="10.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAEAIAAAAAAAAAAAIAAAAQAAABQAAAQAAAAIAAEAAAA=</HashCode>
+      <FileName>Graphics\Debug\DebugOverlay.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Graphics::PassTiming" Collapsed="true">
+    <Position X="41.5" Y="12.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAEAAAAAAAAAAAAAAAAAAAAAAAEAAQAAAAAAAAAAAA=</HashCode>
+      <FileName>Graphics\Debug\DebugOverlay.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Scene::ResourceMenuGroupDef" Collapsed="true">
+    <Position X="39.75" Y="13.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAACAABAAAAAAAAAAAAAEAAAAAAAAAABA=</HashCode>
+      <FileName>Scene\EditorScene.cpp</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Scene::EconomyJobData" Collapsed="true">
+    <Position X="52" Y="9.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>EAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABA=</HashCode>
+      <FileName>Scene\GameScene.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Scene::WildlifeSectorData" Collapsed="true">
+    <Position X="38" Y="15.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAACAAAAAACAgAIAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Scene\GameScene.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Scene::AIChunkData" Collapsed="true">
+    <Position X="38" Y="9.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAABAAAAAAAAAIAAABAAAAAAEAAAAAIAAAA=</HashCode>
+      <FileName>Scene\GameScene.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="World::SpawnerInfo" Collapsed="true">
+    <Position X="38" Y="14.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAABgAAAAAAA=</HashCode>
+      <FileName>World\WildlifeSystem.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="World::ResourceNode" Collapsed="true">
+    <Position X="41.5" Y="13.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAABAAAQAAAAABgAAgAAAAAAAAAAA=</HashCode>
+      <FileName>World\ResourceNode.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="World::Tile" Collapsed="true">
+    <Position X="46.75" Y="14.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AgAAAAAAAAAAAAYAAAAAAACAAhIBAAAAABJgAAAIAQE=</HashCode>
+      <FileName>World\Tile.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="World::AnimalHabitat" Collapsed="true">
+    <Position X="41.5" Y="9.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAgAAAAACAAAAAAAAAAEAAACAAABAAAAAAAAAAAAAgA=</HashCode>
+      <FileName>World\AnimalHabitat.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="World::MapNode" Collapsed="true">
+    <Position X="52" Y="11.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAASAAAAACAAgARAAAAAACAAAAAAAAAAAAAAAABAAAA=</HashCode>
+      <FileName>World\MapNode.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="World::Animal" Collapsed="true">
+    <Position X="39.75" Y="9.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAEAAAAAAAAAAAAAAABAAAEAABgIAAAAAA=</HashCode>
+      <FileName>World\Animal.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="World::Road" Collapsed="true">
+    <Position X="46.75" Y="13.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAIAAAAAIAAAAAAAAgAAAAAkAQAAAAAAAgA=</HashCode>
+      <FileName>World\Road.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="World::FlagData" Collapsed="true">
+    <Position X="39.75" Y="10.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAgAAACAAAAAAAAAAAAAAAAABAAAAAABgAAAAAgA=</HashCode>
+      <FileName>World\Flag.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="World::ResourceSlot" Collapsed="true">
+    <Position X="45" Y="13.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAACAAIAAAAAAAAAAABgAAAAAAEAAAAAAA=</HashCode>
+      <FileName>World\Flag.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="World::Handle&lt;T&gt;" Collapsed="true">
+    <Position X="3.5" Y="10.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAgAAAAAAAAAAAAAAAgAAQAAAAAAAAIAAAAAEAABAAA=</HashCode>
+      <FileName>World\Handle.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="World::RoadData" Collapsed="true">
+    <Position X="50.25" Y="13.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAQAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAACAgA=</HashCode>
+      <FileName>World\Road.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="World::Cargo" Collapsed="true">
+    <Position X="46.75" Y="9.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAACAAAAAAAAAAAAAABgAABAAAAAAAAAAA=</HashCode>
+      <FileName>World\TransportJob.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="World::TransportJob" Collapsed="true">
+    <Position X="52" Y="14.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AIBAAAAAAAAAACAQAAAAAABAAAAEgAAUAACAAAAAAgA=</HashCode>
+      <FileName>World\TransportJob.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="World::InTransitCounts" Collapsed="true">
+    <Position X="38" Y="11.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAABAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>World\TransportJobManager.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="World::ProductionRule" Collapsed="true">
+    <Position X="43.25" Y="12.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAABAICAAAAAAAAgCAAAABAAABIIAAAABAA=</HashCode>
+      <FileName>World\Components\Building.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="World::ModelComponent" Collapsed="true">
+    <Position X="2.75" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAEIAAAAAAAAIAAAAAAAKIAAAAA=</HashCode>
+      <FileName>World\Components\ModelComponent.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="World::SpriteComponent" Collapsed="true">
+    <Position X="5" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAIQAAAAAAAAAAgCBABAAKIAAAAA=</HashCode>
+      <FileName>World\Components\SpriteComponent.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="World::TransformComponent" Collapsed="true">
+    <Position X="7.25" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAEEAAAAAAAACAIAACAAAAAAAAAAAAIIAAAAA=</HashCode>
+      <FileName>World\Components\TransformComponent.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Logic::FourDirNeighbors" Collapsed="true">
+    <Position X="46.75" Y="10.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Logic\AStar.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Logic::IsoNeighbors" Collapsed="true">
+    <Position X="41.5" Y="11.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Logic\AStar.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Logic::ResourceRouteConfig" Collapsed="true">
+    <Position X="43.25" Y="13.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAgAAIAAAAAAAAAAAAAE=</HashCode>
+      <FileName>Logic\EconomySettings.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Logic::EconomySettings" Collapsed="true">
+    <Position X="53.75" Y="9.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>QAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Logic\EconomySettings.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Logic::IsoCell" Collapsed="true">
+    <Position X="39.75" Y="11.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAABJgAAAAAAAAAAQ=</HashCode>
+      <FileName>Logic\IsoGrid.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Input::ScreenKeyboardState" Collapsed="true">
+    <Position X="53.75" Y="13.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAACAAAAgAAAAAAAAADAIAAAACAAAAAA=</HashCode>
+      <FileName>Input\ScreenKeyboard.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="UI::TileButtonData" Collapsed="true">
+    <Position X="48.5" Y="14.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAACAAAIAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>UI\TilePalette.cpp</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Editor::NodePos" Collapsed="true">
+    <Position X="38" Y="12.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Editor\MapEditor.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Typedef Name="uint8_t" Collapsed="true">
+    <Position X="48.5" Y="20.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Graphics\BinFileManager.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="uint16_t" Collapsed="true">
+    <Position X="45" Y="20.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Graphics\BinFileManager.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="uint32_t" Collapsed="true">
+    <Position X="46.75" Y="20.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Graphics\BinFileManager.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="AtlasPtr" Collapsed="true">
+    <Position X="38" Y="20.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Graphics\BinFileManager.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="World::EntityID" Collapsed="true">
+    <Position X="41.5" Y="20.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>World\Entity.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="World::CarrierHandle" Collapsed="true">
+    <Position X="6.5" Y="10.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>World\Carrier.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="World::FlagHandle" Collapsed="true">
+    <Position X="0.5" Y="10.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>World\Flag.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="World::RoadHandle" Collapsed="true">
+    <Position X="3.5" Y="12.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>World\Road.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="UI::ButtonCallback" Collapsed="true">
+    <Position X="39.75" Y="20.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>UI\Button.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="JobFunction" Collapsed="true">
+    <Position X="43.25" Y="20.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Core\JobManager.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Enum Name="FontSpace" Collapsed="true">
+    <Position X="48.5" Y="17.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAgAAAAAAAAAAAABAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Graphics\BitmapFont.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="RenderLayer" Collapsed="true">
+    <Position X="43.25" Y="18.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAQAAAAAAgAAABAAAAAAAAAEAAAAAAAAAAAIAAEAA=</HashCode>
+      <FileName>Graphics\RenderLayers.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="ShaderID" Collapsed="true">
+    <Position X="52" Y="18.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAACAAQAAABEAFAAAAAAAAAgAAA=</HashCode>
+      <FileName>Graphics\ShaderManager.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="FontID" Collapsed="true">
+    <Position X="46.75" Y="17.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAEAIAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAQAAAAAAA=</HashCode>
+      <FileName>Graphics\TextManager.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="FontStyle" Collapsed="true">
+    <Position X="50.25" Y="17.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAgACAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Graphics\TextManager.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="MenuState" Collapsed="true">
+    <Position X="39.75" Y="18.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAgAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Scene\MenuScene.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Graphics::FallbackType" Collapsed="true">
+    <Position X="43.25" Y="17.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAACAAAAAQAgAAAAAAAAAACAABA=</HashCode>
+      <FileName>Graphics\FallbackResources.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Graphics::LightType" Collapsed="true">
+    <Position X="38" Y="18.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAQAAAAAAAAAgAAAAAAAAAAAAEAAAAAAA=</HashCode>
+      <FileName>Graphics\Light.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Graphics::EDRAMBudgetState" Collapsed="true">
+    <Position X="41.5" Y="17.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAIAAAAAAAAAAAAAAgAAAAAAAAAAAAAABAAAAAA=</HashCode>
+      <FileName>Graphics\Xbox360EDRAM.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Scene::EditorState" Collapsed="true">
+    <Position X="39.75" Y="17.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAIAAAAAIAAAAgAAAAAAAAAAIAAEAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Scene\EditorScene.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Scene::EditorMode" Collapsed="true">
+    <Position X="38" Y="17.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>IAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAgAAABAAA=</HashCode>
+      <FileName>Scene\EditorScene.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="World::WeightType" Collapsed="true">
+    <Position X="41.5" Y="19.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAEAAAEAAAAAgAQAAAAAAAAAAAAAA=</HashCode>
+      <FileName>World\ResourceNode.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="World::ResourceType" Collapsed="true">
+    <Position X="46.75" Y="18.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AgECAgAEAACBEAAgAQBBCAgAABAoAAIUBAiEgQAEAYI=</HashCode>
+      <FileName>World\ResourceNode.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="World::LayerType" Collapsed="true">
+    <Position X="53.75" Y="17.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAgABAAIABAAAAAEAAAAAgAAQAAAAEAAAAAAAAAEAA=</HashCode>
+      <FileName>World\TileLayer.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="World::TileType" Collapsed="true">
+    <Position X="38" Y="19.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ABAAAAIAAACCAAAAAEAAAAAAAAAAAAAAAgAAACAAAAA=</HashCode>
+      <FileName>World\TileType.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="World::AnimalType" Collapsed="true">
+    <Position X="39.75" Y="17" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAQAAAAAEAABAAQAAAAAAAAAAAAAIAAAAAAAAAAAAAA=</HashCode>
+      <FileName>World\AnimalTypes.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="World::CarrierState" Collapsed="true">
+    <Position X="50.25" Y="17" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAIAAIAAAAAAA=</HashCode>
+      <FileName>World\Carrier.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="World::SoldierRank" Collapsed="true">
+    <Position X="53.75" Y="18.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ABABAAAAAAAAAAAAAAAAACAAEAAAAAAAAAAAAACAAAA=</HashCode>
+      <FileName>World\Soldier.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="World::WorkerState" Collapsed="true">
+    <Position X="43.25" Y="19.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAACAAAAAAAAAAgAAAAACAAAAAAAAAAAAAAAAAQAAA=</HashCode>
+      <FileName>World\Worker.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="World::AnimalState" Collapsed="true">
+    <Position X="38" Y="17" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAACAAAAAAAAAAAAAAAAAAACAAAAAAAAA=</HashCode>
+      <FileName>World\Animal.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="World::BuilderState" Collapsed="true">
+    <Position X="43.25" Y="17" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AIAAAAAAAABAAAAAAAAAQAAAAAAAAAAAAAAEAAAAAAA=</HashCode>
+      <FileName>World\ConstructionSite.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="World::FlagType" Collapsed="true">
+    <Position X="45" Y="17.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAQAAAAAAAAAAAAAAIBAAAAAAAAAABAAAA=</HashCode>
+      <FileName>World\Flag.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="World::ObjectState" Collapsed="true">
+    <Position X="41.5" Y="18.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAEAAAAAAAAAAAAAAAAAIAAAAgAAAAAAAAAAA=</HashCode>
+      <FileName>World\ObjectState.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="World::BuildingType" Collapsed="true">
+    <Position X="48.5" Y="17" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>CQgAACACEAQAAAAAQEBEEAUAAETSAQAIACAAAAQhEQA=</HashCode>
+      <FileName>World\Components\Building.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="World::BuildingState" Collapsed="true">
+    <Position X="46.75" Y="17" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAECAAAAAAAAAAAAAAABAEAAQAAAAA=</HashCode>
+      <FileName>World\Components\Building.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="World::BuildingFSM" Collapsed="true">
+    <Position X="45" Y="17" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAQAAABQAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>World\Components\Building.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="World::ComponentTypeID" Collapsed="true">
+    <Position X="52" Y="17" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAIEAAAAAAAAAAAAAAgAAAAAAAAAAABA=</HashCode>
+      <FileName>World\Components\IComponent.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Logic::ResourceRouting" Collapsed="true">
+    <Position X="45" Y="18.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAA=</HashCode>
+      <FileName>Logic\EconomySettings.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Logic::TileWeight" Collapsed="true">
+    <Position X="39.75" Y="19.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAgAAAAAAAIAAAAAAAAAAIAABMIAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Logic\WeightMap.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Input::GamepadButton" Collapsed="true">
+    <Position X="52" Y="17.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ARoAABgABAAAAAAACCgAAAEAAAAAAAKgABAIAAAAEAA=</HashCode>
+      <FileName>Input\Gamepad.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Input::ScreenKeyboardMode" Collapsed="true">
+    <Position X="50.25" Y="18.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAABAAAAAAAAAABAAgAAAAAABAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Input\ScreenKeyboard.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Editor::EditMode" Collapsed="true">
+    <Position X="53.75" Y="17" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAEAAIAAAAAAAAAIAACAAAAAI=</HashCode>
+      <FileName>Editor\MapEditor.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Editor::BrushSize" Collapsed="true">
+    <Position X="41.5" Y="17" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAgBAAABAAAAAAAAAAAAAAAAAABAAAAAAA=</HashCode>
+      <FileName>Editor\MapEditor.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Editor::RoadBuildState" Collapsed="true">
+    <Position X="48.5" Y="18.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAIAAQAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Editor\MapEditor.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

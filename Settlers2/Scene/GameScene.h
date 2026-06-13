@@ -36,14 +36,6 @@ struct EconomyJobData
     World::CarrierManager* carriers;
 };
 
-struct WildlifeSectorData
-{
-    World::WildlifeSystem* wildlife;
-    int startSpawner;
-    int endSpawner;
-    std::vector<World::Animal> newAnimals;
-};
-
 static const int MAX_REQUESTS_PER_CHUNK = 8;
 
 struct AIChunkData
@@ -77,6 +69,7 @@ private:
 
     // Systems
     World::Map* m_map;
+    World::AnimalManager* m_animalManager;
     World::WildlifeSystem* m_wildlife;
     Logic::EconomyManager* m_economyManager;
     World::CarrierManager* m_carrierManager;
@@ -219,9 +212,11 @@ private:
     static const uint32_t CONSTRUCTION_PIXEL_W;
     static const uint32_t CONSTRUCTION_PIXEL_H;
 
+    // Wildlife regeneration timer
+    float m_wildlifeRegenTimer;
+
     // Job data (reused each frame)
     EconomyJobData m_economyJobData;
-    WildlifeSectorData m_wildlifeSectors[4];
     AIChunkData m_aiChunks[4];
 };
 

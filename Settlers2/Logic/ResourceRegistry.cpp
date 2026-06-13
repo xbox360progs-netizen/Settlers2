@@ -52,49 +52,65 @@ namespace Logic {
         return m_planningReserved[type];
     }
 
-     World::Building* ResourceRegistry::FindBestSupplier(
-         World::ResourceType type,
-         int& outAmount,
-         World::Building* exclude,
-         const Vector2i& requesterPos,
-         const int* deliveryReserved)
-     {
-         (void)deliveryReserved; // Not used in this implementation
+    void ResourceRegistry::BuildWorldResourceCache(World::Map* map) {
+        ClearWorldResources();
+        // Resource map is stored at layer resolution (m_width*2 x m_height*4),
+        // NOT ground resolution (m_width x m_height). Scan all nodes.
+        int w = map->GetWidth() * 2;
+        int h = map->GetHeight() * 4;
+        for (int y = 0; y < h; ++y) {
+            for (int x = 0; x < w; ++x) {
+                const World::ResourceNode& node = map->GetResourceNode(x, y);
+                if (node.type != World::ResourceType_None) {
+                    RegisterWorldResource(node.type, x, y);
+                }
+            }
+        }
+    }
 
-         std::vector<World::Building*>& vec = m_producers[type];
-         World::Building* best = NULL;
-         int bestScore = 999999;
+    World::Building* ResourceRegistry::FindBestSupplier(
+        World::ResourceType type,
+        int& outAmount,
+        World::Building* exclude,
+        const Vector2i& requesterPos,
+        const int* deliveryReserved)
+    {
+        (void)deliveryReserved;
 
-         static const int CONGESTION_FACTOR = 4; // Every 4 units of reserved output adds 1 to distance score
+        std::vector<World::Building*>& vec = m_producers[type];
+        World::Building* best = NULL;
+        int bestScore = 999999;
 
-         for (size_t i = 0; i < vec.size(); ++i) {
-             World::Building* b = vec[i];
-             if (b == exclude) continue;
-             if (b->state != World::State_Finished) continue;
+        static const int CONGESTION_FACTOR = 4;
 
-             if (b->m_storage[type] <= 0) continue;
+        for (size_t i = 0; i < vec.size(); ++i) {
+            World::Building* b = vec[i];
+            if (b == exclude) continue;
+            if (b->state != World::State_Finished) continue;
 
-             int baseDist = abs(b->pos.x - requesterPos.x) + abs(b->pos.y - requesterPos.y);
-             int congestion = 0;
-             if (b->connectedFlag) {
-                 for (int s = 0; s < 8; ++s) {
-                     if (b->connectedFlag->slots[s].type == type) {
-                         congestion += b->connectedFlag->slots[s].reserved;
-                     }
-                 }
-             }
-             congestion = congestion / CONGESTION_FACTOR;
-             int score = baseDist + congestion;
+            if (b->m_storage[type] <= 0) continue;
 
-             if (!best || score < bestScore) {
-                 best = b;
-                 bestScore = score;
-                 outAmount = b->m_storage[type];
-             }
-         }
+            int baseDist = abs(b->pos.x - requesterPos.x) + abs(b->pos.y - requesterPos.y);
+            int congestion = 0;
+            if (b->connectedFlag) {
+                for (int s = 0; s < 8; ++s) {
+                    if (b->connectedFlag->slots[s].type == type) {
+                        congestion += b->connectedFlag->slots[s].reserved;
+                    }
+                }
+            }
+            congestion = congestion / CONGESTION_FACTOR;
+            int score = baseDist + congestion;
 
-         return best;
-     }
+            if (!best || score < bestScore) {
+                best = b;
+                bestScore = score;
+                outAmount = b->m_storage[type];
+            }
+        }
+
+        return best;
+    }
 
     bool ResourceRegistry::FindNearestWorldResource(World::ResourceType type, const Vector2i& pos, Vector2i& outPos) {
         std::vector<Vector2i>& vec = m_worldResources[type];
@@ -136,20 +152,4 @@ namespace Logic {
         }
     }
 
-    void ResourceRegistry::BuildWorldResourceCache(World::Map* map) {
-        ClearWorldResources();
-        // Resource map is stored at layer resolution (m_width*2 x m_height*4),
-        // NOT ground resolution (m_width x m_height). Scan all nodes.
-        int w = map->GetWidth() * 2;
-        int h = map->GetHeight() * 4;
-        for (int y = 0; y < h; ++y) {
-            for (int x = 0; x < w; ++x) {
-                const World::ResourceNode& node = map->GetResourceNode(x, y);
-                if (node.type != World::ResourceType_None) {
-                    RegisterWorldResource(node.type, x, y);
-                }
-            }
-        }
-    }
-
-}
+} // namespace Logic

@@ -669,16 +669,6 @@ void MapEditor::RenderGridLayer() {
                     cmd.layer = LAYER_EFFECTS;
                     cmd.depth = 600;
                     m_renderQueue->Submit(cmd);
-
-                    // Отображение количества ресурса в жиле
-                    if (m_textManager) {
-                        char amountStr[16];
-                        sprintf_s(amountStr, "%d", rn.amount);
-                        float textX = iconX + iconW * 0.5f;
-                        float textY = iconY + iconH + 2.0f;
-                        DWORD textColor = (rn.amount > 10) ? 0xFFFFCC00 : 0xFFFF4444;
-                        m_textManager->DrawTextToWorld(amountStr, textX, textY, textColor, 0.15f);
-                    }
                 }
             }
         }

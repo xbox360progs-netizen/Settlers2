@@ -93,6 +93,16 @@ public:
         wy = originY + ny * (m_nodeH * 0.5f);
     }
 
+    // Float overload for smooth sub-tile positioning
+    void NodeTileToWorld(float nx, float ny, float& wx, float& wy) const {
+        float originX = m_groundLeft;
+        float originY = m_groundTop;
+        int iy = (int)ny;
+        float offsetX = ((iy % 2) == 0) ? (m_nodeW * 0.5f) : 0.0f;
+        wx = originX + nx * m_nodeW + offsetX;
+        wy = originY + ny * (m_nodeH * 0.5f);
+    }
+
     // World coords to node tile (staggered, compact isometric)
     void WorldToNodeTile(float wx, float wy, int& nx, int& ny) const {
         float originX = m_groundLeft;

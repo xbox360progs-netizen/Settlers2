@@ -236,6 +236,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="ClassDiagram1.cd" />
+    <None Include="ClassDiagram2.cd" />
     <None Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
@@ -279,6 +281,7 @@
     <ClInclude Include="Graphics\TextureRegistry.h" />
     <ClInclude Include="Graphics\TileRenderer.h" />
     <ClInclude Include="Graphics\Xbox360EDRAM.h" />
+    <ClInclude Include="HabitatRegistry.h" />
     <ClInclude Include="Input\Gamepad.h" />
     <ClInclude Include="Input\InputContext.h" />
     <ClInclude Include="Input\InputController.h" />
@@ -310,6 +313,12 @@
     <ClInclude Include="UI\UIManager.h" />
     <ClInclude Include="UI\TilePalette.h" />
     <ClInclude Include="UI\WeightMenu.h" />
+    <ClInclude Include="World\AnimalHabitat.h" />
+    <ClInclude Include="World\AnimalManager.h" />
+    <ClInclude Include="World\AnimalTypes.h" />
+    <ClInclude Include="World\Builder.h" />
+    <ClInclude Include="World\Carrier.h" />
+    <ClInclude Include="World\CarrierManager.h" />
     <ClInclude Include="World\Components\Bakery.h" />
     <ClInclude Include="World\Components\Building.h" />
     <ClInclude Include="World\Components\CoalMine.h" />
@@ -341,6 +350,11 @@
     <ClInclude Include="World\Animal.h" />
     <ClInclude Include="World\EntityManager.h" />
     <ClInclude Include="World\Map.h" />
+    <ClInclude Include="World\MapNode.h" />
+    <ClInclude Include="World\Pathfinding.h" />
+    <ClInclude Include="World\Soldier.h" />
+    <ClInclude Include="World\Unit.h" />
+    <ClInclude Include="World\Warehouse.h" />
     <ClInclude Include="World\WildlifeSystem.h" />
     <ClInclude Include="World\MapSerializer.h" />
     <ClInclude Include="World\Flag.h" />
@@ -365,6 +379,7 @@
     <ClInclude Include="World\TileLayer.h" />
     <ClInclude Include="World\TileType.h" />
     <ClInclude Include="Editor\MapEditor.h" />
+    <ClInclude Include="World\Worker.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\GameEngine.cpp" />
@@ -445,6 +460,7 @@
     <ClCompile Include="World\Components\Unit.cpp" />
     <ClCompile Include="World\CarrierManager.cpp" />
     <ClCompile Include="World\FlagManager.cpp" />
+    <ClCompile Include="World\HabitatRegistry.cpp" />
     <ClCompile Include="World\RoadManager.cpp" />
     <ClCompile Include="World\TransportJobManager.cpp" />
     <ClCompile Include="World\ObjectDeletionRules.cpp" />
@@ -455,6 +471,7 @@
     <ClCompile Include="World\EntityManager.cpp" />
     <ClCompile Include="World\Map.cpp" />
     <ClCompile Include="World\MapSerializer.cpp" />
+    <ClCompile Include="World\AnimalManager.cpp" />
     <ClCompile Include="World\WildlifeSystem.cpp" />
     <ClCompile Include="World\Systems\EconomySystem.cpp" />
     <ClCompile Include="World\Systems\PathfindingSystem.cpp" />

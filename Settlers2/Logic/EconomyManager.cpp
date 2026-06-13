@@ -215,6 +215,7 @@ namespace Logic {
         }
 
         // ─── Phase 6: Outbound — routing-aware surplus distribution ──────
+        uint32_t whFlagId = (m_warehouse && m_warehouse->connectedFlag) ? m_warehouse->connectedFlag->id : 0;
         for (size_t i = 0; i < m_buildings.size(); ++i) {
             World::Building* b = m_buildings[i];
             if (b->state != World::State_Finished) continue;
@@ -230,7 +231,7 @@ namespace Logic {
 
                         if (cfg.routing == ROUTE_DIRECT) continue;
 
-                        if (!b->connectedFlag->AddResource(outType, 1)) continue;
+                        if (!b->connectedFlag->AddResource(outType, 1, whFlagId)) continue;
                         b->m_storage[outType]--;
                     }
                 }
@@ -243,7 +244,7 @@ namespace Logic {
 
                     if (cfg.routing == ROUTE_DIRECT) continue;
 
-                    if (!b->connectedFlag->AddResource(outType, 1)) continue;
+                    if (!b->connectedFlag->AddResource(outType, 1, whFlagId)) continue;
                     b->m_storage[outType]--;
                 }
             }
@@ -395,9 +396,10 @@ namespace Logic {
             for (int si = 0; si < 8; ++si) {
                 World::ResourceSlot& slot = whFlag->slots[si];
                 if (slot.type == World::ResourceType_None || slot.amount <= 0) continue;
-                // Only collect resources without a destination (free surplus flowing back).
-                // Resources with destFlagId are in-transit and must stay on the flag.
-                if (slot.destFlagId != 0) continue;
+                // Collect resources destined for NOTHING (free surplus) OR destined for this very flag
+                // (incoming from Phase-6 routing / carrier delivery).  Resources with a *different*
+                // destFlagId are in-transit and must stay on the flag.
+                if (slot.destFlagId != 0 && slot.destFlagId != whFlag->id) continue;
                 if (slot.amount > 0) {
                     whFlag->RemoveResource(slot.type, 1);
                     m_warehouse->AddResource(slot.type, 1);

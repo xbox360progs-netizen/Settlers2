@@ -2,53 +2,55 @@
 #include <vector>
 #include <cstdlib>
 #include "Animal.h"
-#include "ResourceNode.h"
-#include "Map.h"
+#include "AnimalHabitat.h"
+#include "HabitatRegistry.h"
+#include "AnimalManager.h"
 
 namespace World {
 
-struct SpawnerInfo {
-    int x, y;
-    AnimalType type;
-};
+class Map; // forward
 
 class WildlifeSystem {
 public:
-    WildlifeSystem(Map* map);
+    WildlifeSystem(Map* map, AnimalManager* animalManager);
     ~WildlifeSystem();
 
-    void Update(float deltaTime);
+    void Update(float deltaTime, const HabitatRegistry& habitats);
 
     bool ShouldSpawn(float dt);
-    int GetSpawnerCount() const { return (int)m_spawners.size(); }
-    void ProcessSpawnerRange(int start, int end, std::vector<Animal>& outNewAnimals);
     void AddAnimals(const std::vector<Animal>& animals);
 
-    int FindAliveAnimal(int x, int y, int radius, AnimalType type) const;
-    bool IsAlive(int index) const;
-    void TrapAnimal(int index);
-    void RemoveAnimal(int index);
+    int FindAliveAnimal(int x, int y, int radius, AnimalType type) const {
+        return m_animalManager->FindAliveAnimal(x, y, radius, type);
+    }
+    bool IsAlive(int index) const {
+        return m_animalManager->IsAlive(index);
+    }
+    void TrapAnimal(int index) {
+        m_animalManager->TrapAnimal(index);
+    }
+    void RemoveAnimal(int index) {
+        m_animalManager->RemoveAnimal(index);
+    }
 
-    int GetAnimalCount() const { return (int)m_animals.size(); }
-    const std::vector<Animal>& GetAllAnimals() const { return m_animals; }
+    int GetAnimalCount() const { return m_animalManager->GetCount(); }
+    const std::vector<Animal>& GetAllAnimals() const {
+        return m_animalManager->GetAllAnimals();
+    }
 
 private:
-    void ScanSpawners();
-    void SpawnAtSpawner(const SpawnerInfo& spawner);
-    int CountAnimalsAtSpawner(int sx, int sy, AnimalType type) const;
+    void SpawnAtHabitat(const AnimalHabitat& habitat);
+    int CountAnimalsAtHabitat(int hx, int hy, AnimalType type) const;
 
-    void MoveAnimals();
+    void MoveAnimals(float dt);
 
     Map* m_map;
-    std::vector<Animal> m_animals;
-    std::vector<SpawnerInfo> m_spawners;
+    AnimalManager* m_animalManager;
     float m_spawnTimer;
+    float m_dirTimer;
 
     static const float SPAWN_COOLDOWN;
-    static const float MOVE_INTERVAL;
     static const int MAX_PER_SPAWNER;
-
-    float m_moveTimer;
 };
 
 } // namespace World
