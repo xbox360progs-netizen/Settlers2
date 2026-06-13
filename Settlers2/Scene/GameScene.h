@@ -8,8 +8,11 @@
 #include "../Graphics/TileRenderer.h"
 #include "../World/Map.h"
 #include "../World/WildlifeSystem.h"
+#include "../World/EntityManager.h"
+#include "../World/Systems/AnimalSystem.h"
 #include "../Logic/EconomyManager.h"
 #include "../World/CarrierManager.h"
+#include "../World/Systems/CarrierSystem.h"
 #include "../Logic/AISystem.h"
 #include "../World/Components/Building.h"
 #include "../World/Flag.h"
@@ -69,10 +72,13 @@ private:
 
     // Systems
     World::Map* m_map;
+    World::EntityManager* m_entityManager;
+    World::AnimalSystem* m_animalSystem;
     World::AnimalManager* m_animalManager;
     World::WildlifeSystem* m_wildlife;
     Logic::EconomyManager* m_economyManager;
     World::CarrierManager* m_carrierManager;
+    World::CarrierSystem* m_carrierSystem;
     Logic::AISystem* m_aiSystem;
 
     // Graphics

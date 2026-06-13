@@ -319,6 +319,7 @@
     <ClInclude Include="World\Builder.h" />
     <ClInclude Include="World\Carrier.h" />
     <ClInclude Include="World\CarrierManager.h" />
+    <ClInclude Include="World\Component.h" />
     <ClInclude Include="World\Components\Bakery.h" />
     <ClInclude Include="World\Components\Building.h" />
     <ClInclude Include="World\Components\CoalMine.h" />
@@ -374,6 +375,8 @@
     <ClInclude Include="World\Systems\EconomySystem.h" />
     <ClInclude Include="World\Systems\PathfindingSystem.h" />
     <ClInclude Include="World\Systems\PhysicsSystem.h" />
+    <ClInclude Include="World\Systems\AnimalSystem.h" />
+    <ClInclude Include="World\Systems\CarrierSystem.h" />
     <ClInclude Include="World\Systems\RenderSystem.h" />
     <ClInclude Include="World\Tile.h" />
     <ClInclude Include="World\TileLayer.h" />
@@ -476,6 +479,8 @@
     <ClCompile Include="World\Systems\EconomySystem.cpp" />
     <ClCompile Include="World\Systems\PathfindingSystem.cpp" />
     <ClCompile Include="World\Systems\PhysicsSystem.cpp" />
+    <ClCompile Include="World\Systems\AnimalSystem.cpp" />
+    <ClCompile Include="World\Systems\CarrierSystem.cpp" />
     <ClCompile Include="World\Systems\RenderSystem.cpp" />
     <ClCompile Include="World\TileLayer.cpp" />
     <ClCompile Include="Editor\MapEditor.cpp" />

@@ -3,6 +3,7 @@
 #include "Flag.h"
 #include "TransportJob.h"
 #include "Road.h"
+#include "Entity.h"
 #include "../Core/Vector2i.h"
 
 namespace World {
@@ -27,6 +28,7 @@ namespace World {
         std::vector<Vector2i> transitTiles;  // tile path for WalkingToPost/ReturningHome
         float transitProgress;               // current position along transitTiles
         bool readyToRemove;                  // ReturningHome completed, ready for cleanup
+        Entity ecsEntity;                    // ECS entity for this carrier
 
         // Cached resolved Flag* pointers — set by CarrierManager before each Update/operation.
         // Transient: refreshed every frame, not used for persistent storage.
@@ -39,7 +41,7 @@ namespace World {
 
         Carrier(Road* r)
             : road(r), ep(0.0f), walkDir(1.0f), cargoDelivered(false), hasPickedUp(false), job(NULL),
-              state(Working), transitProgress(0.0f), readyToRemove(false),
+              state(Working), transitProgress(0.0f), readyToRemove(false), ecsEntity(INVALID_ENTITY),
               m_resolvedSourceFlag(NULL), m_resolvedDestFlag(NULL),
               m_resolvedLegFrom(NULL), m_resolvedLegTo(NULL),
               m_roadEndpointA(NULL), m_roadEndpointB(NULL)

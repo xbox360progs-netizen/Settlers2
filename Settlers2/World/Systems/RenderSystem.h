@@ -5,9 +5,7 @@
 #include <vector>
 
 class Renderer;
-namespace World {
-    class EntityManager;
-}
+namespace World { class EntityManager; }
 
 namespace World {
 
@@ -20,7 +18,7 @@ public:
     void Update(EntityManager* entityManager, Renderer* renderer, float deltaTime);
 
 private:
-    void RenderSprite(EntityManager* entityManager, Renderer* renderer, EntityID entityID);
+    void RenderSprite(EntityManager* entityManager, Renderer* renderer, Entity entityID);
 };
 
 } // namespace World

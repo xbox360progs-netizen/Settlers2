@@ -10,6 +10,7 @@ namespace World {
     class FlagManager;
     class TransportJobManager;
     class RoadManager;
+    class CarrierSystem;
 
     class CarrierManager {
     public:
@@ -20,6 +21,7 @@ namespace World {
         void SetJobManager(TransportJobManager* jm) { m_jobManager = jm; }
         void SetRoadManager(RoadManager* rm) { m_roadManager = rm; }
         void SetWarehouseFlag(Flag* f) { m_warehouseFlag = f; }
+        void SetCarrierSystem(CarrierSystem* cs) { m_carrierSystem = cs; }
 
         int GetCarrierCount() const { return (int)m_carriers.size(); }
         Carrier* GetCarrier(int index) const { return (index >= 0 && index < (int)m_carriers.size()) ? m_carriers[index] : NULL; }
@@ -46,6 +48,7 @@ namespace World {
         TransportJobManager* m_jobManager;
         RoadManager* m_roadManager;
         Flag* m_warehouseFlag;
+        CarrierSystem* m_carrierSystem;
 
         std::vector<Vector2i> BuildTransitPath(Flag* fromFlag, Flag* toFlag);
     };

@@ -39,10 +39,13 @@ namespace Scene {
         , m_jobManager(NULL)
         , m_transportJobManager(NULL)
         , m_map(NULL)
+        , m_entityManager(NULL)
+        , m_animalSystem(NULL)
         , m_animalManager(NULL)
         , m_wildlife(NULL)
         , m_economyManager(NULL)
         , m_carrierManager(NULL)
+        , m_carrierSystem(NULL)
         , m_aiSystem(NULL)
         , m_renderer(NULL)
         , m_tileRenderer(NULL)
@@ -257,12 +260,14 @@ namespace Scene {
         }
         OutputDebugStringA("[GameScene::Load] Map ready\n");
 
-        // Set up wildlife system
-        OutputDebugStringA("[GameScene::Load] Creating WildlifeSystem\n");
-        m_animalManager = new World::AnimalManager();
-        m_wildlife = new World::WildlifeSystem(m_map, m_animalManager);
+        // Set up ECS + wildlife system
+        OutputDebugStringA("[GameScene::Load] Creating ECS wildlife\n");
+        m_entityManager = new World::EntityManager();
+        m_animalSystem = new World::AnimalSystem(m_entityManager, m_map);
+        m_animalManager = new World::AnimalManager(m_entityManager, m_animalSystem);
+        m_wildlife = new World::WildlifeSystem(m_map, m_animalManager, m_animalSystem);
         m_map->SetWildlifeSystem(m_wildlife);
-        OutputDebugStringA("[GameScene::Load] WildlifeSystem ready\n");
+        OutputDebugStringA("[GameScene::Load] ECS wildlife ready\n");
 
         // Set up economy manager and link resource registry to map
         OutputDebugStringA("[GameScene::Load] Creating EconomyManager\n");
@@ -271,9 +276,12 @@ namespace Scene {
         m_map->GenerateWildlife();
         OutputDebugStringA("[GameScene::Load] EconomyManager ready\n");
 
-        // Set up carrier manager (flag manager wired after it's created below)
+        // Set up ECS carrier system and carrier manager
+        OutputDebugStringA("[GameScene::Load] Creating CarrierSystem\n");
+        m_carrierSystem = new World::CarrierSystem(m_entityManager);
         OutputDebugStringA("[GameScene::Load] Creating CarrierManager\n");
         m_carrierManager = new World::CarrierManager();
+        m_carrierManager->SetCarrierSystem(m_carrierSystem);
         OutputDebugStringA("[GameScene::Load] CarrierManager ready\n");
 
         // Set up AI system
@@ -696,17 +704,30 @@ void GameScene::Unload()
         delete m_carrierManager;
         m_carrierManager = NULL;
     }
+    if (m_carrierSystem) {
+        delete m_carrierSystem;
+        m_carrierSystem = NULL;
+    }
     if (m_economyManager) {
         delete m_economyManager;
         m_economyManager = NULL;
     }
     if (m_wildlife) {
+        m_map->SetWildlifeSystem(NULL);
         delete m_wildlife;
         m_wildlife = NULL;
     }
     if (m_animalManager) {
         delete m_animalManager;
         m_animalManager = NULL;
+    }
+    if (m_animalSystem) {
+        delete m_animalSystem;
+        m_animalSystem = NULL;
+    }
+    if (m_entityManager) {
+        delete m_entityManager;
+        m_entityManager = NULL;
     }
     if (m_map) {
         delete m_map;

@@ -5,6 +5,7 @@
 #include "Flag.h"
 #include "Road.h"
 #include "RoadManager.h"
+#include "Systems/CarrierSystem.h"
 
 namespace World {
 
@@ -53,7 +54,7 @@ namespace World {
     }
 
     CarrierManager::CarrierManager()
-        : m_flagManager(NULL), m_jobManager(NULL), m_roadManager(NULL), m_warehouseFlag(NULL)
+        : m_flagManager(NULL), m_jobManager(NULL), m_roadManager(NULL), m_warehouseFlag(NULL), m_carrierSystem(NULL)
     {
     }
 
@@ -142,6 +143,19 @@ namespace World {
                 c->SetupWalkingToPost(transitPath);
             }
         }
+
+        // Create ECS entity for movement (starts at progress=0, matches new Carrier)
+        if (m_carrierSystem && c->ecsEntity == INVALID_ENTITY) {
+            std::vector<Vector2i> tiles;
+            if (c->state == WalkingToPost || c->state == ReturningHome) {
+                tiles = c->transitTiles;
+            } else if (c->road && c->road->tiles.size() >= 2) {
+                tiles = c->road->tiles;
+            }
+            if (!tiles.empty()) {
+                c->ecsEntity = m_carrierSystem->CreateCarrier(tiles, c->state);
+            }
+        }
     }
 
     void CarrierManager::RemoveCarrier(Flag* a, Flag* b) {
@@ -154,6 +168,8 @@ namespace World {
                 if (c->job && m_flagManager) c->m_resolvedSourceFlag = m_flagManager->ResolveFlag(c->job->sourceFlag);
                 RestoreCarrierCargo(c);
                 ReleaseCarrierJob(c);
+                if (c->ecsEntity != INVALID_ENTITY && m_carrierSystem)
+                    m_carrierSystem->RemoveCarrier(c->ecsEntity);
                 if (c->road) {
                     UnregisterCarrier(c->road->carrier);
                     c->road->carrier = Handle<Carrier>();
@@ -173,6 +189,8 @@ namespace World {
             Flag* rb = m_flagManager ? m_flagManager->ResolveFlag(c->road->b) : NULL;
             if (ra == f || rb == f) {
                 if (c->state == WalkingToPost) {
+                    if (c->ecsEntity != INVALID_ENTITY && m_carrierSystem)
+                        m_carrierSystem->RemoveCarrier(c->ecsEntity);
                     if (c->road) {
                         UnregisterCarrier(c->road->carrier);
                         c->road->carrier = Handle<Carrier>();
@@ -209,6 +227,9 @@ namespace World {
                 } else {
                     c->SetupReturningHome(std::vector<Vector2i>());
                 }
+                // Update ECS path for return journey
+                if (c->ecsEntity != INVALID_ENTITY && m_carrierSystem)
+                    m_carrierSystem->UpdatePath(c->ecsEntity, c->transitTiles);
             }
         }
     }
@@ -221,6 +242,8 @@ namespace World {
             Carrier* c = m_carriers[i];
             if (c->road == road) {
                 if (c->state == WalkingToPost) {
+                    if (c->ecsEntity != INVALID_ENTITY && m_carrierSystem)
+                        m_carrierSystem->RemoveCarrier(c->ecsEntity);
                     if (c->road) {
                         UnregisterCarrier(c->road->carrier);
                         c->road->carrier = Handle<Carrier>();
@@ -257,6 +280,9 @@ namespace World {
                 } else {
                     c->SetupReturningHome(std::vector<Vector2i>());
                 }
+                // Update ECS path for return journey
+                if (c->ecsEntity != INVALID_ENTITY && m_carrierSystem)
+                    m_carrierSystem->UpdatePath(c->ecsEntity, c->transitTiles);
                 return;
             }
         }
@@ -303,6 +329,8 @@ namespace World {
             Carrier* c = m_carriers[i];
 
             if (c->readyToRemove) {
+                if (c->ecsEntity != INVALID_ENTITY && m_carrierSystem)
+                    m_carrierSystem->RemoveCarrier(c->ecsEntity);
                 UnregisterCarrier(GetCarrierHandle(c));
                 delete c;
                 m_carriers.erase(m_carriers.begin() + i);
@@ -333,6 +361,10 @@ namespace World {
             }
 
             c->Update(deltaTime);
+
+            // Sync Carrier → ECS (passive: ECS mirrors Carrier movement for future use)
+            if (c->ecsEntity != INVALID_ENTITY && m_carrierSystem)
+                m_carrierSystem->SyncFromCarrier(c->ecsEntity, c);
 
             if (c->HasArrived()) {
                 TransportJob* doneJob = c->job;

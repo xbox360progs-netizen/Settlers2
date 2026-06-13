@@ -74,6 +74,8 @@ EditorScene::EditorScene()
     , m_gridMenu(nullptr)
     , m_mapEditor(nullptr)
     , m_unitManager(nullptr)
+    , m_entityManager(nullptr)
+    , m_animalSystem(nullptr)
     , m_animalManager(nullptr)
     , m_wildlife(nullptr)
     , m_currentLayer(World::Ground)
@@ -111,10 +113,18 @@ EditorScene::EditorScene()
 }
 
 EditorScene::~EditorScene() {
+    // Clear map's back-pointer to WildlifeSystem before deleting it
+    if (m_wildlife && m_mapEditor && m_mapEditor->GetMap()) {
+        m_mapEditor->GetMap()->SetWildlifeSystem(NULL);
+    }
     delete m_wildlife;
     m_wildlife = nullptr;
     delete m_animalManager;
     m_animalManager = nullptr;
+    delete m_animalSystem;
+    m_animalSystem = nullptr;
+    delete m_entityManager;
+    m_entityManager = nullptr;
     delete m_unitManager;
     m_unitManager = nullptr;
     if (m_mapEditor) {
@@ -430,13 +440,15 @@ void EditorScene::Load() {
 		}
 	}
 
-	// Initialize WildlifeSystem for animal rendering in editor
+	// Initialize ECS + WildlifeSystem for animal rendering in editor
 	if (m_mapEditor && m_mapEditor->GetMap()) {
 		World::Map* map = m_mapEditor->GetMap();
-		m_animalManager = new World::AnimalManager();
-		m_wildlife = new World::WildlifeSystem(map, m_animalManager);
+		m_entityManager = new World::EntityManager();
+		m_animalSystem = new World::AnimalSystem(m_entityManager, map);
+		m_animalManager = new World::AnimalManager(m_entityManager, m_animalSystem);
+		m_wildlife = new World::WildlifeSystem(map, m_animalManager, m_animalSystem);
 		map->SetWildlifeSystem(m_wildlife);
-		OutputDebugStringA("[EditorScene] WildlifeSystem initialized\n");
+		OutputDebugStringA("[EditorScene] ECS WildlifeSystem initialized\n");
 	}
 
 	OutputDebugStringA("[EditorScene] Load() complete\n");
@@ -451,9 +463,17 @@ void EditorScene::Unload() {
         delete m_wildlife;
         m_wildlife = NULL;
     }
+    if (m_animalSystem) {
+        delete m_animalSystem;
+        m_animalSystem = NULL;
+    }
     if (m_animalManager) {
         delete m_animalManager;
         m_animalManager = NULL;
+    }
+    if (m_entityManager) {
+        delete m_entityManager;
+        m_entityManager = NULL;
     }
     if (m_radialMenu) {
         m_radialMenu->Shutdown();

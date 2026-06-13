@@ -16,6 +16,8 @@
 #include "../World/Map.h"
 #include "../World/ResourceNode.h"
 #include "../World/WildlifeSystem.h"
+#include "../World/EntityManager.h"
+#include "../World/Systems/AnimalSystem.h"
 #include "../Graphics/Renderer.h"
 #include "../Input/InputManager.h"
 #include "../Input/InputController.h"
@@ -132,6 +134,8 @@ public:
     Texture m_bgEditorTexture;
     Editor::MapEditor* m_mapEditor;
     Game::UnitManager* m_unitManager;
+    World::EntityManager* m_entityManager;
+    World::AnimalSystem* m_animalSystem;
     World::AnimalManager* m_animalManager;
     World::WildlifeSystem* m_wildlife;
     World::LayerType m_currentLayer;

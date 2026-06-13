@@ -38,7 +38,7 @@ void RenderSystem::Update(EntityManager* entityManager, Renderer* renderer, floa
     */
 }
 
-void RenderSystem::RenderSprite(EntityManager* entityManager, Renderer* renderer, EntityID entityID)
+void RenderSystem::RenderSprite(EntityManager* entityManager, Renderer* renderer, Entity entityID)
 {
     // TODO: Re-enable when IRenderer is implemented
     /*

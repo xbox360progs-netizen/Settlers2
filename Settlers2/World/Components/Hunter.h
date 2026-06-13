@@ -5,6 +5,7 @@
 #include "../Flag.h"
 #include "../Map.h"
 #include "../WildlifeSystem.h"
+#include "../Entity.h"
 #include "../../Logic/ResourceRegistry.h"
 
 namespace World {
@@ -173,8 +174,8 @@ class Hunter : public Building {
                 }
                 WildlifeSystem* ws = map->GetWildlifeSystem();
                 if (ws) {
-                    int idx = ws->FindAliveAnimal(m_target.x, m_target.y, 12, AnimalType_Deer);
-                    if (idx >= 0) ws->RemoveAnimal(idx);
+                    Entity entity = ws->FindAliveAnimal(m_target.x, m_target.y, 12, AnimalType_Deer);
+                    if (entity != INVALID_ENTITY) ws->RemoveAnimal(entity);
                 }
             }
             StartWalkingHome();
