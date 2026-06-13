@@ -744,7 +744,7 @@ void GameScene::Update(float deltaTime)
     if (!m_menuActive && !m_roadMenuActive && !m_townHallPanelOpen && m_camera && m_inputManager) {
         Input::Gamepad* gamepad = m_inputManager->GetGamepad();
         if (gamepad) {
-            float moveSpeed = 500.0f * deltaTime;
+            float moveSpeed = 250.0f * deltaTime;
             float stickX, stickY;
             gamepad->GetLeftStick(stickX, stickY);
             if (fabsf(stickX) > 0.1f || fabsf(stickY) > 0.1f) {
@@ -753,9 +753,12 @@ void GameScene::Update(float deltaTime)
             float rightX, rightY;
             gamepad->GetRightStick(rightX, rightY);
             if (fabsf(rightY) > 0.1f) {
-                m_camera->Zoom(rightY * 1.0f * deltaTime);
+                m_camera->Zoom(rightY * 0.3f * deltaTime);
             }
         }
+    }
+    if (m_camera) {
+        m_camera->Update(deltaTime);
     }
 
     // ─── Cursor update ────────────────────────────────────────────────
@@ -1528,6 +1531,63 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                     cmd.layer = LAYER_WORLD;
                     cmd.depth = static_cast<WORD>(30010 + fy * 400);
                     renderQueue->Submit(cmd);
+                }
+            }
+        }
+    }
+
+    // ─── Render resource icons on flags ────────────────────────────────
+    if (m_flagManager && spriteRenderer) {
+        std::tr1::shared_ptr<SpriteAtlas> iconAtlas = reg.getAtlas("Icon");
+        if (iconAtlas && iconAtlas->GetTexture()) {
+            LPDIRECT3DTEXTURE9 iconTex = iconAtlas->GetTexture();
+            spriteRenderer->SetTextureSlot(SLOT_FLAG_RESOURCES, iconTex);
+
+            CoordinateSystem& coords = CoordinateSystem::GetInstance();
+            for (size_t fi = 0; fi < m_flagManager->GetCount(); ++fi) {
+                World::Flag* flag = m_flagManager->GetFlag(fi);
+                if (!flag) continue;
+                float fx, fy;
+                coords.NodeTileToWorld(flag->pos.x, flag->pos.y, fx, fy);
+                int iconY = 0;
+                for (int si = 0; si < 8; ++si) {
+                    if (flag->slots[si].type == World::ResourceType_None || flag->slots[si].amount <= 0) continue;
+                    const char* iconName = NULL;
+                    switch (flag->slots[si].type) {
+                        case World::ResourceType_Wood:   iconName = "r_wood"; break;
+                        case World::ResourceType_Planks: iconName = "r_planks"; break;
+                        case World::ResourceType_Stone:  iconName = "r_stone"; break;
+                        case World::ResourceType_Fish:   iconName = "r_fish"; break;
+                        case World::ResourceType_Meat:   iconName = "r_meat"; break;
+                        case World::ResourceType_Bread:  iconName = "r_bread"; break;
+                        case World::ResourceType_Coal:   iconName = "r_coal"; break;
+                        case World::ResourceType_IronOre: iconName = "r_ironore"; break;
+                        case World::ResourceType_GoldOre: iconName = "r_goldore"; break;
+                        case World::ResourceType_IronBar: iconName = "r_ironbar"; break;
+                        case World::ResourceType_GoldBar: iconName = "r_goldbar"; break;
+                        default: break;
+                    }
+                    if (!iconName) continue;
+                    uint32_t idx = iconAtlas->GetIndex(iconName);
+                    if (idx == 0xFFFFFFFF) continue;
+                    const SpriteRegion* r = iconAtlas->GetRegion(idx);
+                    if (!r) continue;
+
+                    Graphics::RenderCommand cmd = {};
+                    cmd.x = fx - r->pivotX * 0.5f;
+                    cmd.y = fy - r->pivotY * 0.5f - 30.0f + iconY * -16.0f;
+                    cmd.width = r->width * 0.5f;
+                    cmd.height = r->height * 0.5f;
+                    cmd.u0 = r->u0; cmd.v0 = r->v0;
+                    cmd.u1 = r->u1; cmd.v1 = r->v1;
+                    cmd.color = 0xFFFFFFFF;
+                    cmd.textureID = SLOT_FLAG_RESOURCES;
+                    cmd.shaderID = SHADER_TERRAIN;
+                    cmd.blendMode = 1;
+                    cmd.layer = LAYER_WORLD;
+                    cmd.depth = static_cast<WORD>(30011 + flag->pos.y * 400 + iconY);
+                    renderQueue->Submit(cmd);
+                    iconY--;
                 }
             }
         }

@@ -216,6 +216,9 @@ namespace Logic {
 
         // ─── Phase 6: Outbound — routing-aware surplus distribution ──────
         uint32_t whFlagId = (m_warehouse && m_warehouse->connectedFlag) ? m_warehouse->connectedFlag->id : 0;
+        if (whFlagId == 0) {
+            OutputDebugStringA("[Phase6] WARNING: whFlagId=0 — no warehouse connected flag\n");
+        }
         for (size_t i = 0; i < m_buildings.size(); ++i) {
             World::Building* b = m_buildings[i];
             if (b->state != World::State_Finished) continue;
@@ -239,13 +242,40 @@ namespace Logic {
                 for (size_t j = 0; j < b->outputResources.size(); ++j) {
                     World::ResourceType outType = b->outputResources[j];
                     ResourceRouteConfig& cfg = m_settings.routeConfig[outType];
+                    char dbg[256];
+                    _snprintf(dbg, sizeof(dbg), "[Phase6] building=%p type=%d storage=%d flag=%p whFlagId=%u\n",
+                             b, (int)outType, b->m_storage[outType], b->connectedFlag, whFlagId);
+                    OutputDebugStringA(dbg);
 
-                    if (b->m_storage[outType] <= 0) continue;
+                    if (b->m_storage[outType] <= 0) {
+                        OutputDebugStringA("[Phase6]  -> skipped: storage empty\n");
+                        continue;
+                    }
 
-                    if (cfg.routing == ROUTE_DIRECT) continue;
+                    if (cfg.routing == ROUTE_DIRECT) {
+                        OutputDebugStringA("[Phase6]  -> skipped: ROUTE_DIRECT\n");
+                        continue;
+                    }
 
-                    if (!b->connectedFlag->AddResource(outType, 1, whFlagId)) continue;
+                    bool added = b->connectedFlag->AddResource(outType, 1, whFlagId);
+                    _snprintf(dbg, sizeof(dbg), "[Phase6]  -> AddResource result=%d\n", added);
+                    OutputDebugStringA(dbg);
+                    if (!added) continue;
                     b->m_storage[outType]--;
+                    _snprintf(dbg, sizeof(dbg), "[Phase6]  -> OK, storage now=%d\n", b->m_storage[outType]);
+                    OutputDebugStringA(dbg);
+
+                    char slotBuf[512];
+                    int sp = 0;
+                    sp += _snprintf(slotBuf + sp, sizeof(slotBuf) - sp, "[Flag] id=%u slots:", b->connectedFlag->id);
+                    for (int si = 0; si < 8; ++si) {
+                        World::ResourceSlot& s = b->connectedFlag->slots[si];
+                        if (s.type != World::ResourceType_None && s.amount > 0)
+                            sp += _snprintf(slotBuf + sp, sizeof(slotBuf) - sp, " [%d]%s=%d dst=%u",
+                                si, World::ResourceTypeToString(s.type), s.amount, s.destFlagId);
+                    }
+                    _snprintf(slotBuf + sp, sizeof(slotBuf) - sp, "\n");
+                    OutputDebugStringA(slotBuf);
                 }
             }
         }

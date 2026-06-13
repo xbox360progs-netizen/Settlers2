@@ -9,6 +9,8 @@ Camera::Camera()
 , m_screenHeight(0)
 , m_posX(0)
 , m_posY(0)
+, m_velX(0)
+, m_velY(0)
 , m_zoom(1.0f)
 {
     D3DXMatrixIdentity(&m_view);
@@ -30,6 +32,23 @@ void Camera::Initialize(float screenWidth, float screenHeight, ShaderManager* pS
 //
 void Camera::Update()
 {
+    Update(1.0f / 60.0f);
+}
+
+void Camera::Update(float dt)
+{
+    // Smooth velocity damping
+    float damping = 1.0f / (1.0f + 8.0f * dt);
+    m_velX *= damping;
+    m_velY *= damping;
+
+    // Stop tiny velocities to prevent sub-pixel drift
+    if (fabsf(m_velX) < 0.5f) m_velX = 0.0f;
+    if (fabsf(m_velY) < 0.5f) m_velY = 0.0f;
+
+    m_posX += m_velX * dt;
+    m_posY += m_velY * dt;
+
     D3DXMATRIX translate;
     D3DXMATRIX scale;
 
@@ -93,9 +112,8 @@ void Camera::SetPosition(float x,float y)
 
 void Camera::Move(float dx,float dy)
 {
-    m_posX += dx / m_zoom;
-    m_posY += dy / m_zoom;
-    Update();
+    m_velX += dx / m_zoom;
+    m_velY += dy / m_zoom;
 }
 
 void Camera::Zoom(float dz)
@@ -108,19 +126,19 @@ void Camera::Zoom(float dz)
     if(m_zoom < 0.3f) m_zoom = 0.3f;
     if(m_zoom > 4.0f)  m_zoom = 4.0f;
     
-    // Корректируем позицию камеры чтобы зум был от центра экрана
+    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
     float halfW = m_screenWidth * 0.5f;
     float halfH = m_screenHeight * 0.5f;
     
-    // Точка в мире до зума
+    // пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅ
     float worldX, worldY;
     ScreenToWorld(halfW, halfH, worldX, worldY);
     
-    // Точка в мире после зума должна быть той же
+    // пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅ
     float newWorldX = m_posX + halfW / m_zoom;
     float newWorldY = m_posY + halfH / m_zoom;
     
-    // Корректируем позицию камеры
+    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
     m_posX += worldX - newWorldX;
     m_posY += worldY - newWorldY;
     
@@ -137,16 +155,16 @@ void Camera::Zoom(float dz, float centerScreenX, float centerScreenY)
     if(m_zoom < 0.3f) m_zoom = 0.3f;
     if(m_zoom > 4.0f)  m_zoom = 4.0f;
     
-    // Корректируем позицию камеры чтобы зум был от центра (centerScreenX, centerScreenY)
-    // Точка в мире до зума
+    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ (centerScreenX, centerScreenY)
+    // пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅ
     float worldX, worldY;
     ScreenToWorld(centerScreenX, centerScreenY, worldX, worldY);
     
-    // Точка в мире после зума должна быть той же
+    // пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅ
     float newWorldX = m_posX + centerScreenX / m_zoom;
     float newWorldY = m_posY + (m_screenHeight - centerScreenY) / m_zoom;
     
-    // Корректируем позицию камеры
+    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
     m_posX += worldX - newWorldX;
     m_posY += worldY - newWorldY;
     

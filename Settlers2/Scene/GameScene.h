@@ -165,6 +165,7 @@ private:
         SLOT_UI_ROAD_CELL = 27,
         SLOT_UI_ROAD_ICON = 28,
         SLOT_UNITS = 29,
+        SLOT_FLAG_RESOURCES = 30,
     };
 
     static bool IsNodeRoad(int nx, int ny, World::TileLayer* roadsLayer, const std::vector<std::pair<int,int>>& previewPath);

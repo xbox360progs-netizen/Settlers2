@@ -13,8 +13,9 @@ public:
 
     void Initialize(float screenWidth, float screenHeight, ShaderManager* pShaderManager = NULL);
 
-    void Update();     // world camera
-    void UpdateUI();   // ui camera
+    void Update(float dt);     // world camera with smooth damping
+    void Update();              // world camera (uses 1/60s dt)
+    void UpdateUI();            // ui camera
 
     void SetPosition(float x, float y);
     void Move(float dx, float dy);
@@ -53,6 +54,8 @@ private:
 
     float m_posX;
     float m_posY;
+    float m_velX;
+    float m_velY;
     float m_zoom;
 
     D3DXMATRIX m_view;

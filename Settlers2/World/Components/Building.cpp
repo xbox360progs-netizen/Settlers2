@@ -1,12 +1,15 @@
 #include "stdafx.h"
 #include "Building.h"
 #include "Hunter.h"
+#include "Fisher.h"
 
 namespace World {
 
 const float Hunter::IDLE_DURATION = 15.0f;
 const float Hunter::HUNT_DURATION = 5.0f;
 const float Hunter::WORKER_SPEED = 2.0f;
+const float Fisher::IDLE_DURATION = 2.0f;
+const float Fisher::FISHING_DURATION = 3.0f;
 
     void Building::Update(float dt)
     {
@@ -64,8 +67,19 @@ const float Hunter::WORKER_SPEED = 2.0f;
 
     bool Building::AddOutput(ResourceType type, int amount)
     {
-        if (IsOutputFull()) return false;
+        char dbg[256];
+        _snprintf(dbg, sizeof(dbg), "[Building] AddOutput type=%d amount=%d current=%d capacity=5\n",
+                 (int)type, amount, m_storage[type]);
+        OutputDebugStringA(dbg);
+
+        if (IsOutputFull()) {
+            OutputDebugStringA("[Building] AddOutput FAILED: output full\n");
+            return false;
+        }
         m_storage[type] += amount;
+
+        _snprintf(dbg, sizeof(dbg), "[Building] AddOutput OK storage=%d\n", m_storage[type]);
+        OutputDebugStringA(dbg);
         return true;
     }
 

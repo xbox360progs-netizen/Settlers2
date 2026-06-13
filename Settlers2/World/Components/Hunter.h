@@ -56,13 +56,23 @@ class Hunter : public Building {
         Logic::ResourceRegistry* registry = map ? map->GetResourceRegistry() : NULL;
         if (!registry || !map) return;
         if (!connectedFlag) return;
+
+        char dbg[256];
+        _snprintf(dbg, sizeof(dbg), "[Hunter] Searching for deer from (%d,%d)\n", pos.x, pos.y);
+        OutputDebugStringA(dbg);
+
         const std::vector<Vector2i>& spawners = registry->GetWorldResources(ResourceType_WildlifeSpawner_Deer);
+        _snprintf(dbg, sizeof(dbg), "[Hunter] Found %d deer spawners\n", (int)spawners.size());
+        OutputDebugStringA(dbg);
         Vector2i bestPos;
         int bestDist = 999999;
         bool found = false;
         for (size_t i = 0; i < spawners.size(); ++i) {
             const ResourceNode& node = map->GetResourceNode(spawners[i].x, spawners[i].y);
-            if (node.type != ResourceType_WildlifeSpawner_Deer || node.amount <= 0) continue;
+            _snprintf(dbg, sizeof(dbg), "[Hunter] Spawner at (%d,%d) type=%d amount=%d\n",
+                     spawners[i].x, spawners[i].y, (int)node.type, node.amount);
+            OutputDebugStringA(dbg);
+            if ((node.type != ResourceType_WildlifeSpawner_Deer && node.type != ResourceType_Meat) || node.amount <= 0) continue;
             int dx = spawners[i].x - pos.x;
             int dy = spawners[i].y - pos.y;
             int dist = dx * dx + dy * dy;
@@ -72,7 +82,12 @@ class Hunter : public Building {
                 found = true;
             }
         }
-        if (!found) return;
+        if (!found) {
+            OutputDebugStringA("[Hunter] No valid spawners found\n");
+            return;
+        }
+        _snprintf(dbg, sizeof(dbg), "[Hunter] Target selected at (%d,%d)\n", bestPos.x, bestPos.y);
+        OutputDebugStringA(dbg);
         m_target = bestPos;
         m_wX = (float)connectedFlag->pos.x;
         m_wY = (float)connectedFlag->pos.y;
@@ -90,10 +105,28 @@ class Hunter : public Building {
     }
 
     void DepositMeat() {
-        if (AddOutput(ResourceType_Meat, 1)) {
+        char dbg[256];
+        _snprintf(dbg, sizeof(dbg), "[Hunter] DepositMeat begin storage=%d flag=%p\n",
+                 m_storage[ResourceType_Meat], connectedFlag);
+        OutputDebugStringA(dbg);
+
+        bool ok = AddOutput(ResourceType_Meat, 1);
+
+        _snprintf(dbg, sizeof(dbg), "[Hunter] AddOutput result=%d storage=%d\n",
+                 ok, m_storage[ResourceType_Meat]);
+        OutputDebugStringA(dbg);
+
+        if (ok)
             GoIdle();
+
+        int usedSlots = 0;
+        if (connectedFlag) {
+            for (int i = 0; i < 8; ++i)
+                if (connectedFlag->slots[i].type != ResourceType_None) usedSlots++;
         }
-        // if output full, stay at flag and retry next frame (no velocity)
+        _snprintf(dbg, sizeof(dbg), "[Hunter] Meat=%d flagUsedSlots=%d\n",
+                 m_storage[ResourceType_Meat], usedSlots);
+        OutputDebugStringA(dbg);
     }
 
     void GoIdle() {
@@ -129,8 +162,14 @@ class Hunter : public Building {
         if (m_wTimer >= HUNT_DURATION) {
             if (map) {
                 ResourceNode& node = map->GetResourceNode(m_target.x, m_target.y);
-                if (node.type == ResourceType_WildlifeSpawner_Deer && node.amount > 0) {
+                char dbg[128];
+                _snprintf(dbg, sizeof(dbg), "[Hunter] Hunting at (%d,%d) type=%d amount=%d\n",
+                         m_target.x, m_target.y, (int)node.type, node.amount);
+                OutputDebugStringA(dbg);
+                if ((node.type == ResourceType_WildlifeSpawner_Deer || node.type == ResourceType_Meat) && node.amount > 0) {
                     node.amount--;
+                    _snprintf(dbg, sizeof(dbg), "[Hunter] After decrement: amount=%d\n", node.amount);
+                    OutputDebugStringA(dbg);
                 }
                 WildlifeSystem* ws = map->GetWildlifeSystem();
                 if (ws) {
@@ -157,6 +196,7 @@ class Hunter : public Building {
             m_wX = (float)connectedFlag->pos.x;
             m_wY = (float)connectedFlag->pos.y;
             m_wVx = 0.0f; m_wVy = 0.0f;
+            OutputDebugStringA("[Hunter] Arrived home -> DepositMeat\n");
             DepositMeat();
         }
     }
@@ -165,16 +205,22 @@ public:
     Hunter(int x, int y, uint8_t o, Map* m)
         : Building(BuildingType::Hunter, x, y, o, m)
         , m_wState(WState_Idle)
-        , m_wX(0.0f), m_wY(0.0f)
+        , m_wX((float)x), m_wY((float)y)
         , m_wVx(0.0f), m_wVy(0.0f)
         , m_wTimer(0.0f)
         , m_wDir(0)
     {
         outputResources.push_back(ResourceType_Meat);
+        // m_wX/m_wY will be updated to connectedFlag->pos in FindTargetAndStart()
     }
 
     void Update(float dt) override {
         if (state != State_Finished) return;
+
+        char dbg[128];
+        _snprintf(dbg, sizeof(dbg), "[Hunter] State: wState=%d wX=%.1f wY=%.1f\n",
+                 (int)m_wState, m_wX, m_wY);
+        OutputDebugStringA(dbg);
 
         switch (m_wState) {
         case WState_Idle:            UpdateIdle(dt);           break;

@@ -1032,7 +1032,7 @@ void EditorScene::UpdateResourcePlacementFSM() {
 }
 
 void EditorScene::UpdateCamera(Input::Gamepad* gamepad, float deltaTime) {
-    float moveSpeed = 500.0f * deltaTime;
+    float moveSpeed = 250.0f * deltaTime;
     float stickX, stickY;
     gamepad->GetLeftStick(stickX, stickY);
 
@@ -1047,10 +1047,10 @@ void EditorScene::UpdateCamera(Input::Gamepad* gamepad, float deltaTime) {
     float rightX, rightY;
     gamepad->GetRightStick(rightX, rightY);
     if (fabsf(rightY) > 0.1f) {
-        m_camera->Zoom(rightY * 1.0f * deltaTime);
+        m_camera->Zoom(rightY * 0.3f * deltaTime);
     }
 
-    m_camera->Update();
+    m_camera->Update(deltaTime);
 
     if (m_shaderManager) {
         m_shaderManager->UpdateGlobalMatrices(&m_camera->GetViewMatrix(), &m_camera->GetProjectionMatrix());

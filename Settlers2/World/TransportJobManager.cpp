@@ -334,7 +334,22 @@ namespace World {
             for (int si = 0; si < 8; ++si) {
                 ResourceSlot& slot = flag->slots[si];
                 if (slot.type == ResourceType_None || slot.amount <= 0) continue;
-                if (slot.destFlagId == 0 || slot.destFlagId == flag->id) continue;
+                if (slot.destFlagId == 0) {
+                    char dbg[256];
+                    _snprintf(dbg, sizeof(dbg),
+                        "[Cargo] SKIP flag=%u slot=%d %s amount=%d: no destination\n",
+                        flag->id, si, ResourceTypeToString(slot.type), slot.amount);
+                    OutputDebugStringA(dbg);
+                    continue;
+                }
+                if (slot.destFlagId == flag->id) {
+                    char dbg[256];
+                    _snprintf(dbg, sizeof(dbg),
+                        "[Cargo] SKIP flag=%u slot=%d %s amount=%d: already at destination\n",
+                        flag->id, si, ResourceTypeToString(slot.type), slot.amount);
+                    OutputDebugStringA(dbg);
+                    continue;
+                }
                 if (slot.amount - slot.reserved <= 0) continue;
 
                 // Count units already tracked by jobs from this source flag to this dest (O(1) cache)
