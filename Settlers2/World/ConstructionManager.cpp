@@ -85,7 +85,7 @@ namespace World {
                 for (int si = 0; si < 8; ++si) {
                     ResourceSlot& slot = site->flag->slots[si];
                     if (slot.type != ResourceType_Wood || slot.amount <= 0) continue;
-                    if (slot.destFlagId != 0 && slot.destFlagId != site->flag->id) continue;
+                    if (slot.destFlagId != World::INVALID_FLAG_ID && slot.destFlagId != site->flag->id) continue;
                     int take = (slot.amount < site->woodNeeded - site->woodDelivered) ? slot.amount : (site->woodNeeded - site->woodDelivered);
                     if (take <= 0) continue;
                     slot.amount -= take;
@@ -104,7 +104,7 @@ namespace World {
                 for (int si = 0; si < 8; ++si) {
                     ResourceSlot& slot = site->flag->slots[si];
                     if (slot.type != ResourceType_Stone || slot.amount <= 0) continue;
-                    if (slot.destFlagId != 0 && slot.destFlagId != site->flag->id) continue;
+                    if (slot.destFlagId != World::INVALID_FLAG_ID && slot.destFlagId != site->flag->id) continue;
                     int take = (slot.amount < site->stoneNeeded - site->stoneDelivered) ? slot.amount : (site->stoneNeeded - site->stoneDelivered);
                     if (take <= 0) continue;
                     slot.amount -= take;

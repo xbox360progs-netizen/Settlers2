@@ -43,8 +43,8 @@ void Camera::Update(float dt)
     m_velY *= damping;
 
     // Stop tiny velocities to prevent sub-pixel drift
-    if (fabsf(m_velX) < 0.5f) m_velX = 0.0f;
-    if (fabsf(m_velY) < 0.5f) m_velY = 0.0f;
+    if (fabsf(m_velX) < 0.05f) m_velX = 0.0f;
+    if (fabsf(m_velY) < 0.05f) m_velY = 0.0f;
 
     m_posX += m_velX * dt;
     m_posY += m_velY * dt;
@@ -112,8 +112,9 @@ void Camera::SetPosition(float x,float y)
 
 void Camera::Move(float dx,float dy)
 {
-    m_velX += dx / m_zoom;
-    m_velY += dy / m_zoom;
+    float zoomFactor = max(m_zoom, 1.0f);
+    m_velX += dx * zoomFactor;
+    m_velY += dy * zoomFactor;
 }
 
 void Camera::Zoom(float dz)

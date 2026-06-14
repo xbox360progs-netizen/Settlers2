@@ -26,7 +26,9 @@ namespace World {
                 for (int si = 0; si < 8; ++si) {
                     ResourceSlot& slot = connectedFlag->slots[si];
                     if (slot.type == ResourceType_None || slot.amount <= 0) continue;
-                    if (slot.destFlagId != 0) continue;
+                    if (slot.destFlagId != 0 && slot.destFlagId != World::INVALID_FLAG_ID) {
+                        if (slot.destFlagId != connectedFlag->id) continue;
+                    }
                     if (slot.amount - slot.reserved > 0) {
                         connectedFlag->RemoveResource(slot.type, 1);
                         AddResource(slot.type, 1);

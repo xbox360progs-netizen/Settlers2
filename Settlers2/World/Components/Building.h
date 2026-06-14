@@ -208,6 +208,25 @@ public:
 
         return varietyBonus;
     }
+
+	bool NeedsResource(ResourceType type) const {
+
+        for (size_t i = 0; i < outputResources.size(); ++i) {
+            if (outputResources[i] == type) return false;
+        }
+        
+        for (size_t i = 0; i < inputResources.size(); ++i) {
+            if (inputResources[i] == type) {
+                return m_storage[type] < MaxStoragePerType(type);
+            }
+        }
+        
+        return false;  
+    }
+
+	int MaxStoragePerType(ResourceType type) const {
+        return 5;  
+    }
 };
 
 } // namespace World

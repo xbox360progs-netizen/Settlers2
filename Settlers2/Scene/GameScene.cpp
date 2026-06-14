@@ -392,6 +392,9 @@ namespace Scene {
         m_transportJobManager->SetFlagManager(m_flagManager);
         m_transportJobManager->SetRoadManager(m_roadManager);
         m_transportJobManager->SetCarrierManager(m_carrierManager);
+        if (m_economyManager && m_economyManager->GetWarehouse()) {
+            m_transportJobManager->SetWarehouse(m_economyManager->GetWarehouse());
+        }
         m_carrierManager->SetJobManager(m_transportJobManager);
         OutputDebugStringA("[GameScene::Load] TransportJobManager ready\n");
 
@@ -526,6 +529,38 @@ namespace Scene {
         // Restore any buildings placed in the editor from the Buildings layer
         RestoreBuildingsFromLayer();
 
+        // === Validate warehouse has connectedFlag (in case restored from save) ===
+        if (m_economyManager && m_economyManager->GetWarehouse()) {
+            World::Warehouse* wh = m_economyManager->GetWarehouse();
+            {
+                char dbg[256];
+                _snprintf(dbg, sizeof(dbg),
+                    "[GameScene] Warehouse check: wh=%p connectedFlag=%p flagId=%u\n",
+                    wh, wh->connectedFlag,
+                    wh->connectedFlag ? wh->connectedFlag->id : 0);
+                OutputDebugStringA(dbg);
+            }
+            if (!wh->connectedFlag) {
+                // Find warehouse flag and link it
+                for (size_t fi = 0; fi < m_flagManager->GetCount(); ++fi) {
+                    World::Flag* f = m_flagManager->GetFlag(fi);
+                    if (f && f->building == wh) {
+                        wh->connectedFlag = f;
+                        char buf[128];
+                        _snprintf(buf, sizeof(buf),
+                            "[GameScene] Re-linked warehouse to flag %u at (%d,%d)\n",
+                            f->id, f->pos.x, f->pos.y);
+                        OutputDebugStringA(buf);
+                        break;
+                    }
+                }
+            }
+            // Update TransportJobManager with warehouse reference
+            if (m_transportJobManager) {
+                m_transportJobManager->SetWarehouse(wh);
+            }
+        }
+
         // ─── Create starting warehouse + carriers (only if none restored) ──
         if (m_flagManager && m_economyManager && !m_economyManager->GetWarehouse()) {
             int hqFlagX = 10, hqFlagY = 10;  // node grid position for warehouse flag
@@ -586,6 +621,9 @@ namespace Scene {
 
             m_economyManager->SetWarehouse(warehouse);
             m_economyManager->AddBuilding(warehouse);
+            if (m_transportJobManager) {
+                m_transportJobManager->SetWarehouse(warehouse);
+            }
             if (m_constructionManager) {
                 m_constructionManager->SetWarehouseFlag(hqFlag);
             }
@@ -765,7 +803,7 @@ void GameScene::Update(float deltaTime)
     if (!m_menuActive && !m_roadMenuActive && !m_townHallPanelOpen && m_camera && m_inputManager) {
         Input::Gamepad* gamepad = m_inputManager->GetGamepad();
         if (gamepad) {
-            float moveSpeed = 250.0f * deltaTime;
+            float moveSpeed = 2000.0f * deltaTime;
             float stickX, stickY;
             gamepad->GetLeftStick(stickX, stickY);
             if (fabsf(stickX) > 0.1f || fabsf(stickY) > 0.1f) {
@@ -1243,7 +1281,19 @@ void GameScene::Update(float deltaTime)
             m_transportJobManager->Update();
         }
 
+        // Sync leg targets from all carriers to ECS (needed by ECS movement system)
+        if (m_carrierManager && m_carrierSystem) {
+            for (int i = 0; i < m_carrierManager->GetCarrierCount(); ++i) {
+                World::Carrier* c = m_carrierManager->GetCarrier(i);
+                if (c && c->ecsEntity != World::INVALID_ENTITY)
+                    m_carrierSystem->SyncLegTargets(c->ecsEntity, c);
+            }
+        }
+
         // ─── Phase D: Carrier updates (per-segment walking) ──────────────
+        if (m_carrierSystem)
+            m_carrierSystem->UpdateMovement(deltaTime);
+
         if (m_carrierManager)
             m_carrierManager->Update(deltaTime);
 
@@ -1653,7 +1703,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                     float ep = 0.0f;
                     float walkDir = carrier->walkDir;
 
-                    if (carrier->state == World::WalkingToPost || carrier->state == World::ReturningHome) {
+                    if (World::IsTransitState(carrier->state)) {
                         if (carrier->transitTiles.size() < 2) continue;
                         pathPtr = &carrier->transitTiles;
                         ep = carrier->transitProgress;
@@ -2453,7 +2503,8 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                 const std::vector<Vector2i>* pathPtr = NULL;
                 float ep = 0.0f;
 
-                if (carrier->state == World::WalkingToPost || carrier->state == World::ReturningHome) {
+                 if (World::IsTransitState(carrier->state)) {
+
                     if (carrier->transitTiles.size() < 2) continue;
                     pathPtr = &carrier->transitTiles;
                     ep = carrier->transitProgress;
@@ -3286,6 +3337,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                 }
 
                 if (entranceX == 0 && entranceY == 0) { skipped++; continue; }
+
                 {
                     bool buildingEvenY = (y % 2 == 0);
                     AdjustEntranceForParity(buildingEvenY, entranceX, entranceY);
@@ -3326,16 +3378,15 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                     wh->AddResource(World::ResourceType_Coal, 100);
 
                     m_economyManager->SetWarehouse(wh);
-
+                    if (m_transportJobManager) {
+                        m_transportJobManager->SetWarehouse(wh);
+                    }
                     if (m_constructionManager) {
                         m_constructionManager->SetWarehouseFlag(flag);
                     }
                     if (m_carrierManager) {
                         m_carrierManager->SetWarehouseFlag(flag);
                     }
-
-                    LinkFlagToRoadNetwork(flag);
-                    SyncCarriersForFlag(flag);
                 } else {
                     building = World::CreateBuilding(type, x, y, 0, m_map);
                     if (!building) { skipped++; continue; }
@@ -3348,6 +3399,8 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                 }
 
                 m_economyManager->AddBuilding(building);
+                LinkFlagToRoadNetwork(flag);
+                SyncCarriersForFlag(flag);
 
                 char dbg[256];
                 _snprintf(dbg, sizeof(dbg), "[Restore] %s at (%d,%d) flag=(%d,%d)%s\n",

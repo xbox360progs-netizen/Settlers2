@@ -17,7 +17,7 @@
 #include "../World/ResourceNode.h"
 #include "../World/WildlifeSystem.h"
 #include "../World/EntityManager.h"
-#include "../World/Systems/AnimalSystem.h"
+#include "../World/Components/Building.h"
 #include "../Graphics/Renderer.h"
 #include "../Input/InputManager.h"
 #include "../Input/InputController.h"
@@ -50,7 +50,7 @@ private:
     // Weight menu related
     bool m_weightMenuVisible;
     UI::WeightMenu* m_weightMenu;
-    bool m_weightMenuPlacementMode;
+    bool IsPlacementMode() const { return m_currentLayer == World::Placement; }
     BYTE m_activeWeight;
 
     // Private methods
@@ -107,6 +107,10 @@ public:
 
     // Returns true if a selection was made (GridMenu hidden, state changed)
     bool HandleGridMenuResourceSelection(Input::Gamepad* gamepad);
+
+    // Check whether a unique building already exists on the map
+    bool HasTownHall() const;
+    bool CanPlaceBuilding(World::BuildingType type) const;
 
     // Update methods
     void UpdateFPS();

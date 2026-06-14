@@ -12,6 +12,7 @@ namespace World {
     class CarrierManager;
     struct Road;
     class Carrier;
+    class Warehouse;
 
     struct InTransitCounts {
         uint32_t count[ResourceType_Count];
@@ -26,6 +27,7 @@ namespace World {
         void SetFlagManager(FlagManager* fm) { m_flagManager = fm; }
         void SetRoadManager(RoadManager* rm) { m_roadManager = rm; }
         void SetCarrierManager(CarrierManager* cm) { m_carrierManager = cm; }
+        void SetWarehouse(Warehouse* wh) { m_warehouse = wh; }
 
         TransportJob* CreateJob(ResourceType resource, uint32_t amount,
                                 Flag* source, Flag* destination);
@@ -57,6 +59,7 @@ namespace World {
         FlagManager* m_flagManager;
         RoadManager* m_roadManager;
         CarrierManager* m_carrierManager;
+        Warehouse* m_warehouse;
 
         std::vector<TransportJob*> m_jobs;
         uint32_t m_nextJobId;

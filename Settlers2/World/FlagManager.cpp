@@ -158,13 +158,17 @@ namespace World {
         uint32_t maxId = 0;
         for (size_t i = 0; i < data.size(); ++i) {
             const FlagData& fd = data[i];
-            Flag* flag = new Flag(fd.x, fd.y, fd.id);
+            uint32_t loadId = fd.id;
+            if (loadId == 0) {
+                loadId = s_nextId++;
+            }
+            Flag* flag = new Flag(fd.x, fd.y, loadId);
             flag->type = fd.type;
             flag->pendingBuilding = fd.pendingBuilding;
             flag->hasBuilding = fd.hasBuilding;
             m_flags.push_back(flag);
             m_handleRegistry.Register<Flag>(flag);
-            if (fd.id > maxId) maxId = fd.id;
+            if (loadId > maxId) maxId = loadId;
         }
         if (maxId >= s_nextId) {
             s_nextId = maxId + 1;

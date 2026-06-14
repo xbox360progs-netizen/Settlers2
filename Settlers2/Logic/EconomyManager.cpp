@@ -36,7 +36,7 @@ namespace Logic {
     }
 
     void EconomyManager::RequestConstructionResource(World::Flag* destFlag, World::ResourceType type, int amount, int priority) {
-        uint32_t fid = destFlag ? destFlag->id : 0;
+        uint32_t fid = destFlag ? destFlag->id : World::INVALID_FLAG_ID;
         for (int i = 0; i < MAX_CONSTRUCTION_REQUESTS; ++i) {
             if (m_constructionRequests[i].active && m_constructionRequests[i].destFlagId == fid && m_constructionRequests[i].type == type) {
                 return;
@@ -86,7 +86,7 @@ namespace Logic {
         for (int r = 0; r < MAX_CONSTRUCTION_REQUESTS; ++r) {
             if (!m_constructionRequests[r].active) continue;
 
-            if (!m_constructionRequests[r].destFlagId) { m_constructionRequests[r].active = false; continue; }
+            if (m_constructionRequests[r].destFlagId == World::INVALID_FLAG_ID) { m_constructionRequests[r].active = false; continue; }
             if (!m_constructionRequests[r].destFlag) {
                 m_constructionRequests[r].destFlag = m_flagManager ? m_flagManager->GetFlagById(m_constructionRequests[r].destFlagId) : NULL;
             }
@@ -215,9 +215,24 @@ namespace Logic {
         }
 
         // ─── Phase 6: Outbound — routing-aware surplus distribution ──────
-        uint32_t whFlagId = (m_warehouse && m_warehouse->connectedFlag) ? m_warehouse->connectedFlag->id : 0;
-        if (whFlagId == 0) {
-            OutputDebugStringA("[Phase6] WARNING: whFlagId=0 — no warehouse connected flag\n");
+        uint32_t whFlagId = (m_warehouse && m_warehouse->connectedFlag) ? m_warehouse->connectedFlag->id : World::INVALID_FLAG_ID;
+        if (whFlagId == 0) whFlagId = World::INVALID_FLAG_ID;  // Safety: id=0 is invalid
+        {
+            char dbg[256];
+            _snprintf(dbg, sizeof(dbg),
+                "[Phase6 Init] m_warehouse=%p connectedFlag=%p whFlagId=%u INVALID=%u\n",
+                m_warehouse,
+                m_warehouse ? m_warehouse->connectedFlag : NULL,
+                whFlagId,
+                World::INVALID_FLAG_ID);
+            OutputDebugStringA(dbg);
+        }
+        if (whFlagId == World::INVALID_FLAG_ID) {
+            static int warnCounter = 0;
+            if (++warnCounter % 60 == 0) {
+                OutputDebugStringA("[Phase6] WARNING: no valid warehouse flag\n");
+            }
+            whFlagId = 0;  // fallback: let CollectWarehouse pick up (destFlagId=0)
         }
         for (size_t i = 0; i < m_buildings.size(); ++i) {
             World::Building* b = m_buildings[i];
@@ -312,7 +327,7 @@ namespace Logic {
                         }
                     }
                     // Clear destination — resource becomes free (warehouse or any flag can collect it)
-                    slot.destFlagId = 0;
+                    slot.destFlagId = World::INVALID_FLAG_ID;
                 }
             }
         }
@@ -322,7 +337,7 @@ namespace Logic {
         // longer needed (building already finished). Uses flag ID for safety.
         for (int r = 0; r < MAX_CONSTRUCTION_REQUESTS; ++r) {
             if (!m_constructionRequests[r].active) continue;
-            if (!m_constructionRequests[r].destFlagId) { m_constructionRequests[r].active = false; continue; }
+            if (m_constructionRequests[r].destFlagId == World::INVALID_FLAG_ID) { m_constructionRequests[r].active = false; continue; }
             // If the flag was deleted (ID lookup returns NULL), the request is stale
             if (!m_flagManager) { m_constructionRequests[r].active = false; continue; }
             World::Flag* df = m_flagManager->GetFlagById(m_constructionRequests[r].destFlagId);
@@ -426,10 +441,9 @@ namespace Logic {
             for (int si = 0; si < 8; ++si) {
                 World::ResourceSlot& slot = whFlag->slots[si];
                 if (slot.type == World::ResourceType_None || slot.amount <= 0) continue;
-                // Collect resources destined for NOTHING (free surplus) OR destined for this very flag
-                // (incoming from Phase-6 routing / carrier delivery).  Resources with a *different*
-                // destFlagId are in-transit and must stay on the flag.
-                if (slot.destFlagId != 0 && slot.destFlagId != whFlag->id) continue;
+                // Collect resources destined for NOTHING (free surplus), INVALID, or this warehouse flag
+                // Resources with a *different* destFlagId are in-transit and must stay on the flag.
+                if (slot.destFlagId != 0 && slot.destFlagId != World::INVALID_FLAG_ID && slot.destFlagId != whFlag->id) continue;
                 if (slot.amount > 0) {
                     whFlag->RemoveResource(slot.type, 1);
                     m_warehouse->AddResource(slot.type, 1);

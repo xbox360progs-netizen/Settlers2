@@ -7,11 +7,12 @@
 #include "Flag.h"
 #include "Road.h"
 #include "Carrier.h"
+#include "Warehouse.h"
 
 namespace World {
 
     TransportJobManager::TransportJobManager()
-        : m_flagManager(NULL), m_roadManager(NULL), m_carrierManager(NULL), m_nextJobId(1),
+        : m_flagManager(NULL), m_roadManager(NULL), m_carrierManager(NULL), m_warehouse(NULL), m_nextJobId(1),
           m_routesDirty(false), m_recalculatingRoutes(false)
     {
     }
@@ -334,11 +335,33 @@ namespace World {
             for (int si = 0; si < 8; ++si) {
                 ResourceSlot& slot = flag->slots[si];
                 if (slot.type == ResourceType_None || slot.amount <= 0) continue;
-                if (slot.destFlagId == 0) {
+
+                char dbg[256];
+                _snprintf(dbg, sizeof(dbg),
+                    "[Scan] flag=%u slot=%d type=%d amount=%d destFlagId=%u reserved=%d\n",
+                    flag->id, si, slot.type, slot.amount, slot.destFlagId, slot.reserved);
+                OutputDebugStringA(dbg);
+
+                if (slot.destFlagId == 0 || slot.destFlagId == World::INVALID_FLAG_ID) {
+                    // Resources with destFlagId == 0 or INVALID_FLAG_ID are meant for warehouse pickup
+                    // Create transport job to warehouse if warehouse exists
+                    if (m_warehouse && m_warehouse->connectedFlag) {
+                        Flag* whFlag = m_warehouse->connectedFlag;
+                        if (whFlag && whFlag != flag && whFlag->id != 0) {
+                            if (flag->Reserve(slot.type, 1, whFlag->id)) {
+                                TransportJob* job = CreateJob(slot.type, 1, flag, whFlag);
+                                if (job) {
+                                    job->cargoId = (uint32_t)(fi * 8 + si);
+                                } else {
+                                    flag->Unreserve(slot.type, 1, whFlag->id);
+                                }
+                            }
+                        }
+                    }
                     char dbg[256];
                     _snprintf(dbg, sizeof(dbg),
-                        "[Cargo] SKIP flag=%u slot=%d %s amount=%d: no destination\n",
-                        flag->id, si, ResourceTypeToString(slot.type), slot.amount);
+                        "[Cargo] SKIP flag=%u slot=%d %s amount=%d: no destination (destFlagId=%u)\n",
+                        flag->id, si, ResourceTypeToString(slot.type), slot.amount, slot.destFlagId);
                     OutputDebugStringA(dbg);
                     continue;
                 }

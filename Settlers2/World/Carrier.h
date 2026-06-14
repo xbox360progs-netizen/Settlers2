@@ -8,11 +8,20 @@
 
 namespace World {
 
+    enum MovementAuthority {
+        Legacy,
+        ECS
+    };
+
     enum CarrierState {
         WalkingToPost,   // walking from warehouse to assigned road
         Working,         // normal road walking (has job or idle)
         ReturningHome    // road removed, walking back to warehouse
     };
+
+    inline bool IsTransitState(CarrierState s) {
+        return s == WalkingToPost || s == ReturningHome;
+    }
 
     class Carrier {
     public:
@@ -29,6 +38,8 @@ namespace World {
         float transitProgress;               // current position along transitTiles
         bool readyToRemove;                  // ReturningHome completed, ready for cleanup
         Entity ecsEntity;                    // ECS entity for this carrier
+        MovementAuthority m_authority;       // Legacy or ECS movement ownership
+        uint32_t pathVersion;                // incremented when path/tiles change
 
         // Cached resolved Flag* pointers — set by CarrierManager before each Update/operation.
         // Transient: refreshed every frame, not used for persistent storage.
@@ -41,7 +52,7 @@ namespace World {
 
         Carrier(Road* r)
             : road(r), ep(0.0f), walkDir(1.0f), cargoDelivered(false), hasPickedUp(false), job(NULL),
-              state(Working), transitProgress(0.0f), readyToRemove(false), ecsEntity(INVALID_ENTITY),
+              state(Working), transitProgress(0.0f), readyToRemove(false), ecsEntity(INVALID_ENTITY), m_authority(ECS), pathVersion(0),
               m_resolvedSourceFlag(NULL), m_resolvedDestFlag(NULL),
               m_resolvedLegFrom(NULL), m_resolvedLegTo(NULL),
               m_roadEndpointA(NULL), m_roadEndpointB(NULL)
@@ -70,6 +81,7 @@ namespace World {
             transitTiles = tiles;
             transitProgress = 0.0f;
             state = WalkingToPost;
+            ++pathVersion;
         }
 
         void SetupReturningHome(const std::vector<Vector2i>& tiles) {
@@ -77,6 +89,7 @@ namespace World {
             transitTiles = tiles;
             transitProgress = 0.0f;
             state = ReturningHome;
+            ++pathVersion;
             if (job) {
                 job->assignedCarrier = Handle<Carrier>();
                 job->state = TransportJob::Waiting;
@@ -87,6 +100,20 @@ namespace World {
             cargo.type = ResourceType_None;
             cargo.amount = 0;
             cargo.destFlagId = 0;
+        }
+
+        // Dumb copy synchronization: ECS -> Legacy
+        void SyncFromECS(float ep, float walkDir, CarrierState state) {
+            this->ep = ep;
+            this->walkDir = walkDir;
+            this->state = state;
+        }
+
+        // Dumb copy synchronization: Legacy -> ECS
+        void SyncToECS(float& outEp, float& outWalkDir, CarrierState& outState) const {
+            outEp = this->ep;
+            outWalkDir = this->walkDir;
+            outState = this->state;
         }
 
         bool AssignJob(TransportJob* j, Flag* fromFlag) {
@@ -129,11 +156,13 @@ namespace World {
 
         void Update(float deltaTime) {
             if (state == WalkingToPost) {
-                UpdateWalkingToPost(deltaTime);
+                if (m_authority == MovementAuthority::Legacy)
+                    UpdateWalkingToPost(deltaTime);
                 return;
             }
             if (state == ReturningHome) {
-                UpdateReturningHome(deltaTime);
+                if (m_authority == MovementAuthority::Legacy)
+                    UpdateReturningHome(deltaTime);
                 return;
             }
 
@@ -147,6 +176,10 @@ namespace World {
             float pathLen = GetPathLen();
             if (pathLen <= 0.0f) return;
 
+            UpdateLogic(deltaTime);
+        }
+
+        void UpdateLogic(float deltaTime) {
             if (HasJob() && !cargoDelivered) {
                 if (job->currentLeg + 1 >= job->route.size()) {
                     cargoDelivered = true;
@@ -162,13 +195,7 @@ namespace World {
                 float destEp = GetFlagEp(legTo);
 
                 if (!hasPickedUp) {
-                    if (ep < pickupEp - 0.01f || ep > pickupEp + 0.01f) {
-                        walkDir = (pickupEp >= ep) ? 1.0f : -1.0f;
-                        ep += walkDir * deltaTime * 3.0f;
-                        if ((walkDir > 0 && ep >= pickupEp) || (walkDir < 0 && ep <= pickupEp)) {
-                            ep = pickupEp;
-                        }
-                    } else {
+                    if (!(ep < pickupEp - 0.01f || ep > pickupEp + 0.01f)) {
                         legFrom->CommitPickup(cargo.type, 1, cargo.destFlagId);
                         hasPickedUp = true;
 
@@ -182,10 +209,7 @@ namespace World {
                         OutputDebugStringA(buf);
                     }
                 } else {
-                    walkDir = (destEp >= ep) ? 1.0f : -1.0f;
-                    ep += walkDir * deltaTime * 3.0f;
-                    if ((walkDir > 0 && ep >= destEp) || (walkDir < 0 && ep <= destEp)) {
-                        ep = destEp;
+                    if ((walkDir > 0.0f && ep >= destEp) || (walkDir < 0.0f && ep <= destEp)) {
                         legTo->AddResource(cargo.type, cargo.amount, cargo.destFlagId);
 
                         char buf[256];
@@ -199,15 +223,6 @@ namespace World {
                         cargo.amount = 0;
                         cargo.destFlagId = 0;
                         cargoDelivered = true;
-                    }
-                }
-            } else if (!HasJob()) {
-                float centerEp = GetCenterEp();
-                if (ep < centerEp - 0.1f || ep > centerEp + 0.1f) {
-                    walkDir = (centerEp >= ep) ? 1.0f : -1.0f;
-                    ep += walkDir * deltaTime * 3.0f;
-                    if ((walkDir > 0 && ep >= centerEp) || (walkDir < 0 && ep <= centerEp)) {
-                        ep = centerEp;
                     }
                 }
             }

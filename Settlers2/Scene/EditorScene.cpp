@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "EditorScene.h"
+#include <string>
 #include "../Input/InputController.h"
 #include "../Logic/CoordinateSystem.h"
 #include "../Logic/MapConstants.h"
@@ -22,8 +23,47 @@
 #include <cstdio>
 
 namespace Scene {
+ 
+    static World::BuildingType GetBuildingType(const std::string& name) {
+        std::string lowerName = name;
+        for (size_t ci = 0; ci < lowerName.size(); ++ci)
+            if (lowerName[ci] >= 'A' && lowerName[ci] <= 'Z')
+                lowerName[ci] = lowerName[ci] - 'A' + 'a';
 
-const char* EditorScene::kObjectGroupNames[] = {
+        if (lowerName == "hut") return World::Hut;
+        if (lowerName == "tower") return World::Tower;
+        if (lowerName == "fortress") return World::Fortress;
+        if (lowerName == "castle") return World::Castle;
+        if (lowerName == "forester") return World::Forester;
+        if (lowerName == "woodcutter") return World::Woodcutter;
+        if (lowerName == "sawmill") return World::Sawmill;
+        if (lowerName == "stonemason") return World::Stonemason;
+        if (lowerName == "coalmine") return World::CoalMine;
+        if (lowerName == "ironmine") return World::IronMine;
+        if (lowerName == "goldmine") return World::GoldMine;
+        if (lowerName == "ironsmelter") return World::IronSmelter;
+        if (lowerName == "goldsmelter") return World::GoldSmelter;
+        if (lowerName == "farm") return World::Farm;
+        if (lowerName == "mill") return World::Mill;
+        if (lowerName == "bakery") return World::Bakery;
+        if (lowerName == "fisher") return World::Fisher;
+        if (lowerName == "hunter") return World::Hunter;
+        if (lowerName == "baker") return World::Baker;
+        if (lowerName == "brewer") return World::Brewer;
+        if (lowerName == "toolworkshop") return World::ToolWorkshop;
+        if (lowerName == "storehouse" || lowerName == "warehouse") return World::Storehouse;
+        if (lowerName == "residence") return World::Residence;
+        if (lowerName == "stronghold") return World::Stronghold;
+        if (lowerName == "well") return World::Well;
+        if (lowerName == "bronzemine") return World::BronzeMine;
+        if (lowerName == "toolmaker") return World::ToolMaker;
+        if (lowerName == "barracks") return World::Barracks;
+
+        return World::Building_None;
+    }
+ 
+    const char* EditorScene::kObjectGroupNames[] = {
+
     "tree",
     "mountain_water",
     "mountain",
@@ -97,7 +137,6 @@ EditorScene::EditorScene()
     , m_weightMenuVisible(false)
     , m_activeWeight(World::Weight_Land)
     , m_weightMenu(nullptr)
-    , m_weightMenuPlacementMode(false)
     , m_depositBuildingSpriteIdx(-1)
     , m_depositConfirmPending(false)
     , m_resourceAmount(10)
@@ -108,7 +147,7 @@ EditorScene::EditorScene()
     , m_saveLoadMenuSection(0)
     , m_saveLoadMenuSelection(0)
     , m_saveLoadMenuPendingSlot(0)
-    , m_saveLoadMenuInputTimer(0.0f)
+	, m_saveLoadMenuInputTimer(0.0f)
 {
 }
 
@@ -277,7 +316,7 @@ void EditorScene::Load() {
 		m_spriteRenderer->SetTextureSlot(14, uiTex);
 	}
 
-	// Extract bg/cell UVs from UI atlas (menu_Grid, menu_cell)
+	// Extract bg/cell UVs from UI atlas (menu_Grid, menu_cell1)
 	GridMenu::TileUV bgUV = {0,0,1,1}, cellUV = {0,0,1,1};
 	GridMenu::TileUV wmDpadUV = {0,0,1,1};
 	{
@@ -290,12 +329,12 @@ void EditorScene::Load() {
 			} else {
 				OutputDebugStringA("[EditorScene] WARNING: 'menu_Grid' NOT FOUND in UI atlas!\n");
 			}
-			uint32_t cellIdx = uiAtl->GetIndex("menu_cell");
+			uint32_t cellIdx = uiAtl->GetIndex("menu_cell1");
 			if (cellIdx != 0xFFFFFFFF) {
 				const SpriteRegion* reg = uiAtl->GetRegion(cellIdx);
 				if (reg) { cellUV.u0 = reg->u0; cellUV.v0 = reg->v0; cellUV.u1 = reg->u1; cellUV.v1 = reg->v1; }
 			} else {
-				OutputDebugStringA("[EditorScene] WARNING: 'menu_cell' NOT FOUND in UI atlas!\n");
+				OutputDebugStringA("[EditorScene] WARNING: 'menu_cell1' NOT FOUND in UI atlas!\n");
 			}
 			uint32_t dpadIdx = uiAtl->GetIndex("d_pad");
 			if (dpadIdx != 0xFFFFFFFF) {
@@ -523,9 +562,22 @@ void EditorScene::Update(float deltaTime) {
         UpdateCursorAndTiles();
     }
 
-    if (m_mapEditor && !menuActive) {
-        UpdateMapEditor(deltaTime, gamepad);
-    }
+	if (m_mapEditor && !menuActive) {
+		UpdateMapEditor(deltaTime, gamepad);
+	}
+
+	// X button deletion works even when menu is active (UpdateMapEditor is skipped)
+	if (m_mapEditor && menuActive && gamepad->IsButtonPressed(Input::GP_X)) {
+		if (m_currentLayer == World::Roads && m_mapEditor->GetRoadBuildState() == Editor::ROAD_FLAG) {
+			m_mapEditor->ToggleFlag(m_mapEditor->GetCursorTileX(), m_mapEditor->GetCursorTileY());
+		} else if (m_currentLayer != World::Resources) {
+			m_mapEditor->DeleteObjectAt(m_mapEditor->GetCursorTileX(), m_mapEditor->GetCursorTileY());
+			// Rebuild menu so newly available icons (e.g. town hall) appear
+			if (m_gridMenu && m_gridMenu->IsVisible() && m_currentLayer == World::Buildings) {
+				LoadGridMenuAtlas("Buildings");
+			}
+		}
+	}
 
     // Update UnitManager (rebuild network when flags change)
     if (m_unitManager && m_mapEditor) {
@@ -571,7 +623,7 @@ void EditorScene::UpdateWeightMenu(Input::Gamepad* gamepad, float deltaTime) {
         m_weightMenuVisible = m_weightMenu->IsVisible();
         if (m_weightMenuVisible) {
             bool selected = false;
-            if (m_weightMenuPlacementMode) {
+            if (IsPlacementMode()) {
                 if (gamepad->IsButtonPressed(Input::GP_DPadUp)) {
                     m_activeWeight = World::Weight_Block;
                     selected = true;
@@ -596,8 +648,7 @@ void EditorScene::UpdateWeightMenu(Input::Gamepad* gamepad, float deltaTime) {
             }
 
             if (selected) {
-                m_editorMode = m_weightMenuPlacementMode ? MODE_PLACEMENT : MODE_WEIGHTS;
-                m_weightMenuPlacementMode = false;
+                m_editorMode = IsPlacementMode() ? MODE_PLACEMENT : MODE_WEIGHTS;
                 m_weightMenu->Close();
                 m_weightMenuVisible = false;
             }
@@ -659,8 +710,7 @@ void EditorScene::HandleWeightMenuToggle() {
                 m_spriteRenderer->SetTextureSlot(13, uiTex);
                 m_spriteRenderer->SetTextureSlot(14, uiTex);
             }
-            m_weightMenuPlacementMode = (m_currentLayer == World::Placement);
-            m_weightMenu->SetPlacementMode(m_weightMenuPlacementMode);
+            m_weightMenu->SetPlacementMode(IsPlacementMode());
             m_weightMenu->Open(m_activeWeight);
             m_weightMenuVisible = true;
         }
@@ -1052,7 +1102,7 @@ void EditorScene::UpdateResourcePlacementFSM() {
 }
 
 void EditorScene::UpdateCamera(Input::Gamepad* gamepad, float deltaTime) {
-    float moveSpeed = 250.0f * deltaTime;
+    float moveSpeed = 2000.0f * deltaTime;
     float stickX, stickY;
     gamepad->GetLeftStick(stickX, stickY);
 
@@ -1123,46 +1173,60 @@ void EditorScene::UpdateMapEditor(float deltaTime, Input::Gamepad* gamepad) {
                 }
             }
         }
-    } else {
-        // Cancel road building with B
-        if (gamepad->IsButtonPressed(Input::GP_B)) {
-            if (m_currentLayer == World::Roads && m_mapEditor->GetRoadBuildState() == Editor::ROAD_PLACING) {
-                m_mapEditor->CancelRoad();
-                OutputDebugStringA("[Editor] Road building cancelled\n");
-            }
-        }
+        return;
+    }
 
-        if (gamepad->IsButtonPressed(Input::GP_X)) {
-            // In flag mode, X removes only the flag (road stays)
-            if (m_currentLayer == World::Roads && m_mapEditor->GetRoadBuildState() == Editor::ROAD_FLAG) {
-                // If flag exists at cursor, ToggleFlag removes it; otherwise no-op
+    // Cancel road building with B
+    if (gamepad->IsButtonPressed(Input::GP_B)) {
+        if (m_currentLayer == World::Roads && m_mapEditor->GetRoadBuildState() == Editor::ROAD_PLACING) {
+            m_mapEditor->CancelRoad();
+            OutputDebugStringA("[Editor] Road building cancelled\n");
+        }
+    }
+
+    if (gamepad->IsButtonPressed(Input::GP_X)) {
+        // In flag mode, X removes only the flag (road stays)
+        if (m_currentLayer == World::Roads && m_mapEditor->GetRoadBuildState() == Editor::ROAD_FLAG) {
+            // If flag exists at cursor, ToggleFlag removes it; otherwise no-op
+            m_mapEditor->ToggleFlag(m_mapEditor->GetCursorTileX(), m_mapEditor->GetCursorTileY());
+        } else {
+            m_mapEditor->DeleteObjectAt(m_mapEditor->GetCursorTileX(), m_mapEditor->GetCursorTileY());
+        }
+    }
+
+    if (gamepad->IsButtonPressed(Input::GP_A)) {
+        if (m_currentLayer == World::Roads) {
+            Editor::RoadBuildState rs = m_mapEditor->GetRoadBuildState();
+            if (rs == Editor::ROAD_FLAG) {
                 m_mapEditor->ToggleFlag(m_mapEditor->GetCursorTileX(), m_mapEditor->GetCursorTileY());
+            } else if (rs == Editor::ROAD_IDLE) {
+                int tx = m_mapEditor->GetCursorTileX();
+                int ty = m_mapEditor->GetCursorTileY();
+                m_mapEditor->StartRoad(tx, ty);
+                if (m_mapEditor->GetRoadBuildState() == Editor::ROAD_PLACING) {
+                    char buf[128];
+                    sprintf_s(buf, "[Editor] Road started at (%d,%d), move cursor to set end point, A to confirm, B to cancel\n", tx, ty);
+                    OutputDebugStringA(buf);
+                }
             } else {
-                m_mapEditor->DeleteObjectAt(m_mapEditor->GetCursorTileX(), m_mapEditor->GetCursorTileY());
+                m_mapEditor->CommitRoad();
             }
-        }
-
-        if (gamepad->IsButtonPressed(Input::GP_A)) {
-            if (m_currentLayer == World::Roads) {
-                Editor::RoadBuildState rs = m_mapEditor->GetRoadBuildState();
-                if (rs == Editor::ROAD_FLAG) {
-                    m_mapEditor->ToggleFlag(m_mapEditor->GetCursorTileX(), m_mapEditor->GetCursorTileY());
-                } else if (rs == Editor::ROAD_IDLE) {
-                    int tx = m_mapEditor->GetCursorTileX();
-                    int ty = m_mapEditor->GetCursorTileY();
-                    m_mapEditor->StartRoad(tx, ty);
-                    if (m_mapEditor->GetRoadBuildState() == Editor::ROAD_PLACING) {
-                        char buf[128];
-                        sprintf_s(buf, "[Editor] Road started at (%d,%d), move cursor to set end point, A to confirm, B to cancel\n", tx, ty);
-                        OutputDebugStringA(buf);
+        } else if (m_currentLayer != World::Placement || m_editorMode == MODE_PLACEMENT) {
+            if (m_currentLayer == World::Placement) {
+                m_mapEditor->SetPlacementOccupied(m_activeWeight == World::Weight_Block);
+            }
+            // Reject placement if the selected building can't be placed
+            if (m_currentLayer == World::Buildings && m_mapEditor) {
+                std::tr1::shared_ptr<SpriteAtlas> ba = TextureRegistry::instance().getAtlas("Buildings");
+                if (ba) {
+                    const SpriteRegion* reg = ba->GetRegion((uint32_t)m_mapEditor->GetCurrentTileIndex());
+                    if (reg && !CanPlaceBuilding(GetBuildingType(reg->name))) {
+                        OutputDebugStringA("[EditorScene] Can't place this building (unique limit reached)\n");
+                    } else {
+                        m_mapEditor->PaintCurrentTile();
                     }
-                } else {
-                    m_mapEditor->CommitRoad();
                 }
-            } else if (m_currentLayer != World::Placement || m_editorMode == MODE_PLACEMENT) {
-                if (m_currentLayer == World::Placement) {
-                    m_mapEditor->SetPlacementOccupied(m_activeWeight == World::Weight_Block);
-                }
+            } else {
                 m_mapEditor->PaintCurrentTile();
             }
         }
@@ -1857,7 +1921,6 @@ void EditorScene::RenderOverlay() {
 }
 
 void EditorScene::OnEnter() {
-    OutputDebugStringA("[EditorScene] OnEnter\n");
 }
 
 void EditorScene::OnExit() {
@@ -1893,6 +1956,36 @@ void EditorScene::BindGridMenuTextures(LPDIRECT3DTEXTURE9 bgTexture, LPDIRECT3DT
     }
 }
 
+bool EditorScene::CanPlaceBuilding(World::BuildingType type) const {
+    if (type == World::Storehouse && HasTownHall()) return false;
+    return true;
+}
+
+
+bool EditorScene::HasTownHall() const {
+    if (!m_mapEditor || !m_mapEditor->GetMap())
+        return false;
+    World::TileLayer* buildingsLayer = m_mapEditor->GetMap()->GetLayer(World::Buildings);
+    if (!buildingsLayer)
+        return false;
+    std::tr1::shared_ptr<SpriteAtlas> atlas = TextureRegistry::instance().getAtlas("Buildings");
+    if (!atlas)
+        return false;
+    for (int y = 0; y < buildingsLayer->GetHeight(); ++y) {
+        for (int x = 0; x < buildingsLayer->GetWidth(); ++x) {
+            const World::Tile& tile = buildingsLayer->GetTile(x, y);
+            if (tile.regionIndex >= 0 && tile.atlasName == "Buildings") {
+                const SpriteRegion* tr = atlas->GetRegion(tile.regionIndex);
+                if (tr && tr->name == "b_townhall")
+                    return true;
+            }
+        }
+    }
+    return false;
+}
+
+
+
 void EditorScene::LoadGridMenuAtlas(const char* atlasName) {
     if (!m_gridMenu) return;
 
@@ -1910,7 +2003,7 @@ void EditorScene::LoadGridMenuAtlas(const char* atlasName) {
             m_spriteRenderer->SetTextureSlot(8, atlasTex);
         }
 
-        // Set bg/cell UV from UI atlas (menu_Grid, menu_cell)
+        // Set bg/cell UV from UI atlas (menu_Grid, menu_cell1)
         GridMenu::TileUV bgUV = {0,0,1,1}, cellUV = {0,0,1,1};
         if (uiAtl) {
             uint32_t bgIdx = uiAtl->GetIndex("menu_Grid");
@@ -1921,13 +2014,13 @@ void EditorScene::LoadGridMenuAtlas(const char* atlasName) {
             } else {
                 OutputDebugStringA("[EditorScene LoadGridMenuAtlas] WARNING: 'menu_Grid' NOT FOUND\n");
             }
-            uint32_t cellIdx = uiAtl->GetIndex("menu_cell");
+            uint32_t cellIdx = uiAtl->GetIndex("menu_cell1");
             if (cellIdx != 0xFFFFFFFF) {
                 const SpriteRegion* reg = uiAtl->GetRegion(cellIdx);
                 if (reg) { cellUV.u0 = reg->u0; cellUV.v0 = reg->v0; cellUV.u1 = reg->u1; cellUV.v1 = reg->v1; }
-                else { OutputDebugStringA("[EditorScene LoadGridMenuAtlas] WARNING: 'menu_cell' found but GetRegion NULL\n"); }
+                else { OutputDebugStringA("[EditorScene LoadGridMenuAtlas] WARNING: 'menu_cell1' found but GetRegion NULL\n"); }
             } else {
-                OutputDebugStringA("[EditorScene LoadGridMenuAtlas] WARNING: 'menu_cell' NOT FOUND\n");
+                OutputDebugStringA("[EditorScene LoadGridMenuAtlas] WARNING: 'menu_cell1' NOT FOUND\n");
             }
         }
     m_gridMenu->SetBackgroundUV(bgUV);
@@ -1938,8 +2031,10 @@ void EditorScene::LoadGridMenuAtlas(const char* atlasName) {
 
     std::vector<GridMenu::TileUV> uvs;
     std::vector<int> globalIndices;
+    std::vector<std::string> labels;
         uvs.reserve(atlas->GetRegionCount());
         globalIndices.reserve(atlas->GetRegionCount());
+        labels.reserve(atlas->GetRegionCount());
         for (uint32_t i = 0; i < atlas->GetRegionCount(); ++i) {
             const SpriteRegion* reg = atlas->GetRegion(i);
             GridMenu::TileUV tu;
@@ -1947,24 +2042,32 @@ void EditorScene::LoadGridMenuAtlas(const char* atlasName) {
             else { tu.u0 = 0.0f; tu.v0 = 0.0f; tu.u1 = 1.0f; tu.v1 = 1.0f; }
             uvs.push_back(tu);
             globalIndices.push_back((int)i);
+            std::string label;
+            if (reg && !reg->name.empty())
+                label = LanguageManager::instance().GetString(reg->name);
+            labels.push_back(label);
         }
+
+        // Filter out unique buildings that can't be placed (e.g. town hall)
+        if (strcmp(atlasName, "Buildings") == 0) {
+            for (int i = (int)globalIndices.size() - 1; i >= 0; --i) {
+                const SpriteRegion* reg = atlas->GetRegion((uint32_t)globalIndices[i]);
+                    if (reg && !CanPlaceBuilding(GetBuildingType(reg->name))) {
+
+                    uvs.erase(uvs.begin() + i);
+                    globalIndices.erase(globalIndices.begin() + i);
+                    labels.erase(labels.begin() + i);
+                    char dbg[256];
+                    sprintf_s(dbg, "[EditorScene] Hiding '%s' from Buildings menu\n", reg->name.c_str());
+                    OutputDebugStringA(dbg);
+                }
+            }
+        }
+
         m_gridMenu->SetTileData(uvs, globalIndices);
         m_gridMenu->SetSpriteRenderer(m_spriteRenderer);
         m_gridMenu->ResetSelection();
-
-        // Build cell labels from atlas region names via language.ini
-        {
-            std::vector<std::string> labels;
-            labels.reserve(atlas->GetRegionCount());
-            for (uint32_t i = 0; i < atlas->GetRegionCount(); ++i) {
-                const SpriteRegion* reg = atlas->GetRegion(i);
-                std::string label;
-                if (reg && !reg->name.empty())
-                    label = LanguageManager::instance().GetString(reg->name);
-                labels.push_back(label);
-            }
-            m_gridMenu->SetCellLabels(labels);
-        }
+        m_gridMenu->SetCellLabels(labels);
 
         char buf[128];
         sprintf_s(buf, "[EditorScene] Loaded atlas '%s' into GridMenu (%d regions)\n", atlasName, (int)atlas->GetRegionCount());
@@ -1999,7 +2102,7 @@ void EditorScene::LoadGridMenuGroup(const char* groupName) {
         m_spriteRenderer->SetTextureSlot(8, atlasTex);
     }
 
-    // Set bg/cell UV from UI atlas (menu_Grid, menu_cell)
+    // Set bg/cell UV from UI atlas (menu_Grid, menu_cell1)
     GridMenu::TileUV bgUV = {0,0,1,1}, cellUV = {0,0,1,1};
     if (uiAtl) {
         uint32_t bgIdx = uiAtl->GetIndex("menu_Grid");
@@ -2010,13 +2113,13 @@ void EditorScene::LoadGridMenuGroup(const char* groupName) {
         } else {
             OutputDebugStringA("[EditorScene LoadGridMenuGroup] WARNING: 'menu_Grid' NOT FOUND\n");
         }
-        uint32_t cellIdx = uiAtl->GetIndex("menu_cell");
+        uint32_t cellIdx = uiAtl->GetIndex("menu_cell1");
         if (cellIdx != 0xFFFFFFFF) {
             const SpriteRegion* reg = uiAtl->GetRegion(cellIdx);
             if (reg) { cellUV.u0 = reg->u0; cellUV.v0 = reg->v0; cellUV.u1 = reg->u1; cellUV.v1 = reg->v1; }
-            else { OutputDebugStringA("[EditorScene LoadGridMenuGroup] WARNING: 'menu_cell' found but GetRegion NULL\n"); }
+            else { OutputDebugStringA("[EditorScene LoadGridMenuGroup] WARNING: 'menu_cell1' found but GetRegion NULL\n"); }
         } else {
-            OutputDebugStringA("[EditorScene LoadGridMenuGroup] WARNING: 'menu_cell' NOT FOUND\n");
+            OutputDebugStringA("[EditorScene LoadGridMenuGroup] WARNING: 'menu_cell1' NOT FOUND\n");
         }
     }
     m_gridMenu->SetBackgroundUV(bgUV);
@@ -2111,7 +2214,7 @@ void EditorScene::LoadUIAtlasGroup(const char* groupName, const std::vector<std:
         }
     }
     
-    uint32_t cellIdx = uiAtl->GetIndex("menu_cell");
+    uint32_t cellIdx = uiAtl->GetIndex("menu_cell1");
     if (cellIdx != 0xFFFFFFFF) {
         const SpriteRegion* reg = uiAtl->GetRegion(cellIdx);
         if (reg) { 

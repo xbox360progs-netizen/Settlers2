@@ -65,22 +65,20 @@ const float Fisher::FISHING_DURATION = 3.0f;
         return false;
     }
 
-    bool Building::AddOutput(ResourceType type, int amount)
-    {
-        char dbg[256];
-        _snprintf(dbg, sizeof(dbg), "[Building] AddOutput type=%d amount=%d current=%d capacity=5\n",
-                 (int)type, amount, m_storage[type]);
-        OutputDebugStringA(dbg);
-
-        if (IsOutputFull()) {
-            OutputDebugStringA("[Building] AddOutput FAILED: output full\n");
-            return false;
-        }
-        m_storage[type] += amount;
-
-        _snprintf(dbg, sizeof(dbg), "[Building] AddOutput OK storage=%d\n", m_storage[type]);
-        OutputDebugStringA(dbg);
-        return true;
+    bool Building::AddOutput(ResourceType type, int amount) {
+    if (IsOutputFull()) return false;
+    
+    // Увеличиваем внутреннее хранилище
+    m_storage[type] += amount;
+    
+    // Если зданию этот ресурс не нужен (не в inputResources или storage полон)
+    // — кладём на флаг для Carrier'а
+    if (!NeedsResource(type) && connectedFlag) {
+        connectedFlag->AddResource(type, amount, 0);
     }
+    
+    return true;
+}
+
 
 }

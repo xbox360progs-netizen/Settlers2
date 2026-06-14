@@ -8,6 +8,8 @@
 #include "Handle.h"
 
 namespace World {
+    static const uint32_t INVALID_FLAG_ID = 0xFFFFFFFF;
+
     class Building;
     struct Road;
 
@@ -32,7 +34,7 @@ namespace World {
         int reserved; // committed to pending TransportJobs, not available for new requests
         uint32_t destFlagId; // ID of ultimate destination flag (0 = no routing, safe across flag deletion)
 
-        ResourceSlot() : type(ResourceType_None), amount(0), reserved(0), destFlagId(0) {}
+        ResourceSlot() : type(ResourceType_None), amount(0), reserved(0), destFlagId(INVALID_FLAG_ID) {}
     };
 
     class Flag {
@@ -54,10 +56,10 @@ namespace World {
             pos.y = y;
         }
 
-        int FindSlot(ResourceType type, uint32_t destFlagId = 0) const {
+        int FindSlot(ResourceType type, uint32_t destFlagId = INVALID_FLAG_ID) const {
             for (int i = 0; i < 8; ++i) {
                 if (slots[i].type == type) {
-                    if (destFlagId == 0 || slots[i].destFlagId == destFlagId)
+                    if (destFlagId == INVALID_FLAG_ID || slots[i].destFlagId == destFlagId)
                         return i;
                 }
             }
@@ -81,7 +83,7 @@ namespace World {
             return total;
         }
 
-        bool Reserve(ResourceType type, int amount, uint32_t destFlagId = 0) {
+        bool Reserve(ResourceType type, int amount, uint32_t destFlagId = INVALID_FLAG_ID) {
             int idx = FindSlot(type, destFlagId);
             if (idx < 0) return false;
             if (slots[idx].amount - slots[idx].reserved < amount) return false;
@@ -89,7 +91,7 @@ namespace World {
             return true;
         }
 
-        void Unreserve(ResourceType type, int amount, uint32_t destFlagId = 0) {
+        void Unreserve(ResourceType type, int amount, uint32_t destFlagId = INVALID_FLAG_ID) {
             int idx = FindSlot(type, destFlagId);
             if (idx >= 0) {
                 slots[idx].reserved -= amount;
@@ -97,7 +99,7 @@ namespace World {
             }
         }
 
-        bool AddResource(ResourceType type, int amount, uint32_t destFlagId = 0) {
+        bool AddResource(ResourceType type, int amount, uint32_t destFlagId = INVALID_FLAG_ID) {
             int idx = FindSlot(type, destFlagId);
             if (idx >= 0) {
                 slots[idx].amount += amount;
@@ -114,7 +116,7 @@ namespace World {
             return false;
         }
 
-        bool RemoveResource(ResourceType type, int amount, uint32_t destFlagId = 0) {
+        bool RemoveResource(ResourceType type, int amount, uint32_t destFlagId = INVALID_FLAG_ID) {
             int idx = FindSlot(type, destFlagId);
             if (idx < 0) return false;
             if (slots[idx].amount - slots[idx].reserved < amount) return false;
@@ -123,12 +125,12 @@ namespace World {
                 slots[idx].type = ResourceType_None;
                 slots[idx].amount = 0;
                 slots[idx].reserved = 0;
-                slots[idx].destFlagId = 0;
+                slots[idx].destFlagId = INVALID_FLAG_ID;
             }
             return true;
         }
 
-        void CommitPickup(ResourceType type, int amount, uint32_t destFlagId = 0) {
+        void CommitPickup(ResourceType type, int amount, uint32_t destFlagId = INVALID_FLAG_ID) {
             int idx = FindSlot(type, destFlagId);
             if (idx < 0) return;
             if (amount <= 0) return;
@@ -144,7 +146,7 @@ namespace World {
                 slots[idx].type = ResourceType_None;
                 slots[idx].amount = 0;
                 slots[idx].reserved = 0;
-                slots[idx].destFlagId = 0;
+                slots[idx].destFlagId = INVALID_FLAG_ID;
             }
         }
     };

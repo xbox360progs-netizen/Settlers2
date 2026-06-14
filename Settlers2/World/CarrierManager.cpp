@@ -147,13 +147,13 @@ namespace World {
         // Create ECS entity for movement (starts at progress=0, matches new Carrier)
         if (m_carrierSystem && c->ecsEntity == INVALID_ENTITY) {
             std::vector<Vector2i> tiles;
-            if (c->state == WalkingToPost || c->state == ReturningHome) {
+            if (IsTransitState(c->state)) {
                 tiles = c->transitTiles;
             } else if (c->road && c->road->tiles.size() >= 2) {
                 tiles = c->road->tiles;
             }
             if (!tiles.empty()) {
-                c->ecsEntity = m_carrierSystem->CreateCarrier(tiles, c->state);
+                c->ecsEntity = m_carrierSystem->CreateCarrier(CarrierInit(tiles, c->state, c->pathVersion));
             }
         }
     }
@@ -324,55 +324,76 @@ namespace World {
         return false;
     }
 
-    void CarrierManager::Update(float deltaTime) {
-        for (int i = (int)m_carriers.size() - 1; i >= 0; --i) {
-            Carrier* c = m_carriers[i];
+   void CarrierManager::Update(float deltaTime) {
+    // === ФАЗА 1: Resolve и Update Carrier ===
+    for (int i = (int)m_carriers.size() - 1; i >= 0; --i) {
+        Carrier* c = m_carriers[i];
 
-            if (c->readyToRemove) {
-                if (c->ecsEntity != INVALID_ENTITY && m_carrierSystem)
-                    m_carrierSystem->RemoveCarrier(c->ecsEntity);
-                UnregisterCarrier(GetCarrierHandle(c));
-                delete c;
-                m_carriers.erase(m_carriers.begin() + i);
-                continue;
-            }
-
-            // Resolve handles to cached Flag* pointers before Update
-            c->m_resolvedLegFrom = NULL;
-            c->m_resolvedLegTo = NULL;
-            if (c->road) {
-                c->m_roadEndpointA = m_flagManager ? m_flagManager->ResolveFlag(c->road->a) : NULL;
-                c->m_roadEndpointB = m_flagManager ? m_flagManager->ResolveFlag(c->road->b) : NULL;
-            } else {
-                c->m_roadEndpointA = NULL;
-                c->m_roadEndpointB = NULL;
-            }
-            if (c->job && m_flagManager) {
-                c->m_resolvedSourceFlag = m_flagManager->ResolveFlag(c->job->sourceFlag);
-                c->m_resolvedDestFlag = m_flagManager->ResolveFlag(c->job->destinationFlag);
-                uint32_t leg = c->job->currentLeg;
-                if (leg + 1 < c->job->route.size()) {
-                    c->m_resolvedLegFrom = m_flagManager->ResolveFlag(c->job->route[leg]);
-                    c->m_resolvedLegTo = m_flagManager->ResolveFlag(c->job->route[leg + 1]);
-                }
-            } else {
-                c->m_resolvedSourceFlag = NULL;
-                c->m_resolvedDestFlag = NULL;
-            }
-
-            c->Update(deltaTime);
-
-            // Sync Carrier → ECS (passive: ECS mirrors Carrier movement for future use)
+        if (c->readyToRemove) {
             if (c->ecsEntity != INVALID_ENTITY && m_carrierSystem)
-                m_carrierSystem->SyncFromCarrier(c->ecsEntity, c);
+                m_carrierSystem->RemoveCarrier(c->ecsEntity);
+            UnregisterCarrier(GetCarrierHandle(c));
+            delete c;
+            m_carriers.erase(m_carriers.begin() + i);
+            continue;
+        }
 
-            if (c->HasArrived()) {
-                TransportJob* doneJob = c->job;
-                c->ClearJob();
-                if (m_jobManager && doneJob) {
-                    m_jobManager->OnLegDelivered(doneJob);
-                }
+        // Resolve handles to cached Flag* pointers
+        c->m_resolvedLegFrom = NULL;
+        c->m_resolvedLegTo = NULL;
+        if (c->road) {
+            c->m_roadEndpointA = m_flagManager ? m_flagManager->ResolveFlag(c->road->a) : NULL;
+            c->m_roadEndpointB = m_flagManager ? m_flagManager->ResolveFlag(c->road->b) : NULL;
+        } else {
+            c->m_roadEndpointA = NULL;
+            c->m_roadEndpointB = NULL;
+        }
+        if (c->job && m_flagManager) {
+            c->m_resolvedSourceFlag = m_flagManager ? m_flagManager->ResolveFlag(c->job->sourceFlag) : NULL;
+            c->m_resolvedDestFlag = m_flagManager ? m_flagManager->ResolveFlag(c->job->destinationFlag) : NULL;
+            uint32_t leg = c->job->currentLeg;
+            if (leg + 1 < c->job->route.size()) {
+                c->m_resolvedLegFrom = m_flagManager->ResolveFlag(c->job->route[leg]);
+                c->m_resolvedLegTo = m_flagManager->ResolveFlag(c->job->route[leg + 1]);
+            }
+        } else {
+            c->m_resolvedSourceFlag = NULL;
+            c->m_resolvedDestFlag = NULL;
+        }
+
+        // Update Carrier (может получить job, изменить pathVersion)
+        c->Update(deltaTime);
+
+        if (c->HasArrived()) {
+            TransportJob* doneJob = c->job;
+            c->ClearJob();
+            if (m_jobManager && doneJob) {
+                m_jobManager->OnLegDelivered(doneJob);
             }
         }
     }
+
+    // === ФАЗА 2: Push Carrier → ECS (SyncLegTargets) ===
+    // Передаём актуальный путь, tiles, pickupEp, destEp, pathVersion
+    for (size_t i = 0; i < m_carriers.size(); ++i) {
+    Carrier* c = m_carriers[i];
+    if (c->ecsEntity != INVALID_ENTITY && m_carrierSystem) {
+        m_carrierSystem->SyncLegTargets(c->ecsEntity, c);
+    }
+}
+
+    // === ФАЗА 3: ECS двигает ВСЕ сущности (UpdateMovement) ===
+    if (m_carrierSystem) {
+        m_carrierSystem->UpdateMovement(deltaTime);
+    }
+
+    // === ФАЗА 4: Pull ECS → Carrier (SyncToCarrier) ===
+    for (size_t i = 0; i < m_carriers.size(); ++i) {
+    Carrier* c = m_carriers[i];
+    if (c->ecsEntity != INVALID_ENTITY && m_carrierSystem) {
+        m_carrierSystem->SyncToCarrier(c->ecsEntity, c);
+        m_carrierSystem->DebugECSInvariants(c->ecsEntity, c);
+    }
+}
+}
 }

@@ -1,0 +1,38 @@
+
+Не удается найти следующие файлы: 
+
+	Settlers2.sln, 
+
+указанные в командной строке, поэтому они не будут загружены.
+1>------ Построение начато: проект: Settlers2, Конфигурация: Release Xbox 360 ------
+1>Построение начато 13.06.2026 14:51:14.
+1>InitializeBuildStatus:
+1>  Обращение к "Release\Settlers2.unsuccessfulbuild".
+1>ClCompile:
+1>  Для всех выходных данных обновления не требуется.
+1>  GameEngine.cpp
+1>  AISystem.cpp
+1>  EditorScene.cpp
+1>  GameScene.cpp
+1>  MenuScene.cpp
+1>  Building.cpp
+1>  BuildingFactory.cpp
+1>  EntityManager.cpp
+1>  AnimalManager.cpp
+1>  WildlifeSystem.cpp
+1>  AnimalSystem.cpp
+1>  RenderSystem.cpp
+1>  Generating Code...
+1>ImageXex:
+1>  Microsoft(R) Xbox 360 Image File Builder Version 2.0.21256.0
+1>  (c)2012 Microsoft Corporation. All rights reserved.
+1>  
+1>FinalizeBuildStatus:
+1>  Файл "Release\Settlers2.unsuccessfulbuild" удаляется.
+1>  Обращение к "Release\Settlers2.lastbuildstate".
+1>
+1>Построение успешно завершено.
+1>
+1>Затраченное время: 00:00:31.00
+========== Построение: успешно: 1, с ошибками: 0, без изменений: 0, пропущено: 0 ==========
+
