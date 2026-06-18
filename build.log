@@ -1,27 +1,139 @@
-
-Не удается найти следующие файлы: 
-
-	Settlers2.sln, 
-
-указанные в командной строке, поэтому они не будут загружены.
-1>------ Построение начато: проект: Settlers2, Конфигурация: Release Xbox 360 ------
-1>Построение начато 13.06.2026 14:51:14.
+1>------ Перестроение всех файлов начато: проект: Settlers2, Конфигурация: Release Xbox 360 ------
+1>Построение начато 18.06.2026 7:44:33.
+1>_PrepareForClean:
+1>  Файл "Release\Settlers2.lastbuildstate" удаляется.
 1>InitializeBuildStatus:
-1>  Обращение к "Release\Settlers2.unsuccessfulbuild".
+1>  Создание "Release\Settlers2.unsuccessfulbuild", так как было задано "AlwaysCreate".
 1>ClCompile:
-1>  Для всех выходных данных обновления не требуется.
+1>  stdafx.cpp
 1>  GameEngine.cpp
+1>  LanguageManager.cpp
+1>  JobManager.cpp
+1>  ThreadSync.cpp
+1>  BatchBuilder.cpp
+1>  BinFileManager.cpp
+1>  BitmapFont.cpp
+1>  BitmapText.cpp
+1>  Camera.cpp
+1>  FallbackResources.cpp
+1>  Light.cpp
+1>  LightOptimizer.cpp
+1>  OverlayFPS.cpp
+1>  GPUTimer.cpp
+1>  PostFX.cpp
+1>  PostProcessing.cpp
+1>  Quad.cpp
+1>  RenderDebugOverlay.cpp
+1>  RenderFrame.cpp
+1>  Renderer.cpp
+1>  Generating Code...
+1>  Compiling...
+1>  DebugOverlay.cpp
+1>  RenderQueue.cpp
+1>  RenderStateValidator.cpp
+1>  RenderTargetManager.cpp
+1>  ShaderManager.cpp
+1>  SpriteAtlas.cpp
+1>  SpriteRenderer.cpp
+1>  SpriteShadow.cpp
+1>  TextManager.cpp
+1>  TextureLoader.cpp
+1>  TextureRegistry.cpp
+1>  TileRenderer.cpp
+1>  Xbox360EDRAM.cpp
+1>  Gamepad.cpp
+1>  InputContext.cpp
+1>  InputController.cpp
+1>  InputManager.cpp
+1>  ScreenKeyboard.cpp
 1>  AISystem.cpp
+1>  EconomyManager.cpp
+1>  Generating Code...
+1>  Compiling...
+1>  ResourceRegistry.cpp
+1>  IsoGrid.cpp
+1>Logic\IsoGrid.cpp(25): warning C4244: 'initializing' : conversion from 'int' to 'float', possible loss of data
+1>Logic\IsoGrid.cpp(26): warning C4244: 'initializing' : conversion from 'int' to 'float', possible loss of data
+1>  WeightMap.cpp
 1>  EditorScene.cpp
 1>  GameScene.cpp
+1>  LoadingScene.cpp
 1>  MenuScene.cpp
+1>  Scene.cpp
+1>  SceneManager.cpp
+1>  Settlers2.cpp
+1>  BuildMenu.cpp
+1>  Button.cpp
+1>UI\Button.cpp(60): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+1>UI\Button.cpp(60): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+1>UI\Button.cpp(73): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+1>UI\Button.cpp(73): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+1>  EditorUI.cpp
+1>  GridMenu.cpp
+1>  Minimap.cpp
+1>UI\Minimap.cpp(87): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+1>UI\Minimap.cpp(87): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+1>UI\Minimap.cpp(114): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+1>UI\Minimap.cpp(114): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+1>  Panel.cpp
+1>  RadialMenu.cpp
+1>  ResourceBar.cpp
+1>  UIManager.cpp
+1>UI\UIManager.cpp(125): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+1>UI\UIManager.cpp(125): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+1>UI\UIManager.cpp(134): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+1>UI\UIManager.cpp(134): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+1>UI\UIManager.cpp(200): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+1>UI\UIManager.cpp(200): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+1>UI\UIManager.cpp(208): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+1>UI\UIManager.cpp(208): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+1>  Widget.cpp
+1>UI\Widget.cpp(94): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+1>UI\Widget.cpp(94): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+1>UI\Widget.cpp(112): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+1>UI\Widget.cpp(112): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+1>UI\Widget.cpp(128): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+1>UI\Widget.cpp(128): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+1>  Generating Code...
+1>  Compiling...
+1>  WeightMenu.cpp
 1>  Building.cpp
 1>  BuildingFactory.cpp
+1>  Collider.cpp
+1>  Model.cpp
+1>  Resource.cpp
+1>  Transform.cpp
+1>  Unit.cpp
+1>  CarrierManager.cpp
+1>  CargoManager.cpp
+1>  DemandManager.cpp
+1>  FlagManager.cpp
+1>  HabitatRegistry.cpp
+1>  RoadManager.cpp
+1>  TransportJobManager.cpp
+1>  ObjectDeletionRules.cpp
+1>  ObjectLifecycleManager.cpp
+1>  ConstructionSite.cpp
+1>  ConstructionManager.cpp
+1>  Entity.cpp
+1>  Generating Code...
+1>  Compiling...
 1>  EntityManager.cpp
+1>  Map.cpp
+1>  MapSerializer.cpp
 1>  AnimalManager.cpp
+1>  WorkerManager.cpp
 1>  WildlifeSystem.cpp
+1>  EconomySystem.cpp
+1>  PathfindingSystem.cpp
+1>  PhysicsSystem.cpp
 1>  AnimalSystem.cpp
+1>  CarrierSystem.cpp
 1>  RenderSystem.cpp
+1>  TileLayer.cpp
+1>  MapEditor.cpp
+1>  UnitManager.cpp
+1>  TilePalette.cpp
 1>  Generating Code...
 1>ImageXex:
 1>  Microsoft(R) Xbox 360 Image File Builder Version 2.0.21256.0
@@ -33,6 +145,6 @@
 1>
 1>Построение успешно завершено.
 1>
-1>Затраченное время: 00:00:31.00
-========== Построение: успешно: 1, с ошибками: 0, без изменений: 0, пропущено: 0 ==========
+1>Затраченное время: 00:01:06.60
+========== Перестроение всех: успешно: 1, с ошибками: 0, пропущено: 0 ==========
 

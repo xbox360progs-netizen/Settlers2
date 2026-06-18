@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <stdint.h>
+#include <unordered_map>
 #include "Road.h"
 
 namespace World {
@@ -8,6 +9,20 @@ namespace World {
     class FlagManager;
     class CarrierManager;
     class TransportJobManager;
+
+    struct RouteKey {
+        uint32_t src;
+        uint32_t dst;
+        RouteKey() : src(0), dst(0) {}
+        RouteKey(uint32_t s, uint32_t d) : src(s), dst(d) {}
+        bool operator==(const RouteKey& o) const { return src == o.src && dst == o.dst; }
+    };
+
+    struct RouteKeyHash {
+        size_t operator()(const RouteKey& k) const {
+            return (size_t)(k.src ^ (k.dst << 16) ^ (k.dst >> 16));
+        }
+    };
 
     class RoadManager {
     public:
@@ -31,6 +46,10 @@ namespace World {
 
         std::vector<Flag*> FindFlagPath(Flag* start, Flag* goal) const;
 
+        // Routing cache
+        Flag* GetNextHop(Flag* src, Flag* dst);
+        void InvalidateRouteCache() { m_routeCache.clear(); }
+
         // Serialization
         std::vector<RoadData> GetRoadData() const;
         void LoadFromData(const std::vector<RoadData>& data, FlagManager* flagManager);
@@ -40,5 +59,6 @@ namespace World {
     private:
         std::vector<Road*> m_roads;
         FlagManager* m_flagManager;
+        std::tr1::unordered_map<RouteKey, Flag*, RouteKeyHash> m_routeCache;
     };
 }

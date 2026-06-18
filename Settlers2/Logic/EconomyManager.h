@@ -75,5 +75,6 @@ namespace Logic {
         ResourceRequest m_requests[MAX_REQUESTS];
         ConstructionResourceRequest m_constructionRequests[MAX_CONSTRUCTION_REQUESTS];
         int m_validateCounter;
+        bool m_phase6Initialized;
     };
 }

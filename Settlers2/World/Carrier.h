@@ -1,12 +1,16 @@
 #pragma once
 #include "ResourceNode.h"
 #include "Flag.h"
-#include "TransportJob.h"
+#include "FlagManager.h"
+#include "Cargo.h"
 #include "Road.h"
+#include "RoadManager.h"
 #include "Entity.h"
 #include "../Core/Vector2i.h"
 
 namespace World {
+    class DemandManager;
+    class CargoManager;
 
     enum MovementAuthority {
         Legacy,
@@ -15,7 +19,7 @@ namespace World {
 
     enum CarrierState {
         WalkingToPost,   // walking from warehouse to assigned road
-        Working,         // normal road walking (has job or idle)
+        Working,         // normal road walking (shuttle: pick up/drop cargo at endpoints)
         ReturningHome    // road removed, walking back to warehouse
     };
 
@@ -26,12 +30,9 @@ namespace World {
     class Carrier {
     public:
         Road* road;
-        float ep;              // absolute position: 0 = road->a, pathLen = road->b
-        float walkDir;         // 1.0f = moving a->b, -1.0f = moving b->a
-        bool cargoDelivered;   // true after dropping cargo, waiting for CarrierManager
-        bool hasPickedUp;      // true after CommitPickup, prevents double-pickup
-        Cargo cargo;
-        TransportJob* job;
+        float ep;              // absolute position: 0 = road endpoint A, pathLen = road endpoint B
+        float walkDir;         // 1.0f = moving A->B, -1.0f = moving B->A
+        Cargo* m_cargo;        // cargo being carried (NULL when empty)
 
         CarrierState state;
         std::vector<Vector2i> transitTiles;  // tile path for WalkingToPost/ReturningHome
@@ -41,25 +42,25 @@ namespace World {
         MovementAuthority m_authority;       // Legacy or ECS movement ownership
         uint32_t pathVersion;                // incremented when path/tiles change
 
+        // Manager pointers — set by CarrierManager before each Update
+        DemandManager* m_demandManager;
+        CargoManager* m_cargoManager;
+        RoadManager* m_roadManager;
+
         // Cached resolved Flag* pointers — set by CarrierManager before each Update/operation.
-        // Transient: refreshed every frame, not used for persistent storage.
-        Flag* m_resolvedSourceFlag;
-        Flag* m_resolvedDestFlag;
-        Flag* m_resolvedLegFrom;
-        Flag* m_resolvedLegTo;
         Flag* m_roadEndpointA;
         Flag* m_roadEndpointB;
 
+        float m_idleCheckTimer;
+        bool m_returningToCenter;
+
         Carrier(Road* r)
-            : road(r), ep(0.0f), walkDir(1.0f), cargoDelivered(false), hasPickedUp(false), job(NULL),
-              state(Working), transitProgress(0.0f), readyToRemove(false), ecsEntity(INVALID_ENTITY), m_authority(ECS), pathVersion(0),
-              m_resolvedSourceFlag(NULL), m_resolvedDestFlag(NULL),
-              m_resolvedLegFrom(NULL), m_resolvedLegTo(NULL),
-              m_roadEndpointA(NULL), m_roadEndpointB(NULL)
+            : road(r), ep(0.0f), walkDir(1.0f), m_cargo(NULL),
+              state(Working), transitProgress(0.0f), readyToRemove(false), ecsEntity(INVALID_ENTITY), m_authority(Legacy), pathVersion(0),
+              m_demandManager(NULL), m_cargoManager(NULL), m_roadManager(NULL),
+              m_roadEndpointA(NULL), m_roadEndpointB(NULL), m_idleCheckTimer(0.0f),
+              m_returningToCenter(false)
         {
-            cargo.type = ResourceType_None;
-            cargo.amount = 0;
-            cargo.destFlagId = 0;
         }
 
         float GetPathLen() const {
@@ -90,84 +91,37 @@ namespace World {
             transitProgress = 0.0f;
             state = ReturningHome;
             ++pathVersion;
-            if (job) {
-                job->assignedCarrier = Handle<Carrier>();
-                job->state = TransportJob::Waiting;
-                job = NULL;
-            }
-            cargoDelivered = false;
-            hasPickedUp = false;
-            cargo.type = ResourceType_None;
-            cargo.amount = 0;
-            cargo.destFlagId = 0;
+            m_cargo = NULL;
         }
 
-        // Dumb copy synchronization: ECS -> Legacy
         void SyncFromECS(float ep, float walkDir, CarrierState state) {
             this->ep = ep;
             this->walkDir = walkDir;
             this->state = state;
         }
 
-        // Dumb copy synchronization: Legacy -> ECS
         void SyncToECS(float& outEp, float& outWalkDir, CarrierState& outState) const {
             outEp = this->ep;
             outWalkDir = this->walkDir;
             outState = this->state;
         }
 
-        bool AssignJob(TransportJob* j, Flag* fromFlag) {
-            if (!j || !fromFlag || !road) return false;
-            if (!m_roadEndpointA || !m_roadEndpointB) return false;
-            if (!m_resolvedDestFlag) return false;
-
-            int slotIdx = -1;
-            for (int si = 0; si < 8; ++si) {
-                ResourceSlot& slot = fromFlag->slots[si];
-                if (slot.type == j->resource && slot.amount > 0 && slot.destFlagId == m_resolvedDestFlag->id) {
-                    slotIdx = si;
-                    break;
-                }
-            }
-            if (slotIdx < 0) return false;
-
-            ResourceSlot& slot = fromFlag->slots[slotIdx];
-            cargo.type = slot.type;
-            cargo.amount = 1;
-            cargo.destFlagId = m_resolvedDestFlag->id;
-
-            job = j;
-            cargoDelivered = false;
-            hasPickedUp = false;
-
-            char buf[256];
-            _snprintf(buf, sizeof(buf),
-                "[Cargo] Job#%u ASSIGNED: from=Flag%u(%d,%d) dst=Flag%u(%d,%d) ep=%.1f road %u<->%u\n",
-                j->id,
-                fromFlag->id, fromFlag->pos.x, fromFlag->pos.y,
-                m_resolvedDestFlag->id, m_resolvedDestFlag->pos.x, m_resolvedDestFlag->pos.y,
-                ep,
-                m_roadEndpointA ? m_roadEndpointA->id : 0,
-                m_roadEndpointB ? m_roadEndpointB->id : 0);
-            OutputDebugStringA(buf);
-
-            return true;
-        }
+        bool IsCarrying() const { return m_cargo != NULL; }
 
         void Update(float deltaTime) {
             if (state == WalkingToPost) {
-                if (m_authority == MovementAuthority::Legacy)
+                if (m_authority == Legacy)
                     UpdateWalkingToPost(deltaTime);
                 return;
             }
             if (state == ReturningHome) {
-                if (m_authority == MovementAuthority::Legacy)
+                if (m_authority == Legacy)
                     UpdateReturningHome(deltaTime);
                 return;
             }
 
             if (!road || road->tiles.size() < 2) return;
-            
+
             if (road->state != Active) {
                 readyToRemove = true;
                 return;
@@ -176,56 +130,154 @@ namespace World {
             float pathLen = GetPathLen();
             if (pathLen <= 0.0f) return;
 
-            UpdateLogic(deltaTime);
-        }
+                // Idle — standing at flag, check for work
+            if (walkDir == 0.0f) {
+                m_idleCheckTimer -= deltaTime;
+                if (m_idleCheckTimer > 0.0f) return;
+                m_idleCheckTimer = 0.25f;
 
-        void UpdateLogic(float deltaTime) {
-            if (HasJob() && !cargoDelivered) {
-                if (job->currentLeg + 1 >= job->route.size()) {
-                    cargoDelivered = true;
-                    return;
-                }
-                Flag* legFrom = m_resolvedLegFrom;
-                Flag* legTo = m_resolvedLegTo;
-                if (!legFrom || !legTo) {
-                    readyToRemove = true;
-                    return;
-                }
-                float pickupEp = GetFlagEp(legFrom);
-                float destEp = GetFlagEp(legTo);
-
-                if (!hasPickedUp) {
-                    if (!(ep < pickupEp - 0.01f || ep > pickupEp + 0.01f)) {
-                        legFrom->CommitPickup(cargo.type, 1, cargo.destFlagId);
-                        hasPickedUp = true;
-
-                        char buf[256];
-                        _snprintf(buf, sizeof(buf),
-                            "[Cargo] Job#%u PICKED_UP: %s at flag %u(%d,%d) road %u<->%u\n",
-                            job->id, ResourceTypeToString(cargo.type),
-                            legFrom->id, legFrom->pos.x, legFrom->pos.y,
-                            m_roadEndpointA ? m_roadEndpointA->id : 0,
-                            m_roadEndpointB ? m_roadEndpointB->id : 0);
-                        OutputDebugStringA(buf);
+                Flag* checkFlags[2] = { m_roadEndpointA, m_roadEndpointB };
+                for (int fi = 0; fi < 2; ++fi) {
+                    Flag* f = checkFlags[fi];
+                    if (!f) continue;
+                    bool hasWork = false;
+                    // Check existing Cargo objects
+                    for (size_t ci = 0; ci < f->cargo.size() && !hasWork; ++ci) {
+                        Cargo* c = f->cargo[ci];
+                        if (c->state != Cargo_OnFlag) continue;
+                        if (!c->ticket || c->ticket->state != Ticket_Active || !c->ticket->demand) continue;
+                        if (c->ticket->demand->targetFlag == f->handle) continue;
+                        if (m_roadManager) {
+                            Flag* dest = m_roadManager->GetFlagManager()->ResolveFlag(c->ticket->demand->targetFlag);
+                            if (dest) {
+                                Flag* nextHop = m_roadManager->GetNextHop(f, dest);
+                                if (nextHop) {
+                                    FlagHandle otherEnd = (road->a == f->handle) ? road->b : road->a;
+                                    hasWork = (otherEnd == nextHop->handle);
+                                }
+                            }
+                        }
                     }
+                    // Check ticketless cargo (producer placed without demand knowledge)
+                    if (!hasWork && m_demandManager) {
+                        for (size_t ci = 0; ci < f->cargo.size() && !hasWork; ++ci) {
+                            Cargo* c = f->cargo[ci];
+                            if (c->state != Cargo_OnFlag) continue;
+                            if (c->ticket) continue;
+                            hasWork = m_demandManager->HasDemand(c->type);
+                        }
+                    }
+                    // Check ResourceSlots (warehouse/production outputs)
+                    if (!hasWork && m_demandManager) {
+                        for (int si = 0; si < 8 && !hasWork; ++si) {
+                            ResourceSlot& slot = f->slots[si];
+                            if (slot.type == ResourceType_None || slot.amount <= 0) continue;
+                            if (slot.amount - slot.reserved <= 0) continue;
+                            hasWork = m_demandManager->HasDemand(slot.type);
+                        }
+                    }
+                    if (hasWork) {
+                        walkDir = (f == m_roadEndpointB) ? 1.0f : -1.0f;
+                        m_returningToCenter = false;
+                        { char dbg[256]; _snprintf(dbg, sizeof(dbg), "[Carrier] Wake road=%u toward=%u\n", road->id, f->id); OutputDebugStringA(dbg); }
+                        break;
+                    }
+                }
+                if (walkDir == 0.0f) return; // still idle
+            }
+
+            float step = 3.0f * deltaTime;
+            if (step > 1.5f) step = 1.5f; // clamp to avoid teleport on large delta
+            float newEp = ep + walkDir * step;
+
+            // Check if we reached an endpoint
+            if ((walkDir > 0.0f && newEp >= pathLen) || (walkDir < 0.0f && newEp <= 0.0f)) {
+                newEp = (walkDir > 0.0f) ? pathLen : 0.0f;
+
+                Flag* atFlag = (walkDir > 0.0f) ? m_roadEndpointB : m_roadEndpointA;
+
+                if (atFlag) {
+                    // Drop cargo if carrying
+                    if (m_cargo) {
+                        if (atFlag->AcceptCargo(m_cargo)) {
+                            m_cargo = NULL;
+                        }
+                    }
+
+                    // Try to pick up cargo from this flag (or convert ResourceSlot)
+                    if (!m_cargo) {
+                        Cargo* available = NULL;
+                        // First pass: look for existing Cargo that routes through this road
+                        for (size_t ci = 0; ci < atFlag->cargo.size(); ++ci) {
+                            Cargo* c = atFlag->cargo[ci];
+                            if (c->state != Cargo_OnFlag) continue;
+                            // Assign ticket to ticketless cargo (producer doesn't know demand)
+                            if (!c->ticket && m_demandManager) {
+                                c->ticket = m_demandManager->Reserve(c->type);
+                            }
+                            if (!c->ticket || c->ticket->state != Ticket_Active || !c->ticket->demand) continue;
+                            if (c->ticket->demand->targetFlag == atFlag->handle) continue;
+                            // Check if this road is the next hop toward destination
+                            bool routeOk = true;
+                            uint32_t destIdx = c->ticket->demand->targetFlag.index;
+                            if (m_roadManager) {
+                                Flag* dest = m_roadManager->GetFlagManager()->ResolveFlag(c->ticket->demand->targetFlag);
+                                if (dest) {
+                                    Flag* nextHop = m_roadManager->GetNextHop(atFlag, dest);
+                                    if (nextHop) {
+                                        FlagHandle otherEnd = (road->a == atFlag->handle) ? road->b : road->a;
+                                        if (!(otherEnd == nextHop->handle))
+                                            routeOk = false;
+                                    }
+                                }
+                            }
+                            {
+                                char dbg[256];
+                                _snprintf(dbg, sizeof(dbg), "[ROUTE %s] road=%u atFlag=%u cargo=%u targetIdx=%u\n",
+                                    routeOk ? "PICKUP" : "SKIP",
+                                    road->id, atFlag->id, c->id, destIdx);
+                                OutputDebugStringA(dbg);
+                            }
+                            if (!routeOk)
+                                continue;
+                            atFlag->cargo.erase(atFlag->cargo.begin() + ci);
+                            available = c;
+                            break;
+                        }
+                        // Second pass: convert ResourceSlot only
+                        if (!available)
+                            available = atFlag->TakeCargoForRoad(road, m_demandManager, m_cargoManager);
+                        if (available) {
+                            available->state = Cargo_Carried;
+                            available->currentFlag = FlagHandle();
+                            m_cargo = available;
+                        }
+                    }
+                }
+
+                // If we reached a flag and have nothing to carry, walk toward center
+                if (!m_cargo) {
+                    float center = pathLen * 0.5f;
+                    walkDir = (newEp > center) ? -1.0f : 1.0f;
+                    m_returningToCenter = true;
+                    { char dbg[256]; _snprintf(dbg, sizeof(dbg), "[Carrier] Walk to center road=%u ep=%.1f center=%.1f\n", road->id, newEp, center); OutputDebugStringA(dbg); }
                 } else {
-                    if ((walkDir > 0.0f && ep >= destEp) || (walkDir < 0.0f && ep <= destEp)) {
-                        legTo->AddResource(cargo.type, cargo.amount, cargo.destFlagId);
-
-                        char buf[256];
-                        _snprintf(buf, sizeof(buf),
-                            "[Cargo] Job#%u DROPPED: %s at Flag%u(%d,%d) destFlagId=%u\n",
-                            job->id, ResourceTypeToString(cargo.type),
-                            legTo->id, legTo->pos.x, legTo->pos.y,
-                            cargo.destFlagId);
-
-                        cargo.type = ResourceType_None;
-                        cargo.amount = 0;
-                        cargo.destFlagId = 0;
-                        cargoDelivered = true;
-                    }
+                    walkDir = -walkDir;
                 }
             }
+
+            // Clamp at center when walking to idle position (only if returning from endpoint)
+            if (m_returningToCenter) {
+                float center = pathLen * 0.5f;
+                if ((walkDir > 0.0f && newEp >= center) || (walkDir < 0.0f && newEp <= center)) {
+                    newEp = center;
+                    walkDir = 0.0f;
+                    m_returningToCenter = false;
+                    { char dbg[256]; _snprintf(dbg, sizeof(dbg), "[Carrier] Idle road=%u at=%.1f\n", road->id, newEp); OutputDebugStringA(dbg); }
+                }
+            }
+
+            ep = newEp;
         }
 
         void UpdateWalkingToPost(float deltaTime) {
@@ -235,16 +287,15 @@ namespace World {
             if (transitProgress >= pathLen) {
                 transitProgress = pathLen;
                 state = Working;
-                if (m_roadEndpointA && m_roadEndpointB) {
-                    const Vector2i& lastTile = transitTiles.back();
-                    if (m_roadEndpointA->pos.x == lastTile.x && m_roadEndpointA->pos.y == lastTile.y) {
-                        ep = 0.0f; walkDir = 1.0f;
-                    } else {
-                        ep = GetPathLen(); walkDir = -1.0f;
-                    }
-                }
+                // Arrive at correct endpoint — check which flag the transit path ends at
+                float roadPathLen = GetPathLen();
+                const Vector2i& lastTile = transitTiles.back();
+                bool atEndB = (m_roadEndpointB && m_roadEndpointB->pos.x == lastTile.x && m_roadEndpointB->pos.y == lastTile.y);
+                ep = atEndB ? roadPathLen : 0.0f;
+                walkDir = atEndB ? -1.0f : 1.0f;
+                m_returningToCenter = true;
+                { char dbg[256]; _snprintf(dbg, sizeof(dbg), "[Carrier] Transit done road=%u arrived=%s ep=%.1f\n", road->id, atEndB ? "B" : "A", ep); OutputDebugStringA(dbg); }
             }
-            walkDir = 1.0f;
         }
 
         void UpdateReturningHome(float deltaTime) {
@@ -256,26 +307,6 @@ namespace World {
                 readyToRemove = true;
             }
             walkDir = 1.0f;
-        }
-
-        bool HasArrived() const {
-            return cargoDelivered;
-        }
-
-        bool HasJob() const {
-            return job != NULL;
-        }
-
-        void ClearJob() {
-            if (job) {
-                job->assignedCarrier = Handle<Carrier>();
-            }
-            job = NULL;
-            cargoDelivered = false;
-            hasPickedUp = false;
-            cargo.type = ResourceType_None;
-            cargo.amount = 0;
-            cargo.destFlagId = 0;
         }
     };
 

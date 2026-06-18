@@ -19,9 +19,12 @@
 #include "../World/FlagManager.h"
 #include "../World/RoadManager.h"
 #include "../World/TransportJobManager.h"
+#include "../World/CargoManager.h"
+#include "../World/DemandManager.h"
 #include "../World/ConstructionSite.h"
 #include "../World/ConstructionManager.h"
 #include "../World/ObjectLifecycleManager.h"
+#include "../World/WorkerManager.h"
 #include "../Logic/ResourceRegistry.h"
 #include "../Graphics/Camera.h"
 #include "../Graphics/TextManager.h"
@@ -130,12 +133,17 @@ private:
     World::FlagManager* m_flagManager;
     World::RoadManager* m_roadManager;
     World::TransportJobManager* m_transportJobManager;
+    World::CargoManager* m_cargoManager;
+    World::DemandManager* m_demandManager;
 
     // Construction sites
     World::ConstructionManager* m_constructionManager;
 
     // Lifecycle
     World::ObjectLifecycleManager* m_objectLifecycleManager;
+
+    // Worker arrival
+    World::WorkerManager* m_workerManager;
 
     // Road building state
     int m_roadStartX, m_roadStartY;
@@ -158,6 +166,13 @@ private:
     static const int RESOURCE_HUD_COUNT = 11;
     ResourceHudItem m_resourceHud[RESOURCE_HUD_COUNT];
     bool m_resourceHudLoaded;
+
+    // Frame counter for ground resource age checks
+    unsigned int m_frameCount;
+
+    // Ground resource rendering
+    int m_groundWoodIconIdx;
+    bool m_groundWoodIconLoaded;
 
     enum {
         SLOT_BUILDINGS_HIGHLIGHT = 18,
@@ -221,6 +236,8 @@ private:
 
     // Wildlife regeneration timer
     float m_wildlifeRegenTimer;
+    // Tree growth timer (Sapling → Young → Mature)
+    float m_treeGrowthTimer;
 
     // Job data (reused each frame)
     EconomyJobData m_economyJobData;

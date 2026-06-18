@@ -1,116 +1,111 @@
 #ifndef WORLD_COMPONENTS_FISHER_H
 #define WORLD_COMPONENTS_FISHER_H
 
-#include "Building.h"
-#include "../Map.h"
-#include "../../Logic/ResourceRegistry.h"
+#include "WorkerBuilding.h"
 
 namespace World {
 
-class Fisher : public Building {
-    enum FishState {
-        Fish_Idle,
-        Fish_Fishing
-    };
+class Fisher : public WorkerBuilding {
+    bool m_hasFishingSpot;
 
-    FishState m_fishState;
-    float m_fishTimer;
-    Vector2i m_waterTarget;
-    bool m_hasWaterTarget;
+    void UnreserveSpot() {
+        if (!m_hasFishingSpot || !map) return;
+        ResourceNode& node = map->GetResourceNode(m_targetPos.x, m_targetPos.y);
+        if (node.type == ResourceType_Fish)
+            node.amount++;
+        m_hasFishingSpot = false;
+    }
 
-    static const float IDLE_DURATION;
-    static const float FISHING_DURATION;
+    void GoIdle() override {
+        UnreserveSpot();
+        WorkerBuilding::GoIdle();
+        if (connectedFlag) {
+            m_wX = (float)connectedFlag->pos.x;
+            m_wY = (float)connectedFlag->pos.y;
+        }
+    }
 
-    void FindNearestWaterWithFish() {
-        if (!map) return;
+    bool FindTarget() override {
+        if (IsOutputFull()) return false;
+        if (!map || !connectedFlag) return false;
 
-        m_hasWaterTarget = false;
         int bestDist = 999999;
+        Vector2i bestPos(0, 0);
+        bool found = false;
 
-        for (int dy = -5; dy <= 5; ++dy) {
-            for (int dx = -5; dx <= 5; ++dx) {
+        for (int dy = -8; dy <= 8; ++dy) {
+            for (int dx = -8; dx <= 8; ++dx) {
                 int checkX = pos.x + dx;
                 int checkY = pos.y + dy;
-
                 if (checkX < 0 || checkY < 0) continue;
-
                 BYTE weight = map->GetNodeWeight(checkX, checkY);
                 if (weight == Weight_Deep || weight == Weight_Shallow) {
-                    const ResourceNode& node = map->GetResourceNode(checkX, checkY);
+                    ResourceNode& node = map->GetResourceNode(checkX, checkY);
                     if (node.type == ResourceType_Fish && node.amount > 0) {
                         int dist = dx * dx + dy * dy;
                         if (dist < bestDist) {
                             bestDist = dist;
-                            m_waterTarget.x = checkX;
-                            m_waterTarget.y = checkY;
-                            m_hasWaterTarget = true;
+                            bestPos.x = checkX; bestPos.y = checkY;
+                            found = true;
                         }
                     }
                 }
             }
         }
+        if (found) {
+            m_targetPos = bestPos;
+            // Reserve: decrement so other fishers avoid it
+            map->GetResourceNode(m_targetPos.x, m_targetPos.y).amount--;
+            m_hasFishingSpot = true;
+            return true;
+        }
+        return false;
+    }
+
+    bool ValidateTarget() const override {
+        if (!map || !m_hasFishingSpot) return false;
+        const ResourceNode& node = map->GetResourceNode(m_targetPos.x, m_targetPos.y);
+        return node.type == ResourceType_Fish;
+    }
+
+    void Produce() override {
+        // Fish already decremented in FindTarget — spot consumed
+        m_hasFishingSpot = false;
+    }
+
+    void OnArriveHome() override {
+        bool ok = AddOutput(ResourceType_Fish, 1);
+        if (!ok) {
+            // Output full — try again later (re-enter idle with shorter timer)
+            m_wTimer = WorkerBuilding::m_idleDuration - 1.0f;
+        }
+        GoIdle();
     }
 
 public:
     Fisher(int x, int y, uint8_t o, Map* m)
-        : Building(BuildingType::Fisher, x, y, o, m)
-        , m_fishState(Fish_Idle)
-        , m_fishTimer(0.0f)
-        , m_hasWaterTarget(false)
+        : WorkerBuilding(BuildingType::Fisher, x, y, o, m)
+        , m_hasFishingSpot(false)
     {
-        m_productionInterval = 4.0f;
         outputResources.push_back(ResourceType_Fish);
-        FindNearestWaterWithFish();
+        m_idleDuration = 5.0f;
+        m_workDuration = 3.0f;
+        m_workerSpeed = 1.0f;
+        m_searchCooldown = 5.0f;
     }
 
-    bool CanProduce() override {
-        if (!m_hasWaterTarget) FindNearestWaterWithFish();
-        return m_hasWaterTarget && !IsOutputFull();
-    }
-
-    bool ProduceOne() override {
-        if (map && m_hasWaterTarget) {
-            ResourceNode& node = map->GetResourceNode(m_waterTarget.x, m_waterTarget.y);
-            if (node.type == ResourceType_Fish && node.amount > 0) {
-                node.amount--;
-            }
-        }
-        return AddOutput(ResourceType_Fish, 1);
-    }
-
-    void Update(float dt) override {
-        if (state != State_Finished) return;
-
-        switch (m_fishState) {
-        case Fish_Idle:
-            m_fishTimer += dt;
-            if (m_fishTimer >= IDLE_DURATION) {
-                if (CanProduce()) {
-                    m_fishState = Fish_Fishing;
-                    m_fishTimer = 0.0f;
-                } else {
-                    FindNearestWaterWithFish();
-                    m_fishTimer = 0.0f;
-                }
-            }
-            break;
-
-        case Fish_Fishing:
-            m_fishTimer += dt;
-            if (m_fishTimer >= FISHING_DURATION) {
-                ProduceOne();
-                m_fishState = Fish_Idle;
-                m_fishTimer = 0.0f;
-            }
-            break;
-        }
+    void AddFish(int amount) {
+        if (!map || !m_hasFishingSpot) return;
+        ResourceNode& node = map->GetResourceNode(m_targetPos.x, m_targetPos.y);
+        if (node.type == ResourceType_Fish)
+            node.amount += amount;
     }
 
     bool GetWorkerRenderInfo(float& outX, float& outY, int& outSpriteIdx) const override {
-        if (m_fishState == Fish_Fishing) {
-            outX = (float)pos.x;
-            outY = (float)pos.y;
-            outSpriteIdx = 16;
+        if (WorkerBuilding::GetWorkerRenderInfo(outX, outY, outSpriteIdx)) {
+            outSpriteIdx = (m_wDir == 0) ? 16 : 17;
+            if (m_wState == WState_Working)
+                outSpriteIdx += m_workFrame * 2;
             return true;
         }
         return false;

@@ -98,7 +98,10 @@ public:
         float originX = m_groundLeft;
         float originY = m_groundTop;
         int iy = (int)ny;
-        float offsetX = ((iy % 2) == 0) ? (m_nodeW * 0.5f) : 0.0f;
+        float frac = ny - (float)iy;
+        float offsetA = ((iy % 2) == 0) ? (m_nodeW * 0.5f) : 0.0f;
+        float offsetB = (((iy + 1) % 2) == 0) ? (m_nodeW * 0.5f) : 0.0f;
+        float offsetX = offsetA + (offsetB - offsetA) * frac;
         wx = originX + nx * m_nodeW + offsetX;
         wy = originY + ny * (m_nodeH * 0.5f);
     }

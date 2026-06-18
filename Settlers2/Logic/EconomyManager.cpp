@@ -8,7 +8,7 @@
 namespace Logic {
 
     EconomyManager::EconomyManager()
-        : m_warehouse(NULL), m_flagManager(NULL), m_roadManager(NULL), m_validateCounter(0)
+        : m_warehouse(NULL), m_flagManager(NULL), m_roadManager(NULL), m_validateCounter(0), m_phase6Initialized(false)
     {
         for (int i = 0; i < MAX_REQUESTS; ++i)
             m_requests[i].active = false;
@@ -53,8 +53,8 @@ namespace Logic {
 
                 char buf[256];
                 _snprintf(buf, sizeof(buf),
-                    "[Economy] Request created: %s -> flag %u\n",
-                    World::ResourceTypeToString(type), fid);
+                    "[Economy] Request created: %s -> flag %u amount=%d priority=%d\n",
+                    World::ResourceTypeToString(type), fid, amount, priority);
                 OutputDebugStringA(buf);
 
                 return;
@@ -115,11 +115,26 @@ namespace Logic {
             if (m_constructionRequests[r].amount <= 0) continue;
 
             if (!whFlag->AddResource(m_constructionRequests[r].type, 1, m_constructionRequests[r].destFlagId)) {
+                char buf[256];
+                _snprintf(buf, sizeof(buf),
+                    "[CONSTR PHASE1a] skip: wh->flag AddResource failed type=%s dest=%u\n",
+                    World::ResourceTypeToString(m_constructionRequests[r].type),
+                    m_constructionRequests[r].destFlagId);
+                OutputDebugStringA(buf);
                 continue;
             }
 
             m_warehouse->RemoveResource(m_constructionRequests[r].type, 1);
             m_constructionRequests[r].amount--;
+            {
+                char buf[256];
+                _snprintf(buf, sizeof(buf),
+                    "[CONSTR PHASE1a] pushed %s whFlag=%u dest=%u remaining=%d\n",
+                    World::ResourceTypeToString(m_constructionRequests[r].type),
+                    whFlag->id, m_constructionRequests[r].destFlagId,
+                    m_constructionRequests[r].amount);
+                OutputDebugStringA(buf);
+            }
         }
 
         // ─── Phase 1b: Process pending building ResourceRequests ──────────
@@ -217,7 +232,8 @@ namespace Logic {
         // ─── Phase 6: Outbound — routing-aware surplus distribution ──────
         uint32_t whFlagId = (m_warehouse && m_warehouse->connectedFlag) ? m_warehouse->connectedFlag->id : World::INVALID_FLAG_ID;
         if (whFlagId == 0) whFlagId = World::INVALID_FLAG_ID;  // Safety: id=0 is invalid
-        {
+        if (!m_phase6Initialized && whFlagId != World::INVALID_FLAG_ID) {
+            m_phase6Initialized = true;
             char dbg[256];
             _snprintf(dbg, sizeof(dbg),
                 "[Phase6 Init] m_warehouse=%p connectedFlag=%p whFlagId=%u INVALID=%u\n",
@@ -257,40 +273,10 @@ namespace Logic {
                 for (size_t j = 0; j < b->outputResources.size(); ++j) {
                     World::ResourceType outType = b->outputResources[j];
                     ResourceRouteConfig& cfg = m_settings.routeConfig[outType];
-                    char dbg[256];
-                    _snprintf(dbg, sizeof(dbg), "[Phase6] building=%p type=%d storage=%d flag=%p whFlagId=%u\n",
-                             b, (int)outType, b->m_storage[outType], b->connectedFlag, whFlagId);
-                    OutputDebugStringA(dbg);
-
-                    if (b->m_storage[outType] <= 0) {
-                        OutputDebugStringA("[Phase6]  -> skipped: storage empty\n");
-                        continue;
-                    }
-
-                    if (cfg.routing == ROUTE_DIRECT) {
-                        OutputDebugStringA("[Phase6]  -> skipped: ROUTE_DIRECT\n");
-                        continue;
-                    }
-
-                    bool added = b->connectedFlag->AddResource(outType, 1, whFlagId);
-                    _snprintf(dbg, sizeof(dbg), "[Phase6]  -> AddResource result=%d\n", added);
-                    OutputDebugStringA(dbg);
-                    if (!added) continue;
+                    if (b->m_storage[outType] <= 0) continue;
+                    if (cfg.routing == ROUTE_DIRECT) continue;
+                    if (!b->connectedFlag->AddResource(outType, 1, whFlagId)) continue;
                     b->m_storage[outType]--;
-                    _snprintf(dbg, sizeof(dbg), "[Phase6]  -> OK, storage now=%d\n", b->m_storage[outType]);
-                    OutputDebugStringA(dbg);
-
-                    char slotBuf[512];
-                    int sp = 0;
-                    sp += _snprintf(slotBuf + sp, sizeof(slotBuf) - sp, "[Flag] id=%u slots:", b->connectedFlag->id);
-                    for (int si = 0; si < 8; ++si) {
-                        World::ResourceSlot& s = b->connectedFlag->slots[si];
-                        if (s.type != World::ResourceType_None && s.amount > 0)
-                            sp += _snprintf(slotBuf + sp, sizeof(slotBuf) - sp, " [%d]%s=%d dst=%u",
-                                si, World::ResourceTypeToString(s.type), s.amount, s.destFlagId);
-                    }
-                    _snprintf(slotBuf + sp, sizeof(slotBuf) - sp, "\n");
-                    OutputDebugStringA(slotBuf);
                 }
             }
         }

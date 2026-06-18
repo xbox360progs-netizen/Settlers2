@@ -1,15 +1,8 @@
 #include "stdafx.h"
 #include "Building.h"
-#include "Hunter.h"
-#include "Fisher.h"
+#include "../Flag.h"
 
 namespace World {
-
-const float Hunter::IDLE_DURATION = 15.0f;
-const float Hunter::HUNT_DURATION = 5.0f;
-const float Hunter::WORKER_SPEED = 2.0f;
-const float Fisher::IDLE_DURATION = 2.0f;
-const float Fisher::FISHING_DURATION = 3.0f;
 
     void Building::Update(float dt)
     {
@@ -68,13 +61,16 @@ const float Fisher::FISHING_DURATION = 3.0f;
     bool Building::AddOutput(ResourceType type, int amount) {
     if (IsOutputFull()) return false;
     
-    // Увеличиваем внутреннее хранилище
     m_storage[type] += amount;
+    char buf[256];
+    _snprintf(buf, sizeof(buf),
+        "[OUTPUT] building=%p type=%s amount=%d storage=%d flag=%u\n",
+        (void*)this, ResourceTypeToString(type), amount, m_storage[type],
+        connectedFlag ? connectedFlag->id : 0);
+    OutputDebugStringA(buf);
     
-    // Если зданию этот ресурс не нужен (не в inputResources или storage полон)
-    // — кладём на флаг для Carrier'а
     if (!NeedsResource(type) && connectedFlag) {
-        connectedFlag->AddResource(type, amount, 0);
+        connectedFlag->AddResource(type, amount);
     }
     
     return true;

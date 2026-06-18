@@ -9,33 +9,6 @@
 
 namespace World {
 
-    // Helper: restore in-flight cargo to source flag before destroying carrier
-    static void RestoreCarrierCargo(Carrier* c) {
-        if (!c || !c->hasPickedUp || c->cargoDelivered || !c->job) return;
-        // sourceFlag resolved by carrier manager before calling this
-        Flag* srcFlag = NULL;
-        if (c->m_resolvedSourceFlag) {
-            srcFlag = c->m_resolvedSourceFlag;
-        }
-        if (srcFlag && c->cargo.type != ResourceType_None && c->cargo.amount > 0) {
-            srcFlag->AddResource(c->cargo.type, c->cargo.amount, c->cargo.destFlagId);
-            char buf[256];
-            _snprintf(buf, sizeof(buf),
-                "[Carrier] RESTORE cargo: %s x%d -> flag %u(%d,%d)\n",
-                ResourceTypeToString(c->cargo.type), c->cargo.amount,
-                srcFlag->id, srcFlag->pos.x, srcFlag->pos.y);
-            OutputDebugStringA(buf);
-        }
-    }
-
-    // Helper: disconnect job from carrier and set to Waiting for reassignment
-    static void ReleaseCarrierJob(Carrier* c) {
-        if (c->job) {
-            c->job->assignedCarrier = Handle<Carrier>();
-            c->job->state = TransportJob::Waiting;
-        }
-    }
-
     // Handle API
     CarrierHandle CarrierManager::RegisterCarrier(Carrier* c) {
         return m_carrierRegistry.Register<Carrier>(c);
@@ -54,7 +27,8 @@ namespace World {
     }
 
     CarrierManager::CarrierManager()
-        : m_flagManager(NULL), m_jobManager(NULL), m_roadManager(NULL), m_warehouseFlag(NULL), m_carrierSystem(NULL)
+        : m_flagManager(NULL), m_jobManager(NULL), m_roadManager(NULL), m_warehouseFlag(NULL), m_carrierSystem(NULL),
+          m_demandManager(NULL), m_cargoManager(NULL)
     {
     }
 
@@ -65,16 +39,34 @@ namespace World {
         std::vector<Flag*> flagPath = m_roadManager->FindFlagPath(fromFlag, toFlag);
         if (flagPath.size() < 2) return result;
 
+        // Resolve direction for each road segment: if we're traversing from the road's B end
+        // to the A end, reverse the tile order so the path flows continuously.
         for (size_t i = 0; i + 1 < flagPath.size(); ++i) {
             Road* road = m_roadManager->GetRoadBetween(flagPath[i], flagPath[i + 1]);
             if (!road || road->tiles.size() < 2) continue;
 
+            Flag* roadA = m_flagManager ? m_flagManager->ResolveFlag(road->a) : NULL;
+            // flagPath[i] is the source, flagPath[i+1] is the destination
+            bool reverse = (roadA == flagPath[i + 1]); // if road A is the DESTINATION, we're going B→A
+
             if (i == 0) {
-                for (size_t t = 0; t < road->tiles.size(); ++t)
-                    result.push_back(road->tiles[t]);
+                // First road: include the source flag tile
+                if (reverse) {
+                    for (int t = (int)road->tiles.size() - 1; t >= 0; --t)
+                        result.push_back(road->tiles[t]);
+                } else {
+                    for (size_t t = 0; t < road->tiles.size(); ++t)
+                        result.push_back(road->tiles[t]);
+                }
             } else {
-                for (size_t t = 1; t < road->tiles.size(); ++t)
-                    result.push_back(road->tiles[t]);
+                // Subsequent roads: skip first tile (overlaps previous road's last tile)
+                if (reverse) {
+                    for (int t = (int)road->tiles.size() - 2; t >= 0; --t)
+                        result.push_back(road->tiles[t]);
+                } else {
+                    for (size_t t = 1; t < road->tiles.size(); ++t)
+                        result.push_back(road->tiles[t]);
+                }
             }
         }
         return result;
@@ -165,9 +157,14 @@ namespace World {
             Flag* ra = m_flagManager ? m_flagManager->ResolveFlag(c->road->a) : NULL;
             Flag* rb = m_flagManager ? m_flagManager->ResolveFlag(c->road->b) : NULL;
             if ((ra == a && rb == b) || (ra == b && rb == a)) {
-                if (c->job && m_flagManager) c->m_resolvedSourceFlag = m_flagManager->ResolveFlag(c->job->sourceFlag);
-                RestoreCarrierCargo(c);
-                ReleaseCarrierJob(c);
+                // Release any cargo the carrier was holding back to its last flag
+                if (c->m_cargo) {
+                    Flag* dropFlag = (c->walkDir > 0.0f) ? rb : ra;
+                    if (dropFlag) {
+                        dropFlag->AcceptCargo(c->m_cargo);
+                    }
+                    c->m_cargo = NULL;
+                }
                 if (c->ecsEntity != INVALID_ENTITY && m_carrierSystem)
                     m_carrierSystem->RemoveCarrier(c->ecsEntity);
                 if (c->road) {
@@ -199,9 +196,14 @@ namespace World {
                     m_carriers.erase(m_carriers.begin() + i);
                     continue;
                 }
-                if (c->job && m_flagManager) c->m_resolvedSourceFlag = m_flagManager->ResolveFlag(c->job->sourceFlag);
-                RestoreCarrierCargo(c);
-                ReleaseCarrierJob(c);
+                // Release any cargo being carried
+                if (c->m_cargo) {
+                    Flag* dropFlag = (c->walkDir > 0.0f) ? rb : ra;
+                    if (dropFlag) {
+                        dropFlag->AcceptCargo(c->m_cargo);
+                    }
+                    c->m_cargo = NULL;
+                }
                 if (c->road) c->road->carrier = Handle<Carrier>();
                 Road* oldRoad = c->road;
                 c->road = NULL;
@@ -252,9 +254,14 @@ namespace World {
                     m_carriers.erase(m_carriers.begin() + i);
                     return;
                 }
-                if (c->job && m_flagManager) c->m_resolvedSourceFlag = m_flagManager->ResolveFlag(c->job->sourceFlag);
-                RestoreCarrierCargo(c);
-                ReleaseCarrierJob(c);
+                // Release any cargo being carried
+                if (c->m_cargo) {
+                    Flag* dropFlag = (c->walkDir > 0.0f) ? rb : ra;
+                    if (dropFlag) {
+                        dropFlag->AcceptCargo(c->m_cargo);
+                    }
+                    c->m_cargo = NULL;
+                }
                 if (c->road) c->road->carrier = Handle<Carrier>();
                 c->road = NULL;
 
@@ -314,86 +321,72 @@ namespace World {
         if (!flag || !m_flagManager) return false;
         for (size_t i = 0; i < m_carriers.size(); ++i) {
             Carrier* c = m_carriers[i];
-            if (c->job) {
-                for (size_t j = 0; j < c->job->route.size(); ++j) {
-                    if (m_flagManager->ResolveFlag(c->job->route[j]) == flag)
-                        return true;
-                }
+            if (c->road) {
+                Flag* ra = m_flagManager->ResolveFlag(c->road->a);
+                Flag* rb = m_flagManager->ResolveFlag(c->road->b);
+                if (ra == flag || rb == flag)
+                    return true;
             }
         }
         return false;
     }
 
-   void CarrierManager::Update(float deltaTime) {
-    // === ФАЗА 1: Resolve и Update Carrier ===
-    for (int i = (int)m_carriers.size() - 1; i >= 0; --i) {
-        Carrier* c = m_carriers[i];
+    void CarrierManager::Update(float deltaTime) {
+        // Phase 1: Check readyToRemove, resolve endpoints, update carriers
+        for (int i = (int)m_carriers.size() - 1; i >= 0; --i) {
+            Carrier* c = m_carriers[i];
 
-        if (c->readyToRemove) {
-            if (c->ecsEntity != INVALID_ENTITY && m_carrierSystem)
-                m_carrierSystem->RemoveCarrier(c->ecsEntity);
-            UnregisterCarrier(GetCarrierHandle(c));
-            delete c;
-            m_carriers.erase(m_carriers.begin() + i);
-            continue;
-        }
-
-        // Resolve handles to cached Flag* pointers
-        c->m_resolvedLegFrom = NULL;
-        c->m_resolvedLegTo = NULL;
-        if (c->road) {
-            c->m_roadEndpointA = m_flagManager ? m_flagManager->ResolveFlag(c->road->a) : NULL;
-            c->m_roadEndpointB = m_flagManager ? m_flagManager->ResolveFlag(c->road->b) : NULL;
-        } else {
-            c->m_roadEndpointA = NULL;
-            c->m_roadEndpointB = NULL;
-        }
-        if (c->job && m_flagManager) {
-            c->m_resolvedSourceFlag = m_flagManager ? m_flagManager->ResolveFlag(c->job->sourceFlag) : NULL;
-            c->m_resolvedDestFlag = m_flagManager ? m_flagManager->ResolveFlag(c->job->destinationFlag) : NULL;
-            uint32_t leg = c->job->currentLeg;
-            if (leg + 1 < c->job->route.size()) {
-                c->m_resolvedLegFrom = m_flagManager->ResolveFlag(c->job->route[leg]);
-                c->m_resolvedLegTo = m_flagManager->ResolveFlag(c->job->route[leg + 1]);
+            if (c->readyToRemove) {
+                if (c->ecsEntity != INVALID_ENTITY && m_carrierSystem)
+                    m_carrierSystem->RemoveCarrier(c->ecsEntity);
+                UnregisterCarrier(GetCarrierHandle(c));
+                delete c;
+                m_carriers.erase(m_carriers.begin() + i);
+                continue;
             }
-        } else {
-            c->m_resolvedSourceFlag = NULL;
-            c->m_resolvedDestFlag = NULL;
+
+            // Set manager pointers
+            c->m_demandManager = m_demandManager;
+            c->m_cargoManager = m_cargoManager;
+            c->m_roadManager = m_roadManager;
+
+            // Resolve handles to cached Flag* pointers
+            if (c->road) {
+                c->m_roadEndpointA = m_flagManager ? m_flagManager->ResolveFlag(c->road->a) : NULL;
+                c->m_roadEndpointB = m_flagManager ? m_flagManager->ResolveFlag(c->road->b) : NULL;
+            } else {
+                c->m_roadEndpointA = NULL;
+                c->m_roadEndpointB = NULL;
+            }
+
+            c->Update(deltaTime);
         }
 
-        // Update Carrier (может получить job, изменить pathVersion)
-        c->Update(deltaTime);
-
-        if (c->HasArrived()) {
-            TransportJob* doneJob = c->job;
-            c->ClearJob();
-            if (m_jobManager && doneJob) {
-                m_jobManager->OnLegDelivered(doneJob);
+        // Phase 2: Push Carrier -> ECS (SyncLegTargets)
+        for (size_t i = 0; i < m_carriers.size(); ++i) {
+            Carrier* c = m_carriers[i];
+            if (c->ecsEntity != INVALID_ENTITY && m_carrierSystem) {
+                m_carrierSystem->SyncLegTargets(c->ecsEntity, c);
             }
         }
-    }
 
-    // === ФАЗА 2: Push Carrier → ECS (SyncLegTargets) ===
-    // Передаём актуальный путь, tiles, pickupEp, destEp, pathVersion
-    for (size_t i = 0; i < m_carriers.size(); ++i) {
-    Carrier* c = m_carriers[i];
-    if (c->ecsEntity != INVALID_ENTITY && m_carrierSystem) {
-        m_carrierSystem->SyncLegTargets(c->ecsEntity, c);
-    }
-}
+        // Phase 3: Sync ECS -> Carrier
+        for (size_t i = 0; i < m_carriers.size(); ++i) {
+            Carrier* c = m_carriers[i];
+            if (c->ecsEntity != INVALID_ENTITY && m_carrierSystem) {
+                m_carrierSystem->SyncToCarrier(c->ecsEntity, c);
+                m_carrierSystem->DebugECSInvariants(c->ecsEntity, c);
+            }
+        }
 
-    // === ФАЗА 3: ECS двигает ВСЕ сущности (UpdateMovement) ===
-    if (m_carrierSystem) {
-        m_carrierSystem->UpdateMovement(deltaTime);
+        // Phase 4: Deliver cargo that reached its destination flag
+        if (m_flagManager && m_demandManager && m_cargoManager) {
+            for (size_t fi = 0; fi < m_flagManager->GetCount(); ++fi) {
+                Flag* flag = m_flagManager->GetFlag(fi);
+                if (flag && !flag->cargo.empty()) {
+                    flag->CheckDeliveries(m_demandManager, m_cargoManager);
+                }
+            }
+        }
     }
-
-    // === ФАЗА 4: Pull ECS → Carrier (SyncToCarrier) ===
-    for (size_t i = 0; i < m_carriers.size(); ++i) {
-    Carrier* c = m_carriers[i];
-    if (c->ecsEntity != INVALID_ENTITY && m_carrierSystem) {
-        m_carrierSystem->SyncToCarrier(c->ecsEntity, c);
-        m_carrierSystem->DebugECSInvariants(c->ecsEntity, c);
-    }
-}
-}
 }

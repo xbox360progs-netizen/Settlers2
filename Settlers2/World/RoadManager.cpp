@@ -42,6 +42,7 @@ namespace World {
         a->roads.push_back(road);
         b->roads.push_back(road);
 
+        InvalidateRouteCache();
         return road;
     }
 
@@ -73,6 +74,7 @@ namespace World {
             if (m_roads[i] == road) {
                 delete m_roads[i];
                 m_roads.erase(m_roads.begin() + i);
+                InvalidateRouteCache();
                 return;
             }
         }
@@ -125,6 +127,57 @@ namespace World {
         return NULL;
     }
 
+    Flag* RoadManager::GetNextHop(Flag* src, Flag* dst)
+    {
+        if (!src || !dst) return NULL;
+        if (src == dst) return src;
+
+        RouteKey key(src->id, dst->id);
+        std::tr1::unordered_map<RouteKey, Flag*, RouteKeyHash>::iterator it = m_routeCache.find(key);
+        if (it != m_routeCache.end()) {
+            return it->second;
+        }
+
+        std::queue<Flag*> q;
+        std::map<uint32_t, Flag*> parent;
+        std::map<uint32_t, bool> visited;
+
+        q.push(src);
+        visited[src->id] = true;
+        parent[src->id] = NULL;
+
+        Flag* firstStep = NULL;
+
+        while (!q.empty()) {
+            Flag* current = q.front();
+            q.pop();
+
+            if (current == dst) {
+                Flag* node = dst;
+                while (node && parent[node->id] != src) {
+                    node = parent[node->id];
+                }
+                firstStep = node;
+                break;
+            }
+
+            for (size_t i = 0; i < current->roads.size(); ++i) {
+                Road* r = current->roads[i];
+                Flag* ra = m_flagManager ? m_flagManager->ResolveFlag(r->a) : NULL;
+                Flag* rb = m_flagManager ? m_flagManager->ResolveFlag(r->b) : NULL;
+                Flag* next = (ra == current) ? rb : ra;
+                if (next && !visited[next->id]) {
+                    visited[next->id] = true;
+                    parent[next->id] = current;
+                    q.push(next);
+                }
+            }
+        }
+
+        m_routeCache[key] = firstStep;
+        return firstStep;
+    }
+
     void RoadManager::Clear()
     {
         for (size_t i = 0; i < m_roads.size(); ++i) {
@@ -150,6 +203,7 @@ namespace World {
             delete r;
         }
         m_roads.clear();
+        InvalidateRouteCache();
     }
 
     std::vector<Flag*> RoadManager::FindFlagPath(Flag* start, Flag* goal) const
@@ -219,6 +273,7 @@ namespace World {
     void RoadManager::LoadFromData(const std::vector<RoadData>& data, FlagManager* flagManager)
     {
         Clear();
+        InvalidateRouteCache();
         SetFlagManager(flagManager);
         uint32_t maxId = 0;
         for (size_t i = 0; i < data.size(); ++i) {
@@ -244,5 +299,6 @@ namespace World {
         if (maxId >= s_nextId) {
             s_nextId = maxId + 1;
         }
+        InvalidateRouteCache();
     }
 }

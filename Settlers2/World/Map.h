@@ -8,6 +8,7 @@
 #include "MapNode.h"
 #include <d3dx9math.h>
 #include "HabitatRegistry.h"
+#include "../Core/Vector2i.h"
 class Camera;
 
 namespace Logic {
@@ -15,11 +16,20 @@ namespace Logic {
 }
 
 namespace World {
+    class CargoManager;
+    class DemandManager;
 
 class WildlifeSystem;
 
 using ::Camera;
 
+struct GroundResource {
+    ResourceType type;
+    int amount;
+    Vector2i pos;
+    unsigned int spawnFrame;
+    bool visualOnly;  // true for resources handled by producer (e.g. wood: Woodcutter::CarryWoodHome)
+};
 
 class Map
 {
@@ -85,13 +95,35 @@ public:
     // Regenerate wildlife resource node amounts
     void RegenerateWildlifeResources();
 
+    // Ground resources (wood, meat, fish dropped at tile after gathering)
+    void SpawnGroundResource(ResourceType type, int amount, int x, int y);
+    GroundResource* GetGroundResource(int index);
+    int GetGroundResourceCount() const { return (int)m_groundResources.size(); }
+    void RemoveGroundResource(int index);
+    bool RemoveGroundResourceAt(int x, int y);
+    GroundResource* FindGroundResourceAt(int x, int y);
+    void ClearGroundResources();
+
+// Advance tree growth: Sapling → Young → Mature; Stump → Empty
+    void GrowTrees();
+
     // Resource registry
     void SetResourceRegistry(Logic::ResourceRegistry* rr);
     Logic::ResourceRegistry* GetResourceRegistry() const { return m_resourceRegistry; }
 
+    // CargoManager & DemandManager (new transport system)
+    void SetCargoManager(CargoManager* cm) { m_cargoManager = cm; }
+    CargoManager* GetCargoManager() const { return m_cargoManager; }
+    void SetDemandManager(DemandManager* dm) { m_demandManager = dm; }
+    DemandManager* GetDemandManager() const { return m_demandManager; }
+
     // Habitat registry access (read-only)
     const HabitatRegistry& GetHabitatRegistry() const { return m_habitatRegistry; }
     HabitatRegistry& GetHabitatRegistry() { return m_habitatRegistry; }
+
+    // Stump sprite management
+    void SetStumpSpriteIndices(int idx1, int idx2, int idx3);
+    void SetTileAsStump(int x, int y);
 
 private:
     int m_width;
@@ -103,9 +135,13 @@ private:
     // Resource map for the logical grid (staggered, same size as Objects layer)
     std::vector<ResourceNode> m_resourceMap;
     std::vector<MapNode> m_nodes;
+    std::vector<GroundResource> m_groundResources;
+    int m_stumpIndices[3];
     
     WildlifeSystem* m_wildlifeSystem;
     Logic::ResourceRegistry* m_resourceRegistry;
+    CargoManager* m_cargoManager;
+    DemandManager* m_demandManager;
 
     CRITICAL_SECTION m_cs;
 };

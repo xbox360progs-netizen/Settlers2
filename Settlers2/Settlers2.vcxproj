@@ -360,6 +360,10 @@
     <ClInclude Include="World\MapSerializer.h" />
     <ClInclude Include="World\Flag.h" />
     <ClInclude Include="World\FlagManager.h" />
+    <ClInclude Include="World\Cargo.h" />
+    <ClInclude Include="World\CargoManager.h" />
+    <ClInclude Include="World\Demand.h" />
+    <ClInclude Include="World\DemandManager.h" />
     <ClInclude Include="World\Handle.h" />
     <ClInclude Include="World\ObjectState.h" />
     <ClInclude Include="World\ObjectDeletionRules.h" />
@@ -383,6 +387,7 @@
     <ClInclude Include="World\TileType.h" />
     <ClInclude Include="Editor\MapEditor.h" />
     <ClInclude Include="World\Worker.h" />
+    <ClInclude Include="World\WorkerManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\GameEngine.cpp" />
@@ -462,6 +467,8 @@
     <ClCompile Include="World\Components\Transform.cpp" />
     <ClCompile Include="World\Components\Unit.cpp" />
     <ClCompile Include="World\CarrierManager.cpp" />
+    <ClCompile Include="World\CargoManager.cpp" />
+    <ClCompile Include="World\DemandManager.cpp" />
     <ClCompile Include="World\FlagManager.cpp" />
     <ClCompile Include="World\HabitatRegistry.cpp" />
     <ClCompile Include="World\RoadManager.cpp" />
@@ -475,6 +482,7 @@
     <ClCompile Include="World\Map.cpp" />
     <ClCompile Include="World\MapSerializer.cpp" />
     <ClCompile Include="World\AnimalManager.cpp" />
+    <ClCompile Include="World\WorkerManager.cpp" />
     <ClCompile Include="World\WildlifeSystem.cpp" />
     <ClCompile Include="World\Systems\EconomySystem.cpp" />
     <ClCompile Include="World\Systems\PathfindingSystem.cpp" />

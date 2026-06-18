@@ -5,7 +5,7 @@
 namespace Logic { class EconomyManager; }
 
 namespace World {
-
+    class DemandManager;
     class FlagManager;
     class RoadManager;
 
@@ -32,10 +32,15 @@ namespace World {
         void SetFlagManager(FlagManager* fm) { m_flagManager = fm; }
         void SetRoadManager(RoadManager* rm) { m_roadManager = rm; }
         void SetWarehouseFlag(Flag* f) { m_warehouseFlag = f; }
+        void SetDemandManager(DemandManager* dm) { m_demandManager = dm; }
         Flag* GetWarehouseFlag() const { return m_warehouseFlag; }
 
         ConstructionSite* GetSiteAt(int x, int y) const;
         ConstructionSite* GetSiteForFlag(const Flag* flag) const;
+
+        // Find a construction flag reachable from fromFlag that needs the given resource.
+        // Returns NULL if no construction demand exists.
+        Flag* FindConstructionDemand(Flag* fromFlag, ResourceType type) const;
 
         size_t GetCount() const { return m_sites.size(); }
         ConstructionSite* GetSite(size_t index) const { return (index < m_sites.size()) ? m_sites[index] : NULL; }
@@ -50,6 +55,7 @@ namespace World {
         FlagManager* m_flagManager;
         RoadManager* m_roadManager;
         Flag* m_warehouseFlag;
+        DemandManager* m_demandManager;
         bool m_builderRoutesDirty;
     };
 

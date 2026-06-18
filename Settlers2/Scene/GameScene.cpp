@@ -15,6 +15,7 @@
 #include "../Logic/CoordinateSystem.h"
 #include "../Logic/AStar.h"
 #include <queue>
+#include <cassert>
 
 namespace Scene {
 
@@ -68,6 +69,7 @@ namespace Scene {
         , m_roadManager(NULL)
         , m_constructionManager(NULL)
         , m_objectLifecycleManager(NULL)
+        , m_workerManager(NULL)
         , m_roadStartX(-1)
         , m_roadStartY(-1)
         , m_textManager(NULL)
@@ -80,7 +82,11 @@ namespace Scene {
         , m_confirmTargetX(-1)
         , m_confirmTargetY(-1)
         , m_resourceHudLoaded(false)
+        , m_frameCount(0)
+        , m_groundWoodIconIdx(-1)
+        , m_groundWoodIconLoaded(false)
         , m_wildlifeRegenTimer(0.0f)
+        , m_treeGrowthTimer(0.0f)
     {
         for (int i = 0; i < RESOURCE_HUD_COUNT; ++i) {
             m_resourceHud[i].type = World::ResourceType_None;
@@ -274,6 +280,35 @@ namespace Scene {
         m_economyManager = new Logic::EconomyManager();
         m_map->SetResourceRegistry(&m_economyManager->GetRegistry());
         m_map->GenerateWildlife();
+
+        // Backfill ResourceNodes for existing tree tiles without resources
+        {
+            World::TileLayer* objLayer = m_map->GetLayer(World::Objects);
+            int count = 0;
+            if (objLayer) {
+                for (int y = 0; y < objLayer->GetHeight(); ++y) {
+                    for (int x = 0; x < objLayer->GetWidth(); ++x) {
+                        const World::Tile& tile = objLayer->GetTile(x, y);
+                        World::ResourceNode& rn = m_map->GetResourceNode(x, y);
+                        if (rn.type != World::ResourceType_None) continue;
+                        World::ResourceType rt = World::TileTypeToResourceType(tile.type);
+                        if (rt != World::ResourceType_None) {
+                            rn.type = rt;
+                            rn.amount = World::TreeState_Mature;
+                            rn.isVisible = true;
+                            m_economyManager->GetRegistry().RegisterWorldResource(rt, x, y);
+                            count++;
+                        }
+                    }
+                }
+            }
+            if (count > 0) {
+                char dbg[128];
+                _snprintf(dbg, sizeof(dbg), "[GameScene::Load] Backfilled %d tree resource nodes\n", count);
+                OutputDebugStringA(dbg);
+            }
+        }
+
         OutputDebugStringA("[GameScene::Load] EconomyManager ready\n");
 
         // Set up ECS carrier system and carrier manager
@@ -283,6 +318,11 @@ namespace Scene {
         m_carrierManager = new World::CarrierManager();
         m_carrierManager->SetCarrierSystem(m_carrierSystem);
         OutputDebugStringA("[GameScene::Load] CarrierManager ready\n");
+
+        // Set up WorkerManager for worker arrivals
+        OutputDebugStringA("[GameScene::Load] Creating WorkerManager\n");
+        m_workerManager = new World::WorkerManager();
+        OutputDebugStringA("[GameScene::Load] WorkerManager ready\n");
 
         // Set up AI system
         OutputDebugStringA("[GameScene::Load] Creating AISystem\n");
@@ -398,6 +438,17 @@ namespace Scene {
         m_carrierManager->SetJobManager(m_transportJobManager);
         OutputDebugStringA("[GameScene::Load] TransportJobManager ready\n");
 
+        // Create CargoManager and DemandManager (new transport system)
+        OutputDebugStringA("[GameScene::Load] Creating CargoManager\n");
+        m_cargoManager = new World::CargoManager();
+        OutputDebugStringA("[GameScene::Load] CargoManager ready\n");
+        m_demandManager = new World::DemandManager();
+        OutputDebugStringA("[GameScene::Load] DemandManager ready\n");
+        if (m_map) {
+            m_map->SetCargoManager(m_cargoManager);
+            m_map->SetDemandManager(m_demandManager);
+        }
+
         // Create construction manager
         OutputDebugStringA("[GameScene::Load] Creating ConstructionManager\n");
         m_constructionManager = new World::ConstructionManager();
@@ -406,6 +457,13 @@ namespace Scene {
         if (m_economyManager && m_economyManager->GetWarehouse() && m_economyManager->GetWarehouse()->connectedFlag) {
             m_constructionManager->SetWarehouseFlag(m_economyManager->GetWarehouse()->connectedFlag);
             m_carrierManager->SetWarehouseFlag(m_economyManager->GetWarehouse()->connectedFlag);
+        }
+        if (m_demandManager) {
+            m_constructionManager->SetDemandManager(m_demandManager);
+            m_carrierManager->SetDemandManager(m_demandManager);
+        }
+        if (m_cargoManager) {
+            m_carrierManager->SetCargoManager(m_cargoManager);
         }
         OutputDebugStringA("[GameScene::Load] ConstructionManager ready\n");
 
@@ -483,6 +541,19 @@ namespace Scene {
                         m_townHallPanelH = (float)r->height;
                     }
                 }
+            }
+        }
+
+        // ─── Initialize stump sprite indices ────────────────────────────
+        {
+            TextureRegistry& reg = TextureRegistry::instance();
+            std::tr1::shared_ptr<SpriteAtlas> maptiles = reg.getAtlas("maptiles");
+            if (maptiles && m_map) {
+                uint32_t s1 = maptiles->GetIndex("stump_01");
+                uint32_t s2 = maptiles->GetIndex("stump_02");
+                uint32_t s3 = maptiles->GetIndex("stump_03");
+                m_map->SetStumpSpriteIndices((int)s1, (int)s2, (int)s3);
+                OutputDebugStringA("[GameScene] Stump sprites initialized\n");
             }
         }
 
@@ -621,6 +692,9 @@ namespace Scene {
 
             m_economyManager->SetWarehouse(warehouse);
             m_economyManager->AddBuilding(warehouse);
+            if (m_workerManager) {
+                m_workerManager->SetWarehouse(warehouse);
+            }
             if (m_transportJobManager) {
                 m_transportJobManager->SetWarehouse(warehouse);
             }
@@ -629,6 +703,16 @@ namespace Scene {
             }
             if (m_carrierManager) {
                 m_carrierManager->SetWarehouseFlag(hqFlag);
+            }
+            // Set warehouse demand for all resource types (LOW priority)
+            if (m_demandManager && hqFlag) {
+                World::ResourceType allTypes[] = {
+                    World::ResourceType_Wood, World::ResourceType_Stone, World::ResourceType_Planks,
+                    World::ResourceType_Fish, World::ResourceType_Meat, World::ResourceType_Coal
+                };
+                for (int ri = 0; ri < sizeof(allTypes)/sizeof(allTypes[0]); ++ri) {
+                    m_demandManager->SetDemand(allTypes[ri], 9999, hqFlag->handle, 10);
+                }
             }
 
             {
@@ -714,6 +798,15 @@ void GameScene::Unload()
         m_transportJobManager = NULL;
     }
 
+    if (m_cargoManager) {
+        delete m_cargoManager;
+        m_cargoManager = NULL;
+    }
+    if (m_demandManager) {
+        delete m_demandManager;
+        m_demandManager = NULL;
+    }
+
     if (m_constructionManager) {
         delete m_constructionManager;
         m_constructionManager = NULL;
@@ -745,6 +838,10 @@ void GameScene::Unload()
     if (m_carrierSystem) {
         delete m_carrierSystem;
         m_carrierSystem = NULL;
+    }
+    if (m_workerManager) {
+        delete m_workerManager;
+        m_workerManager = NULL;
     }
     if (m_economyManager) {
         delete m_economyManager;
@@ -798,6 +895,8 @@ void GameScene::Update(float deltaTime)
         OutputDebugStringA("[GameScene::Update] Not loaded, returning\n");
         return;
     }
+
+    ++m_frameCount;
 
     // ─── Camera movement and zoom (disabled during menu or town hall panel) ──
     if (!m_menuActive && !m_roadMenuActive && !m_townHallPanelOpen && m_camera && m_inputManager) {
@@ -1273,33 +1372,74 @@ void GameScene::Update(float deltaTime)
                 m_wildlifeRegenTimer = 0.0f;
                 m_map->RegenerateWildlifeResources();
             }
-        }
-
-        // ─── Phase B: TransportJob management ──────────────────────────
-        if (m_transportJobManager) {
-            m_transportJobManager->ScanFlagsForCargo(m_flagManager);
-            m_transportJobManager->Update();
-        }
-
-        // Sync leg targets from all carriers to ECS (needed by ECS movement system)
-        if (m_carrierManager && m_carrierSystem) {
-            for (int i = 0; i < m_carrierManager->GetCarrierCount(); ++i) {
-                World::Carrier* c = m_carrierManager->GetCarrier(i);
-                if (c && c->ecsEntity != World::INVALID_ENTITY)
-                    m_carrierSystem->SyncLegTargets(c->ecsEntity, c);
+            m_treeGrowthTimer += deltaTime;
+            if (m_treeGrowthTimer >= 30.0f) {
+                m_treeGrowthTimer = 0.0f;
+                m_map->GrowTrees();
             }
         }
 
-        // ─── Phase D: Carrier updates (per-segment walking) ──────────────
-        if (m_carrierSystem)
-            m_carrierSystem->UpdateMovement(deltaTime);
+        // ─── Phase Aw: Worker arrival movement ─────────────────────────
+        if (m_workerManager) {
+            m_workerManager->Update(deltaTime);
+        }
 
+        // ─── Phase B: Carrier updates (per-segment walking) ──────────────
         if (m_carrierManager)
             m_carrierManager->Update(deltaTime);
 
         // ─── Phase D: Warehouse collects from its flag (AFTER carriers) ──
         if (m_economyManager)
             m_economyManager->CollectWarehouse();
+
+        // ─── Phase D: Collect ground resources to nearest player flag ──
+        if (m_map && m_flagManager) {
+            // Determine warehouse destination for transport
+            uint32_t whFlagId = World::INVALID_FLAG_ID;
+            if (m_economyManager) {
+                World::Warehouse* wh = m_economyManager->GetWarehouse();
+                if (wh && wh->connectedFlag)
+                    whFlagId = wh->connectedFlag->id;
+            }
+            int n = m_map->GetGroundResourceCount();
+            for (int gi = n - 1; gi >= 0; --gi) {
+                World::GroundResource* gr = m_map->GetGroundResource(gi);
+                if (!gr) continue;
+                // Wood ground resources are handled by the Woodcutter (CarryWoodHome),
+                // not by the generic ground collection loop.
+                assert(gr->type != World::ResourceType_Wood || gr->visualOnly);
+                if (gr->type == World::ResourceType_Wood)
+                    continue;
+                // Find nearest player-owned flag with an open slot
+                float bestDist = 1e9f;
+                World::Flag* bestFlag = NULL;
+                for (size_t fi = 0; fi < m_flagManager->GetCount(); ++fi) {
+                    World::Flag* f = m_flagManager->GetFlag(fi);
+                    if (!f) continue;
+                    float dx = (float)(gr->pos.x - f->pos.x);
+                    float dy = (float)(gr->pos.y - f->pos.y);
+                    float d = dx * dx + dy * dy;
+                    if (d < bestDist) {
+                        bestDist = d;
+                        bestFlag = f;
+                    }
+                }
+                if (bestFlag) {
+                    bool added = bestFlag->AddResource(gr->type, 1, whFlagId);
+                    if (added) {
+                        gr->amount--;
+                        char dbg[256];
+                        _snprintf(dbg, sizeof(dbg), "[FLAG PUT] flag=%u type=%s amount=1 remaining=%d dst=%u\n",
+                                  bestFlag->id,
+                                  (gr->type == World::ResourceType_Wood) ? "Wood" : "Resource",
+                                  gr->amount, whFlagId);
+                        OutputDebugStringA(dbg);
+                        if (gr->amount <= 0)
+                            m_map->RemoveGroundResource(gi);
+                    }
+                }
+            }
+        }
 
         // ─── Check completed construction sites ────────────────────────
         if (m_constructionManager) {
@@ -1357,10 +1497,6 @@ void GameScene::Update(float deltaTime)
         // ─── Phase C: Apply Build Commands (single-threaded) ───────────────────
         for (int c = 0; c < 4; ++c)
             m_aiSystem->ApplyBuildRequests(m_aiChunks[c].requests, m_aiChunks[c].numRequests);
-
-        // ─── Deferred route recalculation (batched after all network changes) ──
-        if (m_transportJobManager)
-            m_transportJobManager->FlushRecalculate();
 
 //        OutputDebugStringA("[GameScene::Update] DONE\n");
 }
@@ -1694,6 +1830,9 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
             };
 
             // Render carriers (per-segment walking)
+            static int carrierLogFrame = 0;
+            carrierLogFrame++;
+            bool logCarriers = (carrierLogFrame % 60 == 0);
             if (m_carrierManager) {
                 for (int ci = 0; ci < m_carrierManager->GetCarrierCount(); ++ci) {
                     World::Carrier* carrier = m_carrierManager->GetCarrier(ci);
@@ -1727,8 +1866,21 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
 
                     int dx = (walkDir > 0.0f) ? (tileB.x - tileA.x) : (tileA.x - tileB.x);
                     int dy = (walkDir > 0.0f) ? (tileB.y - tileA.y) : (tileA.y - tileB.y);
-                    bool hasCargo = (carrier->cargo.type != World::ResourceType_None && carrier->cargo.amount > 0);
+                    bool hasCargo = (carrier->m_cargo != NULL);
                     int spriteIdx = unitsSpriteIndex(true, hasCargo, dx, dy);
+
+                    // Carrier graphical behavior log (every ~60 frames)
+                    if (logCarriers) {
+                        const char* stateNames[] = { "WalkingToPost", "Working", "ReturningHome" };
+                        const char* sn = (carrier->state >= 0 && carrier->state < 3) ? stateNames[carrier->state] : "?";
+                        const char* cn = carrier->m_cargo ? World::ResourceTypeToString(carrier->m_cargo->type) : "empty";
+                        char dbg[256];
+                        _snprintf(dbg, sizeof(dbg),
+                            "[CARRIER] %d: state=%s ep=%.1f dir=%.1f sprite=%d cargo=%s path=%d tiles=(%d,%d)-(%d,%d)\n",
+                            ci, sn, ep, walkDir, spriteIdx, cn, pathLen,
+                            tileA.x, tileA.y, tileB.x, tileB.y);
+                        OutputDebugStringA(dbg);
+                    }
 
                     float wx0, wy0, wx1, wy1;
                     coords.NodeTileToWorld(tileA.x, tileA.y, wx0, wy0);
@@ -1755,8 +1907,8 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                     renderQueue->Submit(cmd);
 
                     // Render cargo icon above carrier
-                    if (carrier->cargo.type != World::ResourceType_None && carrier->cargo.amount > 0) {
-                        const char* cargoIconName = World::ResourceTypeToIconName(carrier->cargo.type);
+                    if (carrier->m_cargo) {
+                        const char* cargoIconName = World::ResourceTypeToIconName(carrier->m_cargo->type);
                         if (cargoIconName && cargoIconName[0]) {
                             std::tr1::shared_ptr<SpriteAtlas> cargoAtlas = reg.getAtlas("Icon");
                             if (cargoAtlas) {
@@ -1803,10 +1955,6 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                     if (flag->building->GetWorkerRenderInfo(wx, wy, wSpriteIdx)) {
                         moving = true;
                         coords.NodeTileToWorld(wx, wy, wx, wy);
-                    } else if (flag->building->type == World::Fisher) {
-                        bool se = (flag->building->pos.x % 2 == 0);
-                        wSpriteIdx = se ? 16 : 17; // fisher_work_SE / fisher_work_SW
-                        coords.NodeTileToWorld(flag->building->pos.x, flag->building->pos.y, wx, wy);
                     }
                     if (wSpriteIdx < 0) continue;
                     const SpriteRegion* wr = unitsAtlas->GetRegion(wSpriteIdx);
@@ -1825,6 +1973,34 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                     wcmd.blendMode = 1;
                     wcmd.layer = LAYER_WORLD;
                     wcmd.depth = static_cast<WORD>(30020 + (moving ? (int)(wy + 0.5f) : flag->building->pos.y) * 400);
+                    renderQueue->Submit(wcmd);
+                }
+            }
+
+            // Render arriving workers (walking from warehouse to their building)
+            if (m_workerManager && unitsAtlas) {
+                for (size_t wi = 0; wi < m_workerManager->GetCount(); ++wi) {
+                    World::Worker* w = m_workerManager->GetWorker(wi);
+                    if (!w) continue;
+                    float wx = w->wx;
+                    float wy = w->wy;
+                    int spriteIdx = (w->wdir == 0) ? 4 : 5;
+                    coords.NodeTileToWorld(wx, wy, wx, wy);
+                    const SpriteRegion* wr = unitsAtlas->GetRegion(spriteIdx);
+                    if (!wr) continue;
+                    Graphics::RenderCommand wcmd = {};
+                    wcmd.x = wx - wr->pivotX;
+                    wcmd.y = wy - wr->pivotY;
+                    wcmd.width = (float)wr->width;
+                    wcmd.height = (float)wr->height;
+                    wcmd.u0 = wr->u0; wcmd.v0 = wr->v0;
+                    wcmd.u1 = wr->u1; wcmd.v1 = wr->v1;
+                    wcmd.color = 0xFFFFFFFF;
+                    wcmd.textureID = SLOT_UNITS;
+                    wcmd.shaderID = SHADER_TERRAIN;
+                    wcmd.blendMode = 1;
+                    wcmd.layer = LAYER_WORLD;
+                    wcmd.depth = static_cast<WORD>(30020 + (int)(wy + 0.5f) * 400);
                     renderQueue->Submit(wcmd);
                 }
             }
@@ -2266,6 +2442,55 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         }
     }
 
+    // ─── Ground resource overlays (sprite + count text) ────────────────
+    {
+        TextureRegistry& reg2 = TextureRegistry::instance();
+        std::tr1::shared_ptr<SpriteAtlas> iconAtlas = reg2.getAtlas("Icon");
+        if (iconAtlas && m_map && m_textManager) {
+            if (!m_groundWoodIconLoaded) {
+                uint32_t idx = iconAtlas->GetIndex("r_exotic_wood");
+                m_groundWoodIconIdx = (idx != 0xFFFFFFFF) ? (int)idx : -1;
+                m_groundWoodIconLoaded = true;
+            }
+            int n = m_map->GetGroundResourceCount();
+            if (n > 0) {
+                CoordinateSystem& coords = CoordinateSystem::GetInstance();
+                int iconIdx = m_groundWoodIconIdx;
+                const SpriteRegion* iconR = (iconIdx >= 0) ? iconAtlas->GetRegion(iconIdx) : NULL;
+                for (int gi = 0; gi < n; ++gi) {
+                    World::GroundResource* gr = m_map->GetGroundResource(gi);
+                    if (!gr) continue;
+                    float wx, wy;
+                    coords.NodeTileToWorld(gr->pos.x, gr->pos.y, wx, wy);
+                    // Render icon sprite
+                    if (iconR) {
+                        float iconSize = 24.0f;
+                        Graphics::RenderCommand icmd = {};
+                        icmd.x = wx - iconSize * 0.5f;
+                        icmd.y = wy - iconSize - 8.0f;
+                        icmd.width = iconSize;
+                        icmd.height = iconSize;
+                        icmd.u0 = iconR->u0;
+                        icmd.v0 = iconR->v0;
+                        icmd.u1 = iconR->u1;
+                        icmd.v1 = iconR->v1;
+                        icmd.color = D3DCOLOR_ARGB(220, 255, 255, 255);
+                        icmd.textureID = SLOT_UI_MENU_ICON;
+                        icmd.shaderID = SHADER_TERRAIN;
+                        icmd.blendMode = 1;
+                        icmd.layer = LAYER_FOREGROUND;
+                        icmd.depth = static_cast<WORD>(0.99f * 65535.0f);
+                        renderQueue->Submit(icmd);
+                    }
+                    // Render amount text
+                    char buf[16];
+                    _snprintf(buf, sizeof(buf), "%d", gr->amount);
+                    m_textManager->DrawTextToWorld(buf, wx, wy - 40.0f, D3DCOLOR_ARGB(255, 255, 255, 0), 0.08f);
+                }
+            }
+        }
+    }
+
     if (!m_menuActive && !m_roadMenuActive && !m_townHallPanelOpen) {
         // ─── Town hall highlight when cursor is over it ──────────────────
         if (m_cursorOnTownHall) {
@@ -2503,8 +2728,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                 const std::vector<Vector2i>* pathPtr = NULL;
                 float ep = 0.0f;
 
-                 if (World::IsTransitState(carrier->state)) {
-
+                if (World::IsTransitState(carrier->state)) {
                     if (carrier->transitTiles.size() < 2) continue;
                     pathPtr = &carrier->transitTiles;
                     ep = carrier->transitProgress;
@@ -2533,8 +2757,8 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                 float wy = cy + (ny - cy) * frac;
 
                 const char* cargoName = "Idle";
-                if (carrier->cargo.type != World::ResourceType_None) {
-                    cargoName = World::ResourceTypeToString(carrier->cargo.type);
+                if (carrier->m_cargo) {
+                    cargoName = World::ResourceTypeToString(carrier->m_cargo->type);
                 }
 
                 if (carrier->road) {
@@ -3054,9 +3278,26 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
             return;
         }
 
-        // Prevent placing on existing flag
-        if (m_flagManager->GetFlagAt(tileX, tileY)) {
-            OutputDebugStringA("[GameScene] PlaceFlag: flag already exists at position\n");
+        // Check for existing flag — if free, convert to building flag; if already occupied, reject
+        World::Flag* existingFlag = m_flagManager->GetFlagAt(tileX, tileY);
+        if (existingFlag) {
+            if (existingFlag->hasBuilding || existingFlag->pendingBuilding != World::Building_None) {
+                OutputDebugStringA("[GameScene] PlaceFlag: building already exists at this flag\n");
+                return;
+            }
+            // Convert free flag to building flag
+            existingFlag->type = World::FLAG_BUILDING;
+            existingFlag->pendingBuilding = m_selectedBuilding;
+            CreateConstructionSite(existingFlag, buildX, buildY);
+            SplitRoadAtFlag(existingFlag);
+            LinkFlagToRoadNetwork(existingFlag);
+            SyncCarriersForFlag(existingFlag);
+            if (m_constructionManager) m_constructionManager->MarkBuilderRoutesDirty();
+            m_buildState = BUILDSTATE_NONE;
+            m_selectedBuilding = World::Building_None;
+            m_statusText = "Building construction started!";
+            m_statusTextTimer = 2.0f;
+            OutputDebugStringA("[GameScene] PlaceFlag: converted free flag to building flag\n");
             return;
         }
 
@@ -3075,7 +3316,6 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         // Link flag to road network so carriers can reach it
         LinkFlagToRoadNetwork(flag);
         SyncCarriersForFlag(flag);
-        if (m_transportJobManager) m_transportJobManager->MarkRoutesDirty();
         if (m_constructionManager) m_constructionManager->MarkBuilderRoutesDirty();
 
         // Reset build state
@@ -3116,7 +3356,6 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
 
         LinkFlagToRoadNetwork(flag);
         SyncCarriersForFlag(flag);
-        if (m_transportJobManager) m_transportJobManager->MarkRoutesDirty();
         if (m_constructionManager) m_constructionManager->MarkBuilderRoutesDirty();
 
         char dbg[256];
@@ -3387,6 +3626,16 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                     if (m_carrierManager) {
                         m_carrierManager->SetWarehouseFlag(flag);
                     }
+                    // Set warehouse demand for all resource types (restore path)
+                    if (m_demandManager && flag) {
+                        World::ResourceType allTypes[] = {
+                            World::ResourceType_Wood, World::ResourceType_Stone, World::ResourceType_Planks,
+                            World::ResourceType_Fish, World::ResourceType_Meat, World::ResourceType_Coal
+                        };
+                        for (int ri = 0; ri < sizeof(allTypes)/sizeof(allTypes[0]); ++ri) {
+                            m_demandManager->SetDemand(allTypes[ri], 9999, flag->handle, 10);
+                        }
+                    }
                 } else {
                     building = World::CreateBuilding(type, x, y, 0, m_map);
                     if (!building) { skipped++; continue; }
@@ -3396,6 +3645,17 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                     flag->building = building;
                     flag->hasBuilding = true;
                     flag->pendingBuilding = World::Building_None;
+
+                    // Restored buildings already have workers
+                    if (building->m_maxPopulation > 0) {
+                        building->m_population = 1;
+                        char dbg[256];
+                        _snprintf(dbg, sizeof(dbg),
+                            "[Restore] Worker assigned: type=%d pop=%d maxPop=%d at (%d,%d)\n",
+                            building->type, building->m_population,
+                            building->m_maxPopulation, x, y);
+                        OutputDebugStringA(dbg);
+                    }
                 }
 
                 m_economyManager->AddBuilding(building);
@@ -3495,6 +3755,15 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
 
             if (m_economyManager) {
                 m_economyManager->AddBuilding(building);
+            }
+
+            // Spawn worker walking from warehouse to this building
+            if (m_workerManager && m_economyManager && m_economyManager->GetWarehouse()
+                && m_economyManager->GetWarehouse()->connectedFlag
+                && building->m_maxPopulation > 0)
+            {
+                World::Flag* whFlag = m_economyManager->GetWarehouse()->connectedFlag;
+                m_workerManager->SpawnWorker(building, (float)whFlag->pos.x, (float)whFlag->pos.y);
             }
         }
 
@@ -4096,7 +4365,6 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
 
                 SyncCarriersForFlag(startFlag);
                 SyncCarriersForFlag(endFlag);
-                if (m_transportJobManager) m_transportJobManager->MarkRoutesDirty();
             }
         }
 

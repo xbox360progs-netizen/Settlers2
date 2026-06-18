@@ -48,6 +48,24 @@ enum ResourceType
     ResourceType_Count
 };
 
+// Tree growth states for ResourceType_Wood world nodes
+// Stored in ResourceNode.amount
+enum TreeState : int {
+    TreeState_Empty   = 0,
+    TreeState_Sapling = 1,
+    TreeState_Young   = 2,
+    TreeState_Mature  = 3,
+    TreeState_Stump   = 4   // After cutting, before decaying to Empty
+};
+
+inline bool IsTree(ResourceType type) { return type == ResourceType_Wood; }
+// Mature if type=Wood and amount is a living tree state (not Empty, not Stump)
+// Mature if amount >= Mature(3) and not Stump(4)
+inline bool IsTreeMature(int amount) { return amount >= TreeState_Mature && amount != TreeState_Stump; }
+// Alive if >= Sapling(1) and not Stump(4)
+inline bool IsTreeAlive(int amount) { return amount >= TreeState_Sapling && amount != TreeState_Stump; }
+inline bool IsTreeStump(int amount) { return amount == TreeState_Stump; }
+
 struct ResourceNode
 {
     BYTE weight;
@@ -180,7 +198,10 @@ inline const char* ResourceTypeToBuildingSpriteName(ResourceType type)
 
 inline ResourceType TileTypeToResourceType(TileType tileType)
 {
-    return ResourceType_None;
+    switch (tileType) {
+        case Tree: return ResourceType_Wood;
+        default: return ResourceType_None;
+    }
 }
 
 inline const char* WeightTypeToString(WeightType weight)

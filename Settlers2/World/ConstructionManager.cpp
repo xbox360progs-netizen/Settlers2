@@ -2,13 +2,14 @@
 #include "ConstructionManager.h"
 #include "FlagManager.h"
 #include "RoadManager.h"
+#include "DemandManager.h"
 #include "../Logic/EconomyManager.h"
 
 namespace World {
 
     ConstructionManager::ConstructionManager()
         : m_flagManager(NULL), m_roadManager(NULL), m_warehouseFlag(NULL),
-          m_builderRoutesDirty(false)
+          m_demandManager(NULL), m_builderRoutesDirty(false)
     {
     }
 
@@ -28,6 +29,9 @@ namespace World {
     {
         for (size_t i = 0; i < m_sites.size(); ++i) {
             if (m_sites[i] == site) {
+                if (m_demandManager && site->flag) {
+                    m_demandManager->ClearDemand(site->flag->handle);
+                }
                 delete m_sites[i];
                 m_sites.erase(m_sites.begin() + i);
                 return;
@@ -39,6 +43,9 @@ namespace World {
     {
         for (size_t i = 0; i < m_sites.size(); ++i) {
             if (m_sites[i]->x == x && m_sites[i]->y == y) {
+                if (m_demandManager && m_sites[i]->flag) {
+                    m_demandManager->ClearDemand(m_sites[i]->flag->handle);
+                }
                 m_sites[i]->flag = NULL;
                 m_sites[i]->builderState = Builder_None;
                 delete m_sites[i];
@@ -308,6 +315,22 @@ namespace World {
         return NULL;
     }
 
+    Flag* ConstructionManager::FindConstructionDemand(Flag* fromFlag, ResourceType type) const
+    {
+        if (!fromFlag || !m_roadManager) return NULL;
+        for (size_t i = 0; i < m_sites.size(); ++i) {
+            ConstructionSite* site = m_sites[i];
+            if (!site->flag || site->IsComplete()) continue;
+            bool needsType = (type == ResourceType_Wood && site->NeedsWood()) ||
+                             (type == ResourceType_Stone && site->NeedsStone());
+            if (!needsType) continue;
+            std::vector<Flag*> path = m_roadManager->FindFlagPath(fromFlag, site->flag);
+            if (!path.empty())
+                return site->flag;
+        }
+        return NULL;
+    }
+
     void ConstructionManager::GenerateRequests(Logic::EconomyManager* economy)
     {
         if (!economy) return;
@@ -315,18 +338,41 @@ namespace World {
         for (size_t i = 0; i < m_sites.size(); ++i) {
             ConstructionSite* site = m_sites[i];
             if (!site->flag) continue;
-            if (site->IsComplete()) continue;
+            if (site->IsComplete()) {
+                if (m_demandManager) {
+                    m_demandManager->ClearDemand(site->flag->handle);
+                }
+                continue;
+            }
 
             int woodMissing = site->WoodMissing();
             int stoneMissing = site->StoneMissing();
 
             if (woodMissing > 0) {
                 economy->RequestConstructionResource(site->flag, ResourceType_Wood, woodMissing, 50);
+                if (m_demandManager && woodMissing != site->woodRequested) {
+                    m_demandManager->SetDemand(ResourceType_Wood, (uint32_t)woodMissing,
+                        site->flag->handle, 100);
+                }
+            } else {
+                if (m_demandManager && site->woodRequested != 0) {
+                    m_demandManager->ClearDemand(ResourceType_Wood, site->flag->handle);
+                }
             }
+            site->woodRequested = (woodMissing > 0) ? woodMissing : 0;
 
             if (stoneMissing > 0) {
                 economy->RequestConstructionResource(site->flag, ResourceType_Stone, stoneMissing, 50);
+                if (m_demandManager && stoneMissing != site->stoneRequested) {
+                    m_demandManager->SetDemand(ResourceType_Stone, (uint32_t)stoneMissing,
+                        site->flag->handle, 100);
+                }
+            } else {
+                if (m_demandManager && site->stoneRequested != 0) {
+                    m_demandManager->ClearDemand(ResourceType_Stone, site->flag->handle);
+                }
             }
+            site->stoneRequested = (stoneMissing > 0) ? stoneMissing : 0;
         }
     }
 

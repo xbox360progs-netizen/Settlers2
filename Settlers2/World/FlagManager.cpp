@@ -23,15 +23,14 @@ namespace World {
         uint32_t id = s_nextId++;
         Flag* flag = new Flag(x, y, id);
         m_flags.push_back(flag);
-        m_handleRegistry.Register<Flag>(flag);
+        flag->handle = m_handleRegistry.Register<Flag>(flag);
         return flag;
     }
 
     FlagHandle FlagManager::CreateFlagHandle(int x, int y)
     {
-        CreateFlag(x, y);
-        Flag* flag = m_flags.back();
-        return m_handleRegistry.FindHandle<Flag>(flag);
+        Flag* flag = CreateFlag(x, y);
+        return flag ? flag->handle : FlagHandle();
     }
 
     Flag* FlagManager::GetFlagAt(int x, int y) const
@@ -167,7 +166,7 @@ namespace World {
             flag->pendingBuilding = fd.pendingBuilding;
             flag->hasBuilding = fd.hasBuilding;
             m_flags.push_back(flag);
-            m_handleRegistry.Register<Flag>(flag);
+            flag->handle = m_handleRegistry.Register<Flag>(flag);
             if (loadId > maxId) maxId = loadId;
         }
         if (maxId >= s_nextId) {

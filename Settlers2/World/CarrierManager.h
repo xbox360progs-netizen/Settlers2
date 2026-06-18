@@ -11,6 +11,8 @@ namespace World {
     class TransportJobManager;
     class RoadManager;
     class CarrierSystem;
+    class DemandManager;
+    class CargoManager;
 
     class CarrierManager {
     public:
@@ -22,6 +24,8 @@ namespace World {
         void SetRoadManager(RoadManager* rm) { m_roadManager = rm; }
         void SetWarehouseFlag(Flag* f) { m_warehouseFlag = f; }
         void SetCarrierSystem(CarrierSystem* cs) { m_carrierSystem = cs; }
+        void SetDemandManager(DemandManager* dm) { m_demandManager = dm; }
+        void SetCargoManager(CargoManager* cm) { m_cargoManager = cm; }
 
         int GetCarrierCount() const { return (int)m_carriers.size(); }
         Carrier* GetCarrier(int index) const { return (index >= 0 && index < (int)m_carriers.size()) ? m_carriers[index] : NULL; }
@@ -49,6 +53,8 @@ namespace World {
         RoadManager* m_roadManager;
         Flag* m_warehouseFlag;
         CarrierSystem* m_carrierSystem;
+        DemandManager* m_demandManager;
+        CargoManager* m_cargoManager;
 
         std::vector<Vector2i> BuildTransitPath(Flag* fromFlag, Flag* toFlag);
     };

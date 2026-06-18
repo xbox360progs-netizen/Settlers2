@@ -16,6 +16,8 @@ Map::Map(int groundWidth, int groundHeight, int otherWidth, int otherHeight)
     : m_width(groundWidth)
     , m_height(groundHeight)
     , m_resourceRegistry(NULL)
+    , m_cargoManager(NULL)
+    , m_demandManager(NULL)
 {
     InitializeCriticalSection(&m_cs);
     m_layers.resize(static_cast<int>(LayerCount), NULL);
@@ -634,6 +636,97 @@ void Map::RegenerateWildlifeResources() {
                 }
             }
         }
+    }
+}
+
+static unsigned int g_groundSpawnFrame = 0;
+unsigned int GetNextSpawnFrame() { return ++g_groundSpawnFrame; }
+
+void Map::SpawnGroundResource(ResourceType type, int amount, int x, int y) {
+    GroundResource gr;
+    gr.type = type;
+    gr.amount = amount;
+    gr.pos.x = x;
+    gr.pos.y = y;
+    gr.spawnFrame = GetNextSpawnFrame();
+    gr.visualOnly = (type == ResourceType_Wood);
+    m_groundResources.push_back(gr);
+    char dbg[128];
+    _snprintf(dbg, sizeof(dbg), "[Ground] %s spawned (%d,%d) amount=%d frame=%u\n",
+              (type == ResourceType_Wood) ? "Wood" : "Resource", x, y, amount, gr.spawnFrame);
+    OutputDebugStringA(dbg);
+}
+
+GroundResource* Map::GetGroundResource(int index) {
+    if (index < 0 || index >= (int)m_groundResources.size()) return NULL;
+    return &m_groundResources[index];
+}
+
+void Map::RemoveGroundResource(int index) {
+    if (index >= 0 && index < (int)m_groundResources.size())
+        m_groundResources.erase(m_groundResources.begin() + index);
+}
+
+void Map::ClearGroundResources() {
+    m_groundResources.clear();
+}
+
+bool Map::RemoveGroundResourceAt(int x, int y) {
+    for (size_t i = 0; i < m_groundResources.size(); ++i) {
+        if (m_groundResources[i].pos.x == x && m_groundResources[i].pos.y == y) {
+            m_groundResources.erase(m_groundResources.begin() + i);
+            return true;
+        }
+    }
+    return false;
+}
+
+GroundResource* Map::FindGroundResourceAt(int x, int y) {
+    for (size_t i = 0; i < m_groundResources.size(); ++i) {
+        if (m_groundResources[i].pos.x == x && m_groundResources[i].pos.y == y)
+            return &m_groundResources[i];
+    }
+    return NULL;
+}
+
+void Map::SetStumpSpriteIndices(int idx1, int idx2, int idx3) {
+    m_stumpIndices[0] = idx1;
+    m_stumpIndices[1] = idx2;
+    m_stumpIndices[2] = idx3;
+}
+
+void Map::SetTileAsStump(int x, int y) {
+    TileLayer* objectsLayer = GetLayer(Objects);
+    if (!objectsLayer) return;
+    Tile& tile = objectsLayer->GetTile(x, y);
+    int si = rand() % 3;
+    tile.regionIndex = m_stumpIndices[si];
+    tile.atlasName = "maptiles";
+    tile.type = Decoration;
+    tile.UpdateProperties();
+}
+
+void Map::GrowTrees() {
+    int w = m_width * 2;
+    int h = m_height * 4;
+    int grown = 0, decayed = 0;
+    for (int y = 0; y < h; ++y) {
+        for (int x = 0; x < w; ++x) {
+            ResourceNode& node = m_resourceMap[y * w + x];
+            if (!IsTree(node.type)) continue;
+            if (IsTreeAlive(node.amount) && node.amount < TreeState_Mature) {
+                node.amount++;
+                ++grown;
+            } else if (IsTreeStump(node.amount)) {
+                node.amount = TreeState_Empty;
+                ++decayed;
+            }
+        }
+    }
+    if (grown > 0 || decayed > 0) {
+        char dbg[128];
+        _snprintf(dbg, sizeof(dbg), "[GrowTrees] advanced=%d stumpDecayed=%d\n", grown, decayed);
+        OutputDebugStringA(dbg);
     }
 }
 

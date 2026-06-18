@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "BuildingFactory.h"
 #include "Woodcutter.h"
+#include "Forester.h"
 #include "Sawmill.h"
 #include "Farm.h"
 #include "Fisher.h"
@@ -20,6 +21,7 @@ namespace World {
     Building* CreateBuilding(BuildingType type, int x, int y, uint8_t owner, Map* map) {
         switch (type) {
             case Woodcutter:     return new class Woodcutter(x, y, owner, map);
+            case Forester:       return new class Forester(x, y, owner, map);
             case Sawmill:        return new class Sawmill(x, y, owner, map);
             case Farm:           return new class Farm(x, y, owner, map);
             case Fisher:         return new class Fisher(x, y, owner, map);

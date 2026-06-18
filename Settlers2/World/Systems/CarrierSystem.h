@@ -13,15 +13,9 @@ class Carrier;
 
 struct CarrierComponent : public Component {
     CarrierState state;
-    Entity currentJob;
-    ResourceType cargoType;
-    int cargoAmount;
-    bool hasPickedUp;
-    bool cargoDelivered;
     bool readyToRemove;
     CarrierComponent()
-        : state(Working), currentJob(INVALID_ENTITY), cargoType(ResourceType_None), cargoAmount(0),
-          hasPickedUp(false), cargoDelivered(false), readyToRemove(false) {}
+        : state(Working), readyToRemove(false) {}
 };
 
 struct PathfindingComponent : public Component {
@@ -70,7 +64,6 @@ public:
     void RemoveCarrier(Entity entity);
     void DestroyEntity(Entity entity);
 
-    void UpdateMovement(float dt);
     void UpdatePath(Entity entity, const std::vector<Vector2i>& tiles);
 
     // Bridge: sync Carrier fields ↔ ECS PathfindingComponent (uses internal EntityManager)
@@ -88,11 +81,6 @@ public:
 
 private:
     EntityManager* m_entityManager;
-    static const float CARRIER_SPEED;
-
-    void UpdateWorking(Entity entity, PathfindingComponent& path, CarrierComponent& carrier, float dt);
-    void MoveToTarget(PathfindingComponent& path, CarrierComponent& carrier, float dt);
-    void MoveToCenter(PathfindingComponent& path, CarrierComponent& carrier, float dt);
 };
 
 }

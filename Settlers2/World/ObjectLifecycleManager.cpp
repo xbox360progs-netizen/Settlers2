@@ -39,7 +39,6 @@ namespace World {
 
     void ObjectLifecycleManager::ForceDeleteFlag(Flag* flag) {
         if (!flag) return;
-        if (m_jobManager) m_jobManager->CancelJobsForFlag(flag);
         // Remove all roads connected to this flag entirely (not just PendingDelete)
         std::vector<Road*> roadsCopy = flag->roads;
         for (size_t i = 0; i < roadsCopy.size(); ++i) {

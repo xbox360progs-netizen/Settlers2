@@ -25,6 +25,8 @@ namespace World {
         int stoneNeeded;
         int woodDelivered;
         int stoneDelivered;
+        int lastWoodRequested;
+        int lastStoneRequested;
         int woodRequested;
         int stoneRequested;
         float buildProgress;
