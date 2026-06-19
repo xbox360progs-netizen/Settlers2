@@ -689,10 +689,10 @@ GroundResource* Map::FindGroundResourceAt(int x, int y) {
     return NULL;
 }
 
-void Map::SetStumpSpriteIndices(int idx1, int idx2, int idx3) {
-    m_stumpIndices[0] = idx1;
-    m_stumpIndices[1] = idx2;
-    m_stumpIndices[2] = idx3;
+void Map::SetStumpSprites(const SpriteData& s1, const SpriteData& s2, const SpriteData& s3) {
+    m_stumpSprites[0] = s1;
+    m_stumpSprites[1] = s2;
+    m_stumpSprites[2] = s3;
 }
 
 void Map::SetTileAsStump(int x, int y) {
@@ -700,16 +700,46 @@ void Map::SetTileAsStump(int x, int y) {
     if (!objectsLayer) return;
     Tile& tile = objectsLayer->GetTile(x, y);
     int si = rand() % 3;
-    tile.regionIndex = m_stumpIndices[si];
+    const SpriteData& sd = m_stumpSprites[si];
+    tile.regionIndex = sd.index;
+    tile.u0 = sd.u0; tile.v0 = sd.v0; tile.u1 = sd.u1; tile.v1 = sd.v1;
     tile.atlasName = "maptiles";
     tile.type = Decoration;
     tile.UpdateProperties();
 }
 
+void Map::AddTreeSprite(const SpriteData& sd) {
+    m_treeSprites.push_back(sd);
+}
+
+void Map::SetTileAsTree(int x, int y) {
+    TileLayer* objectsLayer = GetLayer(Objects);
+    if (!objectsLayer) {
+        OutputDebugStringA("[Map] SetTileAsTree FAIL: no Objects layer\n");
+        return;
+    }
+    if (m_treeSprites.empty()) {
+        OutputDebugStringA("[Map] SetTileAsTree FAIL: no tree sprite indices\n");
+        return;
+    }
+    Tile& tile = objectsLayer->GetTile(x, y);
+    int si = rand() % (int)m_treeSprites.size();
+    const SpriteData& sd = m_treeSprites[si];
+    tile.regionIndex = sd.index;
+    tile.u0 = sd.u0; tile.v0 = sd.v0; tile.u1 = sd.u1; tile.v1 = sd.v1;
+    tile.atlasName = "maptiles";
+    tile.type = Tree;
+    tile.UpdateProperties();
+    char dbg[256];
+    _snprintf(dbg, sizeof(dbg), "[Map] SetTileAsTree(%d,%d) spriteIdx=%d/%u\n",
+        x, y, tile.regionIndex, (unsigned)m_treeSprites.size());
+    OutputDebugStringA(dbg);
+}
+
 void Map::GrowTrees() {
     int w = m_width * 2;
     int h = m_height * 4;
-    int grown = 0, decayed = 0;
+    int grown = 0, decayed = 0, replantable = 0;
     for (int y = 0; y < h; ++y) {
         for (int x = 0; x < w; ++x) {
             ResourceNode& node = m_resourceMap[y * w + x];
@@ -719,13 +749,22 @@ void Map::GrowTrees() {
                 ++grown;
             } else if (IsTreeStump(node.amount)) {
                 node.amount = TreeState_Empty;
+                node.type = ResourceType_None;
+                if (m_resourceRegistry)
+                    m_resourceRegistry->UnregisterWorldResource(ResourceType_Wood, x, y);
                 ++decayed;
+            } else if (node.amount == TreeState_Empty && node.type != ResourceType_None) {
+                // Clean up any lingering Wood nodes with amount=Empty so forester can replant
+                node.type = ResourceType_None;
+                if (m_resourceRegistry)
+                    m_resourceRegistry->UnregisterWorldResource(ResourceType_Wood, x, y);
+                ++replantable;
             }
         }
     }
-    if (grown > 0 || decayed > 0) {
+    if (grown > 0 || decayed > 0 || replantable > 0) {
         char dbg[128];
-        _snprintf(dbg, sizeof(dbg), "[GrowTrees] advanced=%d stumpDecayed=%d\n", grown, decayed);
+        _snprintf(dbg, sizeof(dbg), "[GrowTrees] advanced=%d stumpDecayed=%d cleaned=%d\n", grown, decayed, replantable);
         OutputDebugStringA(dbg);
     }
 }

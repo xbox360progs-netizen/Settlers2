@@ -8,7 +8,7 @@
 namespace Logic {
 
     EconomyManager::EconomyManager()
-        : m_warehouse(NULL), m_flagManager(NULL), m_roadManager(NULL), m_validateCounter(0), m_phase6Initialized(false)
+        : m_warehouse(NULL), m_flagManager(NULL), m_roadManager(NULL), m_cargoManager(NULL), m_validateCounter(0), m_phase6Initialized(false)
     {
         for (int i = 0; i < MAX_REQUESTS; ++i)
             m_requests[i].active = false;
@@ -39,6 +39,19 @@ namespace Logic {
         uint32_t fid = destFlag ? destFlag->id : World::INVALID_FLAG_ID;
         for (int i = 0; i < MAX_CONSTRUCTION_REQUESTS; ++i) {
             if (m_constructionRequests[i].active && m_constructionRequests[i].destFlagId == fid && m_constructionRequests[i].type == type) {
+                // Update amount to match current need, but never exceed what's not yet been pushed.
+                // amount tracks "more to push from warehouse"; if deliveries occurred (woodMissing
+                // decreased), the delta is how many are newly available to push.
+                int delivered = m_constructionRequests[i].totalRequested - amount;
+                if (delivered < 0) delivered = 0;
+                // Amount already pushed from warehouse = totalRequested - amount_current
+                int alreadyPushed = m_constructionRequests[i].totalRequested - m_constructionRequests[i].amount;
+                if (alreadyPushed < 0) alreadyPushed = 0;
+                int inTransit = alreadyPushed - delivered;
+                if (inTransit < 0) inTransit = 0;
+                int newAmount = amount - inTransit;
+                if (newAmount < 0) newAmount = 0;
+                m_constructionRequests[i].amount = newAmount;
                 return;
             }
         }
@@ -48,6 +61,7 @@ namespace Logic {
                 m_constructionRequests[i].destFlag = destFlag;
                 m_constructionRequests[i].type = type;
                 m_constructionRequests[i].amount = amount;
+                m_constructionRequests[i].totalRequested = amount;
                 m_constructionRequests[i].priority = priority;
                 m_constructionRequests[i].active = true;
 
@@ -339,6 +353,62 @@ namespace Logic {
             m_validateCounter = 0;
             ValidateEconomy();
         }
+    }
+
+    int EconomyManager::GetTotalStock(World::ResourceType type) const {
+        int total = 0;
+
+        for (size_t i = 0; i < m_buildings.size(); ++i) {
+            total += m_buildings[i]->m_storage[type];
+        }
+
+        if (m_warehouse) {
+            total += m_warehouse->resources[type];
+        }
+
+        if (m_flagManager) {
+            for (size_t i = 0; i < m_flagManager->GetCount(); ++i) {
+                World::Flag* f = m_flagManager->GetFlag(i);
+                if (f) {
+                    total += f->GetAvailable(type);
+                    for (size_t ci = 0; ci < f->cargo.size(); ++ci) {
+                        if (f->cargo[ci]->type == type)
+                            total += f->cargo[ci]->amount;
+                    }
+                }
+            }
+        }
+
+        total += GetCargoInTransit(type);
+
+        return total;
+    }
+
+    int EconomyManager::GetCargoInTransit(World::ResourceType type) const {
+        if (!m_cargoManager) return 0;
+        int count = 0;
+        for (size_t i = 0; i < m_cargoManager->GetCount(); ++i) {
+            World::Cargo* c = m_cargoManager->GetByIndex(i);
+            if (c && c->type == type && c->state == World::Cargo_Carried) {
+                count += c->amount;
+            }
+        }
+        return count;
+    }
+
+    int EconomyManager::GetCargoOnFlags(World::ResourceType type) const {
+        if (!m_flagManager) return 0;
+        int count = 0;
+        for (size_t i = 0; i < m_flagManager->GetCount(); ++i) {
+            World::Flag* f = m_flagManager->GetFlag(i);
+            if (!f) continue;
+            for (size_t ci = 0; ci < f->cargo.size(); ++ci) {
+                if (f->cargo[ci]->type == type && f->cargo[ci]->state == World::Cargo_OnFlag) {
+                    count += f->cargo[ci]->amount;
+                }
+            }
+        }
+        return count;
     }
 
     void EconomyManager::ValidateEconomy() {

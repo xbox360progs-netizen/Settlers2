@@ -60,18 +60,18 @@ namespace World {
         }
 
         // Remove the demand entry
-        for (size_t i = 0; i < m_demands.size(); ++i) {
-            if (m_demands[i].targetFlag.index == targetFlag.index) {
+        for (std::list<Demand>::iterator it = m_demands.begin(); it != m_demands.end(); ++it) {
+            if (it->targetFlag.index == targetFlag.index) {
                 char buf[256];
                 _snprintf(buf, sizeof(buf),
                     "[Demand] Clear type=%s flag=%u (delivered=%u/%u reserved=%u)\n",
-                    ResourceTypeToString(m_demands[i].type),
+                    ResourceTypeToString(it->type),
                     targetFlag.index,
-                    m_demands[i].delivered, m_demands[i].requested,
-                    m_demands[i].reserved);
+                    it->delivered, it->requested,
+                    it->reserved);
                 OutputDebugStringA(buf);
 
-                m_demands.erase(m_demands.begin() + i);
+                m_demands.erase(it);
                 return;
             }
         }
@@ -93,16 +93,16 @@ namespace World {
             }
         }
 
-        for (size_t i = 0; i < m_demands.size(); ++i) {
-            if (m_demands[i].type == type && m_demands[i].targetFlag.index == targetFlag.index) {
+        for (std::list<Demand>::iterator it = m_demands.begin(); it != m_demands.end(); ++it) {
+            if (it->type == type && it->targetFlag.index == targetFlag.index) {
                 char buf[256];
                 _snprintf(buf, sizeof(buf),
                     "[Demand] Clear type=%s flag=%u (delivered=%u/%u reserved=%u)\n",
                     ResourceTypeToString(type), targetFlag.index,
-                    m_demands[i].delivered, m_demands[i].requested,
-                    m_demands[i].reserved);
+                    it->delivered, it->requested,
+                    it->reserved);
                 OutputDebugStringA(buf);
-                m_demands.erase(m_demands.begin() + i);
+                m_demands.erase(it);
                 return;
             }
         }
@@ -203,18 +203,18 @@ namespace World {
 
     Demand* DemandManager::FindDemand(Handle<Flag> targetFlag)
     {
-        for (size_t i = 0; i < m_demands.size(); ++i) {
-            if (m_demands[i].targetFlag.index == targetFlag.index)
-                return &m_demands[i];
+        for (std::list<Demand>::iterator it = m_demands.begin(); it != m_demands.end(); ++it) {
+            if (it->targetFlag.index == targetFlag.index)
+                return &*it;
         }
         return NULL;
     }
 
     Demand* DemandManager::FindDemand(ResourceType type, Handle<Flag> targetFlag)
     {
-        for (size_t i = 0; i < m_demands.size(); ++i) {
-            if (m_demands[i].type == type && m_demands[i].targetFlag.index == targetFlag.index)
-                return &m_demands[i];
+        for (std::list<Demand>::iterator it = m_demands.begin(); it != m_demands.end(); ++it) {
+            if (it->type == type && it->targetFlag.index == targetFlag.index)
+                return &*it;
         }
         return NULL;
     }
@@ -222,19 +222,25 @@ namespace World {
     Demand* DemandManager::FindBestDemand(ResourceType type)
     {
         Demand* best = NULL;
-        for (size_t i = 0; i < m_demands.size(); ++i) {
-            if (m_demands[i].type != type) continue;
-            if (m_demands[i].reserved >= m_demands[i].requested) continue;
-            if (!best || m_demands[i].priority > best->priority)
-                best = &m_demands[i];
+        for (std::list<Demand>::iterator it = m_demands.begin(); it != m_demands.end(); ++it) {
+            if (it->type != type) continue;
+            if (it->reserved >= it->requested) continue;
+            if (!best || it->priority > best->priority)
+                best = &*it;
         }
         return best;
     }
 
+    Handle<Flag> DemandManager::GetDemandTarget(ResourceType type)
+    {
+        Demand* best = FindBestDemand(type);
+        return best ? best->targetFlag : Handle<Flag>();
+    }
+
     bool DemandManager::HasDemand(ResourceType type)
     {
-        for (size_t i = 0; i < m_demands.size(); ++i) {
-            if (m_demands[i].type == type && m_demands[i].reserved < m_demands[i].requested)
+        for (std::list<Demand>::iterator it = m_demands.begin(); it != m_demands.end(); ++it) {
+            if (it->type == type && it->reserved < it->requested)
                 return true;
         }
         return false;

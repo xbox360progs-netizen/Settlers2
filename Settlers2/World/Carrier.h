@@ -173,7 +173,20 @@ namespace World {
                             ResourceSlot& slot = f->slots[si];
                             if (slot.type == ResourceType_None || slot.amount <= 0) continue;
                             if (slot.amount - slot.reserved <= 0) continue;
-                            hasWork = m_demandManager->HasDemand(slot.type);
+                            // Only wake up if the resource is needed at a reachable flag via this road
+                            Handle<Flag> demandTarget = m_demandManager->GetDemandTarget(slot.type);
+                            if (!demandTarget.IsValid() || demandTarget == f->handle)
+                                continue;
+                            if (m_roadManager) {
+                                Flag* dest = m_roadManager->GetFlagManager()->ResolveFlag(demandTarget);
+                                if (dest) {
+                                    Flag* nextHop = m_roadManager->GetNextHop(f, dest);
+                                    if (nextHop) {
+                                        FlagHandle otherEnd = (road->a == f->handle) ? road->b : road->a;
+                                        hasWork = (otherEnd == nextHop->handle);
+                                    }
+                                }
+                            }
                         }
                     }
                     if (hasWork) {
@@ -244,9 +257,34 @@ namespace World {
                             available = c;
                             break;
                         }
-                        // Second pass: convert ResourceSlot only
-                        if (!available)
+                        // Second pass: convert ResourceSlot only (with route check)
+                        if (!available) {
                             available = atFlag->TakeCargoForRoad(road, m_demandManager, m_cargoManager);
+                            if (available && m_roadManager && available->ticket && available->ticket->demand) {
+                                Flag* dest = m_roadManager->GetFlagManager()->ResolveFlag(available->ticket->demand->targetFlag);
+                                if (dest) {
+                                    Flag* nextHop = m_roadManager->GetNextHop(atFlag, dest);
+                                    if (nextHop) {
+                                        FlagHandle otherEnd = (road->a == atFlag->handle) ? road->b : road->a;
+                                        if (!(otherEnd == nextHop->handle)) {
+                                            ResourceType rejectedType = available->type;
+                                            { char dbg[256]; _snprintf(dbg, sizeof(dbg), "[Carrier] Reject slot road=%u atFlag=%u type=%s (wrong direction)\n", road->id, atFlag->id, ResourceTypeToString(rejectedType)); OutputDebugStringA(dbg); }
+                                            m_demandManager->ReleaseTicket(available->ticket);
+                                            available->ticket = NULL;
+                                            // Put resource back: prefer ResourceSlot, fallback to Cargo on flag
+                                            if (!atFlag->AddResource(rejectedType, 1)) {
+                                                available->state = Cargo_OnFlag;
+                                                available->currentFlag = atFlag->handle;
+                                                atFlag->cargo.push_back(available);
+                                            } else {
+                                                m_cargoManager->Release(available->id);
+                                            }
+                                            available = NULL;
+                                        }
+                                    }
+                                }
+                            }
+                        }
                         if (available) {
                             available->state = Cargo_Carried;
                             available->currentFlag = FlagHandle();

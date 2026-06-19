@@ -4,6 +4,7 @@
 #include "../World/Warehouse.h"
 #include "../World/FlagManager.h"
 #include "../World/RoadManager.h"
+#include "../World/CargoManager.h"
 #include "EconomySettings.h"
 #include "ResourceRegistry.h"
 
@@ -28,11 +29,12 @@ namespace Logic {
         uint32_t destFlagId;    // flag ID (safe across flag deletion)
         World::Flag* destFlag;  // cached pointer, may be dangling if flag deleted
         World::ResourceType type;
-        int amount;
+        int amount;             // how many more to push from warehouse to whFlag
+        int totalRequested;     // original amount requested (to compute in-transit count)
         int priority;
         bool active;
 
-        ConstructionResourceRequest() : destFlagId(0), destFlag(NULL), type(World::ResourceType_None), amount(0), priority(0), active(false) {}
+        ConstructionResourceRequest() : destFlagId(0), destFlag(NULL), type(World::ResourceType_None), amount(0), totalRequested(0), priority(0), active(false) {}
     };
 
     class EconomyManager {
@@ -46,10 +48,16 @@ namespace Logic {
         World::Warehouse* GetWarehouse() const { return m_warehouse; }
         void SetFlagManager(World::FlagManager* fm) { m_flagManager = fm; }
         void SetRoadManager(World::RoadManager* rm) { m_roadManager = rm; }
+        void SetCargoManager(World::CargoManager* cm) { m_cargoManager = cm; }
         bool HasBuilding(World::BuildingType type) const;
         int GetBuildingCount() const { return (int)m_buildings.size(); }
         World::Building* GetBuilding(int index) const { return m_buildings[index]; }
         void ValidateEconomy();
+
+        // Stock tracking
+        int GetTotalStock(World::ResourceType type) const;
+        int GetCargoInTransit(World::ResourceType type) const;
+        int GetCargoOnFlags(World::ResourceType type) const;
 
         ResourceRegistry& GetRegistry() { return m_registry; }
         const ResourceRegistry& GetRegistry() const { return m_registry; }
@@ -71,6 +79,7 @@ namespace Logic {
         World::Warehouse* m_warehouse;
         World::FlagManager* m_flagManager;
         World::RoadManager* m_roadManager;
+        World::CargoManager* m_cargoManager;
         EconomySettings m_settings;
         ResourceRequest m_requests[MAX_REQUESTS];
         ConstructionResourceRequest m_constructionRequests[MAX_CONSTRUCTION_REQUESTS];

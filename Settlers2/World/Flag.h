@@ -245,6 +245,12 @@ namespace World {
                     DemandTicket* ticket = dm->Reserve(slot.type);
                     if (!ticket) continue; // no demand exists for this resource
 
+                    // Don't pick up resources whose demand targets this same flag — they're already at destination
+                    if (ticket->demand && ticket->demand->targetFlag == handle) {
+                        dm->ReleaseTicket(ticket);
+                        continue;
+                    }
+
                     Cargo* c = cm->Allocate(slot.type, 1, handle);
                     c->ticket = ticket;
 
@@ -300,7 +306,11 @@ namespace World {
                     {
                         // This cargo has reached its destination flag
                         // Add to ResourceSlot so buildings/warehouse can consume it
-                        AddResource(c->type, c->amount);
+                        if (!AddResource(c->type, c->amount)) {
+                            // All 8 slots full — retry next frame instead of dropping cargo
+                            ++i;
+                            continue;
+                        }
 
                         DemandTicket* ticket = c->ticket;
                         uint32_t id = c->id;

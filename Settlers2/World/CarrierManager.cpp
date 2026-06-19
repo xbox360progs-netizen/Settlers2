@@ -82,10 +82,13 @@ namespace World {
         Flag* ra = m_flagManager ? m_flagManager->ResolveFlag(road->a) : NULL;
         Flag* rb = m_flagManager ? m_flagManager->ResolveFlag(road->b) : NULL;
 
-        // Don't create carriers for roads not connected to the warehouse
+        // Compute paths from warehouse once (avoids redundant BFS on Xbox 360)
+        std::vector<Flag*> pathA, pathB;
         if (m_warehouseFlag && m_roadManager) {
-            std::vector<Flag*> pathA = m_roadManager->FindFlagPath(m_warehouseFlag, ra);
-            std::vector<Flag*> pathB = m_roadManager->FindFlagPath(m_warehouseFlag, rb);
+            pathA = m_roadManager->FindFlagPath(m_warehouseFlag, ra);
+            pathB = m_roadManager->FindFlagPath(m_warehouseFlag, rb);
+
+            // Don't create carriers for roads not connected to the warehouse
             if (pathA.size() < 2 && pathB.size() < 2) {
                 char buf[256];
                 _snprintf(buf, sizeof(buf),
@@ -104,7 +107,7 @@ namespace World {
         road->carrier = RegisterCarrier(c);
         m_carriers.push_back(c);
 
-        // Walk from warehouse to nearest road endpoint
+        // Walk from warehouse to nearest road endpoint (reuses pathA/pathB from above)
         if (m_warehouseFlag && m_roadManager) {
             Flag* targetFlag = NULL;
             if (!ra || !rb) {
@@ -114,14 +117,14 @@ namespace World {
                 m_carriers.pop_back();
                 return;
             }
-            std::vector<Flag*> pathA = m_roadManager->FindFlagPath(m_warehouseFlag, ra);
-            std::vector<Flag*> pathB = m_roadManager->FindFlagPath(m_warehouseFlag, rb);
-            char buf[256];
-            _snprintf(buf, sizeof(buf), "[Carrier] CreateCarrier road %u: wh=%u a=%u(pathA=%u) b=%u(pathB=%u)\n",
-                road->id, m_warehouseFlag->id,
-                ra->id, (unsigned)pathA.size(),
-                rb->id, (unsigned)pathB.size());
-            OutputDebugStringA(buf);
+            {
+                char buf[256];
+                _snprintf(buf, sizeof(buf), "[Carrier] CreateCarrier road %u: wh=%u a=%u(pathA=%u) b=%u(pathB=%u)\n",
+                    road->id, m_warehouseFlag->id,
+                    ra->id, (unsigned)pathA.size(),
+                    rb->id, (unsigned)pathB.size());
+                OutputDebugStringA(buf);
+            }
             if (pathA.size() >= 2 && (pathB.size() < 2 || pathA.size() <= pathB.size())) {
                 targetFlag = ra;
             } else if (pathB.size() >= 2) {
@@ -129,6 +132,7 @@ namespace World {
             }
             if (targetFlag) {
                 std::vector<Vector2i> transitPath = BuildTransitPath(m_warehouseFlag, targetFlag);
+                char buf[256];
                 _snprintf(buf, sizeof(buf), "[Carrier] CreateCarrier transit: wh=%u->flag%u tiles=%u\n",
                     m_warehouseFlag->id, targetFlag->id, (unsigned)transitPath.size());
                 OutputDebugStringA(buf);

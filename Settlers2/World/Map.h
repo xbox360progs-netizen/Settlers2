@@ -121,9 +121,19 @@ public:
     const HabitatRegistry& GetHabitatRegistry() const { return m_habitatRegistry; }
     HabitatRegistry& GetHabitatRegistry() { return m_habitatRegistry; }
 
+    // Sprite data with UVs (index into atlas + UV coordinates)
+    struct SpriteData {
+        int index;
+        float u0, v0, u1, v1;
+    };
+
     // Stump sprite management
-    void SetStumpSpriteIndices(int idx1, int idx2, int idx3);
+    void SetStumpSprites(const SpriteData& s1, const SpriteData& s2, const SpriteData& s3);
     void SetTileAsStump(int x, int y);
+
+    // Tree sprite management (young + mature)
+    void AddTreeSprite(const SpriteData& sd);
+    void SetTileAsTree(int x, int y);
 
 private:
     int m_width;
@@ -136,7 +146,8 @@ private:
     std::vector<ResourceNode> m_resourceMap;
     std::vector<MapNode> m_nodes;
     std::vector<GroundResource> m_groundResources;
-    int m_stumpIndices[3];
+    SpriteData m_stumpSprites[3];
+    std::vector<SpriteData> m_treeSprites;
     
     WildlifeSystem* m_wildlifeSystem;
     Logic::ResourceRegistry* m_resourceRegistry;

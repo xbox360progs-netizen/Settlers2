@@ -194,6 +194,10 @@ public:
 
     virtual bool IsWarehouse() const { return false; }
 
+    // Polymorphic resource-mode switching (overridden by configurable buildings like Stonemason)
+    virtual void SetActiveResourceMode(ResourceType /*type*/) {}
+    virtual ResourceType GetActiveResourceMode() const { return ResourceType_None; }
+
     int GetStorage(ResourceType type) const { return m_storage[type]; }
     void SetStorage(ResourceType type, int val) { m_storage[type] = val; }
     void AddStorage(ResourceType type, int val) { m_storage[type] += val; }
@@ -224,7 +228,7 @@ public:
         return false;  
     }
 
-	int MaxStoragePerType(ResourceType type) const {
+	virtual int MaxStoragePerType(ResourceType type) const {
         return 5;  
     }
 };

@@ -5,12 +5,15 @@
 
 namespace World {
 
+    class RoadManager;
+
     class WorkerManager {
     public:
         WorkerManager();
         ~WorkerManager();
 
         void SetWarehouse(Warehouse* wh) { m_warehouse = wh; }
+        void SetRoadManager(RoadManager* rm) { m_roadManager = rm; }
         void SpawnWorker(Building* home, float startX, float startY);
         void Update(float dt);
         void Clear();
@@ -21,6 +24,7 @@ namespace World {
     private:
         std::vector<Worker*> m_transit;
         Warehouse* m_warehouse;
+        RoadManager* m_roadManager;
     };
 
 } // namespace World

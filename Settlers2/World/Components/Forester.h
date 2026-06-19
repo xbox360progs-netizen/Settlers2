@@ -15,22 +15,27 @@ class Forester : public WorkerBuilding {
     }
 
     bool FindTarget() override {
-        // Search for an empty land tile in radius 6
-        int bestDist = 1000;
+        // Search for empty land in circular radius around building (node coords)
+        int bestDistSq = 1000;
         Vector2i bestPos(0, 0);
         bool found = false;
         int centerX = (int)pos.x;
         int centerY = (int)pos.y;
+        int radius = 5;
+        int radiusSq = radius * radius;
+        int nodeW = map->GetWidth() * 2;
+        int nodeH = map->GetHeight() * 4;
 
-        for (int dy = -6; dy <= 6; ++dy) {
-            for (int dx = -6; dx <= 6; ++dx) {
+        for (int dy = -radius; dy <= radius; ++dy) {
+            for (int dx = -radius; dx <= radius; ++dx) {
+                int distSq = dx * dx + dy * dy;
+                if (distSq > radiusSq) continue;
                 int checkX = centerX + dx;
                 int checkY = centerY + dy;
-                if (checkX < 0 || checkY < 0 || checkX >= map->GetWidth() || checkY >= map->GetHeight()) continue;
+                if (checkX < 0 || checkY < 0 || checkX >= nodeW || checkY >= nodeH) continue;
                 if (IsPlantableTile(checkX, checkY) && !HasNearbyTrees(checkX, checkY)) {
-                    int dist = dx * dx + dy * dy;
-                    if (dist < bestDist) {
-                        bestDist = dist;
+                    if (distSq < bestDistSq) {
+                        bestDistSq = distSq;
                         bestPos.x = checkX; bestPos.y = checkY;
                         found = true;
                     }
@@ -56,6 +61,7 @@ class Forester : public WorkerBuilding {
         if (node.type == ResourceType_None) {
             node.type = ResourceType_Wood;
             node.amount = TreeState_Sapling;
+            map->SetTileAsTree(m_targetPos.x, m_targetPos.y);
             Logic::ResourceRegistry* registry = map->GetResourceRegistry();
             if (registry)
                 registry->RegisterWorldResource(ResourceType_Wood, m_targetPos.x, m_targetPos.y);
@@ -67,16 +73,21 @@ class Forester : public WorkerBuilding {
 
     bool IsPlantableTile(int tx, int ty) const {
         if (!map) return false;
+        int nodeW = map->GetWidth() * 2;
+        int nodeH = map->GetHeight() * 4;
+        if (tx < 0 || ty < 0 || tx >= nodeW || ty >= nodeH) return false;
         const ResourceNode& node = map->GetResourceNode(tx, ty);
         return node.type == ResourceType_None && node.weight == Weight_Land;
     }
 
     bool HasNearbyTrees(int tx, int ty, int radius = 2) const {
         if (!map) return false;
+        int nodeW = map->GetWidth() * 2;
+        int nodeH = map->GetHeight() * 4;
         for (int dy = -radius; dy <= radius; ++dy) {
             for (int dx = -radius; dx <= radius; ++dx) {
                 int cx = tx + dx, cy = ty + dy;
-                if (cx < 0 || cy < 0) continue;
+                if (cx < 0 || cy < 0 || cx >= nodeW || cy >= nodeH) continue;
                 const ResourceNode& n = map->GetResourceNode(cx, cy);
                 if (IsTree(n.type) && n.amount > TreeState_Empty)
                     return true;
@@ -89,9 +100,10 @@ public:
     Forester(int x, int y, uint8_t o, Map* m)
         : WorkerBuilding(BuildingType::Forester, x, y, o, m)
     {
-        m_idleDuration = 5.0f;
-        m_workDuration = 2.0f;
+        m_idleDuration = 2.0f;
+        m_workDuration = 1.5f;
         m_workerSpeed = 1.0f;
+        m_searchCooldown = 1.0f;
         m_needsFlagWalk = false;
     }
 

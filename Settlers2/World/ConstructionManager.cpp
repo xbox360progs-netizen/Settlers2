@@ -30,7 +30,10 @@ namespace World {
         for (size_t i = 0; i < m_sites.size(); ++i) {
             if (m_sites[i] == site) {
                 if (m_demandManager && site->flag) {
-                    m_demandManager->ClearDemand(site->flag->handle);
+                    // Only clear construction demands — preserve any demands the
+                    // finished building may have set on the same flag.
+                    m_demandManager->ClearDemand(ResourceType_Wood, site->flag->handle);
+                    m_demandManager->ClearDemand(ResourceType_Stone, site->flag->handle);
                 }
                 delete m_sites[i];
                 m_sites.erase(m_sites.begin() + i);
@@ -44,7 +47,8 @@ namespace World {
         for (size_t i = 0; i < m_sites.size(); ++i) {
             if (m_sites[i]->x == x && m_sites[i]->y == y) {
                 if (m_demandManager && m_sites[i]->flag) {
-                    m_demandManager->ClearDemand(m_sites[i]->flag->handle);
+                    m_demandManager->ClearDemand(ResourceType_Wood, m_sites[i]->flag->handle);
+                    m_demandManager->ClearDemand(ResourceType_Stone, m_sites[i]->flag->handle);
                 }
                 m_sites[i]->flag = NULL;
                 m_sites[i]->builderState = Builder_None;
@@ -83,9 +87,11 @@ namespace World {
 
         const float BUILDER_SPEED = 2.5f;
 
-        for (size_t i = 0; i < m_sites.size(); ++i) {
+        for (size_t i = 0; i < m_sites.size(); ) {
             ConstructionSite* site = m_sites[i];
-            if (!site->flag) continue;
+            if (!site->flag) { ++i; continue; }
+
+            bool advanced = true;
 
             // Transfer resources from flag to construction site
             if (site->NeedsWood()) {
@@ -165,68 +171,68 @@ namespace World {
                         site->builderState = Builder_None;
                         OutputDebugStringA("[Construction] Builder returned to HQ\n");
                     }
-                    continue;
+                    advanced = false;
                 }
 
-                Flag* fromFlag = site->builderRoute[site->builderRouteIndex];
-                Flag* toFlag = site->builderRoute[site->builderRouteIndex + 1];
-                Road* road = m_roadManager->GetRoadBetween(fromFlag, toFlag);
-                if (!road || road->tiles.size() < 2) {
-                    // No road — skip this segment (shouldn't happen)
-                    site->builderRouteIndex++;
-                    continue;
-                }
+                if (advanced) {
+                    Flag* fromFlag = site->builderRoute[site->builderRouteIndex];
+                    Flag* toFlag = site->builderRoute[site->builderRouteIndex + 1];
+                    Road* road = m_roadManager->GetRoadBetween(fromFlag, toFlag);
+                    if (!road || road->tiles.size() < 2) {
+                        site->builderRouteIndex++;
+                        advanced = false;
+                    }
 
-                float pathLen = (float)(road->tiles.size() - 1);
+                    if (advanced) {
+                        float pathLen = (float)(road->tiles.size() - 1);
 
-                // Determine direction: is fromFlag at tiles[0] or tiles[last]?
-                if (fromFlag->pos.x == road->tiles[0].x && fromFlag->pos.y == road->tiles[0].y) {
-                    site->builderWalkDir = 1.0f;   // a → b
-                } else {
-                    site->builderWalkDir = -1.0f;  // b → a
-                }
-
-                site->builderEp += site->builderWalkDir * dt * BUILDER_SPEED;
-
-                // Check arrival at next flag
-                bool arrivedAtFlag = false;
-                if (site->builderWalkDir > 0.0f && site->builderEp >= pathLen) {
-                    arrivedAtFlag = true;
-                } else if (site->builderWalkDir < 0.0f && site->builderEp <= 0.0f) {
-                    arrivedAtFlag = true;
-                }
-
-                if (arrivedAtFlag) {
-                    site->builderRouteIndex++;
-                    if (site->builderRouteIndex >= site->builderRoute.size() - 1) {
-                        if (site->builderState == Builder_Walking) {
-                            site->builderState = Builder_Building;
-                            site->buildProgress = 0.0f;
-                            OutputDebugStringA("[Construction] Builder arrived at site, starting construction\n");
+                        if (fromFlag->pos.x == road->tiles[0].x && fromFlag->pos.y == road->tiles[0].y) {
+                            site->builderWalkDir = 1.0f;
                         } else {
-                            site->builderState = Builder_None;
-                            OutputDebugStringA("[Construction] Builder returned to HQ\n");
+                            site->builderWalkDir = -1.0f;
                         }
-                    } else {
-                        // Set up next road segment
-                        Flag* nextFrom = site->builderRoute[site->builderRouteIndex];
-                        Flag* nextTo = site->builderRoute[site->builderRouteIndex + 1];
-                        Road* nextRoad = m_roadManager->GetRoadBetween(nextFrom, nextTo);
-                        if (nextRoad && nextRoad->tiles.size() >= 2) {
-                            float nextPathLen = (float)(nextRoad->tiles.size() - 1);
-                            if (nextFrom->pos.x == nextRoad->tiles[0].x && nextFrom->pos.y == nextRoad->tiles[0].y) {
-                                site->builderWalkDir = 1.0f;
-                                site->builderEp = 0.0f;
+
+                        site->builderEp += site->builderWalkDir * dt * BUILDER_SPEED;
+
+                        bool arrivedAtFlag = false;
+                        if (site->builderWalkDir > 0.0f && site->builderEp >= pathLen) {
+                            arrivedAtFlag = true;
+                        } else if (site->builderWalkDir < 0.0f && site->builderEp <= 0.0f) {
+                            arrivedAtFlag = true;
+                        }
+
+                        if (arrivedAtFlag) {
+                            site->builderRouteIndex++;
+                            if (site->builderRouteIndex >= site->builderRoute.size() - 1) {
+                                if (site->builderState == Builder_Walking) {
+                                    site->builderState = Builder_Building;
+                                    site->buildProgress = 0.0f;
+                                    OutputDebugStringA("[Construction] Builder arrived at site, starting construction\n");
+                                } else {
+                                    site->builderState = Builder_None;
+                                    OutputDebugStringA("[Construction] Builder returned to HQ\n");
+                                }
                             } else {
-                                site->builderWalkDir = -1.0f;
-                                site->builderEp = nextPathLen;
+                                Flag* nextFrom = site->builderRoute[site->builderRouteIndex];
+                                Flag* nextTo = site->builderRoute[site->builderRouteIndex + 1];
+                                Road* nextRoad = m_roadManager->GetRoadBetween(nextFrom, nextTo);
+                                if (nextRoad && nextRoad->tiles.size() >= 2) {
+                                    float nextPathLen = (float)(nextRoad->tiles.size() - 1);
+                                    if (nextFrom->pos.x == nextRoad->tiles[0].x && nextFrom->pos.y == nextRoad->tiles[0].y) {
+                                        site->builderWalkDir = 1.0f;
+                                        site->builderEp = 0.0f;
+                                    } else {
+                                        site->builderWalkDir = -1.0f;
+                                        site->builderEp = nextPathLen;
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
 
-            // ── Builder building ──
+            // ── Builder building (only if builder is at site and resources are available) ──
             if (site->builderState == Builder_Building && site->CanBuild()) {
                 site->buildProgress += dt * 10.0f;
                 if (site->buildProgress >= 100.0f) {
@@ -261,6 +267,12 @@ namespace World {
                         site->builderState = Builder_None;
                     }
                 }
+            }
+
+            if (site->IsComplete() && site->builderState == Builder_None) {
+                RemoveSite(site);
+            } else {
+                ++i;
             }
         }
     }
@@ -340,9 +352,22 @@ namespace World {
             if (!site->flag) continue;
             if (site->IsComplete()) {
                 if (m_demandManager) {
-                    m_demandManager->ClearDemand(site->flag->handle);
+                    m_demandManager->ClearDemand(ResourceType_Wood, site->flag->handle);
+                    m_demandManager->ClearDemand(ResourceType_Stone, site->flag->handle);
                 }
                 continue;
+            }
+
+            // DEBUG: verify site->flag identity
+            {
+                char dbg[512];
+                _snprintf(dbg, sizeof(dbg),
+                    "[CONSTR DEBUG] site=%p flag=%p id=%u handleIdx=%u pos=(%d,%d) buildingType=%d\n",
+                    site, site->flag, site->flag->id,
+                    site->flag->handle.index,
+                    site->flag->pos.x, site->flag->pos.y,
+                    (int)site->buildingType);
+                OutputDebugStringA(dbg);
             }
 
             int woodMissing = site->WoodMissing();

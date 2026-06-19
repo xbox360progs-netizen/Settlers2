@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <list>
 #include <stdint.h>
 #include "Demand.h"
 
@@ -19,14 +20,14 @@ namespace World {
         Demand* FindDemand(Handle<Flag> targetFlag);
         Demand* FindDemand(ResourceType type, Handle<Flag> targetFlag);
         bool HasDemand(ResourceType type);
+        Demand* FindBestDemand(ResourceType type);
+        Handle<Flag> GetDemandTarget(ResourceType type);
 
         void Clear();
 
     private:
-        std::vector<Demand> m_demands;
+        std::list<Demand> m_demands;
         std::vector<DemandTicket*> m_tickets;
         uint32_t m_nextTicketId;
-
-        Demand* FindBestDemand(ResourceType type);
     };
 }

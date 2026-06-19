@@ -464,6 +464,12 @@ namespace Scene {
         }
         if (m_cargoManager) {
             m_carrierManager->SetCargoManager(m_cargoManager);
+            if (m_economyManager) {
+                m_economyManager->SetCargoManager(m_cargoManager);
+            }
+        }
+        if (m_workerManager) {
+            m_workerManager->SetRoadManager(m_roadManager);
         }
         OutputDebugStringA("[GameScene::Load] ConstructionManager ready\n");
 
@@ -552,8 +558,45 @@ namespace Scene {
                 uint32_t s1 = maptiles->GetIndex("stump_01");
                 uint32_t s2 = maptiles->GetIndex("stump_02");
                 uint32_t s3 = maptiles->GetIndex("stump_03");
-                m_map->SetStumpSpriteIndices((int)s1, (int)s2, (int)s3);
+                const SpriteRegion* r1 = (s1 != 0xFFFFFFFF) ? maptiles->GetRegion(s1) : NULL;
+                const SpriteRegion* r2 = (s2 != 0xFFFFFFFF) ? maptiles->GetRegion(s2) : NULL;
+                const SpriteRegion* r3 = (s3 != 0xFFFFFFFF) ? maptiles->GetRegion(s3) : NULL;
+                World::Map::SpriteData d1 = { (int)s1, r1 ? r1->u0 : 0, r1 ? r1->v0 : 0, r1 ? r1->u1 : 1, r1 ? r1->v1 : 1 };
+                World::Map::SpriteData d2 = { (int)s2, r2 ? r2->u0 : 0, r2 ? r2->v0 : 0, r2 ? r2->u1 : 1, r2 ? r2->v1 : 1 };
+                World::Map::SpriteData d3 = { (int)s3, r3 ? r3->u0 : 0, r3 ? r3->v0 : 0, r3 ? r3->u1 : 1, r3 ? r3->v1 : 1 };
+                m_map->SetStumpSprites(d1, d2, d3);
                 OutputDebugStringA("[GameScene] Stump sprites initialized\n");
+            }
+        }
+
+        // ─── Initialize tree sprite indices (young + mature) ────────────
+        {
+            TextureRegistry& reg = TextureRegistry::instance();
+            std::tr1::shared_ptr<SpriteAtlas> maptiles = reg.getAtlas("maptiles");
+            if (maptiles && m_map) {
+                const char* treeNames[] = {
+                    "t_young_01", "t_young_02", "t_young_03",
+                    "t_acer_rubrum_01", "t_acer_rubrum_02", "t_acer_rubrum_03",
+                    "t_acer_rubrum_04", "t_acer_rubrum_05", "t_acer_rubrum_06",
+                    "t_birch_01", "t_birch_02",
+                    "furtree_small_01", "furtree_small_02", "furtree_small_03",
+                    "t_furtree_01", "t_furtree_02", "t_furtree_03", "t_furtree_04"
+                };
+                int loaded = 0;
+                for (int i = 0; i < sizeof(treeNames)/sizeof(treeNames[0]); ++i) {
+                    uint32_t idx = maptiles->GetIndex(treeNames[i]);
+                    if (idx != 0xFFFFFFFF) {
+                        const SpriteRegion* r = maptiles->GetRegion(idx);
+                        if (r) {
+                            World::Map::SpriteData sd = { (int)idx, r->u0, r->v0, r->u1, r->v1 };
+                            m_map->AddTreeSprite(sd);
+                            ++loaded;
+                        }
+                    }
+                }
+                char dbg[128];
+                _snprintf(dbg, sizeof(dbg), "[GameScene] Tree sprites initialized: %d loaded\n", loaded);
+                OutputDebugStringA(dbg);
             }
         }
 
@@ -629,6 +672,9 @@ namespace Scene {
             // Update TransportJobManager with warehouse reference
             if (m_transportJobManager) {
                 m_transportJobManager->SetWarehouse(wh);
+            }
+            if (m_workerManager) {
+                m_workerManager->SetWarehouse(wh);
             }
         }
 
@@ -2553,28 +2599,25 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
             cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, SLOT_UI_TOWNHALL_PANEL, 10);
             renderQueue->Submit(cmd);
 
-            // Render resource counts on the panel
+            // Render resource counts on the panel (total stock across all storage)
             if (m_textManager && m_economyManager) {
-                World::Warehouse* wh = m_economyManager->GetWarehouse();
-                if (wh) {
-                    float tx = panelLeft + 40.0f;
-                    float ty = panelTop + 30.0f;
-                    float lineH = 28.0f;
-                    char buf[64];
+                float tx = panelLeft + 40.0f;
+                float ty = panelTop + 30.0f;
+                float lineH = 28.0f;
+                char buf[64];
 
-                    _snprintf(buf, sizeof(buf), "Wood: %d", wh->resources[World::ResourceType_Wood]);
-                    m_textManager->DrawString(buf, tx, ty, 0xFFFFFFFF, 0.08f); ty += lineH;
-                    _snprintf(buf, sizeof(buf), "Planks: %d", wh->resources[World::ResourceType_Planks]);
-                    m_textManager->DrawString(buf, tx, ty, 0xFFFFFFFF, 0.08f); ty += lineH;
-                    _snprintf(buf, sizeof(buf), "Stone: %d", wh->resources[World::ResourceType_Stone]);
-                    m_textManager->DrawString(buf, tx, ty, 0xFFFFFFFF, 0.08f); ty += lineH;
-                    _snprintf(buf, sizeof(buf), "Fish: %d", wh->resources[World::ResourceType_Fish]);
-                    m_textManager->DrawString(buf, tx, ty, 0xFFFFFFFF, 0.08f); ty += lineH;
-                    _snprintf(buf, sizeof(buf), "Meat: %d", wh->resources[World::ResourceType_Meat]);
-                    m_textManager->DrawString(buf, tx, ty, 0xFFFFFFFF, 0.08f); ty += lineH;
-                    _snprintf(buf, sizeof(buf), "Coal: %d", wh->resources[World::ResourceType_Coal]);
-                    m_textManager->DrawString(buf, tx, ty, 0xFFFFFFFF, 0.08f); ty += lineH;
-                }
+                _snprintf(buf, sizeof(buf), "Wood: %d", m_economyManager->GetTotalStock(World::ResourceType_Wood));
+                m_textManager->DrawString(buf, tx, ty, 0xFFFFFFFF, 0.08f); ty += lineH;
+                _snprintf(buf, sizeof(buf), "Planks: %d", m_economyManager->GetTotalStock(World::ResourceType_Planks));
+                m_textManager->DrawString(buf, tx, ty, 0xFFFFFFFF, 0.08f); ty += lineH;
+                _snprintf(buf, sizeof(buf), "Stone: %d", m_economyManager->GetTotalStock(World::ResourceType_Stone));
+                m_textManager->DrawString(buf, tx, ty, 0xFFFFFFFF, 0.08f); ty += lineH;
+                _snprintf(buf, sizeof(buf), "Fish: %d", m_economyManager->GetTotalStock(World::ResourceType_Fish));
+                m_textManager->DrawString(buf, tx, ty, 0xFFFFFFFF, 0.08f); ty += lineH;
+                _snprintf(buf, sizeof(buf), "Meat: %d", m_economyManager->GetTotalStock(World::ResourceType_Meat));
+                m_textManager->DrawString(buf, tx, ty, 0xFFFFFFFF, 0.08f); ty += lineH;
+                _snprintf(buf, sizeof(buf), "Coal: %d", m_economyManager->GetTotalStock(World::ResourceType_Coal));
+                m_textManager->DrawString(buf, tx, ty, 0xFFFFFFFF, 0.08f); ty += lineH;
             }
         }
     }
@@ -2651,16 +2694,13 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                 icmd.depth = 200;
                 renderQueue->Submit(icmd);
 
-                // Render resource count
+                // Render resource count (total stock across all storage)
                 if (m_economyManager) {
-                    World::Warehouse* wh = m_economyManager->GetWarehouse();
-                    if (wh) {
-                        char buf[32];
-                        _snprintf(buf, sizeof(buf), "%d", wh->resources[m_resourceHud[i].type]);
-                        float textX = barX + iconSize + 4.0f;
-                        float textY = barY + (iconSize - 14.0f) * 0.5f;
-                        m_textManager->DrawString(buf, textX, textY, 0xFFFFFFFF, 0.07f);
-                    }
+                    char buf[32];
+                    _snprintf(buf, sizeof(buf), "%d", m_economyManager->GetTotalStock(m_resourceHud[i].type));
+                    float textX = barX + iconSize + 4.0f;
+                    float textY = barY + (iconSize - 14.0f) * 0.5f;
+                    m_textManager->DrawString(buf, textX, textY, 0xFFFFFFFF, 0.07f);
                 }
 
                 barX += spacing;
@@ -3213,6 +3253,19 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
             return true;
         };
 
+        // Hardcoded override: ensure 2x2 buildings use correct footprint
+        {
+            bool is2x2 = (type == World::Stonemason || type == World::Sawmill || type == World::Farm || type == World::Mill);
+            if (is2x2 && (footW != 2 || footH != 2)) {
+                footW = 2;
+                footH = 2;
+                char warn[256];
+                _snprintf(warn, sizeof(warn), "[CanPlaceBuilding] WARNING: %s atlas footprint != 2x2, forcing 2x2\n",
+                    GetBuildingSpriteName(type));
+                OutputDebugStringA(warn);
+            }
+        }
+
         if (!footMask.empty()) {
             for (size_t i = 0; i < footMask.size(); ++i) {
                 int tx = buildX + footOffX + footMask[i].first;
@@ -3285,6 +3338,15 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                 OutputDebugStringA("[GameScene] PlaceFlag: building already exists at this flag\n");
                 return;
             }
+            // DEBUG: verify existing flag identity before conversion
+            {
+                char dbg[256];
+                _snprintf(dbg, sizeof(dbg),
+                    "[PlaceFlag] CONVERT existing flag ptr=%p id=%u handleIdx=%u pos=(%d,%d) type=%d\n",
+                    existingFlag, existingFlag->id, existingFlag->handle.index,
+                    existingFlag->pos.x, existingFlag->pos.y, (int)existingFlag->type);
+                OutputDebugStringA(dbg);
+            }
             // Convert free flag to building flag
             existingFlag->type = World::FLAG_BUILDING;
             existingFlag->pendingBuilding = m_selectedBuilding;
@@ -3306,6 +3368,15 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         flag->type = World::FLAG_BUILDING;
         flag->pendingBuilding = m_selectedBuilding;
         flag->hasBuilding = false;
+
+        // DEBUG: verify new flag identity
+        {
+            char dbg[256];
+            _snprintf(dbg, sizeof(dbg),
+                "[PlaceFlag] NEW flag ptr=%p id=%u handleIdx=%u pos=(%d,%d)\n",
+                flag, flag->id, flag->handle.index, flag->pos.x, flag->pos.y);
+            OutputDebugStringA(dbg);
+        }
 
         // Create the construction site object and tile
         CreateConstructionSite(flag, buildX, buildY);
@@ -3425,30 +3496,51 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         int nodesW = coords.GetNodesWidth();
         int nodesH = coords.GetNodesHeight();
 
-        // Mark all footprint tiles on the Buildings layer
-        auto markTile = [&](int tx, int ty) {
+        // Hardcoded override: ensure 2x2 buildings use correct footprint
+        // (atlas collWidth/collHeight may be wrong for some building types)
+        {
+            World::BuildingType bt = flag->pendingBuilding;
+            bool is2x2 = (bt == World::Stonemason || bt == World::Sawmill || bt == World::Farm || bt == World::Mill);
+            if (is2x2 && (footW != 2 || footH != 2)) {
+                footW = 2;
+                footH = 2;
+            }
+        }
+
+        // Mark all footprint tiles on the Buildings layer.
+        // Only the base tile (dx=0, dy=0) renders the construction tent sprite;
+        // the other tiles are marked occupied to block placement but stay invisible.
+        auto markTile = [&](int tx, int ty, bool isBaseTile) {
             if (tx < 0 || tx >= nodesW || ty < 0 || ty >= nodesH) return;
             World::Tile& bTile = buildingsLayer->GetTile(tx, ty);
             if (bTile.type == World::Tile_None) {
-                bTile.atlasName = "Buildings";
                 bTile.type = World::Decoration;
-                bTile.regionIndex = buildingSpriteIdx;
                 bTile.walkable = true;
-                // Show construction tent/site sprite on the building footprint
-                bTile.u0 = CONSTRUCTION_U0; bTile.v0 = CONSTRUCTION_V0;
-                bTile.u1 = CONSTRUCTION_U1; bTile.v1 = CONSTRUCTION_V1;
+                if (isBaseTile) {
+                    bTile.atlasName = "Buildings";
+                    bTile.regionIndex = buildingSpriteIdx;
+                    bTile.u0 = CONSTRUCTION_U0; bTile.v0 = CONSTRUCTION_V0;
+                    bTile.u1 = CONSTRUCTION_U1; bTile.v1 = CONSTRUCTION_V1;
+                } else {
+                    bTile.atlasName = "";
+                    bTile.regionIndex = -1;
+                    bTile.u0 = 0.0f; bTile.v0 = 0.0f;
+                    bTile.u1 = 1.0f; bTile.v1 = 1.0f;
+                }
             }
         };
 
         if (!footMask.empty()) {
             for (size_t i = 0; i < footMask.size(); ++i) {
                 markTile(siteX + footOffX + footMask[i].first,
-                         siteY + footOffY + footMask[i].second);
+                         siteY + footOffY + footMask[i].second,
+                         i == 0);
             }
         } else {
             for (int dy = 0; dy < footH; ++dy) {
                 for (int dx = 0; dx < footW; ++dx) {
-                    markTile(siteX + footOffX + dx, siteY + footOffY + dy);
+                    markTile(siteX + footOffX + dx, siteY + footOffY + dy,
+                             dx == 0 && dy == 0);
                 }
             }
         }
@@ -3620,6 +3712,9 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                     if (m_transportJobManager) {
                         m_transportJobManager->SetWarehouse(wh);
                     }
+                    if (m_workerManager) {
+                        m_workerManager->SetWarehouse(wh);
+                    }
                     if (m_constructionManager) {
                         m_constructionManager->SetWarehouseFlag(flag);
                     }
@@ -3711,22 +3806,43 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                         int footH = (int)r->collHeight;
                         if (footW < 1) footW = 1;
                         if (footH < 1) footH = 1;
+                        // Hardcoded override: ensure 2x2 buildings use correct footprint
+                        {
+                            bool is2x2 = (site->buildingType == World::Stonemason || site->buildingType == World::Sawmill || site->buildingType == World::Farm || site->buildingType == World::Mill);
+                            if (is2x2 && (footW != 2 || footH != 2)) {
+                                footW = 2;
+                                footH = 2;
+                            }
+                        }
                         CoordinateSystem& coords = CoordinateSystem::GetInstance();
                         int nodesW = coords.GetNodesWidth();
                         int nodesH = coords.GetNodesHeight();
-                        // Update all footprint tiles
+                        // Anchor tile: show the finished building sprite
+                        {
+                            int ax = site->x + footOffX;
+                            int ay = site->y + footOffY;
+                            if (ax >= 0 && ax < nodesW && ay >= 0 && ay < nodesH) {
+                                World::Tile& tile = buildingsLayer->GetTile(ax, ay);
+                                tile.atlasName = "Buildings";
+                                tile.type = World::Decoration;
+                                tile.regionIndex = (int)spriteIdx;
+                                tile.u0 = r->u0; tile.v0 = r->v0;
+                                tile.u1 = r->u1; tile.v1 = r->v1;
+                                tile.walkable = true;
+                            }
+                        }
+                        // Non-anchor footprint tiles: clear construction tents
                         for (int dy = 0; dy < footH; ++dy) {
                             for (int dx = 0; dx < footW; ++dx) {
+                                if (dx == 0 && dy == 0) continue;
                                 int tx = site->x + footOffX + dx;
                                 int ty = site->y + footOffY + dy;
                                 if (tx >= 0 && tx < nodesW && ty >= 0 && ty < nodesH) {
                                     World::Tile& tile = buildingsLayer->GetTile(tx, ty);
-                                    tile.atlasName = "Buildings";
-                                    tile.type = World::Decoration;
-                                    tile.regionIndex = (int)spriteIdx;
-                                    tile.u0 = r->u0; tile.v0 = r->v0;
-                                    tile.u1 = r->u1; tile.v1 = r->v1;
-                                    tile.walkable = true;
+                                    tile.atlasName = "";
+                                    tile.type = World::Tile_None;
+                                    tile.regionIndex = -1;
+                                    tile.walkable = false;
                                 }
                             }
                         }
@@ -3848,6 +3964,13 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                             int footOffY = r->collOffY;
                             int footW = (int)r->collWidth;
                             int footH = (int)r->collHeight;
+                            // Hardcoded override: ensure 2x2 buildings use correct footprint
+                            World::BuildingType dtype = (flag->building) ? flag->building->type : flag->pendingBuilding;
+                            bool is2x2 = (dtype == World::Stonemason || dtype == World::Sawmill || dtype == World::Farm || dtype == World::Mill);
+                            if (is2x2 && (footW != 2 || footH != 2)) {
+                                footW = 2;
+                                footH = 2;
+                            }
                             CoordinateSystem& coords = CoordinateSystem::GetInstance();
                             int nodesW = coords.GetNodesWidth();
                             int nodesH = coords.GetNodesHeight();
