@@ -371,10 +371,14 @@ namespace Logic {
                 World::Flag* f = m_flagManager->GetFlag(i);
                 if (f) {
                     total += f->GetAvailable(type);
-                    for (size_t ci = 0; ci < f->cargo.size(); ++ci) {
-                        if (f->cargo[ci]->type == type)
-                            total += f->cargo[ci]->amount;
-                    }
+                }
+            }
+        }
+        if (m_cargoManager) {
+            for (int ci = 0; ci < m_cargoManager->GetActiveCount(); ++ci) {
+                World::Cargo* c = m_cargoManager->GetCargoByActiveIdx(ci);
+                if (c->state == World::Cargo_OnFlag && c->type == type) {
+                    total += c->amount;
                 }
             }
         }
@@ -387,7 +391,7 @@ namespace Logic {
     int EconomyManager::GetCargoInTransit(World::ResourceType type) const {
         if (!m_cargoManager) return 0;
         int count = 0;
-        for (size_t i = 0; i < m_cargoManager->GetCount(); ++i) {
+        for (int i = 0; i < m_cargoManager->GetCount(); ++i) {
             World::Cargo* c = m_cargoManager->GetByIndex(i);
             if (c && c->type == type && c->state == World::Cargo_Carried) {
                 count += c->amount;
@@ -397,15 +401,12 @@ namespace Logic {
     }
 
     int EconomyManager::GetCargoOnFlags(World::ResourceType type) const {
-        if (!m_flagManager) return 0;
+        if (!m_cargoManager) return 0;
         int count = 0;
-        for (size_t i = 0; i < m_flagManager->GetCount(); ++i) {
-            World::Flag* f = m_flagManager->GetFlag(i);
-            if (!f) continue;
-            for (size_t ci = 0; ci < f->cargo.size(); ++ci) {
-                if (f->cargo[ci]->type == type && f->cargo[ci]->state == World::Cargo_OnFlag) {
-                    count += f->cargo[ci]->amount;
-                }
+        for (int ci = 0; ci < m_cargoManager->GetActiveCount(); ++ci) {
+            World::Cargo* c = m_cargoManager->GetCargoByActiveIdx(ci);
+            if (c->state == World::Cargo_OnFlag && c->type == type) {
+                count += c->amount;
             }
         }
         return count;

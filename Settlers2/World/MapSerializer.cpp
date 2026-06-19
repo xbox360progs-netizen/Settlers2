@@ -350,7 +350,7 @@ bool MapSerializer::SaveV4(const World::Map& map, const std::string& path, const
             Append(buffer, &rd.id, sizeof(rd.id));
             Append(buffer, &rd.flagAId, sizeof(rd.flagAId));
             Append(buffer, &rd.flagBId, sizeof(rd.flagBId));
-            int tc = (int)rd.tiles.size();
+            int tc = (int)rd.tileCount;
             Append(buffer, &tc, sizeof(tc));
             for (int ti = 0; ti < tc; ++ti) {
                 Append(buffer, &rd.tiles[ti].x, sizeof(rd.tiles[ti].x));
@@ -525,8 +525,8 @@ bool MapSerializer::LoadV4(World::Map& map, const std::string& path, std::vector
                 if (!reader.Read(&rd.flagBId, sizeof(rd.flagBId))) break;
                 int tc;
                 if (!reader.Read(&tc, sizeof(tc))) break;
-                rd.tiles.resize(tc);
-                for (int ti = 0; ti < tc; ++ti) {
+                rd.tileCount = (tc > 0 && tc <= MAX_ROAD_TILES) ? (uint32_t)tc : 0;
+                for (uint32_t ti = 0; ti < rd.tileCount; ++ti) {
                     if (!reader.Read(&rd.tiles[ti].x, sizeof(rd.tiles[ti].x))) break;
                     if (!reader.Read(&rd.tiles[ti].y, sizeof(rd.tiles[ti].y))) break;
                 }

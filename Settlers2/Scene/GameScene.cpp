@@ -1884,22 +1884,24 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                     World::Carrier* carrier = m_carrierManager->GetCarrier(ci);
                     if (!carrier) continue;
 
-                    const std::vector<Vector2i>* pathPtr = NULL;
+                    const Vector2i* pathTiles = NULL;
+                    int pathCount = 0;
                     float ep = 0.0f;
                     float walkDir = carrier->walkDir;
 
                     if (World::IsTransitState(carrier->state)) {
-                        if (carrier->transitTiles.size() < 2) continue;
-                        pathPtr = &carrier->transitTiles;
+                        if (carrier->transitCount < 2) continue;
+                        pathTiles = carrier->transitTiles;
+                        pathCount = (int)carrier->transitCount;
                         ep = carrier->transitProgress;
                     } else {
-                        if (!carrier->road || carrier->road->tiles.size() < 2) continue;
-                        pathPtr = &carrier->road->tiles;
+                        if (!carrier->road || carrier->road->tileCount < 2) continue;
+                        pathTiles = carrier->road->tiles;
+                        pathCount = (int)carrier->road->tileCount;
                         ep = carrier->ep;
                     }
 
-                    const std::vector<Vector2i>& path = *pathPtr;
-                    int pathLen = (int)path.size() - 1;
+                    int pathLen = pathCount - 1;
                     if (ep < 0.0f) ep = 0.0f;
                     if (ep > (float)pathLen) ep = (float)pathLen;
                     int idx = (int)ep;
@@ -1907,8 +1909,8 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                     if (idx >= pathLen) { idx = pathLen - 1; frac = 1.0f; }
                     if (idx < 0) { idx = 0; frac = 0.0f; }
 
-                    const Vector2i& tileA = path[idx];
-                    const Vector2i& tileB = path[idx + 1];
+                    const Vector2i& tileA = pathTiles[idx];
+                    const Vector2i& tileB = pathTiles[idx + 1];
 
                     int dx = (walkDir > 0.0f) ? (tileB.x - tileA.x) : (tileA.x - tileB.x);
                     int dy = (walkDir > 0.0f) ? (tileB.y - tileA.y) : (tileA.y - tileB.y);
@@ -2063,26 +2065,26 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                     int spriteIdx = 4;
 
                     if (site->builderState == World::Builder_Walking || site->builderState == World::Builder_Returning) {
-                        if (site->builderRoute.size() < 2) continue;
+                        if (site->builderRouteCount < 2) continue;
                         uint32_t fromIdx = site->builderRouteIndex;
                         uint32_t toIdx = fromIdx + 1;
-                        if (fromIdx >= site->builderRoute.size() - 1) {
-                            size_t lastIdx = site->builderRoute.size() - 1;
+                        if (fromIdx >= site->builderRouteCount - 1) {
+                            size_t lastIdx = site->builderRouteCount - 1;
                             World::Flag* f = site->builderRoute[lastIdx];
                             coords.NodeTileToWorld(f->pos.x, f->pos.y, wx, wy);
                         } else {
                             World::Flag* fromFlag = site->builderRoute[fromIdx];
                             World::Flag* toFlag = site->builderRoute[toIdx];
                             World::Road* road = m_roadManager ? m_roadManager->GetRoadBetween(fromFlag, toFlag) : NULL;
-                            if (road && road->tiles.size() >= 2) {
-                                int tileCount = (int)road->tiles.size();
-                                float pathLen = (float)(tileCount - 1);
+                            if (road && road->tileCount >= 2) {
+                                int tc = (int)road->tileCount;
+                                float pathLen = (float)(tc - 1);
                                 float pos = site->builderEp;
                                 if (pos < 0.0f) pos = 0.0f;
                                 if (pos > pathLen) pos = pathLen;
                                 int tileIdx = (int)pos;
                                 float frac = pos - (float)tileIdx;
-                                if (tileIdx >= tileCount - 1) { tileIdx = tileCount - 2; frac = 1.0f; }
+                                if (tileIdx >= tc - 1) { tileIdx = tc - 2; frac = 1.0f; }
                                 if (tileIdx < 0) { tileIdx = 0; frac = 0.0f; }
                                 const Vector2i& tileA = road->tiles[tileIdx];
                                 const Vector2i& tileB = road->tiles[tileIdx + 1];
@@ -2765,21 +2767,23 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                 World::Carrier* carrier = m_carrierManager->GetCarrier(ci);
                 if (!carrier) continue;
 
-                const std::vector<Vector2i>* pathPtr = NULL;
+                const Vector2i* pathTiles = NULL;
+                int pathCount = 0;
                 float ep = 0.0f;
 
                 if (World::IsTransitState(carrier->state)) {
-                    if (carrier->transitTiles.size() < 2) continue;
-                    pathPtr = &carrier->transitTiles;
+                    if (carrier->transitCount < 2) continue;
+                    pathTiles = carrier->transitTiles;
+                    pathCount = (int)carrier->transitCount;
                     ep = carrier->transitProgress;
                 } else {
-                    if (!carrier->road || carrier->road->tiles.size() < 2) continue;
-                    pathPtr = &carrier->road->tiles;
+                    if (!carrier->road || carrier->road->tileCount < 2) continue;
+                    pathTiles = carrier->road->tiles;
+                    pathCount = (int)carrier->road->tileCount;
                     ep = carrier->ep;
                 }
 
-                const std::vector<Vector2i>& path = *pathPtr;
-                int pathLen = (int)path.size() - 1;
+                int pathLen = pathCount - 1;
                 if (ep < 0.0f) ep = 0.0f;
                 if (ep > (float)pathLen) ep = (float)pathLen;
                 int idx = (int)ep;
@@ -2787,8 +2791,8 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                 if (idx >= pathLen) { idx = pathLen - 1; frac = 1.0f; }
                 if (idx < 0) { idx = 0; frac = 0.0f; }
 
-                const Vector2i& tileA = path[idx];
-                const Vector2i& tileB = path[idx + 1];
+                const Vector2i& tileA = pathTiles[idx];
+                const Vector2i& tileB = pathTiles[idx + 1];
 
                 float cx, cy, nx, ny;
                 coords.NodeTileToWorld(tileA.x, tileA.y, cx, cy);
@@ -3124,7 +3128,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         for (size_t i = 0; i < flag->roads.size(); ++i) {
             World::Road* road = flag->roads[i];
             if (!road) continue;
-            for (size_t t = 0; t < road->tiles.size(); ++t) {
+            for (uint32_t t = 0; t < road->tileCount; ++t) {
                 int tx = road->tiles[t].x;
                 int ty = road->tiles[t].y;
                 if (tx < 0 || ty < 0 || tx >= roadsLayer->GetWidth() || ty >= roadsLayer->GetHeight())
@@ -4482,7 +4486,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                 if (road) {
                     char dbg[256];
                     _snprintf(dbg, sizeof(dbg), "[GameScene] Road %u created: (%d,%d) <-> (%d,%d) tiles=%u\n",
-                        road->id, m_roadStartX, m_roadStartY, endX, endY, (unsigned)road->tiles.size());
+                        road->id, m_roadStartX, m_roadStartY, endX, endY, (unsigned)road->tileCount);
                     OutputDebugStringA(dbg);
                 }
 
@@ -4581,7 +4585,7 @@ void GameScene::CancelRoad()
 
             // Check if flag sits on this road (but NOT at either endpoint)
             int splitIdx = -1;
-            for (size_t t = 1; t + 1 < road->tiles.size(); ++t) {
+            for (uint32_t t = 1; t + 1 < road->tileCount; ++t) {
                 if (road->tiles[t].x == flag->pos.x && road->tiles[t].y == flag->pos.y) {
                     splitIdx = (int)t;
                     break;
@@ -4616,9 +4620,9 @@ void GameScene::CancelRoad()
             // and recreate as two segments; carriers sync onto the new roads.
             // Build two tile paths: A->X and X->B
             std::vector<Vector2i> pathAX, pathXB;
-            for (size_t t = 0; t <= (size_t)splitIdx; ++t)
+            for (uint32_t t = 0; t <= (uint32_t)splitIdx; ++t)
                 pathAX.push_back(road->tiles[t]);
-            for (size_t t = (size_t)splitIdx; t < road->tiles.size(); ++t)
+            for (uint32_t t = (uint32_t)splitIdx; t < road->tileCount; ++t)
                 pathXB.push_back(road->tiles[t]);
 
             // Remove old road and its carrier via lifecycle manager
@@ -4666,7 +4670,7 @@ void GameScene::CancelRoad()
         for (size_t i = 0; i < flag->roads.size(); ++i) {
             World::Road* road = flag->roads[i];
             if (!road) continue;
-            if (road->tiles.size() < 2) continue;
+            if (road->tileCount < 2) continue;
             if (m_carrierManager->GetCarrierForRoad(road)) continue;
             m_carrierManager->CreateCarrier(road);
             // Only proceed if carrier was actually created
@@ -4677,7 +4681,7 @@ void GameScene::CancelRoad()
             _snprintf(dbg, sizeof(dbg), "[Carrier] Created: road %u flag %u (%d,%d) <-> %u (%d,%d) tiles=%u\n",
                 road->id, flag->id, flag->pos.x, flag->pos.y,
                 other ? other->id : 0, other ? other->pos.x : -1, other ? other->pos.y : -1,
-                (unsigned)road->tiles.size());
+                (unsigned)road->tileCount);
             OutputDebugStringA(dbg);
             // Propagate to the other endpoint to cover chains of newly connected roads
             if (other) {

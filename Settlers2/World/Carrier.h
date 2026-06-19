@@ -8,6 +8,8 @@
 #include "Entity.h"
 #include "../Core/Vector2i.h"
 
+#define MAX_TRANSIT_TILES 4096
+
 namespace World {
     class DemandManager;
     class CargoManager;
@@ -35,7 +37,8 @@ namespace World {
         Cargo* m_cargo;        // cargo being carried (NULL when empty)
 
         CarrierState state;
-        std::vector<Vector2i> transitTiles;  // tile path for WalkingToPost/ReturningHome
+        Vector2i transitTiles[MAX_TRANSIT_TILES];  // tile path for WalkingToPost/ReturningHome
+        uint32_t transitCount;
         float transitProgress;               // current position along transitTiles
         bool readyToRemove;                  // ReturningHome completed, ready for cleanup
         Entity ecsEntity;                    // ECS entity for this carrier
@@ -56,7 +59,7 @@ namespace World {
 
         Carrier(Road* r)
             : road(r), ep(0.0f), walkDir(1.0f), m_cargo(NULL),
-              state(Working), transitProgress(0.0f), readyToRemove(false), ecsEntity(INVALID_ENTITY), m_authority(Legacy), pathVersion(0),
+              state(Working), transitCount(0), transitProgress(0.0f), readyToRemove(false), ecsEntity(INVALID_ENTITY), m_authority(Legacy), pathVersion(0),
               m_demandManager(NULL), m_cargoManager(NULL), m_roadManager(NULL),
               m_roadEndpointA(NULL), m_roadEndpointB(NULL), m_idleCheckTimer(0.0f),
               m_returningToCenter(false)
@@ -64,8 +67,8 @@ namespace World {
         }
 
         float GetPathLen() const {
-            if (!road || road->tiles.size() < 2) return 0.0f;
-            return (float)(road->tiles.size() - 1);
+            if (!road || road->tileCount < 2) return 0.0f;
+            return (float)(road->tileCount - 1);
         }
 
         float GetCenterEp() const {
@@ -79,7 +82,8 @@ namespace World {
 
         void SetupWalkingToPost(const std::vector<Vector2i>& tiles) {
             if (tiles.size() < 2) { state = Working; return; }
-            transitTiles = tiles;
+            transitCount = (tiles.size() < MAX_TRANSIT_TILES) ? (uint32_t)tiles.size() : MAX_TRANSIT_TILES;
+            for (uint32_t i = 0; i < transitCount; ++i) transitTiles[i] = tiles[i];
             transitProgress = 0.0f;
             state = WalkingToPost;
             ++pathVersion;
@@ -87,7 +91,8 @@ namespace World {
 
         void SetupReturningHome(const std::vector<Vector2i>& tiles) {
             if (tiles.size() < 2) { readyToRemove = true; return; }
-            transitTiles = tiles;
+            transitCount = (tiles.size() < MAX_TRANSIT_TILES) ? (uint32_t)tiles.size() : MAX_TRANSIT_TILES;
+            for (uint32_t i = 0; i < transitCount; ++i) transitTiles[i] = tiles[i];
             transitProgress = 0.0f;
             state = ReturningHome;
             ++pathVersion;
@@ -120,7 +125,7 @@ namespace World {
                 return;
             }
 
-            if (!road || road->tiles.size() < 2) return;
+            if (!road || road->tileCount < 2) return;
 
             if (road->state != Active) {
                 readyToRemove = true;
@@ -141,28 +146,32 @@ namespace World {
                     Flag* f = checkFlags[fi];
                     if (!f) continue;
                     bool hasWork = false;
-                    // Check existing Cargo objects
-                    for (size_t ci = 0; ci < f->cargo.size() && !hasWork; ++ci) {
-                        Cargo* c = f->cargo[ci];
-                        if (c->state != Cargo_OnFlag) continue;
-                        if (!c->ticket || c->ticket->state != Ticket_Active || !c->ticket->demand) continue;
-                        if (c->ticket->demand->targetFlag == f->handle) continue;
-                        if (m_roadManager) {
-                            Flag* dest = m_roadManager->GetFlagManager()->ResolveFlag(c->ticket->demand->targetFlag);
-                            if (dest) {
-                                Flag* nextHop = m_roadManager->GetNextHop(f, dest);
-                                if (nextHop) {
-                                    FlagHandle otherEnd = (road->a == f->handle) ? road->b : road->a;
-                                    hasWork = (otherEnd == nextHop->handle);
+                    // Check existing Cargo objects via pool scan
+                    if (m_cargoManager) {
+                        for (int ci = 0; ci < m_cargoManager->GetActiveCount() && !hasWork; ++ci) {
+                            Cargo* c = m_cargoManager->GetCargoByActiveIdx(ci);
+                            if (c->state != Cargo_OnFlag) continue;
+                            if (c->currentFlag.index != f->handle.index || c->currentFlag.generation != f->handle.generation) continue;
+                            if (!c->ticket || c->ticket->state != Ticket_Active || !c->ticket->demand) continue;
+                            if (c->ticket->demand->targetFlag == f->handle) continue;
+                            if (m_roadManager) {
+                                Flag* dest = m_roadManager->GetFlagManager()->ResolveFlag(c->ticket->demand->targetFlag);
+                                if (dest) {
+                                    Flag* nextHop = m_roadManager->GetNextHop(f, dest);
+                                    if (nextHop) {
+                                        FlagHandle otherEnd = (road->a == f->handle) ? road->b : road->a;
+                                        hasWork = (otherEnd == nextHop->handle);
+                                    }
                                 }
                             }
                         }
                     }
                     // Check ticketless cargo (producer placed without demand knowledge)
-                    if (!hasWork && m_demandManager) {
-                        for (size_t ci = 0; ci < f->cargo.size() && !hasWork; ++ci) {
-                            Cargo* c = f->cargo[ci];
+                    if (!hasWork && m_demandManager && m_cargoManager) {
+                        for (int ci = 0; ci < m_cargoManager->GetActiveCount() && !hasWork; ++ci) {
+                            Cargo* c = m_cargoManager->GetCargoByActiveIdx(ci);
                             if (c->state != Cargo_OnFlag) continue;
+                            if (c->currentFlag.index != f->handle.index || c->currentFlag.generation != f->handle.generation) continue;
                             if (c->ticket) continue;
                             hasWork = m_demandManager->HasDemand(c->type);
                         }
@@ -210,9 +219,10 @@ namespace World {
                 Flag* atFlag = (walkDir > 0.0f) ? m_roadEndpointB : m_roadEndpointA;
 
                 if (atFlag) {
-                    // Drop cargo if carrying
+                    // Drop cargo if carrying (check per-flag capacity via pool)
                     if (m_cargo) {
-                        if (atFlag->AcceptCargo(m_cargo)) {
+                        if (m_cargoManager && m_cargoManager->CountCargoOnFlag(atFlag->handle) < FLAG_MAX_CARGO) {
+                            atFlag->AcceptCargo(m_cargo);
                             m_cargo = NULL;
                         }
                     }
@@ -221,41 +231,43 @@ namespace World {
                     if (!m_cargo) {
                         Cargo* available = NULL;
                         // First pass: look for existing Cargo that routes through this road
-                        for (size_t ci = 0; ci < atFlag->cargo.size(); ++ci) {
-                            Cargo* c = atFlag->cargo[ci];
-                            if (c->state != Cargo_OnFlag) continue;
-                            // Assign ticket to ticketless cargo (producer doesn't know demand)
-                            if (!c->ticket && m_demandManager) {
-                                c->ticket = m_demandManager->Reserve(c->type);
-                            }
-                            if (!c->ticket || c->ticket->state != Ticket_Active || !c->ticket->demand) continue;
-                            if (c->ticket->demand->targetFlag == atFlag->handle) continue;
-                            // Check if this road is the next hop toward destination
-                            bool routeOk = true;
-                            uint32_t destIdx = c->ticket->demand->targetFlag.index;
-                            if (m_roadManager) {
-                                Flag* dest = m_roadManager->GetFlagManager()->ResolveFlag(c->ticket->demand->targetFlag);
-                                if (dest) {
-                                    Flag* nextHop = m_roadManager->GetNextHop(atFlag, dest);
-                                    if (nextHop) {
-                                        FlagHandle otherEnd = (road->a == atFlag->handle) ? road->b : road->a;
-                                        if (!(otherEnd == nextHop->handle))
-                                            routeOk = false;
+                        if (m_cargoManager) {
+                            for (int ci = 0; ci < m_cargoManager->GetActiveCount() && !available; ++ci) {
+                                Cargo* c = m_cargoManager->GetCargoByActiveIdx(ci);
+                                if (c->state != Cargo_OnFlag) continue;
+                                if (c->currentFlag.index != atFlag->handle.index || c->currentFlag.generation != atFlag->handle.generation) continue;
+                                // Assign ticket to ticketless cargo (producer doesn't know demand)
+                                if (!c->ticket && m_demandManager) {
+                                    c->ticket = m_demandManager->Reserve(c->type);
+                                }
+                                if (!c->ticket || c->ticket->state != Ticket_Active || !c->ticket->demand) continue;
+                                if (c->ticket->demand->targetFlag == atFlag->handle) continue;
+                                // Check if this road is the next hop toward destination
+                                bool routeOk = true;
+                                uint32_t destIdx = c->ticket->demand->targetFlag.index;
+                                if (m_roadManager) {
+                                    Flag* dest = m_roadManager->GetFlagManager()->ResolveFlag(c->ticket->demand->targetFlag);
+                                    if (dest) {
+                                        Flag* nextHop = m_roadManager->GetNextHop(atFlag, dest);
+                                        if (nextHop) {
+                                            FlagHandle otherEnd = (road->a == atFlag->handle) ? road->b : road->a;
+                                            if (!(otherEnd == nextHop->handle))
+                                                routeOk = false;
+                                        }
                                     }
                                 }
+                                {
+                                    char dbg[256];
+                                    _snprintf(dbg, sizeof(dbg), "[ROUTE %s] road=%u atFlag=%u cargo=%u targetIdx=%u\n",
+                                        routeOk ? "PICKUP" : "SKIP",
+                                        road->id, atFlag->id, c->id, destIdx);
+                                    OutputDebugStringA(dbg);
+                                }
+                                if (!routeOk)
+                                    continue;
+                                available = c;
+                                break;
                             }
-                            {
-                                char dbg[256];
-                                _snprintf(dbg, sizeof(dbg), "[ROUTE %s] road=%u atFlag=%u cargo=%u targetIdx=%u\n",
-                                    routeOk ? "PICKUP" : "SKIP",
-                                    road->id, atFlag->id, c->id, destIdx);
-                                OutputDebugStringA(dbg);
-                            }
-                            if (!routeOk)
-                                continue;
-                            atFlag->cargo.erase(atFlag->cargo.begin() + ci);
-                            available = c;
-                            break;
                         }
                         // Second pass: convert ResourceSlot only (with route check)
                         if (!available) {
@@ -275,7 +287,6 @@ namespace World {
                                             if (!atFlag->AddResource(rejectedType, 1)) {
                                                 available->state = Cargo_OnFlag;
                                                 available->currentFlag = atFlag->handle;
-                                                atFlag->cargo.push_back(available);
                                             } else {
                                                 m_cargoManager->Release(available->id);
                                             }
@@ -319,15 +330,15 @@ namespace World {
         }
 
         void UpdateWalkingToPost(float deltaTime) {
-            if (transitTiles.size() < 2) { state = Working; return; }
-            float pathLen = (float)(transitTiles.size() - 1);
+            if (transitCount < 2) { state = Working; return; }
+            float pathLen = (float)(transitCount - 1);
             transitProgress += deltaTime * 3.0f;
             if (transitProgress >= pathLen) {
                 transitProgress = pathLen;
                 state = Working;
                 // Arrive at correct endpoint — check which flag the transit path ends at
                 float roadPathLen = GetPathLen();
-                const Vector2i& lastTile = transitTiles.back();
+                const Vector2i& lastTile = transitTiles[transitCount - 1];
                 bool atEndB = (m_roadEndpointB && m_roadEndpointB->pos.x == lastTile.x && m_roadEndpointB->pos.y == lastTile.y);
                 ep = atEndB ? roadPathLen : 0.0f;
                 walkDir = atEndB ? -1.0f : 1.0f;
@@ -337,8 +348,8 @@ namespace World {
         }
 
         void UpdateReturningHome(float deltaTime) {
-            if (transitTiles.size() < 2) { readyToRemove = true; return; }
-            float pathLen = (float)(transitTiles.size() - 1);
+            if (transitCount < 2) { readyToRemove = true; return; }
+            float pathLen = (float)(transitCount - 1);
             transitProgress += deltaTime * 3.0f;
             if (transitProgress >= pathLen) {
                 transitProgress = pathLen;

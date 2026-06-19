@@ -120,15 +120,21 @@ void CarrierSystem::SyncLegTargets(Entity entity, const Carrier* carrier) {
     cc->readyToRemove = carrier->readyToRemove;
 
     if (carrier->state == Working) {
-        if (carrier->road && carrier->road->tiles.size() >= 2) {
-            pc->tiles = carrier->road->tiles;
+        if (carrier->road && carrier->road->tileCount >= 2) {
+            pc->tiles.clear();
+            pc->tiles.reserve(carrier->road->tileCount);
+            for (uint32_t _ti = 0; _ti < carrier->road->tileCount; ++_ti)
+                pc->tiles.push_back(carrier->road->tiles[_ti]);
         }
         pc->progress = carrier->ep;
         pc->walkDir = carrier->walkDir;
         pc->pathVersion = carrier->pathVersion;
     } else if (IsTransitState(carrier->state) &&
-               IsValidPath(carrier->transitTiles)) {
-        pc->tiles = carrier->transitTiles;
+               carrier->transitCount >= 2) {
+        pc->tiles.clear();
+        pc->tiles.reserve(carrier->transitCount);
+        for (uint32_t _ti = 0; _ti < carrier->transitCount; ++_ti)
+            pc->tiles.push_back(carrier->transitTiles[_ti]);
         if (pc->pathVersion != carrier->pathVersion) {
             pc->progress = carrier->transitProgress;
             pc->pathVersion = carrier->pathVersion;
@@ -157,14 +163,14 @@ void CarrierSystem::DebugECSInvariants(Entity entity, const Carrier* carrier) co
         }
 
         if (IsTransitState(carrier->state)) {
-            if (carrier->road && carrier->road->tiles.size() >= 2 &&
-                pc->tiles.size() == carrier->road->tiles.size() &&
+            if (carrier->road && carrier->road->tileCount >= 2 &&
+                pc->tiles.size() == carrier->road->tileCount &&
                 pc->tiles[0].x == carrier->road->tiles[0].x)
             {
                 OutputDebugStringA("[ECS] Warning: transit carrier has road tiles (should be transit path)\n");
             }
-        } else if (carrier->state == Working && carrier->road && carrier->road->tiles.size() >= 2) {
-            if (pc->tiles.size() != carrier->road->tiles.size()) {
+        } else if (carrier->state == Working && carrier->road && carrier->road->tileCount >= 2) {
+            if (pc->tiles.size() != carrier->road->tileCount) {
                 OutputDebugStringA("[ECS] Warning: Working carrier lacks road tiles\n");
             }
         }

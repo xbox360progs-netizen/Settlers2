@@ -43,7 +43,7 @@ namespace World {
         // to the A end, reverse the tile order so the path flows continuously.
         for (size_t i = 0; i + 1 < flagPath.size(); ++i) {
             Road* road = m_roadManager->GetRoadBetween(flagPath[i], flagPath[i + 1]);
-            if (!road || road->tiles.size() < 2) continue;
+            if (!road || road->tileCount < 2) continue;
 
             Flag* roadA = m_flagManager ? m_flagManager->ResolveFlag(road->a) : NULL;
             // flagPath[i] is the source, flagPath[i+1] is the destination
@@ -52,19 +52,19 @@ namespace World {
             if (i == 0) {
                 // First road: include the source flag tile
                 if (reverse) {
-                    for (int t = (int)road->tiles.size() - 1; t >= 0; --t)
+                    for (int t = (int)road->tileCount - 1; t >= 0; --t)
                         result.push_back(road->tiles[t]);
                 } else {
-                    for (size_t t = 0; t < road->tiles.size(); ++t)
+                    for (uint32_t t = 0; t < road->tileCount; ++t)
                         result.push_back(road->tiles[t]);
                 }
             } else {
                 // Subsequent roads: skip first tile (overlaps previous road's last tile)
                 if (reverse) {
-                    for (int t = (int)road->tiles.size() - 2; t >= 0; --t)
+                    for (int t = (int)road->tileCount - 2; t >= 0; --t)
                         result.push_back(road->tiles[t]);
                 } else {
-                    for (size_t t = 1; t < road->tiles.size(); ++t)
+                    for (uint32_t t = 1; t < road->tileCount; ++t)
                         result.push_back(road->tiles[t]);
                 }
             }
@@ -143,10 +143,14 @@ namespace World {
         // Create ECS entity for movement (starts at progress=0, matches new Carrier)
         if (m_carrierSystem && c->ecsEntity == INVALID_ENTITY) {
             std::vector<Vector2i> tiles;
-            if (IsTransitState(c->state)) {
-                tiles = c->transitTiles;
-            } else if (c->road && c->road->tiles.size() >= 2) {
-                tiles = c->road->tiles;
+            if (IsTransitState(c->state) && c->transitCount >= 2) {
+                tiles.reserve(c->transitCount);
+                for (uint32_t _ti = 0; _ti < c->transitCount; ++_ti)
+                    tiles.push_back(c->transitTiles[_ti]);
+            } else if (c->road && c->road->tileCount >= 2) {
+                tiles.reserve(c->road->tileCount);
+                for (uint32_t _ti = 0; _ti < c->road->tileCount; ++_ti)
+                    tiles.push_back(c->road->tiles[_ti]);
             }
             if (!tiles.empty()) {
                 c->ecsEntity = m_carrierSystem->CreateCarrier(CarrierInit(tiles, c->state, c->pathVersion));
@@ -214,7 +218,7 @@ namespace World {
 
                 // Walk back to warehouse
                 if (m_warehouseFlag && m_roadManager) {
-                    float pathLen = (float)(oldRoad->tiles.size() - 1);
+                    float pathLen = (float)(oldRoad->tileCount - 1);
                     Flag* nearestFlag = (c->ep <= pathLen * 0.5f) ? ra : rb;
                     std::vector<Vector2i> returnPath = BuildTransitPath(nearestFlag, m_warehouseFlag);
 
@@ -223,7 +227,7 @@ namespace World {
                         for (int t = (int)c->ep; t >= 0; --t)
                             fullPath.push_back(oldRoad->tiles[t]);
                     } else {
-                        for (size_t t = (size_t)c->ep; t < oldRoad->tiles.size(); ++t)
+                        for (uint32_t t = (uint32_t)c->ep; t < oldRoad->tileCount; ++t)
                             fullPath.push_back(oldRoad->tiles[t]);
                     }
                     if (!fullPath.empty() && !returnPath.empty())
@@ -234,8 +238,13 @@ namespace World {
                     c->SetupReturningHome(std::vector<Vector2i>());
                 }
                 // Update ECS path for return journey
-                if (c->ecsEntity != INVALID_ENTITY && m_carrierSystem)
-                    m_carrierSystem->UpdatePath(c->ecsEntity, c->transitTiles);
+                if (c->ecsEntity != INVALID_ENTITY && m_carrierSystem) {
+                    std::vector<Vector2i> transitVec;
+                    transitVec.reserve(c->transitCount);
+                    for (uint32_t _ti = 0; _ti < c->transitCount; ++_ti)
+                        transitVec.push_back(c->transitTiles[_ti]);
+                    m_carrierSystem->UpdatePath(c->ecsEntity, transitVec);
+                }
             }
         }
     }
@@ -271,7 +280,7 @@ namespace World {
 
                 // Walk back to warehouse
                 if (m_warehouseFlag && m_roadManager) {
-                    float pathLen = (float)(road->tiles.size() - 1);
+                    float pathLen = (float)(road->tileCount - 1);
                     if (pathLen < 1.0f) pathLen = 1.0f;
                     Flag* nearestFlag = (c->ep <= pathLen * 0.5f) ? ra : rb;
                     std::vector<Vector2i> returnPath = BuildTransitPath(nearestFlag, m_warehouseFlag);
@@ -281,7 +290,7 @@ namespace World {
                         for (int t = (int)c->ep; t >= 0; --t)
                             fullPath.push_back(road->tiles[t]);
                     } else {
-                        for (size_t t = (size_t)c->ep; t < road->tiles.size(); ++t)
+                        for (uint32_t t = (uint32_t)c->ep; t < road->tileCount; ++t)
                             fullPath.push_back(road->tiles[t]);
                     }
                     if (!fullPath.empty() && !returnPath.empty())
@@ -292,8 +301,13 @@ namespace World {
                     c->SetupReturningHome(std::vector<Vector2i>());
                 }
                 // Update ECS path for return journey
-                if (c->ecsEntity != INVALID_ENTITY && m_carrierSystem)
-                    m_carrierSystem->UpdatePath(c->ecsEntity, c->transitTiles);
+                if (c->ecsEntity != INVALID_ENTITY && m_carrierSystem) {
+                    std::vector<Vector2i> transitVec;
+                    transitVec.reserve(c->transitCount);
+                    for (uint32_t _ti = 0; _ti < c->transitCount; ++_ti)
+                        transitVec.push_back(c->transitTiles[_ti]);
+                    m_carrierSystem->UpdatePath(c->ecsEntity, transitVec);
+                }
                 return;
             }
         }
@@ -385,12 +399,7 @@ namespace World {
 
         // Phase 4: Deliver cargo that reached its destination flag
         if (m_flagManager && m_demandManager && m_cargoManager) {
-            for (size_t fi = 0; fi < m_flagManager->GetCount(); ++fi) {
-                Flag* flag = m_flagManager->GetFlag(fi);
-                if (flag && !flag->cargo.empty()) {
-                    flag->CheckDeliveries(m_demandManager, m_cargoManager);
-                }
-            }
+            m_cargoManager->CheckDeliveries(m_demandManager, m_flagManager);
         }
     }
 }

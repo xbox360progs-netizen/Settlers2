@@ -30,6 +30,7 @@ namespace World {
         , woodRequested(0), stoneRequested(0)
         , buildProgress(0.0f)
         , builderState(Builder_None)
+        , builderRouteCount(0)
         , builderRouteIndex(0)
         , builderEp(0.0f), builderWalkDir(1.0f)
     {

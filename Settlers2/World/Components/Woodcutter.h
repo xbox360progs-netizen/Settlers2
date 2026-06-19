@@ -17,7 +17,9 @@ class Woodcutter : public WorkerBuilding {
 
     bool IsOutputFull() const override {
         if (!connectedFlag) return true;
-        return connectedFlag->cargo.size() >= FLAG_MAX_CARGO;
+        CargoManager* cm = map ? map->GetCargoManager() : NULL;
+        if (!cm) return true;
+        return cm->CountCargoOnFlag(connectedFlag->handle) >= FLAG_MAX_CARGO;
     }
 
     bool FindTarget() override {
@@ -182,10 +184,17 @@ class Woodcutter : public WorkerBuilding {
 
     void OnArriveHome() override {
         if (m_carriedCargo && connectedFlag) {
-            if (connectedFlag->cargo.size() < FLAG_MAX_CARGO) {
+            CargoManager* cm = map ? map->GetCargoManager() : NULL;
+            if (cm) {
+                if (cm->CountCargoOnFlag(connectedFlag->handle) < FLAG_MAX_CARGO) {
+                    connectedFlag->AcceptCargo(m_carriedCargo);
+                    m_carriedCargo = NULL;
+                } else {
+                    return; // flag full — keep cargo and retry next OnArriveHome
+                }
+            } else {
                 connectedFlag->AcceptCargo(m_carriedCargo);
                 m_carriedCargo = NULL;
-                OutputDebugStringA("[WOODCUTTER] Delivered log to flag\n");
             }
         }
         GoIdle();

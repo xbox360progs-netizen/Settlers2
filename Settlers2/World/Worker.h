@@ -5,6 +5,8 @@
 #include "RoadManager.h"
 #include <math.h>
 
+#define MAX_ROUTE_FLAGS 64
+
 namespace World {
 
     enum WorkerState {
@@ -25,7 +27,8 @@ namespace World {
         float wspeed;
 
         // Route walking (used during MovingToJob)
-        std::vector<Flag*> route;
+        Flag* route[MAX_ROUTE_FLAGS];
+        uint32_t routeCount;
         uint32_t routeIndex;
         float ep;
         float walkDir;
@@ -36,6 +39,7 @@ namespace World {
             , wx(sx), wy(sy)
             , wdir(0)
             , wspeed(2.5f)
+            , routeCount(0)
             , routeIndex(0)
             , ep(0.0f)
             , walkDir(1.0f)
@@ -46,12 +50,12 @@ namespace World {
         // Initialize the leg starting at routeIndex (fromFlag) toward routeIndex+1 (toFlag).
         // Sets walkDir and ep correctly regardless of road tile orientation.
         void InitLeg(RoadManager* roadManager) {
-            if (routeIndex >= route.size() - 1) return;
+            if (routeIndex >= routeCount - 1) return;
             Flag* f = route[routeIndex];
             Flag* t = route[routeIndex + 1];
             Road* r = roadManager ? roadManager->GetRoadBetween(f, t) : NULL;
-            if (r && r->tiles.size() >= 2) {
-                float plen = (float)(r->tiles.size() - 1);
+            if (r && r->tileCount >= 2) {
+                float plen = (float)(r->tileCount - 1);
                 if (f->pos.x == r->tiles[0].x && f->pos.y == r->tiles[0].y) {
                     walkDir = 1.0f;
                     ep = 0.0f;
@@ -68,7 +72,7 @@ namespace World {
             if (!home || !home->connectedFlag) return false;
 
             // No road route — fall back to direct walk
-            if (route.size() < 2) {
+            if (routeCount < 2) {
                 float dx = (float)home->connectedFlag->pos.x - wx;
                 float dy = (float)home->connectedFlag->pos.y - wy;
                 float d = sqrtf(dx * dx + dy * dy);
@@ -84,7 +88,7 @@ namespace World {
                 return true;
             }
 
-            if (routeIndex >= route.size() - 1) {
+            if (routeIndex >= routeCount - 1) {
                 // At final flag
                 wx = (float)home->connectedFlag->pos.x;
                 wy = (float)home->connectedFlag->pos.y;
@@ -95,13 +99,13 @@ namespace World {
             Flag* fromFlag = route[routeIndex];
             Flag* toFlag = route[routeIndex + 1];
             Road* road = roadManager ? roadManager->GetRoadBetween(fromFlag, toFlag) : NULL;
-            if (!road || road->tiles.size() < 2) {
+            if (!road || road->tileCount < 2) {
                 routeIndex++;
                 InitLeg(roadManager);
                 return true;
             }
 
-            float pathLen = (float)(road->tiles.size() - 1);
+            float pathLen = (float)(road->tileCount - 1);
 
             // Set direction based on road tile order
             if (fromFlag->pos.x == road->tiles[0].x && fromFlag->pos.y == road->tiles[0].y) {
@@ -113,13 +117,13 @@ namespace World {
             ep += walkDir * wspeed * dt;
 
             // Compute position for this frame
-            int tileCount = (int)road->tiles.size();
+            int tc = (int)road->tileCount;
             float pos = ep;
             if (pos < 0.0f) pos = 0.0f;
             if (pos > pathLen) pos = pathLen;
             int tileIdx = (int)pos;
             float frac = pos - (float)tileIdx;
-            if (tileIdx >= tileCount - 1) { tileIdx = tileCount - 2; frac = 1.0f; }
+            if (tileIdx >= tc - 1) { tileIdx = tc - 2; frac = 1.0f; }
             if (tileIdx < 0) { tileIdx = 0; frac = 0.0f; }
             const Vector2i& tileA = road->tiles[tileIdx];
             const Vector2i& tileB = road->tiles[tileIdx + 1];
@@ -140,7 +144,7 @@ namespace World {
 
             if (arrivedAtFlag) {
                 routeIndex++;
-                if (routeIndex < route.size() - 1) {
+                if (routeIndex < routeCount - 1) {
                     InitLeg(roadManager);
                 }
             }

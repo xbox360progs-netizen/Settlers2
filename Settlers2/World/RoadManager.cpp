@@ -35,7 +35,8 @@ namespace World {
         road->id = s_nextId++;
         road->a = m_flagManager ? m_flagManager->GetFlagHandle(a) : FlagHandle();
         road->b = m_flagManager ? m_flagManager->GetFlagHandle(b) : FlagHandle();
-        road->tiles = tiles;
+        road->tileCount = (tiles.size() < MAX_ROAD_TILES) ? (uint32_t)tiles.size() : MAX_ROAD_TILES;
+        for (uint32_t _ti = 0; _ti < road->tileCount; ++_ti) road->tiles[_ti] = tiles[_ti];
         road->carrier = Handle<Carrier>();
         m_roads.push_back(road);
 
@@ -264,7 +265,8 @@ namespace World {
             rd.id = r->id;
             rd.flagAId = ra ? ra->id : 0;
             rd.flagBId = rb ? rb->id : 0;
-            rd.tiles = r->tiles;
+            rd.tileCount = r->tileCount;
+            for (uint32_t _ti = 0; _ti < rd.tileCount; ++_ti) rd.tiles[_ti] = r->tiles[_ti];
             data.push_back(rd);
         }
         return data;
@@ -288,8 +290,15 @@ namespace World {
             road->id = rd.id;
             road->a = flagManager ? flagManager->GetFlagHandle(a) : FlagHandle();
             road->b = flagManager ? flagManager->GetFlagHandle(b) : FlagHandle();
-            road->tiles = rd.tiles;
-            if (needsReverse) std::reverse(road->tiles.begin(), road->tiles.end());
+            road->tileCount = rd.tileCount;
+            for (uint32_t _ti = 0; _ti < road->tileCount; ++_ti) road->tiles[_ti] = rd.tiles[_ti];
+            if (needsReverse) {
+                for (uint32_t _ti = 0; _ti < road->tileCount / 2; ++_ti) {
+                    Vector2i _tmp = road->tiles[_ti];
+                    road->tiles[_ti] = road->tiles[road->tileCount - 1 - _ti];
+                    road->tiles[road->tileCount - 1 - _ti] = _tmp;
+                }
+            }
             road->carrier = Handle<Carrier>();
             m_roads.push_back(road);
             a->roads.push_back(road);

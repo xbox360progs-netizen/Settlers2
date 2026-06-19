@@ -20,16 +20,21 @@ namespace World {
         if (m_roadManager && m_warehouse && m_warehouse->connectedFlag && home->connectedFlag) {
             Flag* whFlag = m_warehouse->connectedFlag;
             Flag* bldFlag = home->connectedFlag;
-            w->route = m_roadManager->FindFlagPath(whFlag, bldFlag);
-            if (w->route.size() >= 2) {
+            {
+                std::vector<Flag*> path = m_roadManager->FindFlagPath(whFlag, bldFlag);
+                w->routeCount = (path.size() < MAX_ROUTE_FLAGS) ? (uint32_t)path.size() : MAX_ROUTE_FLAGS;
+                for (uint32_t _ri = 0; _ri < w->routeCount; ++_ri)
+                    w->route[_ri] = path[_ri];
+            }
+            if (w->routeCount >= 2) {
                 w->routeIndex = 0;
                 // Initialize first leg direction (like builder InitBuilderFirstLeg)
                 {
                     Flag* fromFlag = w->route[0];
                     Flag* toFlag = w->route[1];
                     Road* road = m_roadManager->GetRoadBetween(fromFlag, toFlag);
-                    if (road && road->tiles.size() >= 2) {
-                        float pathLen = (float)(road->tiles.size() - 1);
+                    if (road && road->tileCount >= 2) {
+                        float pathLen = (float)(road->tileCount - 1);
                         if (fromFlag->pos.x == road->tiles[0].x && fromFlag->pos.y == road->tiles[0].y) {
                             w->walkDir = 1.0f;
                             w->ep = 0.0f;
@@ -44,8 +49,8 @@ namespace World {
                 }
                 char buf[512];
                 size_t pos = _snprintf(buf, sizeof(buf),
-                    "[Worker] Spawn: route %u flags [", (unsigned)w->route.size());
-                for (size_t i = 0; i < w->route.size(); ++i) {
+                    "[Worker] Spawn: route %u flags [", (unsigned)w->routeCount);
+                for (uint32_t i = 0; i < w->routeCount; ++i) {
                     pos += _snprintf(buf + pos, sizeof(buf) - pos, "%s#%u(%d,%d)",
                         i > 0 ? " " : "",
                         w->route[i]->id,
@@ -77,7 +82,7 @@ namespace World {
             Worker* w = m_transit[i];
             bool stillMoving = w->Update(dt, m_roadManager);
             char buf[256];
-            const char* routeDesc = (w->route.size() >= 2) ? "road" : "direct";
+            const char* routeDesc = (w->routeCount >= 2) ? "road" : "direct";
             _snprintf(buf, sizeof(buf),
                 "[Worker] Update: home=%p type=%d pos=(%.1f,%.1f) target=(%d,%d) route=%s moving=%d\n",
                 (void*)w->home, w->home ? w->home->type : -1,

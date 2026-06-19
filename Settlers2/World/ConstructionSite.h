@@ -1,6 +1,7 @@
 #pragma once
-#include <vector>
 #include "Components/Building.h"
+
+#define MAX_BUILDER_FLAGS 64
 
 namespace World {
 
@@ -32,7 +33,8 @@ namespace World {
         float buildProgress;
 
         BuilderState builderState;
-        std::vector<Flag*> builderRoute;
+        Flag* builderRoute[MAX_BUILDER_FLAGS];
+        uint32_t builderRouteCount;
         uint32_t builderRouteIndex;
         float builderEp;
         float builderWalkDir;

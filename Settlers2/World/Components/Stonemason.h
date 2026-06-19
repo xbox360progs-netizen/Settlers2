@@ -4,22 +4,19 @@
 #include "WorkerBuilding.h"
 #include "../Map.h"
 #include "../../Logic/ResourceRegistry.h"
-#include <algorithm>
 
 namespace World {
 
 struct LocalResource {
     Vector2i pos;
     int distSq;
-
-    bool operator<(const LocalResource& other) const {
-        return distSq < other.distSq;
-    }
 };
 
 class Stonemason : public WorkerBuilding {
 private:
-    std::vector<LocalResource> m_localNodes;
+    static const int MAX_LOCAL_NODES = 64;
+    LocalResource m_localNodes[MAX_LOCAL_NODES];
+    int m_localNodesCount;
     bool m_isCacheInitialized;
     ResourceType m_targetResourceType;
 
@@ -30,16 +27,16 @@ private:
     bool FindTarget() override {
         if (IsOutputFull() || !map) return false;
 
-        if (!m_isCacheInitialized || m_localNodes.empty()) {
+        if (!m_isCacheInitialized || m_localNodesCount == 0) {
             InitLocalResources();
-            if (m_localNodes.empty()) {
+            if (m_localNodesCount == 0) {
                 m_isCacheInitialized = false;
                 return false;
             }
             m_isCacheInitialized = true;
         }
 
-        for (size_t i = 0; i < m_localNodes.size(); ++i) {
+        for (int i = 0; i < m_localNodesCount; ++i) {
             const Vector2i& nodePos = m_localNodes[i].pos;
             const ResourceNode& node = map->GetResourceNode(nodePos.x, nodePos.y);
 
@@ -77,6 +74,7 @@ private:
 public:
     Stonemason(int x, int y, uint8_t o, Map* m)
         : WorkerBuilding(BuildingType::Stonemason, x, y, o, m)
+        , m_localNodesCount(0)
         , m_isCacheInitialized(false)
         , m_targetResourceType(ResourceType_Stone)
     {
@@ -94,7 +92,7 @@ public:
         if (m_targetResourceType == newType) return;
 
         m_targetResourceType = newType;
-        m_localNodes.clear();
+        m_localNodesCount = 0;
         m_isCacheInitialized = false;
 
         // Interrupt any in-progress work — worker picks up new type on next idle cycle
@@ -111,30 +109,42 @@ public:
         Logic::ResourceRegistry* registry = map->GetResourceRegistry();
         if (!registry) return;
 
-        m_localNodes.clear();
+        m_localNodesCount = 0;
 
         const std::vector<Vector2i>& allResources = registry->GetWorldResources(m_targetResourceType);
         const int maxRadiusSq = 400;
 
-        for (size_t i = 0; i < allResources.size(); ++i) {
+        for (size_t i = 0; i < allResources.size() && m_localNodesCount < MAX_LOCAL_NODES; ++i) {
             int dx = allResources[i].x - pos.x;
             int dy = allResources[i].y - pos.y;
             int distSq = dx * dx + dy * dy;
 
             if (distSq <= maxRadiusSq) {
-                LocalResource lr;
+                LocalResource& lr = m_localNodes[m_localNodesCount++];
                 lr.pos = allResources[i];
                 lr.distSq = distSq;
-                m_localNodes.push_back(lr);
             }
         }
 
-        std::sort(m_localNodes.begin(), m_localNodes.end());
+        // Insertion sort — fast on small arrays, no indirection
+        for (int i = 1; i < m_localNodesCount; ++i) {
+            LocalResource key = m_localNodes[i];
+            int j = i - 1;
+            while (j >= 0 && m_localNodes[j].distSq > key.distSq) {
+                m_localNodes[j + 1] = m_localNodes[j];
+                --j;
+            }
+            m_localNodes[j + 1] = key;
+        }
     }
 
     bool GetWorkerRenderInfo(float& outX, float& outY, int& outSpriteIdx) const override {
         if (WorkerBuilding::GetWorkerRenderInfo(outX, outY, outSpriteIdx)) {
-            outSpriteIdx = (m_wDir == 0) ? 20 : 21;
+            // Base sprite pair 20/21 = stone miner, 22/23 = marble, 24/25 = granite
+            int resOffset = 0;
+            if (m_targetResourceType == ResourceType_Marble) resOffset = 2;
+            else if (m_targetResourceType == ResourceType_Granite) resOffset = 4;
+            outSpriteIdx = (m_wDir == 0) ? (20 + resOffset) : (21 + resOffset);
             return true;
         }
         return false;

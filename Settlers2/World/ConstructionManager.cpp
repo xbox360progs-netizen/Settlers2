@@ -61,13 +61,13 @@ namespace World {
 
     void ConstructionManager::InitBuilderFirstLeg(ConstructionSite* site)
     {
-        if (!site || site->builderRoute.size() < 2) return;
+        if (!site || site->builderRouteCount < 2) return;
 
         Flag* fromFlag = site->builderRoute[0];
         Flag* toFlag = site->builderRoute[1];
         Road* road = m_roadManager ? m_roadManager->GetRoadBetween(fromFlag, toFlag) : NULL;
-        if (road && road->tiles.size() >= 2) {
-            float pathLen = (float)(road->tiles.size() - 1);
+        if (road && road->tileCount >= 2) {
+            float pathLen = (float)(road->tileCount - 1);
             if (fromFlag->pos.x == road->tiles[0].x && fromFlag->pos.y == road->tiles[0].y) {
                 site->builderWalkDir = 1.0f;
                 site->builderEp = 0.0f;
@@ -135,16 +135,21 @@ namespace World {
             // ── Builder dispatch ──
             if (site->builderState == Builder_None && !site->IsComplete()) {
                 if (m_roadManager && m_warehouseFlag && site->flag) {
-                    site->builderRoute = m_roadManager->FindFlagPath(m_warehouseFlag, site->flag);
-                    if (site->builderRoute.size() >= 2) {
+                    {
+                        std::vector<Flag*> _path = m_roadManager->FindFlagPath(m_warehouseFlag, site->flag);
+                        site->builderRouteCount = (_path.size() < MAX_BUILDER_FLAGS) ? (uint32_t)_path.size() : MAX_BUILDER_FLAGS;
+                        for (uint32_t _ri = 0; _ri < site->builderRouteCount; ++_ri)
+                            site->builderRoute[_ri] = _path[_ri];
+                    }
+                    if (site->builderRouteCount >= 2) {
                         site->builderRouteIndex = 0;
                         InitBuilderFirstLeg(site);
                         site->builderState = Builder_Walking;
 
                         char _r_[512];
                         size_t _pos_ = _snprintf(_r_, sizeof(_r_),
-                            "[Construction] Builder route: %u flags [", (unsigned)site->builderRoute.size());
-                        for (size_t _i_ = 0; _i_ < site->builderRoute.size(); ++_i_) {
+                            "[Construction] Builder route: %u flags [", (unsigned)site->builderRouteCount);
+                        for (uint32_t _i_ = 0; _i_ < site->builderRouteCount; ++_i_) {
                             _pos_ += _snprintf(_r_ + _pos_, sizeof(_r_) - _pos_, "%s#%u(%d,%d)",
                                 _i_ > 0 ? " " : "",
                                 site->builderRoute[_i_]->id,
@@ -161,7 +166,7 @@ namespace World {
 
             // ── Builder walking / returning (ep-based movement along road tiles) ──
             if (site->builderState == Builder_Walking || site->builderState == Builder_Returning) {
-                if (site->builderRouteIndex >= site->builderRoute.size() - 1) {
+                if (site->builderRouteIndex >= site->builderRouteCount - 1) {
                     // Arrived at final flag
                     if (site->builderState == Builder_Walking) {
                         site->builderState = Builder_Building;
@@ -178,13 +183,13 @@ namespace World {
                     Flag* fromFlag = site->builderRoute[site->builderRouteIndex];
                     Flag* toFlag = site->builderRoute[site->builderRouteIndex + 1];
                     Road* road = m_roadManager->GetRoadBetween(fromFlag, toFlag);
-                    if (!road || road->tiles.size() < 2) {
+                    if (!road || road->tileCount < 2) {
                         site->builderRouteIndex++;
                         advanced = false;
                     }
 
                     if (advanced) {
-                        float pathLen = (float)(road->tiles.size() - 1);
+                        float pathLen = (float)(road->tileCount - 1);
 
                         if (fromFlag->pos.x == road->tiles[0].x && fromFlag->pos.y == road->tiles[0].y) {
                             site->builderWalkDir = 1.0f;
@@ -203,7 +208,7 @@ namespace World {
 
                         if (arrivedAtFlag) {
                             site->builderRouteIndex++;
-                            if (site->builderRouteIndex >= site->builderRoute.size() - 1) {
+                            if (site->builderRouteIndex >= site->builderRouteCount - 1) {
                                 if (site->builderState == Builder_Walking) {
                                     site->builderState = Builder_Building;
                                     site->buildProgress = 0.0f;
@@ -216,8 +221,8 @@ namespace World {
                                 Flag* nextFrom = site->builderRoute[site->builderRouteIndex];
                                 Flag* nextTo = site->builderRoute[site->builderRouteIndex + 1];
                                 Road* nextRoad = m_roadManager->GetRoadBetween(nextFrom, nextTo);
-                                if (nextRoad && nextRoad->tiles.size() >= 2) {
-                                    float nextPathLen = (float)(nextRoad->tiles.size() - 1);
+                                if (nextRoad && nextRoad->tileCount >= 2) {
+                                    float nextPathLen = (float)(nextRoad->tileCount - 1);
                                     if (nextFrom->pos.x == nextRoad->tiles[0].x && nextFrom->pos.y == nextRoad->tiles[0].y) {
                                         site->builderWalkDir = 1.0f;
                                         site->builderEp = 0.0f;
@@ -240,12 +245,17 @@ namespace World {
                     OutputDebugStringA("[Construction] Building complete! Builder returning to HQ\n");
 
                     if (m_roadManager && m_warehouseFlag && site->flag) {
-                        site->builderRoute = m_roadManager->FindFlagPath(site->flag, m_warehouseFlag);
+                        {
+                            std::vector<Flag*> _path = m_roadManager->FindFlagPath(site->flag, m_warehouseFlag);
+                            site->builderRouteCount = (_path.size() < MAX_BUILDER_FLAGS) ? (uint32_t)_path.size() : MAX_BUILDER_FLAGS;
+                            for (uint32_t _ri = 0; _ri < site->builderRouteCount; ++_ri)
+                                site->builderRoute[_ri] = _path[_ri];
+                        }
                         {
                             char _r_[512];
                             size_t _pos_ = _snprintf(_r_, sizeof(_r_),
-                                "[Construction] Return route: %u flags [", (unsigned)site->builderRoute.size());
-                            for (size_t _i_ = 0; _i_ < site->builderRoute.size(); ++_i_) {
+                                "[Construction] Return route: %u flags [", (unsigned)site->builderRouteCount);
+                            for (uint32_t _i_ = 0; _i_ < site->builderRouteCount; ++_i_) {
                                 _pos_ += _snprintf(_r_ + _pos_, sizeof(_r_) - _pos_, "%s#%u(%d,%d)",
                                     _i_ > 0 ? " " : "",
                                     site->builderRoute[_i_]->id,
@@ -255,7 +265,7 @@ namespace World {
                             _snprintf(_r_ + _pos_, sizeof(_r_) - _pos_, "]\n");
                             OutputDebugStringA(_r_);
                         }
-                        if (site->builderRoute.size() >= 2) {
+                        if (site->builderRouteCount >= 2) {
                             site->builderRouteIndex = 0;
                             InitBuilderFirstLeg(site);
                             site->builderState = Builder_Returning;
@@ -283,11 +293,11 @@ namespace World {
         for (size_t i = 0; i < m_sites.size(); ++i) {
             ConstructionSite* site = m_sites[i];
             if (site->builderState == Builder_None || site->builderState == Builder_Building) continue;
-            if (site->builderRoute.size() < 2) continue;
+            if (site->builderRouteCount < 2) continue;
 
             Flag* ra = m_flagManager ? m_flagManager->ResolveFlag(road->a) : NULL;
             Flag* rb = m_flagManager ? m_flagManager->ResolveFlag(road->b) : NULL;
-            for (uint32_t ri = 0; ri + 1 < site->builderRoute.size(); ++ri) {
+            for (uint32_t ri = 0; ri + 1 < site->builderRouteCount; ++ri) {
                 Flag* a = site->builderRoute[ri];
                 Flag* b = site->builderRoute[ri + 1];
                 if ((a == ra && b == rb) || (a == rb && b == ra)) {
@@ -300,7 +310,7 @@ namespace World {
                         b->id, b->pos.x, b->pos.y);
                     OutputDebugStringA(buf);
                     site->builderState = Builder_None;
-                    site->builderRoute.clear();
+                    site->builderRouteCount = 0;
                     break;
                 }
             }
@@ -414,7 +424,7 @@ namespace World {
 
             // Only recalculate if the current route no longer works
             bool needsRecalc = false;
-            for (uint32_t ri = 0; ri + 1 < site->builderRoute.size(); ++ri) {
+            for (uint32_t ri = 0; ri + 1 < site->builderRouteCount; ++ri) {
                 Flag* a = site->builderRoute[ri];
                 Flag* b = site->builderRoute[ri + 1];
                 if (!m_roadManager->GetRoadBetween(a, b)) {
@@ -437,15 +447,17 @@ namespace World {
             if (newRoute.size() < 2) {
                 // No route — reset builder to retry later
                 site->builderState = Builder_None;
-                site->builderRoute.clear();
+                site->builderRouteCount = 0;
                 continue;
             }
 
             // Preserve current position in new route
-            Flag* currentFlag = (site->builderRouteIndex < (uint32_t)site->builderRoute.size())
+            Flag* currentFlag = (site->builderRouteIndex < site->builderRouteCount)
                 ? site->builderRoute[site->builderRouteIndex] : NULL;
 
-            site->builderRoute = newRoute;
+            site->builderRouteCount = (newRoute.size() < MAX_BUILDER_FLAGS) ? (uint32_t)newRoute.size() : MAX_BUILDER_FLAGS;
+            for (uint32_t _ri = 0; _ri < site->builderRouteCount; ++_ri)
+                site->builderRoute[_ri] = newRoute[_ri];
 
             uint32_t newIndex = 0;
             if (currentFlag) {
@@ -457,7 +469,7 @@ namespace World {
                 }
             }
             site->builderRouteIndex = newIndex;
-            if (site->builderRouteIndex >= site->builderRoute.size() - 1) {
+            if (site->builderRouteIndex >= site->builderRouteCount - 1) {
                 if (site->builderState == Builder_Walking) {
                     site->builderState = Builder_Building;
                     site->buildProgress = 0.0f;
