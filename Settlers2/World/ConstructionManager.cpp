@@ -9,7 +9,8 @@ namespace World {
 
     ConstructionManager::ConstructionManager()
         : m_flagManager(NULL), m_roadManager(NULL), m_warehouseFlag(NULL),
-          m_demandManager(NULL), m_builderRoutesDirty(false)
+          m_demandManager(NULL), m_builderRoutesDirty(false),
+          m_pendingHead(0), m_pendingTail(0), m_pendingCount(0)
     {
     }
 
@@ -22,6 +23,7 @@ namespace World {
     {
         if (site) {
             m_sites.push_back(site);
+            PushPendingConstruction((int)m_sites.size() - 1);
         }
     }
 
@@ -59,6 +61,23 @@ namespace World {
         }
     }
 
+    int ConstructionManager::PopPendingConstruction()
+    {
+        if (m_pendingCount <= 0) return -1;
+        int idx = m_pendingConstruction[m_pendingHead];
+        m_pendingHead = (m_pendingHead + 1) % MAX_PENDING_CONSTRUCTION;
+        --m_pendingCount;
+        return idx;
+    }
+
+    void ConstructionManager::PushPendingConstruction(int siteIndex)
+    {
+        if (m_pendingCount >= MAX_PENDING_CONSTRUCTION) return;
+        m_pendingConstruction[m_pendingTail] = siteIndex;
+        m_pendingTail = (m_pendingTail + 1) % MAX_PENDING_CONSTRUCTION;
+        ++m_pendingCount;
+    }
+
     void ConstructionManager::InitBuilderFirstLeg(ConstructionSite* site)
     {
         if (!site || site->builderRouteCount < 2) return;
@@ -84,6 +103,27 @@ namespace World {
     void ConstructionManager::Update(float dt)
     {
         RecalculateBuilderRoutes();
+
+        // Process pending construction queue: dispatch up to 2 builders per frame
+        for (int p = 0; p < 2; ++p) {
+            int pendingIdx = PopPendingConstruction();
+            if (pendingIdx < 0 || pendingIdx >= (int)m_sites.size()) break;
+            ConstructionSite* psite = m_sites[pendingIdx];
+            if (psite && psite->builderState == Builder_None && !psite->IsComplete() && !psite->CanBuild()) {
+                if (m_roadManager && m_warehouseFlag && psite->flag) {
+                    std::vector<Flag*> _path = m_roadManager->FindFlagPath(m_warehouseFlag, psite->flag);
+                    psite->builderRouteCount = (_path.size() < MAX_BUILDER_FLAGS) ? (uint32_t)_path.size() : MAX_BUILDER_FLAGS;
+                    for (uint32_t _ri = 0; _ri < psite->builderRouteCount; ++_ri)
+                        psite->builderRoute[_ri] = _path[_ri];
+                    if (psite->builderRouteCount >= 2) {
+                        psite->builderRouteIndex = 0;
+                        InitBuilderFirstLeg(psite);
+                        psite->builderState = Builder_Walking;
+                    }
+                }
+            }
+            // If site already has a builder or is complete, item is silently consumed
+        }
 
         const float BUILDER_SPEED = 2.5f;
 

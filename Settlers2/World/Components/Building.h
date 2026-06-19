@@ -82,9 +82,14 @@ public:
     // Array-based storage (replaces std::map inventory)
     int m_storage[ResourceType_Count];
 
-     // Extraction caching
+     // Extraction caching — cached resource node for O(1) FindTarget
      bool m_hasTarget;
      Vector2i m_target;
+
+     // Resource cache: up to 8 pre-computed candidate resource positions within range
+     Vector2i m_cachedResourceNodes[8];
+     int m_cachedNodeCount;
+     float m_cacheTimer;            // cooldown before refreshing cache
  
      // Production FSM
      BuildingFSM m_fsmState;
@@ -95,21 +100,25 @@ public:
      int m_population;
      int m_maxPopulation;
  
+     // Refresh cached resource nodes. Override in production buildings for O(1) FindTarget.
+     virtual void RefreshResourceCache() { m_cachedNodeCount = 0; }
+
      // Construction tracking (used infrequently, keep as map for now)
      std::map<ResourceType, int> constructionMaterials;
      std::map<ResourceType, int> deliveredMaterials;
  
-     Building(BuildingType t, int x, int y, uint8_t o, Map* m)
-         : type(t), state(State_Ghost), owner(o), connectedFlag(NULL), map(m), m_numRules(0), 
-           m_hasTarget(false), m_fsmState(BuildingFSM_Idle), m_productionTimer(0.0f),
-           m_productionInterval(3.0f), m_population(0), m_maxPopulation(0)
-     {
-         pos.x = x;
-         pos.y = y;
-         m_target.x = 0;
-         m_target.y = 0;
-         for (int i = 0; i < ResourceType_Count; ++i)
-             m_storage[i] = 0;
+         Building(BuildingType t, int x, int y, uint8_t o, Map* m)
+             : type(t), state(State_Ghost), owner(o), connectedFlag(NULL), map(m), m_numRules(0), 
+               m_hasTarget(false), m_fsmState(BuildingFSM_Idle), m_productionTimer(0.0f),
+               m_productionInterval(3.0f), m_population(0), m_maxPopulation(0),
+               m_cachedNodeCount(0), m_cacheTimer(0.0f)
+         {
+             pos.x = x;
+             pos.y = y;
+             m_target.x = 0;
+             m_target.y = 0;
+             for (int i = 0; i < ResourceType_Count; ++i)
+                 m_storage[i] = 0;
 
          // Set max population based on building type
          switch (type) {

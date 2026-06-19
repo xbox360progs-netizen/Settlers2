@@ -1,55 +1,29 @@
 #pragma once
+#include "WorkerDefs.h"
 #include "ResourceNode.h"
 #include "Flag.h"
 #include "Road.h"
 #include "RoadManager.h"
 #include <math.h>
 
-#define MAX_ROUTE_FLAGS 64
-
 namespace World {
 
-    enum WorkerState {
-        WorkerState_Idle,
-        WorkerState_Working,
-        WorkerState_ReturningHome,
-        WorkerState_MovingToJob
-    };
+    struct Worker {
+        // Hot data — fits in 32 bytes (two per 64-byte Xenon cache line)
+        float posX, posY;        // 0-7
+        float ep;                // 8-11
+        float walkDir;           // 12-15
+        uint32_t homeBuildingIdx;// 16-19
+        uint16_t routeIndex;     // 20-21
+        uint16_t routeCount;     // 22-23
+        uint16_t stateTimer;     // 24-25
+        uint8_t state;           // 26
+        uint8_t profession;      // 27
+        uint8_t carriedResource; // 28
+        uint8_t padding[3];      // 29-31 (explicit pad to 32 bytes)
 
-    class Worker {
-    public:
-        WorkerState state;
-        Building* home;
-
-        // Position (node coords)
-        float wx, wy;
-        int wdir;       // 0=SE, 1=SW
-        float wspeed;
-
-        // Route walking (used during MovingToJob)
-        Flag* route[MAX_ROUTE_FLAGS];
-        uint32_t routeCount;
-        uint32_t routeIndex;
-        float ep;
-        float walkDir;
-
-        Worker(Building* h, float sx, float sy)
-            : state(WorkerState_MovingToJob)
-            , home(h)
-            , wx(sx), wy(sy)
-            , wdir(0)
-            , wspeed(2.5f)
-            , routeCount(0)
-            , routeIndex(0)
-            , ep(0.0f)
-            , walkDir(1.0f)
-        {}
-
-        virtual ~Worker() {}
-
-        // Initialize the leg starting at routeIndex (fromFlag) toward routeIndex+1 (toFlag).
-        // Sets walkDir and ep correctly regardless of road tile orientation.
-        void InitLeg(RoadManager* roadManager) {
+        // InitLeg now takes the route array as parameter (cold data)
+        inline void InitLeg(RoadManager* roadManager, Flag** route) {
             if (routeIndex >= routeCount - 1) return;
             Flag* f = route[routeIndex];
             Flag* t = route[routeIndex + 1];
@@ -66,32 +40,29 @@ namespace World {
             }
         }
 
-        // Returns true while still moving, false when arrived
-        bool Update(float dt, RoadManager* roadManager) {
+        // Update takes route array as parameter (cold data from WorkerManager)
+        inline bool Update(float dt, RoadManager* roadManager, Flag* destFlag, Flag** route) {
             if (state != WorkerState_MovingToJob) return false;
-            if (!home || !home->connectedFlag) return false;
+            if (!destFlag) return false;
 
-            // No road route — fall back to direct walk
             if (routeCount < 2) {
-                float dx = (float)home->connectedFlag->pos.x - wx;
-                float dy = (float)home->connectedFlag->pos.y - wy;
+                float dx = (float)destFlag->pos.x - posX;
+                float dy = (float)destFlag->pos.y - posY;
                 float d = sqrtf(dx * dx + dy * dy);
                 if (d < 0.5f) {
-                    wx = (float)home->connectedFlag->pos.x;
-                    wy = (float)home->connectedFlag->pos.y;
+                    posX = (float)destFlag->pos.x;
+                    posY = (float)destFlag->pos.y;
                     state = WorkerState_Idle;
                     return false;
                 }
-                wdir = (dx >= 0.0f) ? 0 : 1;
-                wx += (dx / d) * wspeed * dt;
-                wy += (dy / d) * wspeed * dt;
+                posX += (dx / d) * 2.5f * dt;
+                posY += (dy / d) * 2.5f * dt;
                 return true;
             }
 
             if (routeIndex >= routeCount - 1) {
-                // At final flag
-                wx = (float)home->connectedFlag->pos.x;
-                wy = (float)home->connectedFlag->pos.y;
+                posX = (float)destFlag->pos.x;
+                posY = (float)destFlag->pos.y;
                 state = WorkerState_Idle;
                 return false;
             }
@@ -101,22 +72,20 @@ namespace World {
             Road* road = roadManager ? roadManager->GetRoadBetween(fromFlag, toFlag) : NULL;
             if (!road || road->tileCount < 2) {
                 routeIndex++;
-                InitLeg(roadManager);
+                InitLeg(roadManager, route);
                 return true;
             }
 
             float pathLen = (float)(road->tileCount - 1);
 
-            // Set direction based on road tile order
             if (fromFlag->pos.x == road->tiles[0].x && fromFlag->pos.y == road->tiles[0].y) {
                 walkDir = 1.0f;
             } else {
                 walkDir = -1.0f;
             }
 
-            ep += walkDir * wspeed * dt;
+            ep += walkDir * 2.5f * dt;
 
-            // Compute position for this frame
             int tc = (int)road->tileCount;
             float pos = ep;
             if (pos < 0.0f) pos = 0.0f;
@@ -127,14 +96,9 @@ namespace World {
             if (tileIdx < 0) { tileIdx = 0; frac = 0.0f; }
             const Vector2i& tileA = road->tiles[tileIdx];
             const Vector2i& tileB = road->tiles[tileIdx + 1];
-            wx = (float)tileA.x + ((float)tileB.x - (float)tileA.x) * frac;
-            wy = (float)tileA.y + ((float)tileB.y - (float)tileA.y) * frac;
+            posX = (float)tileA.x + ((float)tileB.x - (float)tileA.x) * frac;
+            posY = (float)tileA.y + ((float)tileB.y - (float)tileA.y) * frac;
 
-            // Direction based on road tile delta
-            int bdx = tileB.x - tileA.x;
-            wdir = (bdx >= 0) ? 0 : 1;
-
-            // Check arrival at next flag
             bool arrivedAtFlag = false;
             if (walkDir > 0.0f && ep >= pathLen) {
                 arrivedAtFlag = true;
@@ -145,11 +109,12 @@ namespace World {
             if (arrivedAtFlag) {
                 routeIndex++;
                 if (routeIndex < routeCount - 1) {
-                    InitLeg(roadManager);
+                    InitLeg(roadManager, route);
                 }
             }
 
             return true;
         }
     };
-}
+
+} // namespace World

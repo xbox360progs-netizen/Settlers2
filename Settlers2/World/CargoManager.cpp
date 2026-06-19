@@ -1,12 +1,13 @@
 #include "stdafx.h"
 #include "CargoManager.h"
+#include "StorehouseManager.h"
 #include "FlagManager.h"
 #include "DemandManager.h"
 
 namespace World {
 
     CargoManager::CargoManager()
-        : m_activeCount(0), m_poolCount(0), m_nextId(1)
+        : m_activeCount(0), m_poolCount(0), m_nextId(1), m_storehouseManager(NULL)
     {
         for (int i = 0; i < MAX_WORLD_CARGO; ++i) {
             m_pool[i].id = 0;
@@ -27,6 +28,10 @@ namespace World {
                 ++m_poolCount;
                 m_activeIndices[m_activeCount++] = i;
 
+                if (m_storehouseManager) {
+                    m_storehouseManager->ModifyTransitResource(type, (int)amount);
+                }
+
                 char buf[256];
                 _snprintf(buf, sizeof(buf),
                     "[Cargo] Allocate id=%u %s amount=%u onFlag(handleIdx=%u)\n",
@@ -43,6 +48,10 @@ namespace World {
     {
         for (int i = 0; i < MAX_WORLD_CARGO; ++i) {
             if (m_pool[i].id == id) {
+                if (m_storehouseManager) {
+                    m_storehouseManager->ModifyTransitResource(m_pool[i].type, -(int)m_pool[i].amount);
+                }
+
                 char buf[256];
                 _snprintf(buf, sizeof(buf),
                     "[Cargo] Release id=%u %s\n",
@@ -71,6 +80,9 @@ namespace World {
         for (int i = 0; i < m_activeCount; ) {
             int poolIdx = m_activeIndices[i];
             if (m_pool[poolIdx].id != 0 && m_pool[poolIdx].currentFlag.index == flag.index) {
+                if (m_storehouseManager) {
+                    m_storehouseManager->ModifyTransitResource(m_pool[poolIdx].type, -(int)m_pool[poolIdx].amount);
+                }
                 m_pool[poolIdx].id = 0;
                 m_pool[poolIdx].type = ResourceType_None;
                 m_pool[poolIdx].state = Cargo_Delivered;

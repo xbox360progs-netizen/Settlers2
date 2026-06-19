@@ -122,6 +122,13 @@ public:
         if (m_wX >= (float)mapW) m_wX = (float)mapW - 0.1f;
         if (m_wY >= (float)mapH) m_wY = (float)mapH - 0.1f;
 
+        // Refresh resource cache periodically for O(1) FindTarget
+        m_cacheTimer += dt;
+        if (m_cacheTimer >= 2.0f) {
+            m_cacheTimer = 0.0f;
+            RefreshResourceCache();
+        }
+
         switch (m_wState) {
             case WState_Idle: {
                 m_wTimer += dt;

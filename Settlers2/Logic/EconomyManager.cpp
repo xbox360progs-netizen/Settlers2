@@ -8,7 +8,7 @@
 namespace Logic {
 
     EconomyManager::EconomyManager()
-        : m_warehouse(NULL), m_flagManager(NULL), m_roadManager(NULL), m_cargoManager(NULL), m_validateCounter(0), m_phase6Initialized(false)
+        : m_warehouse(NULL), m_flagManager(NULL), m_roadManager(NULL), m_cargoManager(NULL), m_storehouseManager(NULL), m_validateCounter(0), m_phase6Initialized(false)
     {
         for (int i = 0; i < MAX_REQUESTS; ++i)
             m_requests[i].active = false;
@@ -85,8 +85,8 @@ namespace Logic {
         World::Building* b = m_registry.FindBestSupplier(type, outAmount, exclude, requesterPos, NULL);
         if (b) return b;
 
-        if (m_warehouse && m_warehouse->resources[type] > 0) {
-            outAmount = m_warehouse->resources[type];
+        if (m_storehouseManager && m_storehouseManager->GetStoredCount(type) > 0) {
+            outAmount = (int)m_storehouseManager->GetStoredCount(type);
             return static_cast<World::Building*>(m_warehouse);
         }
 
@@ -110,7 +110,7 @@ namespace Logic {
                 m_constructionRequests[r].active = false;
                 continue;
             }
-            if (m_warehouse->resources[m_constructionRequests[r].type] <= 0) {
+            if (!m_storehouseManager || m_storehouseManager->GetStoredCount(m_constructionRequests[r].type) <= 0) {
                 continue;
             }
 
@@ -138,7 +138,7 @@ namespace Logic {
                 continue;
             }
 
-            m_warehouse->RemoveResource(m_constructionRequests[r].type, 1);
+            m_storehouseManager->RemoveResourceFromStorehouse(m_warehouse->m_storehouseIndex, m_constructionRequests[r].type, 1);
             m_constructionRequests[r].amount--;
             {
                 char buf[256];
@@ -167,7 +167,7 @@ namespace Logic {
                 continue;
 
             if (producer == static_cast<World::Building*>(m_warehouse)) {
-                m_warehouse->RemoveResource(m_requests[r].type, 1);
+                m_storehouseManager->RemoveResourceFromStorehouse(m_warehouse->m_storehouseIndex, m_requests[r].type, 1);
             } else {
                 producer->m_storage[m_requests[r].type]--;
                 if (producer->m_storage[m_requests[r].type] < 0)
@@ -362,8 +362,8 @@ namespace Logic {
             total += m_buildings[i]->m_storage[type];
         }
 
-        if (m_warehouse) {
-            total += m_warehouse->resources[type];
+        if (m_storehouseManager) {
+            total += (int)m_storehouseManager->GetStoredCount(type);
         }
 
         if (m_flagManager) {
@@ -374,30 +374,17 @@ namespace Logic {
                 }
             }
         }
-        if (m_cargoManager) {
-            for (int ci = 0; ci < m_cargoManager->GetActiveCount(); ++ci) {
-                World::Cargo* c = m_cargoManager->GetCargoByActiveIdx(ci);
-                if (c->state == World::Cargo_OnFlag && c->type == type) {
-                    total += c->amount;
-                }
-            }
-        }
 
-        total += GetCargoInTransit(type);
+        if (m_storehouseManager) {
+            total += (int)m_storehouseManager->GetInTransitCount(type);
+        }
 
         return total;
     }
 
     int EconomyManager::GetCargoInTransit(World::ResourceType type) const {
-        if (!m_cargoManager) return 0;
-        int count = 0;
-        for (int i = 0; i < m_cargoManager->GetCount(); ++i) {
-            World::Cargo* c = m_cargoManager->GetByIndex(i);
-            if (c && c->type == type && c->state == World::Cargo_Carried) {
-                count += c->amount;
-            }
-        }
-        return count;
+        if (!m_storehouseManager) return 0;
+        return (int)m_storehouseManager->GetInTransitCount(type);
     }
 
     int EconomyManager::GetCargoOnFlags(World::ResourceType type) const {
@@ -431,7 +418,7 @@ namespace Logic {
                 total += b->m_storage[type];
             }
 
-            total += m_warehouse->resources[type];
+            total += (int)m_storehouseManager->GetStoredCount(type);
 
             for (size_t i = 0; i < m_buildings.size(); ++i) {
                 World::Building* b = m_buildings[i];
@@ -460,11 +447,8 @@ namespace Logic {
     }
 
     bool EconomyManager::HasWorkers(World::Building* building) const {
-        if (!building || !m_warehouse) return false;
-        for (size_t i = 0; i < m_warehouse->specialists.size(); ++i) {
-            if (m_warehouse->specialists[i]->home == building) return true;
-        }
-        return false;
+        if (!building) return false;
+        return building->m_population > 0;
     }
 
     void EconomyManager::AddBuilding(World::Building* building) {
@@ -493,7 +477,7 @@ namespace Logic {
     }
 
     void EconomyManager::CollectWarehouse() {
-        if (m_warehouse && m_warehouse->connectedFlag) {
+        if (m_warehouse && m_warehouse->connectedFlag && m_storehouseManager && m_warehouse->m_storehouseIndex >= 0) {
             World::Flag* whFlag = m_warehouse->connectedFlag;
             for (int si = 0; si < 8; ++si) {
                 World::ResourceSlot& slot = whFlag->slots[si];
@@ -503,7 +487,7 @@ namespace Logic {
                 if (slot.destFlagId != 0 && slot.destFlagId != World::INVALID_FLAG_ID && slot.destFlagId != whFlag->id) continue;
                 if (slot.amount > 0) {
                     whFlag->RemoveResource(slot.type, 1);
-                    m_warehouse->AddResource(slot.type, 1);
+                    m_storehouseManager->AddResourceToStorehouse(m_warehouse->m_storehouseIndex, slot.type, 1);
                 }
             }
         }

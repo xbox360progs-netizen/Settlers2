@@ -65,6 +65,7 @@ namespace Scene {
         , m_selectedBuilding(World::Building_None)
         , m_placementIconIdx(-1)
         , m_placementConstrIdx(-1)
+        , m_storehouseManager(NULL)
         , m_flagManager(NULL)
         , m_roadManager(NULL)
         , m_constructionManager(NULL)
@@ -449,6 +450,17 @@ namespace Scene {
             m_map->SetDemandManager(m_demandManager);
         }
 
+        // Create StorehouseManager for O(1) resource tracking
+        OutputDebugStringA("[GameScene::Load] Creating StorehouseManager\n");
+        m_storehouseManager = new World::StorehouseManager();
+        if (m_economyManager) {
+            m_economyManager->SetStorehouseManager(m_storehouseManager);
+        }
+        if (m_cargoManager) {
+            m_cargoManager->SetStorehouseManager(m_storehouseManager);
+        }
+        OutputDebugStringA("[GameScene::Load] StorehouseManager ready\n");
+
         // Create construction manager
         OutputDebugStringA("[GameScene::Load] Creating ConstructionManager\n");
         m_constructionManager = new World::ConstructionManager();
@@ -475,7 +487,7 @@ namespace Scene {
 
         // Create lifecycle manager
         m_objectLifecycleManager = new World::ObjectLifecycleManager(
-            m_flagManager, m_roadManager, m_carrierManager,
+            m_flagManager, m_roadManager, m_carrierManager, m_cargoManager,
             m_transportJobManager, m_constructionManager, m_economyManager);
         OutputDebugStringA("[GameScene::Load] ObjectLifecycleManager ready\n");
 
@@ -643,6 +655,12 @@ namespace Scene {
         // Restore any buildings placed in the editor from the Buildings layer
         RestoreBuildingsFromLayer();
 
+        // Wire StorehouseManager into existing warehouse (if restored from save)
+        if (m_economyManager && m_economyManager->GetWarehouse() && m_storehouseManager) {
+            World::Warehouse* wh = m_economyManager->GetWarehouse();
+            wh->SetStorehouseManager(m_storehouseManager);
+        }
+
         // === Validate warehouse has connectedFlag (in case restored from save) ===
         if (m_economyManager && m_economyManager->GetWarehouse()) {
             World::Warehouse* wh = m_economyManager->GetWarehouse();
@@ -673,9 +691,7 @@ namespace Scene {
             if (m_transportJobManager) {
                 m_transportJobManager->SetWarehouse(wh);
             }
-            if (m_workerManager) {
-                m_workerManager->SetWarehouse(wh);
-            }
+            // WorkerManager no longer needs warehouse reference
         }
 
         // ─── Create starting warehouse + carriers (only if none restored) ──
@@ -724,6 +740,9 @@ namespace Scene {
             warehouse->connectedFlag = hqFlag;
             hqFlag->building = warehouse;
             warehouse->map = m_map;
+            if (m_storehouseManager) {
+                warehouse->SetStorehouseManager(m_storehouseManager);
+            }
 
             // Connect HQ flag to any existing road network
             LinkFlagToRoadNetwork(hqFlag);
@@ -738,9 +757,6 @@ namespace Scene {
 
             m_economyManager->SetWarehouse(warehouse);
             m_economyManager->AddBuilding(warehouse);
-            if (m_workerManager) {
-                m_workerManager->SetWarehouse(warehouse);
-            }
             if (m_transportJobManager) {
                 m_transportJobManager->SetWarehouse(warehouse);
             }
@@ -764,13 +780,13 @@ namespace Scene {
             {
                 char buf[256];
                 _snprintf(buf, sizeof(buf),
-                    "[Startup] Warehouse Wood=%d Stone=%d Planks=%d Fish=%d Meat=%d Coal=%d\n",
-                    warehouse->resources[World::ResourceType_Wood],
-                    warehouse->resources[World::ResourceType_Stone],
-                    warehouse->resources[World::ResourceType_Planks],
-                    warehouse->resources[World::ResourceType_Fish],
-                    warehouse->resources[World::ResourceType_Meat],
-                    warehouse->resources[World::ResourceType_Coal]);
+                    "[Startup] Warehouse Wood=%u Stone=%u Planks=%u Fish=%u Meat=%u Coal=%u\n",
+                    m_storehouseManager ? m_storehouseManager->GetStoredCount(World::ResourceType_Wood) : 0,
+                    m_storehouseManager ? m_storehouseManager->GetStoredCount(World::ResourceType_Stone) : 0,
+                    m_storehouseManager ? m_storehouseManager->GetStoredCount(World::ResourceType_Planks) : 0,
+                    m_storehouseManager ? m_storehouseManager->GetStoredCount(World::ResourceType_Fish) : 0,
+                    m_storehouseManager ? m_storehouseManager->GetStoredCount(World::ResourceType_Meat) : 0,
+                    m_storehouseManager ? m_storehouseManager->GetStoredCount(World::ResourceType_Coal) : 0);
                 OutputDebugStringA(buf);
             }
 
@@ -847,6 +863,10 @@ void GameScene::Unload()
     if (m_cargoManager) {
         delete m_cargoManager;
         m_cargoManager = NULL;
+    }
+    if (m_storehouseManager) {
+        delete m_storehouseManager;
+        m_storehouseManager = NULL;
     }
     if (m_demandManager) {
         delete m_demandManager;
@@ -2027,12 +2047,12 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
 
             // Render arriving workers (walking from warehouse to their building)
             if (m_workerManager && unitsAtlas) {
-                for (size_t wi = 0; wi < m_workerManager->GetCount(); ++wi) {
-                    World::Worker* w = m_workerManager->GetWorker(wi);
-                    if (!w) continue;
-                    float wx = w->wx;
-                    float wy = w->wy;
-                    int spriteIdx = (w->wdir == 0) ? 4 : 5;
+                for (int wi = 0; wi < m_workerManager->GetActiveCount(); ++wi) {
+                    const World::Worker* w = m_workerManager->GetWorkerByActiveIdx(wi);
+                    if (w->state != World::WorkerState_MovingToJob) continue;
+                    float wx = w->posX;
+                    float wy = w->posY;
+                    int spriteIdx = 4;  // generic walk sprite
                     coords.NodeTileToWorld(wx, wy, wx, wy);
                     const SpriteRegion* wr = unitsAtlas->GetRegion(spriteIdx);
                     if (!wr) continue;
@@ -3704,6 +3724,10 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                     flag->type = World::FLAG_WAREHOUSE;
                     building = wh;
 
+                    if (m_storehouseManager) {
+                        wh->SetStorehouseManager(m_storehouseManager);
+                    }
+
                     // Seed with starting resources
                     wh->AddResource(World::ResourceType_Wood, 500);
                     wh->AddResource(World::ResourceType_Stone, 500);
@@ -3715,9 +3739,6 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                     m_economyManager->SetWarehouse(wh);
                     if (m_transportJobManager) {
                         m_transportJobManager->SetWarehouse(wh);
-                    }
-                    if (m_workerManager) {
-                        m_workerManager->SetWarehouse(wh);
                     }
                     if (m_constructionManager) {
                         m_constructionManager->SetWarehouseFlag(flag);

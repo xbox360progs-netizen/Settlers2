@@ -1,49 +1,31 @@
 #pragma once
-#include "ResourceNode.h"
-#include <vector>
 #include <stdint.h>
-#include "Flag.h"
-#include "Handle.h"
+#include "ResourceNode.h"
 
 namespace World {
-    class Carrier;
+    class Flag;
 
-    struct Cargo {
-        ResourceType type;
-        uint8_t amount;
-        uint32_t destFlagId; // 0 = no destination (free resource)
-
-        Cargo() : type(ResourceType_None), amount(0), destFlagId(0) {}
-        Cargo(ResourceType t, uint8_t a, uint32_t d = 0) : type(t), amount(a), destFlagId(d) {}
+    enum JobState {
+        JobState_Pending,
+        JobState_Active,
+        JobState_Done
     };
 
     struct TransportJob {
         uint32_t id;
+        ResourceType resourceType;
+        Flag* sourceFlag;
+        Flag* targetFlag;
+        JobState state;
 
-        ResourceType resource;
-        uint32_t amount;
-        uint32_t cargoId;
+        TransportJob() : id(0), resourceType(ResourceType_None), sourceFlag(NULL), targetFlag(NULL), state(JobState_Pending) {}
 
-        FlagHandle sourceFlag;
-        FlagHandle destinationFlag;
-
-        std::vector<FlagHandle> route;
-        uint32_t currentLeg;
-
-        Handle<Carrier> assignedCarrier;
-
-        enum State {
-            Waiting,
-            Assigned,
-            InTransit,
-            Delivered,
-            Cancelled
-        };
-
-        State state;
-
-        TransportJob()
-            : id(0), resource(ResourceType_None), amount(0), cargoId(0),
-              currentLeg(0), state(Waiting) {}
+        void Clear() {
+            id = 0;
+            resourceType = ResourceType_None;
+            sourceFlag = NULL;
+            targetFlag = NULL;
+            state = JobState_Pending;
+        }
     };
 }

@@ -1,28 +1,37 @@
 #pragma once
 #include <vector>
-#include <map>
 #include "ResourceNode.h"
 #include "Components/Building.h"
 #include "Flag.h"
+#include "StorehouseManager.h"
 
 namespace World {
     class Worker; // Forward declaration
 
     class Warehouse : public Building {
     public:
-        std::map<ResourceType, int> resources;
         std::vector<Worker*> specialists;
+        int m_storehouseIndex;
+        StorehouseManager* m_storehouseManager;
 
-        Warehouse(int x, int y, uint8_t o) : Building(Storehouse, x, y, o, NULL) {
-            for (int i = 0; i < ResourceType_Count; ++i) {
-                resources[(ResourceType)i] = 0;
+        Warehouse(int x, int y, uint8_t o)
+            : Building(Storehouse, x, y, o, NULL)
+            , m_storehouseIndex(-1)
+            , m_storehouseManager(NULL)
+        {
+        }
+
+        void SetStorehouseManager(StorehouseManager* sm) {
+            m_storehouseManager = sm;
+            if (sm) {
+                m_storehouseIndex = sm->RegisterStorehouse();
             }
         }
 
         virtual bool IsWarehouse() const { return true; }
 
         void Update(float dt) override {
-            if (connectedFlag) {
+            if (connectedFlag && m_storehouseManager && m_storehouseIndex >= 0) {
                 for (int si = 0; si < 8; ++si) {
                     ResourceSlot& slot = connectedFlag->slots[si];
                     if (slot.type == ResourceType_None || slot.amount <= 0) continue;
@@ -39,13 +48,14 @@ namespace World {
         }
 
         void AddResource(ResourceType type, int amount) {
-            resources[type] += amount;
+            if (m_storehouseManager && m_storehouseIndex >= 0) {
+                m_storehouseManager->AddResourceToStorehouse(m_storehouseIndex, type, (uint32_t)amount);
+            }
         }
 
         bool RemoveResource(ResourceType type, int amount) {
-            if (resources[type] >= amount) {
-                resources[type] -= amount;
-                return true;
+            if (m_storehouseManager && m_storehouseIndex >= 0) {
+                return m_storehouseManager->RemoveResourceFromStorehouse(m_storehouseIndex, type, (uint32_t)amount);
             }
             return false;
         }

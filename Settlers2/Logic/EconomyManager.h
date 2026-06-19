@@ -5,6 +5,7 @@
 #include "../World/FlagManager.h"
 #include "../World/RoadManager.h"
 #include "../World/CargoManager.h"
+#include "../World/StorehouseManager.h"
 #include "EconomySettings.h"
 #include "ResourceRegistry.h"
 
@@ -49,6 +50,8 @@ namespace Logic {
         void SetFlagManager(World::FlagManager* fm) { m_flagManager = fm; }
         void SetRoadManager(World::RoadManager* rm) { m_roadManager = rm; }
         void SetCargoManager(World::CargoManager* cm) { m_cargoManager = cm; }
+        void SetStorehouseManager(World::StorehouseManager* sm) { m_storehouseManager = sm; }
+        World::StorehouseManager* GetStorehouseManager() const { return m_storehouseManager; }
         bool HasBuilding(World::BuildingType type) const;
         int GetBuildingCount() const { return (int)m_buildings.size(); }
         World::Building* GetBuilding(int index) const { return m_buildings[index]; }
@@ -80,6 +83,7 @@ namespace Logic {
         World::FlagManager* m_flagManager;
         World::RoadManager* m_roadManager;
         World::CargoManager* m_cargoManager;
+        World::StorehouseManager* m_storehouseManager;
         EconomySettings m_settings;
         ResourceRequest m_requests[MAX_REQUESTS];
         ConstructionResourceRequest m_constructionRequests[MAX_CONSTRUCTION_REQUESTS];

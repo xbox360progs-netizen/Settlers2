@@ -7,6 +7,7 @@ namespace Logic {
 namespace World {
     class Carrier;
     class CarrierManager;
+    class CargoManager;
     class ConstructionManager;
     class Flag;
     class FlagManager;
@@ -17,8 +18,8 @@ namespace World {
     class ObjectLifecycleManager {
     public:
         ObjectLifecycleManager(FlagManager* fm, RoadManager* rm, CarrierManager* cm,
-                               TransportJobManager* jm, ConstructionManager* con,
-                               Logic::EconomyManager* em);
+                               CargoManager* cargoMgr, TransportJobManager* jm,
+                               ConstructionManager* con, Logic::EconomyManager* em);
 
         // Safe delete — returns false if the object cannot be safely destroyed
         bool SafeDeleteFlag(Flag* flag);
@@ -36,6 +37,7 @@ namespace World {
         FlagManager* m_flagManager;
         RoadManager* m_roadManager;
         CarrierManager* m_carrierManager;
+        CargoManager* m_cargoManager;
         TransportJobManager* m_jobManager;
         ConstructionManager* m_constructionManager;
         Logic::EconomyManager* m_economyManager;

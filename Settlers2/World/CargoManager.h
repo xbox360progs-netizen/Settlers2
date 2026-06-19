@@ -8,6 +8,7 @@ namespace World {
     class Flag;
     class FlagManager;
     class DemandManager;
+    class StorehouseManager;
 
     class CargoManager {
     public:
@@ -17,6 +18,8 @@ namespace World {
         void Release(uint32_t id);
         void ReleaseAllForFlag(Handle<Flag> flag);
         Cargo* GetById(uint32_t id) const;
+
+        void SetStorehouseManager(StorehouseManager* sm) { m_storehouseManager = sm; }
 
         // Active indices for O(1) iteration over live cargo
         int GetActiveCount() const { return m_activeCount; }
@@ -39,5 +42,6 @@ namespace World {
         int m_activeCount;
         int m_poolCount;
         uint32_t m_nextId;
+        StorehouseManager* m_storehouseManager;
     };
 }

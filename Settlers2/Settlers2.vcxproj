@@ -354,6 +354,8 @@
     <ClInclude Include="World\MapNode.h" />
     <ClInclude Include="World\Pathfinding.h" />
     <ClInclude Include="World\Soldier.h" />
+    <ClInclude Include="World\Storehouse.h" />
+    <ClInclude Include="World\StorehouseManager.h" />
     <ClInclude Include="World\Unit.h" />
     <ClInclude Include="World\Warehouse.h" />
     <ClInclude Include="World\WildlifeSystem.h" />
@@ -386,6 +388,7 @@
     <ClInclude Include="World\TileLayer.h" />
     <ClInclude Include="World\TileType.h" />
     <ClInclude Include="Editor\MapEditor.h" />
+    <ClInclude Include="World\WorkerDefs.h" />
     <ClInclude Include="World\Worker.h" />
     <ClInclude Include="World\WorkerManager.h" />
   </ItemGroup>
@@ -472,6 +475,7 @@
     <ClCompile Include="World\FlagManager.cpp" />
     <ClCompile Include="World\HabitatRegistry.cpp" />
     <ClCompile Include="World\RoadManager.cpp" />
+    <ClCompile Include="World\StorehouseManager.cpp" />
     <ClCompile Include="World\TransportJobManager.cpp" />
     <ClCompile Include="World\ObjectDeletionRules.cpp" />
     <ClCompile Include="World\ObjectLifecycleManager.cpp" />

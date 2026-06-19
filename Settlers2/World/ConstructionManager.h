@@ -2,6 +2,8 @@
 #include <vector>
 #include "ConstructionSite.h"
 
+#define MAX_PENDING_CONSTRUCTION 64
+
 namespace Logic { class EconomyManager; }
 
 namespace World {
@@ -18,6 +20,10 @@ namespace World {
         void RemoveSite(ConstructionSite* site);
         void RemoveSiteAt(int x, int y);
         void Update(float dt);
+
+        // O(1) pending construction queue — free builders pop from here
+        int PopPendingConstruction();
+        void PushPendingConstruction(int siteIndex);
 
         void GenerateRequests(Logic::EconomyManager* economy);
 
@@ -57,6 +63,12 @@ namespace World {
         Flag* m_warehouseFlag;
         DemandManager* m_demandManager;
         bool m_builderRoutesDirty;
+
+        // O(1) queue of sites needing a builder
+        int m_pendingConstruction[MAX_PENDING_CONSTRUCTION];
+        int m_pendingHead;
+        int m_pendingTail;
+        int m_pendingCount;
     };
 
 }

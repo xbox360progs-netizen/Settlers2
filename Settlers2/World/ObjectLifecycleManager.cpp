@@ -16,9 +16,11 @@ namespace World {
 
     ObjectLifecycleManager::ObjectLifecycleManager(
         FlagManager* fm, RoadManager* rm, CarrierManager* cm,
-        TransportJobManager* jm, ConstructionManager* con, Logic::EconomyManager* em)
+        CargoManager* cargoMgr, TransportJobManager* jm,
+        ConstructionManager* con, Logic::EconomyManager* em)
         : m_flagManager(fm), m_roadManager(rm), m_carrierManager(cm),
-          m_jobManager(jm), m_constructionManager(con), m_economyManager(em)
+          m_cargoManager(cargoMgr), m_jobManager(jm),
+          m_constructionManager(con), m_economyManager(em)
     {}
 
     bool ObjectLifecycleManager::SafeDeleteFlag(Flag* flag) {
@@ -39,6 +41,10 @@ namespace World {
 
     void ObjectLifecycleManager::ForceDeleteFlag(Flag* flag) {
         if (!flag) return;
+        // Release all cargo on this flag before destroying it
+        if (m_cargoManager) {
+            m_cargoManager->ReleaseAllForFlag(flag->handle);
+        }
         // Remove all roads connected to this flag entirely (not just PendingDelete)
         std::vector<Road*> roadsCopy = flag->roads;
         for (size_t i = 0; i < roadsCopy.size(); ++i) {

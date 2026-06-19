@@ -21,6 +21,7 @@
 #include "../World/TransportJobManager.h"
 #include "../World/CargoManager.h"
 #include "../World/DemandManager.h"
+#include "../World/StorehouseManager.h"
 #include "../World/ConstructionSite.h"
 #include "../World/ConstructionManager.h"
 #include "../World/ObjectLifecycleManager.h"
@@ -135,6 +136,8 @@ private:
     World::TransportJobManager* m_transportJobManager;
     World::CargoManager* m_cargoManager;
     World::DemandManager* m_demandManager;
+
+    World::StorehouseManager* m_storehouseManager;
 
     // Construction sites
     World::ConstructionManager* m_constructionManager;

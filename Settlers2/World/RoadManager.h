@@ -10,6 +10,8 @@ namespace World {
     class CarrierManager;
     class TransportJobManager;
 
+    static const size_t MAX_FLAGS = 256;
+
     struct RouteKey {
         uint32_t src;
         uint32_t dst;
@@ -33,12 +35,12 @@ namespace World {
         FlagManager* GetFlagManager() const { return m_flagManager; }
 
         Road* CreateRoad(Flag* a, Flag* b, std::vector<Vector2i> tiles);
-    void RemoveRoad(Road* road);
-    void RemoveRoadsForFlag(Flag* flag);
-    void MarkForDeletion(Road* road);
-    bool CanDestroy(Road* road, CarrierManager* cm, TransportJobManager* jm) const;
-    bool HasRoadsConnectedToFlag(Flag* flag) const;
-    Road* GetRoadBetween(Flag* a, Flag* b) const;
+        void RemoveRoad(Road* road);
+        void RemoveRoadsForFlag(Flag* flag);
+        void MarkForDeletion(Road* road);
+        bool CanDestroy(Road* road, CarrierManager* cm, TransportJobManager* jm) const;
+        bool HasRoadsConnectedToFlag(Flag* flag) const;
+        Road* GetRoadBetween(Flag* a, Flag* b) const;
         void Clear();
 
         size_t GetCount() const { return m_roads.size(); }
@@ -57,8 +59,12 @@ namespace World {
         static uint32_t s_nextId;
 
     private:
+        void LinkFlagsWithRoad(Flag* a, Flag* b, Road* road);
+        void UnlinkFlagsWithRoad(Flag* a, Flag* b);
+
         std::vector<Road*> m_roads;
         FlagManager* m_flagManager;
         std::tr1::unordered_map<RouteKey, Flag*, RouteKeyHash> m_routeCache;
+        Road* m_roadGraph[MAX_FLAGS * MAX_FLAGS];
     };
 }

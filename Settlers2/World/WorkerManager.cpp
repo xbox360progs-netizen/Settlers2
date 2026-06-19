@@ -1,119 +1,134 @@
 #include "stdafx.h"
 #include "WorkerManager.h"
 #include "RoadManager.h"
+#include "Flag.h"
+#include "Components/Building.h"
+#include <string.h>
 
 namespace World {
 
     WorkerManager::WorkerManager()
-        : m_warehouse(NULL), m_roadManager(NULL)
-    {}
+        : m_activeCount(0), m_freeCount(0), m_updateIndex(0), m_roadManager(NULL)
+    {
+        for (int i = 0; i < MAX_TRANSIT_WORKERS; ++i) {
+            m_freeSlots[i] = i;
+        }
+        m_freeCount = MAX_TRANSIT_WORKERS;
+    }
 
     WorkerManager::~WorkerManager() {
         Clear();
     }
 
-    void WorkerManager::SpawnWorker(Building* home, float startX, float startY) {
-        if (!home) return;
-        Worker* w = new Worker(home, startX, startY);
+    int WorkerManager::SpawnWorker(Building* home, float startX, float startY) {
+        if (m_freeCount <= 0) {
+            OutputDebugStringA("[WorkerManager] Pool exhausted!\n");
+            return -1;
+        }
+        int idx = m_freeSlots[--m_freeCount];
+        Worker& w = m_pool[idx];
+        w.state = WorkerState_MovingToJob;
+        w.homeBuildingIdx = (uint32_t)(size_t)home;
+        w.posX = startX;
+        w.posY = startY;
+        w.ep = 0.0f;
+        w.walkDir = 1.0f;
+        w.routeCount = 0;
+        w.routeIndex = 0;
+        w.profession = Profession_Transit;
+        w.carriedResource = ResourceType_None;
+        w.stateTimer = 0;
+        w.padding[0] = 0;
 
-        // Compute road route from warehouse flag to building flag
-        if (m_roadManager && m_warehouse && m_warehouse->connectedFlag && home->connectedFlag) {
-            Flag* whFlag = m_warehouse->connectedFlag;
-            Flag* bldFlag = home->connectedFlag;
-            {
-                std::vector<Flag*> path = m_roadManager->FindFlagPath(whFlag, bldFlag);
-                w->routeCount = (path.size() < MAX_ROUTE_FLAGS) ? (uint32_t)path.size() : MAX_ROUTE_FLAGS;
-                for (uint32_t _ri = 0; _ri < w->routeCount; ++_ri)
-                    w->route[_ri] = path[_ri];
+        // Cold route starts empty
+        memset(m_routes[idx].flags, 0, sizeof(m_routes[idx].flags));
+
+        char buf[256];
+        _snprintf(buf, sizeof(buf), "[Worker] Spawn idx=%d home=%p\n", idx, (void*)home);
+        OutputDebugStringA(buf);
+
+        m_activeIndices[m_activeCount++] = idx;
+        return idx;
+    }
+
+    void WorkerManager::FreeWorker(int index) {
+        if (index < 0 || index >= MAX_TRANSIT_WORKERS) return;
+        m_pool[index].state = WorkerState_Idle;
+
+        // Clear cold route
+        memset(m_routes[index].flags, 0, sizeof(m_routes[index].flags));
+
+        for (int i = 0; i < m_activeCount; ++i) {
+            if (m_activeIndices[i] == index) {
+                m_activeIndices[i] = m_activeIndices[--m_activeCount];
+                break;
             }
-            if (w->routeCount >= 2) {
-                w->routeIndex = 0;
-                // Initialize first leg direction (like builder InitBuilderFirstLeg)
-                {
-                    Flag* fromFlag = w->route[0];
-                    Flag* toFlag = w->route[1];
-                    Road* road = m_roadManager->GetRoadBetween(fromFlag, toFlag);
-                    if (road && road->tileCount >= 2) {
-                        float pathLen = (float)(road->tileCount - 1);
-                        if (fromFlag->pos.x == road->tiles[0].x && fromFlag->pos.y == road->tiles[0].y) {
-                            w->walkDir = 1.0f;
-                            w->ep = 0.0f;
-                        } else {
-                            w->walkDir = -1.0f;
-                            w->ep = pathLen;
-                        }
-                    } else {
-                        w->walkDir = 1.0f;
-                        w->ep = 0.0f;
-                    }
-                }
-                char buf[512];
-                size_t pos = _snprintf(buf, sizeof(buf),
-                    "[Worker] Spawn: route %u flags [", (unsigned)w->routeCount);
-                for (uint32_t i = 0; i < w->routeCount; ++i) {
-                    pos += _snprintf(buf + pos, sizeof(buf) - pos, "%s#%u(%d,%d)",
-                        i > 0 ? " " : "",
-                        w->route[i]->id,
-                        w->route[i]->pos.x,
-                        w->route[i]->pos.y);
-                }
-                _snprintf(buf + pos, sizeof(buf) - pos, "]\n");
-                OutputDebugStringA(buf);
-            } else {
-                OutputDebugStringA("[Worker] Spawn: no road route, walking directly\n");
-            }
-        } else {
-            char buf[256];
-            _snprintf(buf, sizeof(buf),
-                "[Worker] Spawn: cannot compute route — rm=%d wh=%d whFlag=%d bldFlag=%d\n",
-                m_roadManager ? 1 : 0,
-                m_warehouse ? 1 : 0,
-                (m_warehouse && m_warehouse->connectedFlag) ? 1 : 0,
-                (home && home->connectedFlag) ? 1 : 0);
-            OutputDebugStringA(buf);
         }
 
-        m_transit.push_back(w);
+        m_freeSlots[m_freeCount++] = index;
     }
 
     void WorkerManager::Update(float dt) {
-        if (m_transit.empty()) return;
-        for (int i = (int)m_transit.size() - 1; i >= 0; --i) {
-            Worker* w = m_transit[i];
-            bool stillMoving = w->Update(dt, m_roadManager);
-            char buf[256];
-            const char* routeDesc = (w->routeCount >= 2) ? "road" : "direct";
-            _snprintf(buf, sizeof(buf),
-                "[Worker] Update: home=%p type=%d pos=(%.1f,%.1f) target=(%d,%d) route=%s moving=%d\n",
-                (void*)w->home, w->home ? w->home->type : -1,
-                w->wx, w->wy,
-                w->home && w->home->connectedFlag ? w->home->connectedFlag->pos.x : 0,
-                w->home && w->home->connectedFlag ? w->home->connectedFlag->pos.y : 0,
-                routeDesc, stillMoving ? 1 : 0);
-            OutputDebugStringA(buf);
+        if (m_activeCount == 0) return;
+
+        // Phase 1: walk ALL moving workers every frame (linear hot-path pass)
+        for (int ai = 0; ai < m_activeCount; ++ai) {
+            int poolIdx = m_activeIndices[ai];
+            Worker& w = m_pool[poolIdx];
+            if (w.state != WorkerState_MovingToJob) continue;
+
+            Building* home = (Building*)(size_t)w.homeBuildingIdx;
+            Flag* destFlag = home ? home->connectedFlag : NULL;
+            if (!destFlag) continue;
+
+            // Pass cold route data from parallel array
+            Flag** route = m_routes[poolIdx].flags;
+            bool stillMoving = w.Update(dt, m_roadManager, destFlag, route);
             if (!stillMoving) {
-                if (w->home) {
-                    _snprintf(buf, sizeof(buf),
-                        "[Worker] ARRIVED: building=%p type=%d pop=%d->1\n",
-                        (void*)w->home, w->home->type, w->home->m_population);
-                    OutputDebugStringA(buf);
-                    w->home->m_population = 1;
+                char buf[256];
+                _snprintf(buf, sizeof(buf),
+                    "[Worker] ARRIVED: idx=%d home=%p\n",
+                    poolIdx, (void*)home);
+                OutputDebugStringA(buf);
+
+                if (home) {
+                    home->m_population = 1;
                 }
-                if (m_warehouse) {
-                    w->state = WorkerState_Idle;
-                    m_warehouse->specialists.push_back(w);
-                } else {
-                    delete w;
-                }
-                m_transit.erase(m_transit.begin() + i);
+                FreeWorker(poolIdx);
+                // Re-process this index after swap (ai stays same)
+                --ai;
             }
+        }
+
+        // Phase 2: interleaved AI — process 16 workers per frame (round-robin)
+        if (m_activeCount == 0) return;
+        if (m_updateIndex >= m_activeCount) m_updateIndex = 0;
+        int updatesThisFrame = 16;
+        if (updatesThisFrame > m_activeCount) updatesThisFrame = m_activeCount;
+
+        for (int k = 0; k < updatesThisFrame; ++k) {
+            m_updateIndex = (m_updateIndex + 1) % m_activeCount;
+            Worker& w = m_pool[m_activeIndices[m_updateIndex]];
+
+            if (w.stateTimer > 0) {
+                w.stateTimer--;
+                continue;
+            }
+
+            // Future: expand WorkerState AI here for non-transit workers
+            // Currently all transit workers become Idle on arrival and are freed
         }
     }
 
     void WorkerManager::Clear() {
-        for (size_t i = 0; i < m_transit.size(); ++i)
-            delete m_transit[i];
-        m_transit.clear();
+        m_activeCount = 0;
+        m_freeCount = 0;
+        for (int i = 0; i < MAX_TRANSIT_WORKERS; ++i) {
+            m_freeSlots[i] = i;
+            memset(m_routes[i].flags, 0, sizeof(m_routes[i].flags));
+        }
+        m_freeCount = MAX_TRANSIT_WORKERS;
+        m_updateIndex = 0;
     }
 
 } // namespace World

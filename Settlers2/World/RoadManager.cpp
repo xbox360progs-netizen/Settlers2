@@ -7,6 +7,7 @@
 #include <queue>
 #include <map>
 #include <algorithm>
+#include <cstring>
 
 namespace World {
 
@@ -15,6 +16,7 @@ namespace World {
     RoadManager::RoadManager()
         : m_flagManager(NULL)
     {
+        memset(m_roadGraph, 0, sizeof(m_roadGraph));
     }
 
     RoadManager::~RoadManager()
@@ -22,15 +24,37 @@ namespace World {
         Clear();
     }
 
+    void RoadManager::LinkFlagsWithRoad(Flag* a, Flag* b, Road* road)
+    {
+        if (!a || !b) return;
+        uint32_t ai = a->handle.index;
+        uint32_t bi = b->handle.index;
+        if (ai >= MAX_FLAGS || bi >= MAX_FLAGS) return;
+        m_roadGraph[ai * MAX_FLAGS + bi] = road;
+        m_roadGraph[bi * MAX_FLAGS + ai] = road;
+    }
+
+    void RoadManager::UnlinkFlagsWithRoad(Flag* a, Flag* b)
+    {
+        if (!a || !b) return;
+        uint32_t ai = a->handle.index;
+        uint32_t bi = b->handle.index;
+        if (ai >= MAX_FLAGS || bi >= MAX_FLAGS) return;
+        m_roadGraph[ai * MAX_FLAGS + bi] = NULL;
+        m_roadGraph[bi * MAX_FLAGS + ai] = NULL;
+    }
+
     Road* RoadManager::CreateRoad(Flag* a, Flag* b, std::vector<Vector2i> tiles)
     {
         if (!a || !b || tiles.size() < 2) return NULL;
-        // Normalize: a→b and b→a are the same road.
-        // Keep tiles aligned so tiles[0] == a->pos and tiles[last] == b->pos.
-        bool needsReverse = (a->id > b->id);
-        if (needsReverse) std::swap(a, b);
+        // O(1) duplicate check via adjacency matrix
         if (GetRoadBetween(a, b)) return NULL;
-        if (needsReverse) std::reverse(tiles.begin(), tiles.end());
+        // Normalize tile order so tiles[0] == smaller-id flag position
+        bool needsReverse = (a->id > b->id);
+        if (needsReverse) {
+            std::swap(a, b);
+            std::reverse(tiles.begin(), tiles.end());
+        }
         Road* road = new Road();
         road->id = s_nextId++;
         road->a = m_flagManager ? m_flagManager->GetFlagHandle(a) : FlagHandle();
@@ -42,6 +66,7 @@ namespace World {
 
         a->roads.push_back(road);
         b->roads.push_back(road);
+        LinkFlagsWithRoad(a, b, road);
 
         InvalidateRouteCache();
         return road;
@@ -53,6 +78,8 @@ namespace World {
 
         Flag* ra = m_flagManager ? m_flagManager->ResolveFlag(road->a) : NULL;
         Flag* rb = m_flagManager ? m_flagManager->ResolveFlag(road->b) : NULL;
+
+        UnlinkFlagsWithRoad(ra, rb);
 
         if (ra) {
             for (size_t i = 0; i < ra->roads.size(); ++i) {
@@ -85,10 +112,12 @@ namespace World {
     {
         if (!flag) return;
         for (size_t i = 0; i < m_roads.size(); ++i) {
-            Flag* ra = m_flagManager ? m_flagManager->ResolveFlag(m_roads[i]->a) : NULL;
-            Flag* rb = m_flagManager ? m_flagManager->ResolveFlag(m_roads[i]->b) : NULL;
+            Road* r = m_roads[i];
+            Flag* ra = m_flagManager ? m_flagManager->ResolveFlag(r->a) : NULL;
+            Flag* rb = m_flagManager ? m_flagManager->ResolveFlag(r->b) : NULL;
             if (ra == flag || rb == flag) {
-                m_roads[i]->state = PendingDelete;
+                UnlinkFlagsWithRoad(ra, rb);
+                r->state = PendingDelete;
             }
         }
     }
@@ -118,14 +147,10 @@ namespace World {
     Road* RoadManager::GetRoadBetween(Flag* a, Flag* b) const
     {
         if (!a || !b) return NULL;
-        for (size_t i = 0; i < m_roads.size(); ++i) {
-            Road* r = m_roads[i];
-            Flag* ra = m_flagManager ? m_flagManager->ResolveFlag(r->a) : NULL;
-            Flag* rb = m_flagManager ? m_flagManager->ResolveFlag(r->b) : NULL;
-            if ((ra == a && rb == b) || (ra == b && rb == a))
-                return r;
-        }
-        return NULL;
+        uint32_t ai = a->handle.index;
+        uint32_t bi = b->handle.index;
+        if (ai >= MAX_FLAGS || bi >= MAX_FLAGS) return NULL;
+        return m_roadGraph[ai * MAX_FLAGS + bi];
     }
 
     Flag* RoadManager::GetNextHop(Flag* src, Flag* dst)
@@ -204,6 +229,7 @@ namespace World {
             delete r;
         }
         m_roads.clear();
+        memset(m_roadGraph, 0, sizeof(m_roadGraph));
         InvalidateRouteCache();
     }
 
@@ -303,6 +329,7 @@ namespace World {
             m_roads.push_back(road);
             a->roads.push_back(road);
             b->roads.push_back(road);
+            LinkFlagsWithRoad(a, b, road);
             if (rd.id > maxId) maxId = rd.id;
         }
         if (maxId >= s_nextId) {

@@ -442,6 +442,9 @@
     <ClInclude Include="World\Warehouse.h">
       <Filter>World</Filter>
     </ClInclude>
+    <ClInclude Include="World\WorkerDefs.h">
+      <Filter>World</Filter>
+    </ClInclude>
     <ClInclude Include="World\Worker.h">
       <Filter>World</Filter>
     </ClInclude>
@@ -449,6 +452,12 @@
       <Filter>World</Filter>
     </ClInclude>
     <ClInclude Include="World\RoadManager.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Storehouse.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\StorehouseManager.h">
       <Filter>World</Filter>
     </ClInclude>
     <ClInclude Include="World\Components\BuildingFactory.h">
@@ -763,6 +772,9 @@
       <Filter>World</Filter>
     </ClCompile>
     <ClCompile Include="World\RoadManager.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="World\StorehouseManager.cpp">
       <Filter>World</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\SpriteShadow.cpp">
