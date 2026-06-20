@@ -40,7 +40,7 @@ private:
             const Vector2i& nodePos = m_localNodes[i].pos;
             const ResourceNode& node = map->GetResourceNode(nodePos.x, nodePos.y);
 
-            if (node.type == m_targetResourceType && node.amount > 0) {
+            if (node.type == m_targetResourceType && node.amount > 0 && node.surveyed) {
                 m_targetPos = nodePos;
                 return true;
             }
@@ -51,7 +51,7 @@ private:
     bool ValidateTarget() const override {
         if (!map) return false;
         const ResourceNode& node = map->GetResourceNode(m_targetPos.x, m_targetPos.y);
-        return node.type == m_targetResourceType && node.amount > 0;
+        return node.type == m_targetResourceType && node.amount > 0 && node.surveyed;
     }
 
     void Produce() override {

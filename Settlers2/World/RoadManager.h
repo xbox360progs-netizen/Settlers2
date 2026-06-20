@@ -1,8 +1,8 @@
 #pragma once
 #include <vector>
 #include <stdint.h>
-#include <unordered_map>
 #include "Road.h"
+#include "Pathfinding.h"
 
 namespace World {
     class Flag;
@@ -11,20 +11,6 @@ namespace World {
     class TransportJobManager;
 
     static const size_t MAX_FLAGS = 256;
-
-    struct RouteKey {
-        uint32_t src;
-        uint32_t dst;
-        RouteKey() : src(0), dst(0) {}
-        RouteKey(uint32_t s, uint32_t d) : src(s), dst(d) {}
-        bool operator==(const RouteKey& o) const { return src == o.src && dst == o.dst; }
-    };
-
-    struct RouteKeyHash {
-        size_t operator()(const RouteKey& k) const {
-            return (size_t)(k.src ^ (k.dst << 16) ^ (k.dst >> 16));
-        }
-    };
 
     class RoadManager {
     public:
@@ -46,11 +32,11 @@ namespace World {
         size_t GetCount() const { return m_roads.size(); }
         Road* GetRoad(size_t index) const { return (index < m_roads.size()) ? m_roads[index] : NULL; }
 
+        // Routing — O(1) via all-pairs next-hop table (replaces BFS)
         std::vector<Flag*> FindFlagPath(Flag* start, Flag* goal) const;
-
-        // Routing cache
         Flag* GetNextHop(Flag* src, Flag* dst);
-        void InvalidateRouteCache() { m_routeCache.clear(); }
+        Pathfinding* GetPathfinding() { return &m_pathfinding; }
+        const Pathfinding* GetPathfinding() const { return &m_pathfinding; }
 
         // Serialization
         std::vector<RoadData> GetRoadData() const;
@@ -64,7 +50,7 @@ namespace World {
 
         std::vector<Road*> m_roads;
         FlagManager* m_flagManager;
-        std::tr1::unordered_map<RouteKey, Flag*, RouteKeyHash> m_routeCache;
         Road* m_roadGraph[MAX_FLAGS * MAX_FLAGS];
+        Pathfinding m_pathfinding;
     };
-}
+} // namespace World

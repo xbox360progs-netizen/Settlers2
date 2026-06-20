@@ -17,6 +17,7 @@ namespace World {
     FlagHandle CreateFlagHandle(int x, int y);
         Flag* GetFlagAt(int x, int y) const;
         Flag* GetFlagById(uint32_t id) const;
+    Flag* GetFlagByIndex(uint32_t idx) const; // dense handle-index lookup (for routing table)
     Flag* ResolveFlag(FlagHandle h) const;
     FlagHandle GetFlagHandle(Flag* flag) const;
     void RemoveFlag(Flag* flag);

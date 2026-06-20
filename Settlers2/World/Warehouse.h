@@ -6,7 +6,7 @@
 #include "StorehouseManager.h"
 
 namespace World {
-    class Worker; // Forward declaration
+    struct Worker; // Forward declaration
 
     class Warehouse : public Building {
     public:

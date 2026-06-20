@@ -1,15 +1,18 @@
 #pragma once
+#include <stdint.h>
+#include <vector>
 #include "../Component.h"
 #include "../Entity.h"
 #include "../EntityManager.h"
 #include "../AnimalTypes.h"
 #include "../Animal.h"
 #include "../../Core/Vector2i.h"
-#include <vector>
 
 namespace World {
 
 class Map;
+
+static const size_t MAX_WORLD_ANIMALS = 128;
 
 struct __declspec(align(16)) PositionComponent : public Component {
     float x, y, z, w;
@@ -27,10 +30,11 @@ struct AnimalComponent : public Component {
     AnimalState state;
     int spawnerX;
     int spawnerY;
+    uint32_t habitatId;
     float stopTimer;
     AnimalComponent()
         : type(AnimalType_Deer), state(AnimalState_Alive)
-        , spawnerX(0), spawnerY(0), stopTimer(0) {}
+        , spawnerX(0), spawnerY(0), habitatId(0), stopTimer(0) {}
 };
 
 struct RenderComponent : public Component {
@@ -44,14 +48,18 @@ public:
     ~AnimalSystem();
 
     void Update(float dt);
-    Entity CreateAnimal(AnimalType type, const Vector2i& pos);
+    Entity CreateAnimal(AnimalType type, const Vector2i& pos, uint32_t habitatId);
     void RemoveAnimal(Entity entity);
 
     Entity FindAliveAnimal(int x, int y, int radius, AnimalType type) const;
     bool IsAlive(Entity entity) const;
 
     void GetAllAnimals(std::vector<Animal>& out) const;
-    size_t GetCount() const;
+    size_t GetActiveCount() const { return (size_t)m_activeCount; }
+    Entity GetEntityByActiveIdx(int idx) const;
+    bool RegisterEntity(Entity entity);
+
+    void Clear();
 
 private:
     void MoveAnimals(float dt);
@@ -60,6 +68,9 @@ private:
     EntityManager* m_entities;
     Map* m_map;
     float m_dirTimer;
+
+    Entity m_activeAnimals[MAX_WORLD_ANIMALS];
+    int m_activeCount;
 
     static const float DIAG_SPEED;
     static const float MOVE_RANGE;

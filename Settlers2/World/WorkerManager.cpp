@@ -33,15 +33,18 @@ namespace World {
         w.posY = startY;
         w.ep = 0.0f;
         w.walkDir = 1.0f;
-        w.routeCount = 0;
+        w.routeCount = (home && home->connectedFlag) ? 1 : 0;
         w.routeIndex = 0;
         w.profession = Profession_Transit;
         w.carriedResource = ResourceType_None;
         w.stateTimer = 0;
         w.padding[0] = 0;
 
-        // Cold route starts empty
+        // Cold route: first leg is always building → entry flag
         memset(m_routes[idx].flags, 0, sizeof(m_routes[idx].flags));
+        if (home && home->connectedFlag) {
+            m_routes[idx].flags[0] = home->connectedFlag;
+        }
 
         char buf[256];
         _snprintf(buf, sizeof(buf), "[Worker] Spawn idx=%d home=%p\n", idx, (void*)home);

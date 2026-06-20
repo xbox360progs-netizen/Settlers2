@@ -4,8 +4,6 @@
 #include "FlagManager.h"
 #include "CarrierManager.h"
 #include "TransportJobManager.h"
-#include <queue>
-#include <map>
 #include <algorithm>
 #include <cstring>
 
@@ -47,9 +45,7 @@ namespace World {
     Road* RoadManager::CreateRoad(Flag* a, Flag* b, std::vector<Vector2i> tiles)
     {
         if (!a || !b || tiles.size() < 2) return NULL;
-        // O(1) duplicate check via adjacency matrix
         if (GetRoadBetween(a, b)) return NULL;
-        // Normalize tile order so tiles[0] == smaller-id flag position
         bool needsReverse = (a->id > b->id);
         if (needsReverse) {
             std::swap(a, b);
@@ -68,7 +64,7 @@ namespace World {
         b->roads.push_back(road);
         LinkFlagsWithRoad(a, b, road);
 
-        InvalidateRouteCache();
+        m_pathfinding.RebuildRoutingTable((const void* const*)m_roadGraph, MAX_FLAGS);
         return road;
     }
 
@@ -102,7 +98,7 @@ namespace World {
             if (m_roads[i] == road) {
                 delete m_roads[i];
                 m_roads.erase(m_roads.begin() + i);
-                InvalidateRouteCache();
+                m_pathfinding.RebuildRoutingTable((const void* const*)m_roadGraph, MAX_FLAGS);
                 return;
             }
         }
@@ -120,6 +116,7 @@ namespace World {
                 r->state = PendingDelete;
             }
         }
+        m_pathfinding.RebuildRoutingTable((const void* const*)m_roadGraph, MAX_FLAGS);
     }
 
     void RoadManager::MarkForDeletion(Road* road)
@@ -158,50 +155,9 @@ namespace World {
         if (!src || !dst) return NULL;
         if (src == dst) return src;
 
-        RouteKey key(src->id, dst->id);
-        std::tr1::unordered_map<RouteKey, Flag*, RouteKeyHash>::iterator it = m_routeCache.find(key);
-        if (it != m_routeCache.end()) {
-            return it->second;
-        }
-
-        std::queue<Flag*> q;
-        std::map<uint32_t, Flag*> parent;
-        std::map<uint32_t, bool> visited;
-
-        q.push(src);
-        visited[src->id] = true;
-        parent[src->id] = NULL;
-
-        Flag* firstStep = NULL;
-
-        while (!q.empty()) {
-            Flag* current = q.front();
-            q.pop();
-
-            if (current == dst) {
-                Flag* node = dst;
-                while (node && parent[node->id] != src) {
-                    node = parent[node->id];
-                }
-                firstStep = node;
-                break;
-            }
-
-            for (size_t i = 0; i < current->roads.size(); ++i) {
-                Road* r = current->roads[i];
-                Flag* ra = m_flagManager ? m_flagManager->ResolveFlag(r->a) : NULL;
-                Flag* rb = m_flagManager ? m_flagManager->ResolveFlag(r->b) : NULL;
-                Flag* next = (ra == current) ? rb : ra;
-                if (next && !visited[next->id]) {
-                    visited[next->id] = true;
-                    parent[next->id] = current;
-                    q.push(next);
-                }
-            }
-        }
-
-        m_routeCache[key] = firstStep;
-        return firstStep;
+        uint8_t nextIdx = m_pathfinding.GetNextFlagIdx(src->handle.index, dst->handle.index);
+        if (nextIdx == PATH_NO_ROUTE) return NULL;
+        return m_flagManager ? m_flagManager->GetFlagByIndex(nextIdx) : NULL;
     }
 
     void RoadManager::Clear()
@@ -230,51 +186,37 @@ namespace World {
         }
         m_roads.clear();
         memset(m_roadGraph, 0, sizeof(m_roadGraph));
-        InvalidateRouteCache();
+        m_pathfinding.Clear();
     }
 
     std::vector<Flag*> RoadManager::FindFlagPath(Flag* start, Flag* goal) const
     {
         std::vector<Flag*> path;
-        if (!start || !goal || start == goal) {
-            if (start == goal && start) path.push_back(start);
+        if (!start || !goal) return path;
+        if (start == goal) {
+            path.push_back(start);
             return path;
         }
 
-        std::queue<Flag*> q;
-        std::map<uint32_t, Flag*> parent;
-        std::map<uint32_t, bool> visited;
+        uint8_t startIdx = (uint8_t)start->handle.index;
+        uint8_t goalIdx = (uint8_t)goal->handle.index;
 
-        q.push(start);
-        visited[start->id] = true;
-        parent[start->id] = NULL;
-
-        while (!q.empty()) {
-            Flag* current = q.front();
-            q.pop();
-
-            if (current == goal) {
-                Flag* node = goal;
-                while (node) {
-                    path.push_back(node);
-                    node = parent[node->id];
-                }
-                std::reverse(path.begin(), path.end());
-                return path;
-            }
-
-            for (size_t i = 0; i < current->roads.size(); ++i) {
-                Road* r = current->roads[i];
-                Flag* ra = m_flagManager ? m_flagManager->ResolveFlag(r->a) : NULL;
-                Flag* rb = m_flagManager ? m_flagManager->ResolveFlag(r->b) : NULL;
-                Flag* next = (ra == current) ? rb : ra;
-                if (next && !visited[next->id]) {
-                    visited[next->id] = true;
-                    parent[next->id] = current;
-                    q.push(next);
-                }
-            }
+        // Reconstruct path from routing table: follow next-hop chain
+        uint8_t cur = startIdx;
+        uint16_t guard = (uint16_t)PATH_MAX_FLAGS; // prevent infinite loop
+        while (cur != goalIdx && guard > 0) {
+            Flag* f = m_flagManager ? m_flagManager->GetFlagByIndex(cur) : NULL;
+            if (!f) return std::vector<Flag*>(); // stale index
+            path.push_back(f);
+            cur = m_pathfinding.GetNextFlagIdx(cur, goalIdx);
+            if (cur == PATH_NO_ROUTE) return std::vector<Flag*>();
+            --guard;
         }
+        if (guard == 0) return std::vector<Flag*>(); // cycle detected
+
+        // Add goal flag
+        Flag* gf = m_flagManager ? m_flagManager->GetFlagByIndex(goalIdx) : NULL;
+        if (gf) path.push_back(gf);
 
         return path;
     }
@@ -301,7 +243,6 @@ namespace World {
     void RoadManager::LoadFromData(const std::vector<RoadData>& data, FlagManager* flagManager)
     {
         Clear();
-        InvalidateRouteCache();
         SetFlagManager(flagManager);
         uint32_t maxId = 0;
         for (size_t i = 0; i < data.size(); ++i) {
@@ -335,6 +276,6 @@ namespace World {
         if (maxId >= s_nextId) {
             s_nextId = maxId + 1;
         }
-        InvalidateRouteCache();
+        m_pathfinding.RebuildRoutingTable((const void* const*)m_roadGraph, MAX_FLAGS);
     }
-}
+} // namespace World

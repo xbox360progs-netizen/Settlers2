@@ -1,6 +1,6 @@
 #pragma once
 
-#include "TileType.h"
+#include "../World/TileType.h"
 
 namespace World {
 
@@ -72,10 +72,11 @@ struct ResourceNode
     ResourceType type;
     int amount;
     bool isVisible;
+    bool surveyed;   // true after geologist surveys this mountain
 
-    ResourceNode() : weight(Weight_Land), type(ResourceType_None), amount(0), isVisible(true) {}
+    ResourceNode() : weight(Weight_Land), type(ResourceType_None), amount(0), isVisible(true), surveyed(false) {}
     ResourceNode(WeightType w, ResourceType t, int a, bool visible = true)
-        : weight(w), type(t), amount(a), isVisible(visible) {}
+        : weight(w), type(t), amount(a), isVisible(visible), surveyed(false) {}
 };
 
 inline const char* ResourceTypeToString(ResourceType type)
@@ -200,6 +201,9 @@ inline ResourceType TileTypeToResourceType(TileType tileType)
 {
     switch (tileType) {
         case Tree: return ResourceType_Wood;
+        case Mountain: return ResourceType_Stone;
+        case MountainOnWater: return ResourceType_Stone;
+        case Rock: return ResourceType_Stone;
         default: return ResourceType_None;
     }
 }

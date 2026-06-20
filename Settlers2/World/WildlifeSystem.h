@@ -16,10 +16,9 @@ public:
     WildlifeSystem(Map* map, AnimalManager* animalManager, AnimalSystem* animalSystem);
     ~WildlifeSystem();
 
-    void Update(float deltaTime, const HabitatRegistry& habitats);
+    void Update(float deltaTime, HabitatRegistry& habitats);
 
     bool ShouldSpawn(float dt);
-    void AddAnimals(const std::vector<Animal>& animals);
 
     Entity FindAliveAnimal(int x, int y, int radius, AnimalType type) const {
         return m_animalManager->FindAliveAnimal(x, y, radius, type);
@@ -40,14 +39,12 @@ public:
     }
 
 private:
-    void SpawnAtHabitat(const AnimalHabitat& habitat);
-    int CountAnimalsAtHabitat(int hx, int hy, AnimalType type) const;
+    void SpawnAtHabitat(AnimalHabitat& habitat);
 
     Map* m_map;
     AnimalManager* m_animalManager;
     AnimalSystem* m_animalSystem;
     float m_spawnTimer;
-    float m_dirTimer;
 
     static const float SPAWN_COOLDOWN;
     static const int MAX_PER_SPAWNER;

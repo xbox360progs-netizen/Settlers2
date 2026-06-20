@@ -306,6 +306,7 @@
     <ClInclude Include="UI\Button.h" />
     <ClInclude Include="UI\EditorUI.h" />
     <ClInclude Include="UI\GridMenu.h" />
+    <ClInclude Include="UI\UIMenu.h" />
     <ClInclude Include="UI\Minimap.h" />
     <ClInclude Include="UI\Panel.h" />
     <ClInclude Include="UI\RadialMenu.h" />
@@ -354,7 +355,6 @@
     <ClInclude Include="World\MapNode.h" />
     <ClInclude Include="World\Pathfinding.h" />
     <ClInclude Include="World\Soldier.h" />
-    <ClInclude Include="World\Storehouse.h" />
     <ClInclude Include="World\StorehouseManager.h" />
     <ClInclude Include="World\Unit.h" />
     <ClInclude Include="World\Warehouse.h" />
@@ -455,6 +455,7 @@
     <ClCompile Include="UI\Button.cpp" />
     <ClCompile Include="UI\EditorUI.cpp" />
     <ClCompile Include="UI\GridMenu.cpp" />
+    <ClCompile Include="UI\UIMenu.cpp" />
     <ClCompile Include="UI\Minimap.cpp" />
     <ClCompile Include="UI\Panel.cpp" />
     <ClCompile Include="UI\RadialMenu.cpp" />

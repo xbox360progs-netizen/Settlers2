@@ -14,13 +14,16 @@ AnimalSystem::AnimalSystem(EntityManager* entityManager, Map* map)
     : m_entities(entityManager)
     , m_map(map)
     , m_dirTimer(0.0f)
+    , m_activeCount(0)
 {
 }
 
 AnimalSystem::~AnimalSystem() {
 }
 
-Entity AnimalSystem::CreateAnimal(AnimalType type, const Vector2i& pos) {
+Entity AnimalSystem::CreateAnimal(AnimalType type, const Vector2i& pos, uint32_t habitatId) {
+    if (m_activeCount >= (int)MAX_WORLD_ANIMALS) return INVALID_ENTITY;
+
     Entity entity = m_entities->CreateEntity();
 
     int ox = pos.x + (rand() % 7) - 3;
@@ -38,21 +41,36 @@ Entity AnimalSystem::CreateAnimal(AnimalType type, const Vector2i& pos) {
     ac.state = AnimalState_Alive;
     ac.spawnerX = pos.x;
     ac.spawnerY = pos.y;
+    ac.habitatId = habitatId;
     ac.stopTimer = 0.0f;
+
+    m_activeAnimals[m_activeCount++] = entity;
 
     return entity;
 }
 
 void AnimalSystem::RemoveAnimal(Entity entity) {
+    int found = -1;
+    for (int i = 0; i < m_activeCount; ++i) {
+        if (m_activeAnimals[i] == entity) {
+            found = i;
+            break;
+        }
+    }
+
+    if (found >= 0) {
+        m_activeAnimals[found] = m_activeAnimals[m_activeCount - 1];
+        m_activeCount--;
+    }
+
     m_entities->DestroyEntity(entity);
 }
 
 Entity AnimalSystem::FindAliveAnimal(int x, int y, int radius, AnimalType type) const {
-    std::vector<Entity> entities;
-    m_entities->GetAllEntities(entities);
+    float maxDistSq = (float)(radius * radius);
 
-    for (size_t i = 0; i < entities.size(); ++i) {
-        Entity e = entities[i];
+    for (int i = 0; i < m_activeCount; ++i) {
+        Entity e = m_activeAnimals[i];
         const AnimalComponent* ac = m_entities->GetComponent<AnimalComponent>(e);
         if (!ac || ac->state != AnimalState_Alive || ac->type != type)
             continue;
@@ -61,7 +79,7 @@ Entity AnimalSystem::FindAliveAnimal(int x, int y, int radius, AnimalType type) 
 
         float dx = pc->x - (float)x;
         float dy = pc->y - (float)y;
-        if (dx * dx + dy * dy <= (float)(radius * radius))
+        if (dx * dx + dy * dy <= maxDistSq)
             return e;
     }
     return INVALID_ENTITY;
@@ -74,11 +92,10 @@ bool AnimalSystem::IsAlive(Entity entity) const {
 
 void AnimalSystem::GetAllAnimals(std::vector<Animal>& out) const {
     out.clear();
-    std::vector<Entity> entities;
-    m_entities->GetAllEntities(entities);
+    out.reserve(m_activeCount);
 
-    for (size_t i = 0; i < entities.size(); ++i) {
-        Entity e = entities[i];
+    for (int i = 0; i < m_activeCount; ++i) {
+        Entity e = m_activeAnimals[i];
         const PositionComponent* pc = m_entities->GetComponent<PositionComponent>(e);
         const VelocityComponent* vc = m_entities->GetComponent<VelocityComponent>(e);
         const AnimalComponent* ac = m_entities->GetComponent<AnimalComponent>(e);
@@ -94,20 +111,25 @@ void AnimalSystem::GetAllAnimals(std::vector<Animal>& out) const {
         a.spawnerX = ac->spawnerX;
         a.spawnerY = ac->spawnerY;
         a.stopTimer = ac->stopTimer;
+        a.habitatId = ac->habitatId;
         out.push_back(a);
     }
 }
 
-size_t AnimalSystem::GetCount() const {
-    std::vector<Entity> entities;
-    m_entities->GetAllEntities(entities);
+Entity AnimalSystem::GetEntityByActiveIdx(int idx) const {
+    if (idx < 0 || idx >= m_activeCount) return INVALID_ENTITY;
+    return m_activeAnimals[idx];
+}
 
-    size_t count = 0;
-    for (size_t i = 0; i < entities.size(); ++i) {
-        if (m_entities->GetComponent<AnimalComponent>(entities[i]))
-            ++count;
-    }
-    return count;
+bool AnimalSystem::RegisterEntity(Entity entity) {
+    if (m_activeCount >= (int)MAX_WORLD_ANIMALS) return false;
+    m_activeAnimals[m_activeCount++] = entity;
+    return true;
+}
+
+void AnimalSystem::Clear() {
+    m_activeCount = 0;
+    m_dirTimer = 0.0f;
 }
 
 void AnimalSystem::RandomDiagDir(float& vx, float& vy) {
@@ -128,11 +150,8 @@ void AnimalSystem::MoveAnimals(float dt) {
         dirChangeTick = true;
     }
 
-    std::vector<Entity> entities;
-    m_entities->GetAllEntities(entities);
-
-    for (size_t i = 0; i < entities.size(); ++i) {
-        Entity e = entities[i];
+    for (int i = 0; i < m_activeCount; ++i) {
+        Entity e = m_activeAnimals[i];
         AnimalComponent* ac = m_entities->GetComponent<AnimalComponent>(e);
         if (!ac || ac->state != AnimalState_Alive) continue;
 

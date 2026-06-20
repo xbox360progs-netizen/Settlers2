@@ -31,9 +31,12 @@
 #include "../Graphics/TextManager.h"
 #include "../Input/InputManager.h"
 #include "../UI/GridMenu.h"
+#include "../UI/UIMenu.h"
 #include "../Logic/AStar.h"
 #include "../Logic/WeightMap.h"
 #include <string>
+#include <string.h>
+#include "../World/UiDefs.h"
 
 namespace Scene {
 
@@ -97,11 +100,37 @@ private:
     int m_cursorTileY;
     GridMenu* m_buildMenu;
     GridMenu* m_roadMenu;
+    UIMenu* m_flagMenu;
+    UIMenu::ItemData m_flagMenuItemData[3];
+    int m_flagMenuItemCount;
+    UIMenu* m_geologistMenu;
+    bool m_geologistMenuActive;
     bool m_menuActive;
     bool m_roadMenuActive;
+    bool m_flagMenuActive;
     bool m_cursorOnTownHall;
     bool m_townHallPanelOpen;
     bool m_logisticsDebug;
+
+    // Gamepad cursor (console)
+    Vector2i m_gamepadCursor;
+    float m_gamepadCursorCooldown;
+    bool m_gamepadActive;
+
+    // Fixed-pool popup windows
+    World::PopupUiData m_popups[World::MAX_UI_POPUPS];
+    int m_popupCount;
+
+    // Geologist state machine
+    enum GeologistState {
+        GEOLOGIST_NONE,
+        GEOLOGIST_CONFIRM,   // showing "Call geologist?" UI
+        GEOLOGIST_WORKING,   // timer counting down on a mountain
+    };
+    GeologistState m_geologistState;
+    float m_geologistTimer;     // seconds remaining
+    int m_geologistTileX;       // mountain tile being surveyed
+    int m_geologistTileY;
 
     // UI
     TextManager* m_textManager;
@@ -111,9 +140,9 @@ private:
     // Build state machine
     enum BuildState {
         BUILDSTATE_NONE,
-        BUILDSTATE_PLACE_FLAG,     // selected building → place flag first
+        BUILDSTATE_PLACE_FLAG,     // selected building > place flag first
         BUILDSTATE_PLACE_ROAD,     // building road between flags
-        BUILDSTATE_CONFIRM,        // A on ground/flag → confirm action
+        BUILDSTATE_CONFIRM,        // A on ground/flag > confirm action
     };
     enum ConfirmAction {
         CONFIRM_NONE,
@@ -159,6 +188,14 @@ private:
     float m_townHallPanelU0, m_townHallPanelV0, m_townHallPanelU1, m_townHallPanelV1;
     float m_townHallPanelW, m_townHallPanelH;
 
+    // Notification banner (bunner_info)
+    float m_bannerSlideX;
+    float m_bannerTargetX;
+    float m_bannerW;
+    float m_bannerH;
+    float m_bannerU0, m_bannerV0, m_bannerU1, m_bannerV1;
+    bool m_bannerLoaded;
+
     // Resource HUD
     struct ResourceHudItem {
         World::ResourceType type;
@@ -179,6 +216,7 @@ private:
 
     enum {
         SLOT_BUILDINGS_HIGHLIGHT = 18,
+        SLOT_BACKGROUND = 19,
         SLOT_UI_CURSOR = 20,
         SLOT_UI_MENU_BG = 21,
         SLOT_UI_MENU_CELL = 22,
@@ -199,6 +237,8 @@ private:
     void RenderCursor(Graphics::RenderQueue* renderQueue);
     void InitBuildMenu();
     void InitRoadMenu();
+    void InitFlagMenu();
+    void InitGeologistMenu();
 
     bool CanPlaceBuilding(World::BuildingType type, int buildX, int buildY);
     void PlaceFlag(int tileX, int tileY);
@@ -212,6 +252,19 @@ private:
     World::BuildingType GetBuildingTypeFromSpriteName(const std::string& name) const;
 
     void RestoreBuildingsFromLayer();
+
+    // Geologist system
+    void ShowGeologistConfirm(int tx, int ty);
+    void StartGeologistSurvey();
+    void CancelGeologistMenu();
+    void RenderGeologistOverlay(Graphics::RenderQueue* renderQueue);
+
+    // Gamepad input & console UI
+    void HandleGamepadInput();
+    void OnGamepadButton(uint32_t buttons);
+    void SpawnGeologistPopup(int tx, int ty);
+    void UpdateGamepadUI(float dt);
+    void PushUiToQueue();
 
     void StartRoad(int x, int y);
     void UpdateRoadPreview(int cursorX, int cursorY);
@@ -239,7 +292,7 @@ private:
 
     // Wildlife regeneration timer
     float m_wildlifeRegenTimer;
-    // Tree growth timer (Sapling → Young → Mature)
+    // Tree growth timer (Sapling > Young > Mature)
     float m_treeGrowthTimer;
 
     // Job data (reused each frame)

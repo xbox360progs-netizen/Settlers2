@@ -43,6 +43,11 @@ namespace World {
         return NULL;
     }
 
+    Flag* FlagManager::GetFlagByIndex(uint32_t idx) const
+    {
+        return static_cast<Flag*>(m_handleRegistry.UnsafeResolveByIndex(idx));
+    }
+
     Flag* FlagManager::ResolveFlag(FlagHandle h) const
     {
         return m_handleRegistry.Resolve<Flag>(h);

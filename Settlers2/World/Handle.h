@@ -73,6 +73,14 @@ namespace World {
             return static_cast<T*>(slot.ptr);
         }
 
+        // Unsafe resolve by index only — bypasses generation check.
+        // Caller must guarantee the slot is alive (index not recycled or stale).
+        void* UnsafeResolveByIndex(uint32_t idx) const {
+            if (idx >= m_slots.size()) return NULL;
+            if (!m_slots[idx].alive) return NULL;
+            return m_slots[idx].ptr;
+        }
+
         template<typename T>
         Handle<T> FindHandle(T* ptr) const {
             for (uint32_t i = 0; i < (uint32_t)m_slots.size(); ++i) {

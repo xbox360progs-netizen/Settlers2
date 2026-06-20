@@ -56,11 +56,20 @@ namespace Scene {
         , m_cursorTileY(0)
         , m_buildMenu(NULL)
         , m_roadMenu(NULL)
+        , m_flagMenu(NULL)
+        , m_flagMenuItemCount(0)
+        , m_geologistMenu(NULL)
+        , m_geologistMenuActive(false)
         , m_menuActive(false)
         , m_roadMenuActive(false)
+        , m_flagMenuActive(false)
         , m_cursorOnTownHall(false)
         , m_townHallPanelOpen(false)
         , m_logisticsDebug(false)
+        , m_gamepadCursor(10, 10)
+        , m_gamepadCursorCooldown(0.0f)
+        , m_gamepadActive(false)
+        , m_popupCount(0)
         , m_buildState(BUILDSTATE_NONE)
         , m_selectedBuilding(World::Building_None)
         , m_placementIconIdx(-1)
@@ -86,8 +95,18 @@ namespace Scene {
         , m_frameCount(0)
         , m_groundWoodIconIdx(-1)
         , m_groundWoodIconLoaded(false)
+        , m_bannerSlideX(1280.0f)
+        , m_bannerTargetX(1280.0f)
+        , m_bannerW(0.0f)
+        , m_bannerH(0.0f)
+        , m_bannerU0(0.0f), m_bannerV0(0.0f), m_bannerU1(0.0f), m_bannerV1(0.0f)
+        , m_bannerLoaded(false)
         , m_wildlifeRegenTimer(0.0f)
         , m_treeGrowthTimer(0.0f)
+        , m_geologistState(GEOLOGIST_NONE)
+        , m_geologistTimer(0.0f)
+        , m_geologistTileX(-1)
+        , m_geologistTileY(-1)
     {
         for (int i = 0; i < RESOURCE_HUD_COUNT; ++i) {
             m_resourceHud[i].type = World::ResourceType_None;
@@ -114,6 +133,14 @@ namespace Scene {
         if (m_roadMenu) {
             delete m_roadMenu;
             m_roadMenu = NULL;
+        }
+        if (m_flagMenu) {
+            delete m_flagMenu;
+            m_flagMenu = NULL;
+        }
+        if (m_geologistMenu) {
+            delete m_geologistMenu;
+            m_geologistMenu = NULL;
         }
         if (m_roadManager) {
             delete m_roadManager;
@@ -169,6 +196,8 @@ namespace Scene {
         // Manually register Buildings atlas path (may not be in manifest)
         TextureRegistry::instance().registerTexturePath("Buildings", "AtlasTextures\\Buildings.png");
         TextureRegistry::instance().registerTexturePath("streets", "UI\\Streets.png");
+        TextureRegistry::instance().registerTexturePath("background_game", "Background\\BackgroundGameScene.png");
+        TextureRegistry::instance().getTextureOrLoad("background_game");
 
         // Peek at file header to get map dimensions before creating the Map object.
         // If loading fails entirely, fall back to a default 20x20 map.
@@ -272,6 +301,7 @@ namespace Scene {
         m_entityManager = new World::EntityManager();
         m_animalSystem = new World::AnimalSystem(m_entityManager, m_map);
         m_animalManager = new World::AnimalManager(m_entityManager, m_animalSystem);
+        m_animalManager->Init(&m_map->GetHabitatRegistry());
         m_wildlife = new World::WildlifeSystem(m_map, m_animalManager, m_animalSystem);
         m_map->SetWildlifeSystem(m_wildlife);
         OutputDebugStringA("[GameScene::Load] ECS wildlife ready\n");
@@ -453,6 +483,7 @@ namespace Scene {
         // Create StorehouseManager for O(1) resource tracking
         OutputDebugStringA("[GameScene::Load] Creating StorehouseManager\n");
         m_storehouseManager = new World::StorehouseManager();
+        m_storehouseManager->Init();
         if (m_economyManager) {
             m_economyManager->SetStorehouseManager(m_storehouseManager);
         }
@@ -540,6 +571,48 @@ namespace Scene {
         }
         InitRoadMenu();
         OutputDebugStringA("[GameScene::Load] Road menu initialized\n");
+
+        // Initialize flag menu (UIMenu-based)
+        if (!m_flagMenu) {
+            m_flagMenu = new UIMenu();
+            m_flagMenu->SetTextManager(m_textManager);
+            m_flagMenu->SetRenderer(m_renderer ? m_renderer->GetSpriteRenderer() : NULL,
+                                   m_renderer ? m_renderer->GetRenderQueue() : NULL);
+        }
+        InitFlagMenu();
+        OutputDebugStringA("[GameScene::Load] Flag menu initialized\n");
+
+        // Initialize geologist menu (UIMenu-based)
+        if (!m_geologistMenu) {
+            m_geologistMenu = new UIMenu();
+            m_geologistMenu->SetTextManager(m_textManager);
+            m_geologistMenu->SetRenderer(m_renderer ? m_renderer->GetSpriteRenderer() : NULL,
+                                          m_renderer ? m_renderer->GetRenderQueue() : NULL);
+        }
+        InitGeologistMenu();
+        OutputDebugStringA("[GameScene::Load] Geologist menu initialized\n");
+
+        // ─── Cache bunner_info sprite from UI atlas ────────────────────
+        {
+            TextureRegistry& reg = TextureRegistry::instance();
+            std::tr1::shared_ptr<SpriteAtlas> uiAtlas = reg.getAtlas("ui");
+            if (uiAtlas) {
+                uint32_t bIdx = uiAtlas->GetIndex("bunner_info");
+                if (bIdx != 0xFFFFFFFF) {
+                    const SpriteRegion* r = uiAtlas->GetRegion(bIdx);
+                    if (r) {
+                        m_bannerU0 = r->u0; m_bannerV0 = r->v0;
+                        m_bannerU1 = r->u1; m_bannerV1 = r->v1;
+                        m_bannerW = (float)r->width;
+                        m_bannerH = (float)r->height;
+                        m_bannerLoaded = true;
+                        m_bannerSlideX = 1280.0f;
+                        m_bannerTargetX = 1280.0f;
+                        OutputDebugStringA("[GameScene::Load] bunner_info cached\n");
+                    }
+                }
+            }
+        }
 
         // ─── Look up town hall panel sprite from UI atlas ──────────
         {
@@ -965,7 +1038,7 @@ void GameScene::Update(float deltaTime)
     ++m_frameCount;
 
     // ─── Camera movement and zoom (disabled during menu or town hall panel) ──
-    if (!m_menuActive && !m_roadMenuActive && !m_townHallPanelOpen && m_camera && m_inputManager) {
+    if (!m_menuActive && !m_roadMenuActive && !m_flagMenuActive && !m_geologistMenuActive && !m_townHallPanelOpen && m_camera && m_inputManager) {
         Input::Gamepad* gamepad = m_inputManager->GetGamepad();
         if (gamepad) {
             float moveSpeed = 2000.0f * deltaTime;
@@ -1018,7 +1091,24 @@ void GameScene::Update(float deltaTime)
         UpdateRoadPreview(m_cursorTileX, m_cursorTileY);
     }
 
-    // ─── Update status text ──────────────────────────────────────────
+    // ─── Update status text & banner animation ────────────────────────
+    // ─── Banner slide logic: show with text, animate for temporary ──
+    if (m_bannerLoaded) {
+        if (m_statusText.empty()) {
+            m_bannerTargetX = 1280.0f; // slide out
+        } else {
+            m_bannerTargetX = 1280.0f - m_bannerW; // slide in
+        }
+        float speed = 1200.0f;
+        if (m_bannerSlideX > m_bannerTargetX) {
+            m_bannerSlideX -= speed * deltaTime;
+            if (m_bannerSlideX < m_bannerTargetX) m_bannerSlideX = m_bannerTargetX;
+        } else if (m_bannerSlideX < m_bannerTargetX) {
+            m_bannerSlideX += speed * deltaTime;
+            if (m_bannerSlideX > m_bannerTargetX) m_bannerSlideX = m_bannerTargetX;
+        }
+    }
+    // ─── Update status text timer ───────────────────────────────────
     if (m_statusTextTimer > 0.0f) {
         m_statusTextTimer -= deltaTime;
         if (m_statusTextTimer <= 0.0f) m_statusText = "";
@@ -1028,10 +1118,10 @@ void GameScene::Update(float deltaTime)
             case BUILDSTATE_NONE:
                 if (m_menuActive) {
                     m_statusText = "BUILD MENU: select a building";
-                } else if (m_roadMenuActive) {
+                } else if (m_roadMenuActive || m_flagMenuActive || m_geologistMenuActive) {
                     m_statusText = "ROAD MENU: choose action";
                 } else {
-                    m_statusText = "RB=Menu  A=interact  B=cancel";
+                    m_statusText = "";
                 }
                 break;
             case BUILDSTATE_PLACE_FLAG:
@@ -1069,6 +1159,48 @@ void GameScene::Update(float deltaTime)
         }
     }
 
+    // ─── Gamepad input & UI updates ───────────────────────────────
+    HandleGamepadInput();
+    UpdateGamepadUI(deltaTime);
+
+    // ─── Geologist timer ──────────────────────────────────────────
+    if (m_geologistState == GEOLOGIST_WORKING) {
+        m_geologistTimer -= deltaTime;
+        if (m_geologistTimer <= 0.0f) {
+            m_geologistTimer = 0.0f;
+            // Survey complete — mark resource node and show result in banner
+            if (m_map && m_geologistTileX >= 0 && m_geologistTileY >= 0) {
+                World::ResourceNode& node = m_map->GetResourceNode(m_geologistTileX, m_geologistTileY);
+                node.surveyed = true;
+                char buf[128];
+                if (node.type != World::ResourceType_None && node.amount > 0) {
+                    const char* name = "";
+                    switch (node.type) {
+                        case World::ResourceType_Coal:    name = "Coal vein";       break;
+                        case World::ResourceType_IronOre: name = "Iron ore";        break;
+                        case World::ResourceType_GoldOre: name = "Gold vein";       break;
+                        case World::ResourceType_Stone:   name = "Stone deposit";   break;
+                        case World::ResourceType_Marble:  name = "Marble deposit";  break;
+                        case World::ResourceType_Granite: name = "Granite deposit"; break;
+                        default:                          name = "Minerals";        break;
+                    }
+                    _snprintf(buf, sizeof(buf), "%s found! Units: %d", name, node.amount);
+                } else {
+                    strcpy(buf, "Barren rock - No minerals found");
+                }
+                m_statusText = buf;
+                m_statusTextTimer = 5.0f;
+            }
+            m_geologistState = GEOLOGIST_NONE;
+        } else {
+            // Update status text with remaining time
+            char buf[48];
+            _snprintf(buf, sizeof(buf), "Geologist working... %.0f sec", m_geologistTimer);
+            m_statusText = buf;
+            m_statusTextTimer = 0.0f;
+        }
+    }
+
     // ─── Input handling ──────────────────────────────────────────────
     if (m_inputManager) {
         Input::Gamepad* pad = m_inputManager->GetGamepad();
@@ -1076,6 +1208,7 @@ void GameScene::Update(float deltaTime)
             bool rbPressed = pad->IsButtonPressed(Input::GP_RB);
             bool bPressed = pad->IsButtonPressed(Input::GP_B);
             bool aPressed = pad->IsButtonPressed(Input::GP_A);
+            bool yPressed = pad->IsButtonPressed(Input::GP_Y);
 
             // Back button toggles logistics debug overlay
             if (pad->IsButtonPressed(Input::GP_Back)) {
@@ -1217,125 +1350,134 @@ void GameScene::Update(float deltaTime)
                         m_buildMenu->ResetSelection();
                     }
                 }
-            } else if (m_roadMenuActive) {
-                // Road/flag menu is open
-                if (m_roadMenu) {
-                    m_roadMenu->Update(pad, deltaTime);
+            } else if (m_flagMenuActive) {
+                // Flag/UIMenu is open
+                if (m_flagMenu) {
+                    m_flagMenu->Update(pad, deltaTime);
 
-                    if (bPressed) {
-                        m_roadMenuActive = false;
-                        m_roadMenu->Hide();
-                        OutputDebugStringA("[GameScene] Road menu closed\n");
+                    if (bPressed || !m_flagMenu->IsVisible()) {
+                        m_flagMenuActive = false;
+                        m_flagMenu->Hide();
+                        OutputDebugStringA("[GameScene] Flag menu closed\n");
                     }
 
-                    if (m_roadMenu->HasSelection()) {
-                        int selIdx = m_roadMenu->GetSelectedSpriteIndex();
-                        if (selIdx >= 0) {
-                            std::tr1::shared_ptr<SpriteAtlas> uiAtlas = TextureRegistry::instance().getAtlas("ui");
-                            if (uiAtlas) {
-                                const SpriteRegion* reg = uiAtlas->GetRegion(selIdx);
-                                if (reg) {
-                                    std::string iconName = reg->name;
-                                    if (iconName == "icon_create_road") {
-                                        StartRoad(m_confirmTargetX, m_confirmTargetY);
-                                    } else if (iconName == "icon_set_flag") {
-                                        // Place flag at cursor position (not snapped flag position)
-                                        PlaceFreeFlag(m_cursorTileX, m_cursorTileY);
-                                        m_statusText = "Flag placed!";
-                                        m_statusTextTimer = 2.0f;
-                                    } else if (iconName == "icon_delete_flag") {
-                                        OutputDebugStringA("[RoadMenu] Deleting flag...\n");
-                                        if (m_flagManager) {
-                                            World::Flag* f = m_flagManager->GetFlagAt(m_confirmTargetX, m_confirmTargetY);
-                                            if (f) {
-                                                char dbg[128];
-                                                _snprintf(dbg, sizeof(dbg), "[RoadMenu] Found flag %p at (%d,%d)\n", f, m_confirmTargetX, m_confirmTargetY);
-                                                OutputDebugStringA(dbg);
-                                                
-                                                // Cannot delete town hall / warehouse flag
-                                                if (f->type == World::FLAG_WAREHOUSE) {
-                                                    m_statusText = "Cannot delete town hall flag!";
-                                                    m_statusTextTimer = 2.0f;
-                                                } else if (f->building || f->pendingBuilding != World::Building_None) {
-                                                    // Building attached — ask for confirmation
-                                                    m_confirmAction = CONFIRM_DELETE_FLAG;
-                                                    m_confirmTargetX = f->pos.x;
-                                                    m_confirmTargetY = f->pos.y;
-                                                    m_buildState = BUILDSTATE_CONFIRM;
-                                                    m_statusText = "Delete building and flag? A=Yes B=No";
-                                                    m_statusTextTimer = 3.0f;
-                                                    m_roadMenuActive = false;
-                                                    m_roadMenu->Hide();
-                                                    m_roadMenu->ResetSelection();
-                                                } else {
-                                                    ClearRoadTilesForFlag(f);
-                                                    m_objectLifecycleManager->ForceDeleteFlag(f);
-                                                    m_statusText = "Flag removed!";
-                                                    m_statusTextTimer = 2.0f;
-                                                }
-                                            } else {
-                                                OutputDebugStringA("[RoadMenu] Flag not found at confirm target!\n");
+                    if (m_flagMenu->HasSelection()) {
+                        int selIdx = m_flagMenu->GetSelectedIndex();
+                        if (selIdx >= 0 && selIdx < m_flagMenuItemCount) {
+                            if (selIdx == 0) {
+                                // Set Flag
+                                PlaceFreeFlag(m_cursorTileX, m_cursorTileY);
+                                m_statusText = "Flag placed!";
+                                m_statusTextTimer = 2.0f;
+                            } else if (selIdx == 1) {
+                                // Delete Flag
+                                OutputDebugStringA("[FlagMenu] Deleting flag...\n");
+                                if (m_flagManager) {
+                                    World::Flag* f = m_flagManager->GetFlagAt(m_confirmTargetX, m_confirmTargetY);
+                                    if (!f) {
+                                        // Search nearby for nearest flag
+                                        int nearestDist = 999;
+                                        for (int dy = -1; dy <= 1; ++dy) {
+                                            for (int dx = -1; dx <= 1; ++dx) {
+                                                World::Flag* tf = m_flagManager->GetFlagAt(m_confirmTargetX + dx, m_confirmTargetY + dy);
+                                                if (tf) { f = tf; break; }
                                             }
-                                        } else {
-                                            OutputDebugStringA("[RoadMenu] FlagManager is null!\n");
+                                            if (f) break;
                                         }
-                                    } else if (iconName == "icon_delete_Streets") {
-                                        // Remove road tile at cursor
-                                        if (m_map) {
-                                            World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
-                                            if (roadsLayer) {
-                                                int rx = m_confirmTargetX, ry = m_confirmTargetY;
-                                                if (rx >= 0 && rx < roadsLayer->GetWidth() && ry >= 0 && ry < roadsLayer->GetHeight()) {
-                                                    World::Tile& rt = roadsLayer->GetTile(rx, ry);
-                                                    if (rt.atlasName == "streets") {
-                                                        rt.atlasName = "";
-                                                        rt.regionIndex = -1;
-                                                        rt.walkable = false;
-                                                        m_statusText = "Road removed!";
-                                                        m_statusTextTimer = 2.0f;
-                                                        UpdateRoadNeighbors(rx, ry);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    } else if (iconName == "icon_Streets") {
-                                        // Open build menu instead
-                                        m_roadMenuActive = false;
-                                        m_roadMenu->Hide();
-                                        if (m_buildMenu) {
-                                            m_menuActive = true;
-                                            m_buildMenu->ResetSelection();
-                                            m_buildMenu->Show(640.0f, 360.0f);
-                                            OutputDebugStringA("[GameScene] Switching from road menu to build menu\n");
-                                        }
-                                        m_roadMenu->ResetSelection();
                                     }
-                                    // For other selections, skip the closing block below by using continue
-                                    // (we want to close the menu normally)
+                                    if (f) {
+                                        if (f->type == World::FLAG_WAREHOUSE) {
+                                            m_statusText = "Cannot delete town hall flag!";
+                                            m_statusTextTimer = 2.0f;
+                                        } else if (f->building || f->pendingBuilding != World::Building_None) {
+                                            m_confirmAction = CONFIRM_DELETE_FLAG;
+                                            m_confirmTargetX = f->pos.x;
+                                            m_confirmTargetY = f->pos.y;
+                                            m_buildState = BUILDSTATE_CONFIRM;
+                                            m_statusText = "Delete building and flag? A=Yes B=No";
+                                            m_statusTextTimer = 3.0f;
+                                        } else {
+                                            ClearRoadTilesForFlag(f);
+                                            m_objectLifecycleManager->ForceDeleteFlag(f);
+                                            m_statusText = "Flag removed!";
+                                            m_statusTextTimer = 2.0f;
+                                        }
+                                    } else {
+                                        m_statusText = "No flag found nearby";
+                                        m_statusTextTimer = 2.0f;
+                                    }
                                 }
+                            } else if (selIdx == 2) {
+                                // Build Road → start road building from nearest flag or new flag
+                                m_flagMenuActive = false;
+                                m_flagMenu->Hide();
+                                if (m_flagManager && !m_flagManager->GetFlagAt(m_confirmTargetX, m_confirmTargetY)) {
+                                    PlaceFreeFlag(m_confirmTargetX, m_confirmTargetY);
+                                }
+                                StartRoad(m_confirmTargetX, m_confirmTargetY);
+                                OutputDebugStringA("[GameScene] Flag menu: Build Road\n");
                             }
                         }
-                        m_roadMenuActive = false;
-                        m_roadMenu->Hide();
-                        m_roadMenu->ResetSelection();
+                        m_flagMenuActive = false;
+                        m_flagMenu->Hide();
+                        m_flagMenu->ResetSelection();
                     }
                 }
             } else if (m_townHallPanelOpen) {
                 // Town hall resource panel is open → B to close
                 if (bPressed) {
                     m_townHallPanelOpen = false;
-                    m_statusText = "RB=Menu  A=interact  B=cancel";
+                    m_statusText = "";
                     m_statusTextTimer = 0.0f;
                 }
             } else {
                 // Normal mode: A to open town hall or road menu, RB to open build menu
+                if (bPressed && m_geologistState == GEOLOGIST_CONFIRM) {
+                    CancelGeologistMenu();
+                }
                 if (aPressed) {
-                    if (m_cursorOnTownHall) {
+                    // Geologist confirm menu on mountain takes priority
+                    bool handled = false;
+                    if (m_map) {
+                        const World::Tile& objTile = m_map->GetTile(World::Objects, m_cursorTileX, m_cursorTileY);
+                        if (objTile.type == World::Mountain || objTile.type == World::MountainOnWater || objTile.type == World::Rock) {
+                            if (m_geologistState == GEOLOGIST_CONFIRM) {
+                                StartGeologistSurvey();
+                            } else if (m_geologistState == GEOLOGIST_NONE) {
+                                // Check if already surveyed
+                                const World::ResourceNode& node = m_map->GetResourceNode(m_cursorTileX, m_cursorTileY);
+                                if (!node.surveyed) {
+                                    ShowGeologistConfirm(m_cursorTileX, m_cursorTileY);
+                                } else {
+                                    m_statusText = "This mountain is already surveyed";
+                                    m_statusTextTimer = 2.0f;
+                                }
+                            }
+                            handled = true;
+                        }
+                    }
+                    if (!handled && m_cursorOnTownHall) {
                         m_townHallPanelOpen = true;
-                        m_statusText = "Town Hall resources  B=close";
-                        m_statusTextTimer = 0.0f;
-                        OutputDebugStringA("[GameScene] Town hall panel opened\n");
-                    } else {
+                    }
+                }
+                // ─── Y button: Flag construction menu (skip mountain & water) ─
+                if (yPressed) {
+                    bool skipFlagMenu = false;
+                    if (m_map) {
+                        // 1. Skip mountain tiles (have collision)
+                        const World::Tile& objTile = m_map->GetTile(World::Objects, m_cursorTileX, m_cursorTileY);
+                        if (objTile.type == World::Mountain || objTile.type == World::MountainOnWater || objTile.type == World::Rock) {
+                            skipFlagMenu = true;
+                        }
+                        // 2. Skip water / shallow
+                        if (!skipFlagMenu) {
+                            BYTE weight = m_map->GetNodeWeight(m_cursorTileX, m_cursorTileY);
+                            if (weight == World::Weight_Deep || weight == World::Weight_Shallow) {
+                                skipFlagMenu = true;
+                            }
+                        }
+                    }
+                    if (!skipFlagMenu) {
                         // Search 3x3 neighborhood for nearest flag
                         World::Flag* nearestFlag = NULL;
                         int nearestDist = 999;
@@ -1357,40 +1499,17 @@ void GameScene::Update(float deltaTime)
                             }
                         }
                         if (nearestFlag) {
-                            // Open road/flag menu on flag
                             m_confirmTargetX = flagX;
                             m_confirmTargetY = flagY;
-                            m_roadMenuActive = true;
-                            m_roadMenu->ResetSelection();
-                            m_roadMenu->Show(640.0f, 360.0f);
-                            OutputDebugStringA("[GameScene] Road menu opened on flag\n");
+                            m_flagMenuActive = true;
+                            m_flagMenu->Show();
+                            OutputDebugStringA("[GameScene] Flag menu opened on flag\n");
                         } else {
-                            // Check if cursor is on a road tile
-                            bool cursorOnRoad = false;
-                            if (m_map) {
-                                World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
-                                if (roadsLayer) {
-                                    int rx = m_cursorTileX, ry = m_cursorTileY;
-                                    if (rx >= 0 && rx < roadsLayer->GetWidth() && ry >= 0 && ry < roadsLayer->GetHeight()) {
-                                        const World::Tile& rt = roadsLayer->GetTile(rx, ry);
-                                        if (rt.atlasName == "streets") cursorOnRoad = true;
-                                    }
-                                }
-                            }
-                            if (cursorOnRoad) {
-                                m_confirmTargetX = m_cursorTileX;
-                                m_confirmTargetY = m_cursorTileY;
-                                m_roadMenuActive = true;
-                                m_roadMenu->ResetSelection();
-                                m_roadMenu->Show(640.0f, 360.0f);
-                                OutputDebugStringA("[GameScene] Road menu opened on road\n");
-                            } else {
-                                // Place flag on empty ground
-                                m_buildState = BUILDSTATE_CONFIRM;
-                                m_confirmAction = CONFIRM_PLACE_FLAG;
-                                m_confirmTargetX = m_cursorTileX;
-                                m_confirmTargetY = m_cursorTileY;
-                            }
+                            m_confirmTargetX = m_cursorTileX;
+                            m_confirmTargetY = m_cursorTileY;
+                            m_flagMenuActive = true;
+                            m_flagMenu->Show();
+                            OutputDebugStringA("[GameScene] Flag menu opened on ground\n");
                         }
                     }
                 } else if (rbPressed && m_buildMenu) {
@@ -1665,6 +1784,29 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
 //    OutputDebugStringA("[GameScene::Render] Rendering map\n");
     m_tileRenderer->RenderMap();
 
+    // ─── Full-screen background (LAYER_EFFECTS renders above terrain/world) ─
+    {
+        TextureRegistry& regBg = TextureRegistry::instance();
+        LPDIRECT3DTEXTURE9 bgTex = regBg.getTextureOrLoad("background_game");
+        if (bgTex && spriteRenderer) {
+            spriteRenderer->SetTextureSlot(SLOT_BACKGROUND, bgTex);
+            Graphics::RenderCommand bgCmd = {};
+            bgCmd.shaderID = SHADER_UI;
+            bgCmd.x = 0.0f;
+            bgCmd.y = 0.0f;
+            bgCmd.width = 1280.0f;
+            bgCmd.height = 720.0f;
+            bgCmd.u0 = 0.0f; bgCmd.v0 = 0.0f;
+            bgCmd.u1 = 1.0f; bgCmd.v1 = 1.0f;
+            bgCmd.color = 0xFFFFFFFF;
+            bgCmd.depth = 0;
+            bgCmd.layer = LAYER_EFFECTS;
+            bgCmd.textureID = SLOT_BACKGROUND;
+            bgCmd.blendMode = 1;
+            renderQueue->Submit(bgCmd);
+        }
+    }
+
     // ─── E/W connection quads for committed road tiles ────────────────
     {
         World::TileLayer* roadsLayer = m_map ? m_map->GetLayer(World::Roads) : NULL;
@@ -1766,7 +1908,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
             }
         }
 //        OutputDebugStringA("[GameScene::Render] Placement preview rendered\n");
-    } else if (!m_menuActive && !m_roadMenuActive) {
+    } else if (!m_menuActive && !m_roadMenuActive && !m_flagMenuActive && !m_geologistMenuActive) {
         RenderCursor(renderQueue);
 //        OutputDebugStringA("[GameScene::Render] Cursor rendered\n");
     }
@@ -2458,13 +2600,13 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         m_buildMenu->Render();
     }
 
-    // ─── Render road/flag menu (if active) ───────────────────────────────
-    if (m_roadMenu && m_roadMenuActive) {
-        m_roadMenu->Render();
+    // ─── Render flag/UIMenu (if active) ──────────────────────────────────
+    if (m_flagMenu && m_flagMenuActive) {
+        m_flagMenu->Render();
     }
 
     // ─── Hunting spots overlay when hunter building is selected ─────────
-    if (m_roadMenuActive && m_flagManager && m_map && m_textManager) {
+    if (m_flagMenuActive && m_flagManager && m_map && m_textManager) {
         World::Flag* flag = m_flagManager->GetFlagAt(m_confirmTargetX, m_confirmTargetY);
         if (flag && flag->building && flag->building->type == World::Hunter) {
             Logic::ResourceRegistry* registry = m_map->GetResourceRegistry();
@@ -2559,7 +2701,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         }
     }
 
-    if (!m_menuActive && !m_roadMenuActive && !m_townHallPanelOpen) {
+    if (!m_menuActive && !m_roadMenuActive && !m_flagMenuActive && !m_geologistMenuActive && !m_townHallPanelOpen) {
         // ─── Town hall highlight when cursor is over it ──────────────────
         if (m_cursorOnTownHall) {
             std::tr1::shared_ptr<SpriteAtlas> buildingsAtlas = reg.getAtlas("Buildings");
@@ -2687,7 +2829,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         TextureRegistry& reg2 = TextureRegistry::instance();
         std::tr1::shared_ptr<SpriteAtlas> resIconAtlas = reg2.getAtlas("Icon");
         if (resIconAtlas) {
-            float barX = 10.0f;
+            float barX = 100.0f;
             float barY = 6.0f;
             float iconSize = 28.0f;
             float spacing = 60.0f;
@@ -2730,11 +2872,46 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         }
     }
 
-    // ─── Render status text ─────────────────────────────────────────────
+    // ─── Geologist overlay: mountain highlight + survey UI ──────────
+    RenderGeologistOverlay(renderQueue);
+
+    // ─── Gamepad UI: push cursor & popups to render queue ──────────
+    PushUiToQueue();
+
+    // ─── Render notification banner (bunner_info) + status text ──────────
     if (m_textManager && !m_statusText.empty()) {
         float screenW = 1280.0f;
         float screenH = 720.0f;
-        m_textManager->DrawTextCenteredToScreen(m_statusText, screenW * 0.5f, screenH - 40.0f, 0xFFFFFFFF, 0.08f);
+        float textY = screenH - 40.0f;
+        // Ensure UI atlas texture is set on the banner slot before submitting
+        if (m_bannerLoaded && spriteRenderer) {
+            TextureRegistry& regB = TextureRegistry::instance();
+            std::tr1::shared_ptr<SpriteAtlas> uiAtlasB = regB.getAtlas("ui");
+            if (uiAtlasB && uiAtlasB->GetTexture()) {
+                spriteRenderer->SetTextureSlot(SLOT_UI_MENU_BG, uiAtlasB->GetTexture());
+            }
+        }
+        // Banner sliding from right edge (top-left pivot), LAYER_EFFECTS so it
+        // sorts before LAYER_UI text regardless of texture slot differences
+        if (m_bannerLoaded && m_bannerSlideX < 1280.0f) {
+            Graphics::RenderCommand bcmd = {};
+            bcmd.x = m_bannerSlideX;
+            bcmd.y = textY - m_bannerH;
+            bcmd.width = m_bannerW;
+            bcmd.height = m_bannerH;
+            bcmd.u0 = m_bannerU0; bcmd.v0 = m_bannerV0;
+            bcmd.u1 = m_bannerU1; bcmd.v1 = m_bannerV1;
+            bcmd.color = 0xFFFFFFFF;
+            bcmd.textureID = SLOT_UI_MENU_BG;
+            bcmd.shaderID = SHADER_UI;
+            bcmd.blendMode = 1;
+            bcmd.layer = LAYER_EFFECTS;
+            bcmd.depth = 0;
+            renderQueue->Submit(bcmd);
+        }
+        // Status text inside the banner
+        float textX = m_bannerSlideX + 40.0f;
+        m_textManager->DrawString(m_statusText, textX, textY - m_bannerH + 4.0f + 25.0f, 0xFFFFFFFF, 0.096f);
     }
 
     // ─── Logistics debug overlay ───────────────────────────────────────
@@ -3064,46 +3241,45 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         }
 
         m_roadMenu->SetTextureSlots(SLOT_UI_ROAD_BG, SLOT_UI_ROAD_CELL, SLOT_UI_ROAD_ICON);
-        m_roadMenu->SetTextures(uiTex, uiTex, uiTex);
+        // No cell background texture → GridMenu skips cell background rendering
+        m_roadMenu->SetBackgroundTexture(uiTex);
+        m_roadMenu->SetAtlasTexture(uiTex);
 
-        GridMenu::TileUV bgUV = {0,0,1,1}, cellUV = {0,0,1,1};
-        uint32_t bgIdx = uiAtlas->GetIndex("menu_Grid");
-        if (bgIdx != 0xFFFFFFFF) {
-            const SpriteRegion* r = uiAtlas->GetRegion(bgIdx);
-            if (r) { bgUV.u0 = r->u0; bgUV.v0 = r->v0; bgUV.u1 = r->u1; bgUV.v1 = r->v1; }
+        GridMenu::TileUV bgUV = {0,0,1,1};
+        // Use menu_creat_flag_road as background at native size
+        uint32_t newBgIdx = uiAtlas->GetIndex("menu_creat_flag_road");
+        if (newBgIdx != 0xFFFFFFFF) {
+            const SpriteRegion* r = uiAtlas->GetRegion(newBgIdx);
+            if (r) {
+                bgUV.u0 = r->u0; bgUV.v0 = r->v0;
+                bgUV.u1 = r->u1; bgUV.v1 = r->v1;
+                m_roadMenu->SetMenuSize((float)r->width, (float)r->height);
+            }
         } else {
-            OutputDebugStringA("[GameScene] WARNING: 'menu_Grid' NOT FOUND in UI atlas\n");
-        }
-        uint32_t cellIdx = uiAtlas->GetIndex("menu_cell3");
-        if (cellIdx != 0xFFFFFFFF) {
-            const SpriteRegion* r = uiAtlas->GetRegion(cellIdx);
-            if (r) { cellUV.u0 = r->u0; cellUV.v0 = r->v0; cellUV.u1 = r->u1; cellUV.v1 = r->v1; }
-        } else {
-            OutputDebugStringA("[GameScene] WARNING: 'menu_cell3' NOT FOUND in UI atlas\n");
+            uint32_t bgIdx = uiAtlas->GetIndex("menu_Grid");
+            if (bgIdx != 0xFFFFFFFF) {
+                const SpriteRegion* r = uiAtlas->GetRegion(bgIdx);
+                if (r) { bgUV.u0 = r->u0; bgUV.v0 = r->v0; bgUV.u1 = r->u1; bgUV.v1 = r->v1; }
+            }
         }
         m_roadMenu->SetBackgroundUV(bgUV);
-        m_roadMenu->SetCellUV(cellUV);
 
-        // Road/flag icons: icon_create_road, icon_set_flag, icon_delete_flag, icon_Streets, icon_delete_Streets
+        // Road/flag icons (3 items): set flag, delete flag, switch to build menu
         const char* iconNames[] = {
-            "icon_create_road",
             "icon_set_flag",
             "icon_delete_flag",
-            "icon_delete_Streets",
             "icon_Streets",
         };
         const char* iconLabels[] = {
-            "Build Road",
             "Set Flag",
             "Delete Flag",
-            "Delete Road",
             "Buildings",
         };
         std::vector<GridMenu::TileUV> tileUVs;
         std::vector<int> spriteIndices;
         std::vector<std::string> cellLabels;
-
-        for (int i = 0; i < 5; ++i) {
+        int iconH = 32;
+        for (int i = 0; i < 3; ++i) {
             uint32_t idx = uiAtlas->GetIndex(iconNames[i]);
             if (idx == 0xFFFFFFFF) {
                 char dbg[256];
@@ -3119,15 +3295,139 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
             tileUVs.push_back(uv);
             spriteIndices.push_back((int)idx);
             cellLabels.push_back(iconLabels[i]);
+            if ((int)r->height > iconH) iconH = (int)r->height;
         }
 
         m_roadMenu->SetCellLabels(cellLabels);
-        m_roadMenu->SetCellSpacing(80.0f, 80.0f);
+        m_roadMenu->SetCellSpacing(110.0f, 60.0f);
         m_roadMenu->SetCellPadding(4.0f);
-        m_roadMenu->SetCellVisualSize(64.0f, 64.0f);
+        m_roadMenu->SetCellVisualSize((float)iconH, (float)iconH);
         m_roadMenu->SetTileData(tileUVs, spriteIndices);
 
         OutputDebugStringA("[GameScene::InitRoadMenu] DONE\n");
+    }
+
+    void GameScene::InitFlagMenu()
+    {
+        if (!m_flagMenu) {
+            OutputDebugStringA("[GameScene] WARNING: m_flagMenu is null\n");
+            return;
+        }
+
+        TextureRegistry& reg = TextureRegistry::instance();
+        reg.getTextureOrLoad("ui");
+        std::tr1::shared_ptr<SpriteAtlas> uiAtlas = reg.getAtlas("ui");
+        if (!uiAtlas) {
+            OutputDebugStringA("[GameScene] WARNING: UI atlas not found for flag menu\n");
+            return;
+        }
+
+        LPDIRECT3DTEXTURE9 uiTex = uiAtlas->GetTexture();
+        if (!uiTex) {
+            OutputDebugStringA("[GameScene] WARNING: UI atlas has no texture\n");
+            return;
+        }
+
+        const float scale = 0.5f;
+
+        // Background: menu_creat_flag_road scaled proportionally
+        UIMenu::BackgroundData bg = {0,0,1,1, 0,0,0,0};
+        uint32_t bgIdx = uiAtlas->GetIndex("menu_creat_flag_road");
+        if (bgIdx != 0xFFFFFFFF) {
+            const SpriteRegion* r = uiAtlas->GetRegion(bgIdx);
+            if (r) {
+                bg.u0 = r->u0; bg.v0 = r->v0;
+                bg.u1 = r->u1; bg.v1 = r->v1;
+                bg.w = (float)r->width * scale;
+                bg.h = (float)r->height * scale;
+                bg.x = 640.0f - bg.w * 0.5f;
+                bg.y = 360.0f - bg.h * 0.5f;
+            }
+        }
+        m_flagMenu->SetBackground(bg);
+        m_flagMenu->SetAtlas(uiTex, SLOT_UI_ROAD_BG);
+
+        // Three items: Set Flag, Delete Flag, Build Road
+        const char* iconNames[] = {"icon_set_flag", "icon_delete_flag", "icon_Streets"};
+        const char* iconLabels[] = {"Set Flag", "Delete Flag", "Build Road"};
+
+        m_flagMenuItemCount = 3;
+        float menuCX = 640.0f;
+        float menuY = bg.y + bg.h * 0.5f;
+        float itemSpacing = bg.w / (float)(m_flagMenuItemCount + 1);
+        int iconSize = 32;
+
+        for (int i = 0; i < m_flagMenuItemCount; ++i) {
+            uint32_t idx = uiAtlas->GetIndex(iconNames[i]);
+            UIMenu::ItemData& item = m_flagMenuItemData[i];
+            if (idx != 0xFFFFFFFF) {
+                const SpriteRegion* r = uiAtlas->GetRegion(idx);
+                if (r) {
+                    item.u0 = r->u0; item.v0 = r->v0;
+                    item.u1 = r->u1; item.v1 = r->v1;
+                    item.w = (float)r->width * scale;
+                    item.h = (float)r->height * scale;
+                }
+            }
+            if (item.w < 1.0f) { item.w = (float)iconSize; item.h = (float)iconSize; }
+            item.x = menuCX + (float)(i - 1) * itemSpacing - item.w * 0.5f;
+            item.y = menuY - item.h * 0.5f;
+            item.label = iconLabels[i];
+        }
+        m_flagMenu->SetItems(m_flagMenuItemData, m_flagMenuItemCount);
+
+        OutputDebugStringA("[GameScene::InitFlagMenu] DONE\n");
+    }
+
+    void GameScene::InitGeologistMenu()
+    {
+        if (!m_geologistMenu) {
+            OutputDebugStringA("[GameScene] WARNING: m_geologistMenu is null\n");
+            return;
+        }
+
+        TextureRegistry& reg = TextureRegistry::instance();
+        reg.getTextureOrLoad("ui");
+        std::tr1::shared_ptr<SpriteAtlas> uiAtlas = reg.getAtlas("ui");
+        if (!uiAtlas) {
+            OutputDebugStringA("[GameScene] WARNING: UI atlas not found for geologist menu\n");
+            return;
+        }
+
+        LPDIRECT3DTEXTURE9 uiTex = uiAtlas->GetTexture();
+        if (!uiTex) {
+            OutputDebugStringA("[GameScene] WARNING: UI atlas has no texture\n");
+            return;
+        }
+
+        // Background: geologist_menu sprite, fallback to menu_creat_flag_road
+        UIMenu::BackgroundData bg = {0,0,1,1, 0,0,0,0};
+        bool bgFound = false;
+        const char* bgNames[] = { "geologist_menu", "menu_creat_flag_road" };
+        for (int bi = 0; bi < 2 && !bgFound; ++bi) {
+            uint32_t bgIdx = uiAtlas->GetIndex(bgNames[bi]);
+            if (bgIdx != 0xFFFFFFFF) {
+                const SpriteRegion* r = uiAtlas->GetRegion(bgIdx);
+                if (r) {
+                    bg.u0 = r->u0; bg.v0 = r->v0;
+                    bg.u1 = r->u1; bg.v1 = r->v1;
+                    bg.w = (float)r->width;
+                    bg.h = (float)r->height;
+                    bg.x = 640.0f - bg.w * 0.5f;
+                    bg.y = 360.0f - bg.h * 0.5f;
+                    bgFound = true;
+                    OutputDebugStringA("[GameScene::InitGeologistMenu] using background: ");
+                    OutputDebugStringA(bgNames[bi]);
+                    OutputDebugStringA("\n");
+                }
+            }
+        }
+        if (bgFound) {
+            m_geologistMenu->SetBackground(bg);
+        }
+        m_geologistMenu->SetAtlas(uiTex, SLOT_UI_MENU_BG);
+
+        OutputDebugStringA("[GameScene::InitGeologistMenu] DONE\n");
     }
 
     // Hex grid parity: on odd Y, the hex neighbor at dy>0 has X one less
@@ -4900,6 +5200,486 @@ void GameScene::CancelRoad()
             RebuildRoadSprite(evenRow ? x : (x - 1), y + 1);
             RebuildRoadSprite(evenRow ? (x + 1) : x, y + 1);
         }
+    }
+
+    // ─── Geologist system ───────────────────────────────────────────────────
+    void GameScene::ShowGeologistConfirm(int tx, int ty)
+    {
+        m_geologistState = GEOLOGIST_CONFIRM;
+        m_geologistTileX = tx;
+        m_geologistTileY = ty;
+        m_geologistMenuActive = true;
+        if (m_geologistMenu) m_geologistMenu->Show();
+        m_statusText = "Геолог: A=да  B=нет";
+        m_statusTextTimer = 0.0f;
+    }
+
+    void GameScene::StartGeologistSurvey()
+    {
+        if (m_geologistState != GEOLOGIST_CONFIRM) return;
+        m_geologistState = GEOLOGIST_WORKING;
+        m_geologistTimer = 60.0f;
+        m_geologistMenuActive = false;
+        if (m_geologistMenu) m_geologistMenu->Hide();
+        m_statusText = "Geologist working...";
+        m_statusTextTimer = 0.0f;
+    }
+
+    void GameScene::CancelGeologistMenu()
+    {
+        m_geologistState = GEOLOGIST_NONE;
+        m_geologistTileX = -1;
+        m_geologistTileY = -1;
+        m_geologistMenuActive = false;
+        if (m_geologistMenu) m_geologistMenu->Hide();
+        m_statusText = "Survey cancelled";
+        m_statusTextTimer = 2.0f;
+    }
+
+    void GameScene::RenderGeologistOverlay(Graphics::RenderQueue* renderQueue)
+    {
+        if (!m_map || !renderQueue) return;
+        CoordinateSystem& coords = CoordinateSystem::GetInstance();
+
+        TextureRegistry& reg = TextureRegistry::instance();
+        std::tr1::shared_ptr<SpriteAtlas> uiAtlas = reg.getAtlas("ui");
+
+        // 1. Mountain highlight — semi-transparent overlay on mountain tiles under cursor
+        if (m_map) {
+            const World::Tile& objTile = m_map->GetTile(World::Objects, m_cursorTileX, m_cursorTileY);
+            if (objTile.type == World::Mountain || objTile.type == World::MountainOnWater || objTile.type == World::Rock) {
+                // Render a semi-transparent colored overlay at the mountain tile position
+                SpriteRenderer* sr = m_renderer ? m_renderer->GetSpriteRenderer() : NULL;
+                float wx, wy;
+                coords.NodeTileToWorld(m_cursorTileX, m_cursorTileY, wx, wy);
+                int tileW = 60, tileH = 30;
+                // Try to get tile dimensions from the mountain sprite in the Objects layer
+                {
+                    const World::Tile& objTile2 = m_map->GetTile(World::Objects, m_cursorTileX, m_cursorTileY);
+                    if (objTile2.regionIndex >= 0) {
+                        std::tr1::shared_ptr<SpriteAtlas> maptilesAtlas = reg.getAtlas("maptiles");
+                        if (maptilesAtlas) {
+                            const SpriteRegion* mountainReg = maptilesAtlas->GetRegion((uint32_t)objTile2.regionIndex);
+                            if (mountainReg) {
+                                tileW = (int)mountainReg->width;
+                                tileH = (int)mountainReg->height;
+                            }
+                        }
+                    }
+                }
+                std::tr1::shared_ptr<SpriteAtlas> buildingsAtlas = reg.getAtlas("Buildings");
+                LPDIRECT3DTEXTURE9 buildingsTex = buildingsAtlas ? buildingsAtlas->GetTexture() : NULL;
+                if (sr && buildingsTex) sr->SetTextureSlot(SLOT_BUILDINGS_HIGHLIGHT, buildingsTex);
+                Graphics::RenderCommand cmd = {};
+                cmd.x = wx;
+                cmd.y = wy;
+                cmd.width = (float)tileW;
+                cmd.height = (float)tileH;
+                // Use a tiny UV region to act as a solid-color pixel
+                cmd.u0 = 0.5f; cmd.v0 = 0.5f;
+                cmd.u1 = 0.5001f; cmd.v1 = 0.5001f;
+                cmd.color = D3DCOLOR_ARGB(80, 255, 255, 0);
+                cmd.textureID = SLOT_BUILDINGS_HIGHLIGHT;
+                cmd.shaderID = SHADER_TERRAIN;
+                cmd.blendMode = 1;
+                cmd.layer = LAYER_FOREGROUND;
+                cmd.depth = static_cast<WORD>(0.98f * 65535.0f);
+                renderQueue->Submit(cmd);
+            }
+        }
+
+        // 2. Geologist confirm menu — UIMenu background + custom sprite/text items
+        if (m_geologistMenu && (m_geologistMenuActive || m_geologistState == GEOLOGIST_CONFIRM)) {
+            if (!m_geologistMenuActive && m_geologistState == GEOLOGIST_CONFIRM) {
+                m_geologistMenuActive = true;
+                m_geologistMenu->Show();
+            }
+            m_geologistMenu->Render();
+            if (m_textManager && m_geologistMenu->IsVisible()) {
+                std::tr1::shared_ptr<SpriteAtlas> uiAtl = reg.getAtlas("ui");
+                std::tr1::shared_ptr<SpriteAtlas> iconAtl = reg.getAtlas("Icon");
+                SpriteRenderer* sr2 = m_renderer ? m_renderer->GetSpriteRenderer() : NULL;
+                float cx = 640.0f;
+                float yOff = 200.0f;
+                int iconSize = 40;
+
+                // Helper lambda: render a sprite by name from UI atlas, fallback Icon, fallback colored quad
+                auto renderIcon = [&](const char* name, float x, float y, float w, float h, D3DCOLOR fallback) {
+                    bool ok = false;
+                    if (sr2) {
+                        LPDIRECT3DTEXTURE9 tex = NULL;
+                        float u0=0.5f,v0=0.5f,u1=0.5001f,v1=0.5001f;
+                        if (uiAtl) {
+                            uint32_t idx = uiAtl->GetIndex(name);
+                            if (idx != 0xFFFFFFFF) {
+                                const SpriteRegion* r = uiAtl->GetRegion(idx);
+                                if (r) { u0=r->u0;v0=r->v0;u1=r->u1;v1=r->v1; tex=uiAtl->GetTexture(); }
+                            }
+                        }
+                        if (!tex && iconAtl) {
+                            uint32_t idx = iconAtl->GetIndex(name);
+                            if (idx != 0xFFFFFFFF) {
+                                const SpriteRegion* r = iconAtl->GetRegion(idx);
+                                if (r) { u0=r->u0;v0=r->v0;u1=r->u1;v1=r->v1; tex=iconAtl->GetTexture(); }
+                            }
+                        }
+                        if (tex) {
+                            WORD slot = tex == uiAtl->GetTexture() ? SLOT_UI_MENU_BG : SLOT_UI_MENU_ICON;
+                            sr2->SetTextureSlot(slot, tex);
+                            Graphics::RenderCommand ic = {};
+                            ic.x = x; ic.y = y; ic.width = w; ic.height = h;
+                            ic.u0 = u0; ic.v0 = v0; ic.u1 = u1; ic.v1 = v1;
+                            ic.color = 0xFFFFFFFF;
+                            ic.textureID = slot;
+                            ic.shaderID = SHADER_UI;
+                            ic.blendMode = 1;
+                            ic.layer = LAYER_UI;
+                            ic.depth = 100;
+                            renderQueue->Submit(ic);
+                            ok = true;
+                        }
+                    }
+                    if (!ok) {
+                        Graphics::RenderCommand ic = {};
+                        ic.x = x; ic.y = y; ic.width = w; ic.height = h;
+                        ic.u0 = 0.5f; ic.v0 = 0.5f; ic.u1 = 0.5001f; ic.v1 = 0.5001f;
+                        ic.color = fallback;
+                        ic.textureID = SLOT_UI_MENU_BG;
+                        ic.shaderID = SHADER_UI;
+                        ic.blendMode = 1;
+                        ic.layer = LAYER_UI;
+                        ic.depth = 100;
+                        renderQueue->Submit(ic);
+                    }
+                };
+
+                // Layout: icon_mountain, "Геолог", icon_geologist, ornament_1, "Отправить..."
+                renderIcon("icon_mountain", cx - 24.0f, yOff, 48.0f, 48.0f, D3DCOLOR_ARGB(200, 140, 110, 80));
+                m_textManager->DrawTextCenteredToScreen("Геолог", cx, yOff + 54.0f, D3DCOLOR_ARGB(255, 255, 255, 220), 0.095f);
+                renderIcon("icon_geologist", cx - 18.0f, yOff + 90.0f, 36.0f, 36.0f, D3DCOLOR_ARGB(200, 255, 220, 100));
+                renderIcon("ornament_1", cx - 50.0f, yOff + 132.0f, 100.0f, 14.0f, D3DCOLOR_ARGB(180, 180, 150, 80));
+                m_textManager->DrawTextCenteredToScreen("Отправить геолога для поиска полезных ископаемых",
+                    cx, yOff + 162.0f, D3DCOLOR_ARGB(255, 200, 200, 200), 0.08f);
+            }
+        }
+
+        // 3. Resource icons on SURVEYED mountains (already explored)
+        int w = m_map->GetWidth() * 2;
+        int h = m_map->GetHeight() * 4;
+        SpriteRenderer* sr = m_renderer ? m_renderer->GetSpriteRenderer() : NULL;
+        std::tr1::shared_ptr<SpriteAtlas> iconAtlas = reg.getAtlas("Icon");
+
+        for (int y = 0; y < h; y += 1) {
+            for (int x = 0; x < w; x += 1) {
+                const World::ResourceNode& node = m_map->GetResourceNode(x, y);
+                if (!node.surveyed || node.type == World::ResourceType_None || node.amount <= 0) continue;
+
+                float wx, wy;
+                coords.NodeTileToWorld(x, y, wx, wy);
+
+                // Try to render the deposit icon from the Icon atlas
+                bool iconRendered = false;
+                if (iconAtlas && sr) {
+                    LPDIRECT3DTEXTURE9 iconTex = iconAtlas->GetTexture();
+                    if (iconTex) {
+                        const char* depositName = World::ResourceTypeToDepositIconName(node.type);
+                        if (depositName && depositName[0] != '\0') {
+                            sr->SetTextureSlot(SLOT_UI_MENU_ICON, iconTex);
+                            uint32_t depositIdx = iconAtlas->GetIndex(depositName);
+                            if (depositIdx != 0xFFFFFFFF) {
+                                const SpriteRegion* depositReg = iconAtlas->GetRegion(depositIdx);
+                                if (depositReg) {
+                                    Graphics::RenderCommand icmd = {};
+                                    icmd.x = wx;
+                                    icmd.y = wy - 40.0f;
+                                    icmd.width = (float)depositReg->width * 0.8f;
+                                    icmd.height = (float)depositReg->height * 0.8f;
+                                    icmd.u0 = depositReg->u0; icmd.v0 = depositReg->v0;
+                                    icmd.u1 = depositReg->u1; icmd.v1 = depositReg->v1;
+                                    icmd.color = D3DCOLOR_ARGB(220, 255, 255, 255);
+                                    icmd.textureID = SLOT_UI_MENU_ICON;
+                                    icmd.shaderID = SHADER_TERRAIN;
+                                    icmd.blendMode = 1;
+                                    icmd.layer = LAYER_FOREGROUND;
+                                    icmd.depth = static_cast<WORD>(0.97f * 65535.0f);
+                                    renderQueue->Submit(icmd);
+                                    iconRendered = true;
+                                }
+                            }
+                        }
+                    }
+                }
+                // Fallback: colored quad if deposit icon not found
+                if (!iconRendered) {
+                    D3DCOLOR fallbackColor = D3DCOLOR_ARGB(200, 255, 255, 0);
+                    switch (node.type) {
+                        case World::ResourceType_Coal:    fallbackColor = D3DCOLOR_ARGB(200, 80, 80, 80);    break;
+                        case World::ResourceType_IronOre: fallbackColor = D3DCOLOR_ARGB(200, 180, 100, 50);  break;
+                        case World::ResourceType_GoldOre: fallbackColor = D3DCOLOR_ARGB(200, 255, 215, 0);   break;
+                        case World::ResourceType_Stone:   fallbackColor = D3DCOLOR_ARGB(200, 150, 150, 150); break;
+                        case World::ResourceType_Marble:  fallbackColor = D3DCOLOR_ARGB(200, 200, 180, 220); break;
+                        case World::ResourceType_Granite: fallbackColor = D3DCOLOR_ARGB(200, 130, 90, 70);   break;
+                        default:                         fallbackColor = D3DCOLOR_ARGB(200, 255, 255, 0);   break;
+                    }
+                    Graphics::RenderCommand icmd = {};
+                    icmd.x = wx;
+                    icmd.y = wy - 40.0f;
+                    icmd.width = 24.0f;
+                    icmd.height = 24.0f;
+                    icmd.u0 = 0.5f; icmd.v0 = 0.5f;
+                    icmd.u1 = 0.5001f; icmd.v1 = 0.5001f;
+                    icmd.color = fallbackColor;
+                    icmd.textureID = SLOT_UI_MENU_ICON;
+                    icmd.shaderID = SHADER_TERRAIN;
+                    icmd.blendMode = 1;
+                    icmd.layer = LAYER_FOREGROUND;
+                    icmd.depth = static_cast<WORD>(0.97f * 65535.0f);
+                    renderQueue->Submit(icmd);
+                }
+            }
+        }
+
+        // 4. Geologist working indicator on the mountain being surveyed
+        if (m_geologistState == GEOLOGIST_WORKING && m_geologistTileX >= 0 && m_geologistTileY >= 0) {
+            float wx, wy;
+            coords.NodeTileToWorld(m_geologistTileX, m_geologistTileY, wx, wy);
+            bool iconRendered = false;
+            if (iconAtlas && sr) {
+                LPDIRECT3DTEXTURE9 iconTex = iconAtlas->GetTexture();
+                if (iconTex) {
+                    sr->SetTextureSlot(SLOT_UI_MENU_ICON, iconTex);
+                    uint32_t workIdx = iconAtlas->GetIndex("icon_geologist_work");
+                    if (workIdx != 0xFFFFFFFF) {
+                        const SpriteRegion* workReg = iconAtlas->GetRegion(workIdx);
+                        if (workReg) {
+                            Graphics::RenderCommand wcmd = {};
+                            wcmd.x = wx;
+                            wcmd.y = wy - 50.0f;
+                            wcmd.width = (float)workReg->width;
+                            wcmd.height = (float)workReg->height;
+                            wcmd.u0 = workReg->u0; wcmd.v0 = workReg->v0;
+                            wcmd.u1 = workReg->u1; wcmd.v1 = workReg->v1;
+                            wcmd.color = 0xFFFFFFFF;
+                            wcmd.textureID = SLOT_UI_MENU_ICON;
+                            wcmd.shaderID = SHADER_TERRAIN;
+                            wcmd.blendMode = 1;
+                            wcmd.layer = LAYER_FOREGROUND;
+                            wcmd.depth = static_cast<WORD>(0.97f * 65535.0f);
+                            renderQueue->Submit(wcmd);
+                            iconRendered = true;
+                        }
+                    }
+                }
+            }
+            // Fallback: pulsing yellow quad if icon sprite not found
+            if (!iconRendered) {
+                Graphics::RenderCommand wcmd = {};
+                wcmd.x = wx - 16.0f;
+                wcmd.y = wy - 50.0f;
+                wcmd.width = 32.0f;
+                wcmd.height = 32.0f;
+                wcmd.u0 = 0.5f; wcmd.v0 = 0.5f;
+                wcmd.u1 = 0.5001f; wcmd.v1 = 0.5001f;
+                wcmd.color = D3DCOLOR_ARGB(180, 255, 255, 0);
+                wcmd.textureID = SLOT_UI_MENU_ICON;
+                wcmd.shaderID = SHADER_TERRAIN;
+                wcmd.blendMode = 1;
+                wcmd.layer = LAYER_FOREGROUND;
+                wcmd.depth = static_cast<WORD>(0.97f * 65535.0f);
+                renderQueue->Submit(wcmd);
+            }
+        }
+    }
+
+    // ─── Gamepad cursor & D-Pad navigation ──────────────────────────────────
+    void GameScene::HandleGamepadInput()
+    {
+        if (!m_inputManager || !m_map) return;
+        if (m_menuActive || m_roadMenuActive || m_flagMenuActive || m_geologistMenuActive || m_townHallPanelOpen) return;
+
+        Input::Gamepad* pad = m_inputManager->GetGamepad();
+        if (!pad || !pad->IsConnected()) return;
+
+        int dx = 0, dy = 0;
+
+        // D-Pad: discrete tile movement
+        if (pad->IsButtonPressed(Input::GP_DPadUp))    { dy = -1; m_gamepadActive = true; }
+        if (pad->IsButtonPressed(Input::GP_DPadDown))  { dy = 1;  m_gamepadActive = true; }
+        if (pad->IsButtonPressed(Input::GP_DPadLeft))  { dx = -1; m_gamepadActive = true; }
+        if (pad->IsButtonPressed(Input::GP_DPadRight)) { dx = 1;  m_gamepadActive = true; }
+
+        // Left stick: continuous movement with cooldown-based repeat
+        if (dx == 0 && dy == 0 && m_gamepadCursorCooldown <= 0.0f) {
+            float sx, sy;
+            pad->GetLeftStick(sx, sy);
+            if (fabsf(sx) > 0.5f || fabsf(sy) > 0.5f) {
+                if (fabsf(sx) > 0.5f) dx = (sx > 0.0f) ? 1 : -1;
+                if (fabsf(sy) > 0.5f) dy = (sy > 0.0f) ? 1 : -1;
+                m_gamepadActive = true;
+                m_gamepadCursorCooldown = 0.15f;
+            }
+        }
+
+        if (dx != 0 || dy != 0) {
+            CoordinateSystem& coords = CoordinateSystem::GetInstance();
+            int nodesW = coords.GetNodesWidth();
+            int nodesH = coords.GetNodesHeight();
+
+            m_gamepadCursor.x += dx;
+            m_gamepadCursor.y += dy;
+
+            if (m_gamepadCursor.x < 0) m_gamepadCursor.x = 0;
+            if (m_gamepadCursor.x >= nodesW) m_gamepadCursor.x = nodesW - 1;
+            if (m_gamepadCursor.y < 0) m_gamepadCursor.y = 0;
+            if (m_gamepadCursor.y >= nodesH) m_gamepadCursor.y = nodesH - 1;
+
+            m_cursorTileX = m_gamepadCursor.x;
+            m_cursorTileY = m_gamepadCursor.y;
+        }
+    }
+
+    // ─── Gamepad button handler (edge-triggered bitmask) ────────────────────
+    void GameScene::OnGamepadButton(uint32_t buttons)
+    {
+        if (!m_map) return;
+
+        // A button: interact with tile under gamepad cursor
+        if (buttons & XINPUT_GAMEPAD_A) {
+            const World::Tile& objTile = m_map->GetTile(World::Objects, m_gamepadCursor.x, m_gamepadCursor.y);
+            if (objTile.type == World::Mountain || objTile.type == World::MountainOnWater || objTile.type == World::Rock) {
+                // Use the same geologist flow as mouse A-press
+                if (m_geologistState == GEOLOGIST_CONFIRM) {
+                    StartGeologistSurvey();
+                } else if (m_geologistState == GEOLOGIST_NONE) {
+                    const World::ResourceNode& node = m_map->GetResourceNode(m_gamepadCursor.x, m_gamepadCursor.y);
+                    if (!node.surveyed) {
+                        ShowGeologistConfirm(m_gamepadCursor.x, m_gamepadCursor.y);
+                    }
+                }
+            }
+        }
+    }
+
+    // ─── Geologist popup (fixed buffers, no heap, O(1) swap-and-pop pool) ──
+    void GameScene::SpawnGeologistPopup(int tx, int ty)
+    {
+        if (!m_map) return;
+
+        // Deduplicate: same tile & visible → refresh timer
+        for (int i = 0; i < m_popupCount; ++i) {
+            World::PopupUiData& w = m_popups[i];
+            if (w.tileX == tx && w.tileY == ty && w.isVisible) {
+                w.timer = 5.0f;
+                return;
+            }
+        }
+
+        // Pool full → FIFO evict (shift left)
+        if (m_popupCount >= (int)World::MAX_UI_POPUPS) {
+            for (int i = 1; i < m_popupCount; ++i)
+                m_popups[i - 1] = m_popups[i];
+            m_popupCount--;
+        }
+
+        // Fill new slot
+        World::PopupUiData& win = m_popups[m_popupCount++];
+        win.tileX = tx;
+        win.tileY = ty;
+        win.timer = 5.0f;
+        win.isVisible = true;
+
+        strcpy(win.title, "GEOLOGIST REPORT");
+
+        World::ResourceNode& node = m_map->GetResourceNode(tx, ty);
+        if (node.type != World::ResourceType_None && node.amount > 0) {
+            switch (node.type) {
+                case World::ResourceType_Coal:    strcpy(win.line1, "Coal vein found");       break;
+                case World::ResourceType_IronOre: strcpy(win.line1, "Iron ore found");        break;
+                case World::ResourceType_GoldOre: strcpy(win.line1, "Gold vein found");       break;
+                case World::ResourceType_Stone:   strcpy(win.line1, "Stone deposit found");   break;
+                case World::ResourceType_Marble:  strcpy(win.line1, "Marble deposit found");  break;
+                case World::ResourceType_Granite: strcpy(win.line1, "Granite deposit found"); break;
+                default:                          strcpy(win.line1, "Minerals detected");      break;
+            }
+            _snprintf(win.line2, sizeof(win.line2), "Rich seam: %d units", node.amount);
+        } else {
+            strcpy(win.line1, "Barren rock");
+            strcpy(win.line2, "No minerals found");
+        }
+    }
+
+    // ─── Popup timer + gamepad cooldown management ─────────────────────────
+    void GameScene::UpdateGamepadUI(float dt)
+    {
+        if (m_gamepadCursorCooldown > 0.0f)
+            m_gamepadCursorCooldown -= dt;
+
+        if (m_popupCount <= 0) return;
+
+        for (int i = 0; i < m_popupCount; ++i) {
+            World::PopupUiData& win = m_popups[i];
+            if (!win.isVisible) continue;
+
+            win.timer -= dt;
+            if (win.timer <= 0.0f) {
+                win.isVisible = false;
+                m_popups[i] = m_popups[m_popupCount - 1];
+                m_popupCount--;
+                i--;
+            }
+        }
+    }
+
+    // ─── Push gamepad cursor + popups to RenderQueue ────────────────────────
+    void GameScene::PushUiToQueue()
+    {
+        if (!m_textManager) return;
+
+        TextureRegistry& reg = TextureRegistry::instance();
+
+        // 1. Gamepad grid cursor sprite
+        if (m_gamepadActive) {
+            std::tr1::shared_ptr<SpriteAtlas> uiAtlas = reg.getAtlas("ui");
+            if (uiAtlas) {
+                uint32_t cursorIdx = uiAtlas->GetIndex("cursor");
+                if (cursorIdx != 0xFFFFFFFF) {
+                    const SpriteRegion* cursorRegion = uiAtlas->GetRegion(cursorIdx);
+                    if (cursorRegion) {
+                        RenderQueue* rq = m_renderer ? m_renderer->GetRenderQueue() : NULL;
+                        if (rq) {
+                            float wx, wy;
+                            CoordinateSystem::GetInstance().NodeTileToWorld(
+                                m_gamepadCursor.x, m_gamepadCursor.y, wx, wy);
+
+                            SpriteRenderer* sr = m_renderer->GetSpriteRenderer();
+                            if (sr) {
+                                LPDIRECT3DTEXTURE9 uiTex = uiAtlas->GetTexture();
+                                if (uiTex) sr->SetTextureSlot(SLOT_UI_CURSOR, uiTex);
+                            }
+
+                            Graphics::RenderCommand cmd = {};
+                            cmd.x = wx - cursorRegion->pivotX;
+                            cmd.y = wy - cursorRegion->pivotY;
+                            cmd.width = (float)cursorRegion->width;
+                            cmd.height = (float)cursorRegion->height;
+                            cmd.u0 = cursorRegion->u0;
+                            cmd.v0 = cursorRegion->v0;
+                            cmd.u1 = cursorRegion->u1;
+                            cmd.v1 = cursorRegion->v1;
+                            cmd.color = D3DCOLOR_ARGB(255, 0, 255, 0);
+                            cmd.textureID = SLOT_UI_CURSOR;
+                            cmd.shaderID = SHADER_TERRAIN;
+                            cmd.blendMode = 1;
+                            cmd.layer = LAYER_FOREGROUND;
+                            cmd.depth = static_cast<WORD>(0.99f * 65535.0f);
+                            rq->Submit(cmd);
+                        }
+                    }
+                }
+            }
+        }
+
+        // NOTE: geologist popup was removed — results now show in banner
     }
 
     // ─── Job function implementations ───────────────────────────────────────

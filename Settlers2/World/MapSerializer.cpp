@@ -15,7 +15,7 @@ struct Header {
 };
 #pragma pack(pop)
 
-static const int CURRENT_VERSION = 6;  // v4 adds flag data, v5 adds road data
+static const int CURRENT_VERSION = 7;  // v7 adds ResourceNode.surveyed
 
 // Вспомогательные функции для буферизации
 static void Append(std::vector<BYTE>& buf, const void* data, size_t size) {
@@ -111,6 +111,8 @@ bool MapSerializer::Save(const World::Map& map, const std::string& path, const s
             Append(buffer, &rn.amount, sizeof(rn.amount));
             BYTE vis = rn.isVisible ? 1 : 0;
             Append(buffer, &vis, 1);
+            BYTE surv = rn.surveyed ? 1 : 0;
+            Append(buffer, &surv, 1);
         }
     }
 
@@ -317,6 +319,8 @@ bool MapSerializer::SaveV4(const World::Map& map, const std::string& path, const
             Append(buffer, &rn.amount, sizeof(rn.amount));
             BYTE vis = rn.isVisible ? 1 : 0;
             Append(buffer, &vis, 1);
+            BYTE surv = rn.surveyed ? 1 : 0;
+            Append(buffer, &surv, 1);
         }
     }
 
@@ -475,6 +479,11 @@ bool MapSerializer::LoadV4(World::Map& map, const std::string& path, std::vector
         reader.Read(&vis, 1);
         map.SetResourceNode(x, y, static_cast<World::ResourceType>(rt), amount, vis != 0);
         map.SetNodeWeight(x, y, weight);
+        if (hdr.version >= 7) {
+            BYTE surv;
+            reader.Read(&surv, 1);
+            map.GetResourceNode(x, y).surveyed = (surv != 0);
+        }
     }
 
     // V4 flags (neighbor graph reconstructed from road tiles on load;

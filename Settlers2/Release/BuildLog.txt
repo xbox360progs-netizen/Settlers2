@@ -1,24 +1,11 @@
-﻿Построение начато 19.06.2026 15:24:29.
+﻿Построение начато 20.06.2026 17:48:10.
      1>Проект "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" в узле 2 (целевые объекты build).
      1>InitializeBuildStatus:
-         Создание "Release\Settlers2.unsuccessfulbuild", так как было задано "AlwaysCreate".
+         Обращение к "Release\Settlers2.unsuccessfulbuild".
        ClCompile:
          Для всех выходных данных обновления не требуется.
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Core\GameEngine.cpp Logic\AISystem.cpp Logic\EconomyManager.cpp Scene\GameScene.cpp World\CarrierManager.cpp World\ConstructionManager.cpp World\FlagManager.cpp World\ObjectDeletionRules.cpp World\ObjectLifecycleManager.cpp World\RoadManager.cpp World\Systems\CarrierSystem.cpp World\TransportJobManager.cpp World\WorkerManager.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
-         GameEngine.cpp
-         AISystem.cpp
-         EconomyManager.cpp
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Scene\GameScene.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
          GameScene.cpp
-         CarrierManager.cpp
-         ConstructionManager.cpp
-         FlagManager.cpp
-         ObjectDeletionRules.cpp
-         ObjectLifecycleManager.cpp
-         RoadManager.cpp
-         CarrierSystem.cpp
-         TransportJobManager.cpp
-         WorkerManager.cpp
-         Generating Code...
        Link:
          C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\link.exe /ERRORREPORT:PROMPT /OUT:"D:\development\Settlers2\Settlers2\Release\Settlers2.exe" /INCREMENTAL:NO /NOLOGO xapilib.lib d3d9.lib d3dx9.lib xgraphics.lib xboxkrnl.lib xnet.lib xaudio2.lib xact3.lib x3daudio.lib xmcore.lib vcomp.lib /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"D:\development\Settlers2\Settlers2\Release\Settlers2.pdb" /STACK:"262144","262144" /OPT:REF /OPT:ICF /TLBID:1 /RELEASE /IMPLIB:"D:\development\Settlers2\Settlers2\Release\Settlers2.lib" Release\GameEngine.obj
          Release\LanguageManager.obj
@@ -75,6 +62,7 @@
          Release\Button.obj
          Release\EditorUI.obj
          Release\GridMenu.obj
+         Release\UIMenu.obj
          Release\Minimap.obj
          Release\Panel.obj
          Release\RadialMenu.obj
@@ -95,6 +83,7 @@
          Release\FlagManager.obj
          Release\HabitatRegistry.obj
          Release\RoadManager.obj
+         Release\StorehouseManager.obj
          Release\TransportJobManager.obj
          Release\ObjectDeletionRules.obj
          Release\ObjectLifecycleManager.obj
@@ -129,4 +118,4 @@
 
 Построение успешно завершено.
 
-Затраченное время: 00:00:27.49
+Затраченное время: 00:00:18.83

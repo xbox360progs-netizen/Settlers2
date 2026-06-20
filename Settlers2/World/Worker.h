@@ -45,6 +45,9 @@ namespace World {
             if (state != WorkerState_MovingToJob) return false;
             if (!destFlag) return false;
 
+            // No route at all → can't move, stay idle until route assigned
+            if (routeCount == 0) return false;
+
             if (routeCount < 2) {
                 float dx = (float)destFlag->pos.x - posX;
                 float dy = (float)destFlag->pos.y - posY;

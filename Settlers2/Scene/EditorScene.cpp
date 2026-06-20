@@ -485,6 +485,7 @@ void EditorScene::Load() {
 		m_entityManager = new World::EntityManager();
 		m_animalSystem = new World::AnimalSystem(m_entityManager, map);
 		m_animalManager = new World::AnimalManager(m_entityManager, m_animalSystem);
+		m_animalManager->Init(&map->GetHabitatRegistry());
 		m_wildlife = new World::WildlifeSystem(map, m_animalManager, m_animalSystem);
 		map->SetWildlifeSystem(m_wildlife);
 		OutputDebugStringA("[EditorScene] ECS WildlifeSystem initialized\n");

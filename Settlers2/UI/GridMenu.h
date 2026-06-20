@@ -117,6 +117,7 @@ public:
     // Background/cell UV sub-rects (for atlas-based bg/cell sprites)
     void SetBackgroundUV(const TileUV& uv) { m_backgroundUV = uv; }
     void SetCellUV(const TileUV& uv) { m_cellUV = uv; }
+    void SetMenuSize(float w, float h) { m_menuWidth = w; m_menuHeight = h; }
     // New convenience: set all textures in one call (background, cell background, atlas)
     void SetTextures(LPDIRECT3DTEXTURE9 backgroundTexture, LPDIRECT3DTEXTURE9 cellBackgroundTexture, LPDIRECT3DTEXTURE9 atlasTexture);
     // New paging controls for atlas window

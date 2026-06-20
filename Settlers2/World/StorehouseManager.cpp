@@ -4,12 +4,39 @@
 namespace World {
 
     StorehouseManager::StorehouseManager()
-        : m_activeCount(0)
+        : m_storehouses(NULL)
+        , m_activeCount(0)
     {
         for (int i = 0; i < ResourceType_Count; ++i) {
             m_globalStored[i] = 0;
             m_globalInTransit[i] = 0;
         }
+    }
+
+    StorehouseManager::~StorehouseManager()
+    {
+        Clear();
+    }
+
+    void StorehouseManager::Init()
+    {
+        m_storehouses = new StorehouseData[MAX_STOREHOUSES];
+        for (int i = 0; i < MAX_STOREHOUSES; ++i) {
+            for (int j = 0; j < ResourceType_Count; ++j)
+                m_storehouses[i].resources[j] = 0;
+        }
+        m_activeCount = 0;
+    }
+
+    void StorehouseManager::Clear()
+    {
+        delete[] m_storehouses;
+        m_storehouses = NULL;
+        for (int i = 0; i < ResourceType_Count; ++i) {
+            m_globalStored[i] = 0;
+            m_globalInTransit[i] = 0;
+        }
+        m_activeCount = 0;
     }
 
     int StorehouseManager::RegisterStorehouse()
@@ -18,8 +45,6 @@ namespace World {
             return -1;
         int idx = m_activeCount;
         m_activeIndices[m_activeCount++] = idx;
-        for (int i = 0; i < ResourceType_Count; ++i)
-            m_storehouses[idx].resources[i] = 0;
         return idx;
     }
 
@@ -40,9 +65,9 @@ namespace World {
         }
     }
 
-    Storehouse* StorehouseManager::GetStorehouse(int handleIndex)
+    StorehouseData* StorehouseManager::GetStorehouse(int handleIndex)
     {
-        if (handleIndex < 0 || handleIndex >= MAX_STOREHOUSES)
+        if (!m_storehouses || handleIndex < 0 || handleIndex >= MAX_STOREHOUSES)
             return NULL;
         return &m_storehouses[handleIndex];
     }
@@ -73,15 +98,6 @@ namespace World {
             else
                 m_globalInTransit[type] = 0;
         }
-    }
-
-    void StorehouseManager::Clear()
-    {
-        for (int i = 0; i < ResourceType_Count; ++i) {
-            m_globalStored[i] = 0;
-            m_globalInTransit[i] = 0;
-        }
-        m_activeCount = 0;
     }
 
 }

@@ -454,9 +454,6 @@
     <ClInclude Include="World\RoadManager.h">
       <Filter>World</Filter>
     </ClInclude>
-    <ClInclude Include="World\Storehouse.h">
-      <Filter>World</Filter>
-    </ClInclude>
     <ClInclude Include="World\StorehouseManager.h">
       <Filter>World</Filter>
     </ClInclude>
@@ -504,6 +501,36 @@
     </ClInclude>
     <ClInclude Include="HabitatRegistry.h">
       <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Component.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\Resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Cargo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="World\CargoManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Demand.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="World\DemandManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Systems\AnimalSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Systems\CarrierSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="World\WorkerManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\UIMenu.h">
+      <Filter>UI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -785,6 +812,24 @@
     </ClCompile>
     <ClCompile Include="World\HabitatRegistry.cpp">
       <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="World\CargoManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="World\DemandManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="World\WorkerManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="World\Systems\AnimalSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="World\Systems\CarrierSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\UIMenu.cpp">
+      <Filter>UI</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

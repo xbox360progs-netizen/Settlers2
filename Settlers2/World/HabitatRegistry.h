@@ -1,5 +1,3 @@
-// HabitatRegistry.h
-
 #pragma once
 #include <vector>
 #include <cstdint>
@@ -9,18 +7,20 @@ namespace World {
 
 class HabitatRegistry {
 public:
-	HabitatRegistry() : m_nextHabitatId(1) {}
-    uint32_t Register(World::AnimalHabitat& habitat);
-    void Restore(const World::AnimalHabitat& habitat);
+    HabitatRegistry() : m_nextHabitatId(1) {}
+    uint32_t Register(AnimalHabitat& habitat);
+    void Restore(const AnimalHabitat& habitat);
     void Clear();
 
-    const World::AnimalHabitat* GetById(uint32_t id) const;
-    const World::AnimalHabitat* GetByIndex(size_t index) const;
+    const AnimalHabitat* GetById(uint32_t id) const;
+    AnimalHabitat* GetMutableById(uint32_t id);
+    const AnimalHabitat* GetByIndex(size_t index) const;
+    AnimalHabitat* GetMutableByIndex(size_t index);
     size_t GetCount() const;
 
 private:
     uint32_t m_nextHabitatId;
-    std::vector<World::AnimalHabitat> m_habitats;
+    std::vector<AnimalHabitat> m_habitats;
 };
 
 } // namespace World

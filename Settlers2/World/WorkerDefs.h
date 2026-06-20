@@ -4,14 +4,15 @@
 #define MAX_TRANSIT_WORKERS 256
 #define MAX_WORKER_ROUTE_FLAGS 64
 
-// Forward declaration for cold route data
-namespace World { class Flag; }
-
 // Cold route data — stored in parallel array inside WorkerManager
 // Only accessed when worker is actively moving; not in hot iteration path
+namespace World { class Flag; }
+
 struct WorkerRoute {
     World::Flag* flags[MAX_WORKER_ROUTE_FLAGS];
 };
+
+namespace World {
 
 enum WorkerState : uint8_t {
     WorkerState_Idle,
@@ -30,3 +31,5 @@ enum ProfessionType : uint8_t {
     Profession_Miner,
     Profession_Builder
 };
+
+}

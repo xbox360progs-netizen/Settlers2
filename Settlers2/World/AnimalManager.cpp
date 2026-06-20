@@ -2,6 +2,8 @@
 #include "AnimalManager.h"
 #include "EntityManager.h"
 #include "Systems/AnimalSystem.h"
+#include "HabitatRegistry.h"
+#include "AnimalHabitat.h"
 #include <cstdlib>
 
 namespace World {
@@ -9,11 +11,23 @@ namespace World {
 AnimalManager::AnimalManager(EntityManager* entityManager, AnimalSystem* animalSystem)
     : m_entityManager(entityManager)
     , m_animalSystem(animalSystem)
+    , m_habitatRegistry(NULL)
 {
 }
 
-void AnimalManager::Spawn(AnimalType type, const Vector2i& pos) {
-    m_animalSystem->CreateAnimal(type, pos);
+void AnimalManager::Init(HabitatRegistry* habitatRegistry) {
+    m_habitatRegistry = habitatRegistry;
+}
+
+void AnimalManager::Spawn(AnimalType type, const Vector2i& pos, uint32_t habitatId) {
+    m_animalSystem->CreateAnimal(type, pos, habitatId);
+
+    if (m_habitatRegistry && habitatId != 0) {
+        AnimalHabitat* hab = m_habitatRegistry->GetMutableById(habitatId);
+        if (hab) {
+            hab->currentCount++;
+        }
+    }
 }
 
 void AnimalManager::AddExisting(const Animal& animal) {
@@ -32,17 +46,27 @@ void AnimalManager::AddExisting(const Animal& animal) {
     ac.state = animal.state;
     ac.spawnerX = animal.spawnerX;
     ac.spawnerY = animal.spawnerY;
-    ac.stopTimer = 0.0f;
+    ac.habitatId = animal.habitatId;
+    ac.stopTimer = animal.stopTimer;
 
+    if (!m_animalSystem->RegisterEntity(entity)) return;
+
+    if (m_habitatRegistry && ac.habitatId != 0) {
+        AnimalHabitat* hab = m_habitatRegistry->GetMutableById(ac.habitatId);
+        if (hab) {
+            hab->currentCount++;
+        }
+    }
 }
 
 const std::vector<Animal>& AnimalManager::GetAllAnimals() {
-    RebuildCache();
+    m_animalCache.clear();
+    m_animalSystem->GetAllAnimals(m_animalCache);
     return m_animalCache;
 }
 
 int AnimalManager::GetCount() const {
-    return (int)m_animalSystem->GetCount();
+    return (int)m_animalSystem->GetActiveCount();
 }
 
 Entity AnimalManager::FindAliveAnimal(int x, int y, int radius, AnimalType type) const {
@@ -58,37 +82,34 @@ bool AnimalManager::IsAlive(Entity entity) const {
 }
 
 void AnimalManager::TrapAnimal(int index) {
-    RebuildCache();
+    Entity targetEntity = m_animalSystem->GetEntityByActiveIdx(index);
+    if (targetEntity == INVALID_ENTITY) return;
 
-    if (index < 0 || index >= (int)m_animalCache.size()) return;
+    AnimalComponent* ac = m_entityManager->GetComponent<AnimalComponent>(targetEntity);
+    if (!ac || ac->state == AnimalState_Trapped) return;
 
-    // Find entity matching this cache entry
-    Animal& a = m_animalCache[index];
-    a.state = AnimalState_Trapped;
+    ac->state = AnimalState_Trapped;
 
-    // Update ECS
-    std::vector<Entity> entities;
-    m_entityManager->GetAllEntities(entities);
-    for (size_t i = 0; i < entities.size(); ++i) {
-        Entity e = entities[i];
-        AnimalComponent* ac = m_entityManager->GetComponent<AnimalComponent>(e);
-        if (ac && (int)ac->type == (int)a.type) {
-            PositionComponent* pc = m_entityManager->GetComponent<PositionComponent>(e);
-            if (pc && (int)pc->x == (int)a.x && (int)pc->y == (int)a.y) {
-                ac->state = AnimalState_Trapped;
-                return;
-            }
+    if (m_habitatRegistry && ac->habitatId != 0) {
+        AnimalHabitat* hab = m_habitatRegistry->GetMutableById(ac->habitatId);
+        if (hab && hab->currentCount > 0) {
+            hab->currentCount--;
         }
     }
 }
 
 void AnimalManager::RemoveAnimal(Entity entity) {
-    m_animalSystem->RemoveAnimal(entity);
-}
+    AnimalComponent* ac = m_entityManager->GetComponent<AnimalComponent>(entity);
+    if (ac && ac->state == AnimalState_Alive) {
+        if (m_habitatRegistry && ac->habitatId != 0) {
+            AnimalHabitat* hab = m_habitatRegistry->GetMutableById(ac->habitatId);
+            if (hab && hab->currentCount > 0) {
+                hab->currentCount--;
+            }
+        }
+    }
 
-void AnimalManager::RebuildCache() {
-    m_animalCache.clear();
-    m_animalSystem->GetAllAnimals(m_animalCache);
+    m_animalSystem->RemoveAnimal(entity);
 }
 
 }

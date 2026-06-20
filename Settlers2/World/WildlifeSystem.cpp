@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "WildlifeSystem.h"
 #include "Map.h"
+#include "AnimalHabitat.h"
 #include <cstdlib>
 
 namespace World {
@@ -13,7 +14,6 @@ WildlifeSystem::WildlifeSystem(Map* map, AnimalManager* animalManager, AnimalSys
     , m_animalManager(animalManager)
     , m_animalSystem(animalSystem)
     , m_spawnTimer(0.0f)
-    , m_dirTimer(0.0f)
 {
 }
 
@@ -31,14 +31,13 @@ bool WildlifeSystem::ShouldSpawn(float dt)
     return false;
 }
 
-void WildlifeSystem::Update(float deltaTime, const HabitatRegistry& habitats)
+void WildlifeSystem::Update(float deltaTime, HabitatRegistry& habitats)
 {
-    // ECS updates animal movement
     m_animalSystem->Update(deltaTime);
 
     if (ShouldSpawn(deltaTime)) {
         for (size_t i = 0; i < habitats.GetCount(); ++i) {
-            const AnimalHabitat* hab = habitats.GetById((uint32_t)(i + 1));
+            AnimalHabitat* hab = habitats.GetMutableByIndex(i);
             if (hab) {
                 SpawnAtHabitat(*hab);
             }
@@ -46,13 +45,12 @@ void WildlifeSystem::Update(float deltaTime, const HabitatRegistry& habitats)
     }
 }
 
-void WildlifeSystem::SpawnAtHabitat(const AnimalHabitat& habitat)
+void WildlifeSystem::SpawnAtHabitat(AnimalHabitat& habitat)
 {
     int maxAnimals = (habitat.maxAnimals > 0) ? habitat.maxAnimals : MAX_PER_SPAWNER;
-    int count = CountAnimalsAtHabitat(habitat.center.x, habitat.center.y, habitat.type);
-    if (count >= maxAnimals) return;
+    if (habitat.currentCount >= maxAnimals) return;
 
-    int missing = maxAnimals - count;
+    int missing = maxAnimals - habitat.currentCount;
     int chance = missing * 20;
     if (chance > 100) chance = 100;
 
@@ -60,27 +58,7 @@ void WildlifeSystem::SpawnAtHabitat(const AnimalHabitat& habitat)
         Vector2i pos;
         pos.x = habitat.center.x;
         pos.y = habitat.center.y;
-        m_animalManager->Spawn(habitat.type, pos);
-    }
-}
-
-int WildlifeSystem::CountAnimalsAtHabitat(int hx, int hy, AnimalType type) const
-{
-    std::vector<Animal> animals;
-    m_animalSystem->GetAllAnimals(animals);
-    int count = 0;
-    for (size_t i = 0; i < animals.size(); ++i) {
-        if (animals[i].spawnerX == hx && animals[i].spawnerY == hy && animals[i].type == type) {
-            ++count;
-        }
-    }
-    return count;
-}
-
-void WildlifeSystem::AddAnimals(const std::vector<Animal>& animals)
-{
-    for (size_t i = 0; i < animals.size(); ++i) {
-        m_animalManager->AddExisting(animals[i]);
+        m_animalManager->Spawn(habitat.type, pos, habitat.id);
     }
 }
 
