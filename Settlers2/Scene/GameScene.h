@@ -2,6 +2,7 @@
 
 #include "Scene.h"
 #include "../Core/JobManager.h"
+#include "../Core/EventBus.h"
 #include "../Graphics/RenderQueue.h"
 #include "../Graphics/SpriteRenderer.h"
 #include "../Graphics/Renderer.h"
@@ -10,6 +11,7 @@
 #include "../World/WildlifeSystem.h"
 #include "../World/EntityManager.h"
 #include "../World/Systems/AnimalSystem.h"
+#include "../World/Systems/SimulationSystem.h"
 #include "../Logic/EconomyManager.h"
 #include "../World/CarrierManager.h"
 #include "../World/Systems/CarrierSystem.h"
@@ -78,7 +80,11 @@ public:
 private:
     JobManager* m_jobManager;
 
-    // Systems
+    // ─── Simulation system (owns game logic subsystems) ──────
+    World::SimulationSystem m_simulation;
+    Core::EventBus* m_eventBus;
+
+    // Systems (legacy pointers — gradually migrating into m_simulation)
     World::Map* m_map;
     World::EntityManager* m_entityManager;
     World::AnimalSystem* m_animalSystem;

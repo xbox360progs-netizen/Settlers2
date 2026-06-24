@@ -40,6 +40,7 @@ namespace Scene {
     GameScene::GameScene()
         : Scene("Game")
         , m_jobManager(NULL)
+        , m_eventBus(NULL)
         , m_transportJobManager(NULL)
         , m_map(NULL)
         , m_entityManager(NULL)
@@ -303,6 +304,11 @@ namespace Scene {
         }
         OutputDebugStringA("[GameScene::Load] Map ready\n");
 
+        // Set up EventBus (foundation for decoupled communication)
+        OutputDebugStringA("[GameScene::Load] Creating EventBus\n");
+        m_eventBus = new Core::EventBus();
+        OutputDebugStringA("[GameScene::Load] EventBus ready\n");
+
         // Set up ECS + wildlife system
         OutputDebugStringA("[GameScene::Load] Creating ECS wildlife\n");
         m_entityManager = new World::EntityManager();
@@ -533,6 +539,50 @@ namespace Scene {
             m_workerManager->SetRoadManager(m_roadManager);
         }
         OutputDebugStringA("[GameScene::Load] ConstructionManager ready\n");
+
+        // ─── Initialize SimulationSystem (owns game logic subsystems) ───────
+        {
+            OutputDebugStringA("[GameScene::Load] Initializing SimulationSystem\n");
+
+            // Pass existing manager pointers to SimulationSystem (external mode)
+            m_simulation.SetExternalManagers(
+                m_constructionManager,
+                m_economyManager,
+                m_carrierManager,
+                m_carrierSystem,
+                m_workerManager,
+                m_transportJobManager,
+                m_cargoManager,
+                m_demandManager,
+                m_storehouseManager);
+
+            Flag* whFlag = NULL;
+            if (m_economyManager && m_economyManager->GetWarehouse()) {
+                whFlag = m_economyManager->GetWarehouse()->connectedFlag;
+            }
+            m_simulation.Initialize(
+                m_map,
+                m_entityManager,
+                m_flagManager,
+                m_roadManager,
+                whFlag,
+                m_economyManager ? m_economyManager->GetWarehouse() : NULL,
+                m_eventBus);
+
+            // Wire up legacy EconomyManager pointers into SimulationSystem
+            World::EconomySystem& ecoSys = m_simulation.GetEconomy();
+            ecoSys.SetFlagManager(m_flagManager);
+            ecoSys.SetRoadManager(m_roadManager);
+
+            char dbg[256];
+            _snprintf(dbg, sizeof(dbg),
+                "[GameScene] SimulationSystem initialized: construction=%d economy=%d transport=%d workforce=%d\n",
+                m_constructionManager ? (int)m_constructionManager->GetCount() : 0,
+                m_economyManager ? m_economyManager->GetBuildingCount() : 0,
+                m_carrierManager ? m_carrierManager->GetCarrierCount() : 0,
+                m_workerManager ? m_workerManager->GetActiveCount() : 0);
+            OutputDebugStringA(dbg);
+        }
 
         // Create lifecycle manager
         m_objectLifecycleManager = new World::ObjectLifecycleManager(
@@ -1019,6 +1069,11 @@ void GameScene::Unload()
     if (m_flagManager) {
         delete m_flagManager;
         m_flagManager = NULL;
+    }
+
+    if (m_eventBus) {
+        delete m_eventBus;
+        m_eventBus = NULL;
     }
 
     if (m_buildMenu) {
@@ -1584,24 +1639,21 @@ void GameScene::Update(float deltaTime)
         }
     }
 
-    // ─── Phase A0: Construction resource transfer (before economy) ────
-    if (m_constructionManager) {
-        m_constructionManager->Update(deltaTime);
-    }
+    // ─── Simulation: delegates to ConstructionSystem → EconomySystem →
+    //     WorkforceSystem → TransportSystem in the correct order ─────────
+    if (m_simulation.IsInitialized()) {
+        m_simulation.Update(deltaTime);
 
-    // ─── Phase A: Economy (synchronous) ───────────────────────────────
-    if (m_economyManager && m_carrierManager) {
-        // Generate construction resource requests before economy processes them
-        if (m_constructionManager) {
-            m_constructionManager->GenerateRequests(m_economyManager);
-        }
-        m_economyManager->Update(deltaTime);
+        // Periodic status logging
         {
-            static int carrierLogCounter = 0;
-            if (++carrierLogCounter % 120 == 0) {
+            static int simLogCounter = 0;
+            if (++simLogCounter % 120 == 0) {
+                int carriers = m_carrierManager ? m_carrierManager->GetCarrierCount() : 0;
+                int flags = m_flagManager ? (int)m_flagManager->GetCount() : 0;
+                int sites = m_constructionManager ? (int)m_constructionManager->GetCount() : 0;
                 char dbg[256];
-                _snprintf(dbg, sizeof(dbg), "[Status] Carriers=%d Flags=%d\n",
-                    m_carrierManager->GetCarrierCount(), m_flagManager->GetCount());
+                _snprintf(dbg, sizeof(dbg), "[Status] Carriers=%d Flags=%d ConstSites=%d\n",
+                    carriers, flags, sites);
                 OutputDebugStringA(dbg);
             }
         }
@@ -1625,19 +1677,6 @@ void GameScene::Update(float deltaTime)
                 m_map->GrowTrees();
             }
         }
-
-        // ─── Phase Aw: Worker arrival movement ─────────────────────────
-        if (m_workerManager) {
-            m_workerManager->Update(deltaTime);
-        }
-
-        // ─── Phase B: Carrier updates (per-segment walking) ──────────────
-        if (m_carrierManager)
-            m_carrierManager->Update(deltaTime);
-
-        // ─── Phase D: Warehouse collects from its flag (AFTER carriers) ──
-        if (m_economyManager)
-            m_economyManager->CollectWarehouse();
 
         // ─── Phase D: Collect ground resources to nearest player flag ──
         if (m_map && m_flagManager) {
@@ -3536,8 +3575,28 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         SplitRoadAtFlag(flag);
         LinkFlagToRoadNetwork(flag);
         SyncCarriersForFlag(flag);
-        CreateConstructionSite(flag, data.buildX, data.buildY);
+
+        // Enqueue construction via BuildCommand
+        if (m_simulation) {
+            World::BuildCommand cmd;
+            cmd.buildingType = m_selectedBuilding;
+            cmd.posX = data.buildX;
+            cmd.posY = data.buildY;
+            cmd.flagId = flag->id;
+            cmd.valid = true;
+            m_simulation->GetConstructionSystem().Enqueue(cmd);
+        }
+        SetupConstructionSiteTiles(flag, data.buildX, data.buildY, m_selectedBuilding);
         if (m_constructionManager) m_constructionManager->MarkBuilderRoutesDirty();
+
+        // Broadcast Event_FlagPlaced
+        if (m_eventBus) {
+            Core::FlagPlacedData fd;
+            fd.flagId = flag->id;
+            fd.posX = flag->pos.x;
+            fd.posY = flag->pos.y;
+            m_eventBus->Broadcast(Core::Event_FlagPlaced, &fd);
+        }
 
         m_buildState = BUILDSTATE_NONE;
         m_placementIconIdx = -1;
@@ -3579,33 +3638,33 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         SyncCarriersForFlag(flag);
         if (m_constructionManager) m_constructionManager->MarkBuilderRoutesDirty();
 
+        // Broadcast Event_FlagPlaced
+        if (m_eventBus) {
+            Core::FlagPlacedData fd;
+            fd.flagId = flag->id;
+            fd.posX = flag->pos.x;
+            fd.posY = flag->pos.y;
+            m_eventBus->Broadcast(Core::Event_FlagPlaced, &fd);
+        }
+
         char dbg[256];
         _snprintf(dbg, sizeof(dbg), "[GameScene] Free flag placed at (%d,%d)\n", tileX, tileY);
         OutputDebugStringA(dbg);
     }
 
-    void GameScene::CreateConstructionSite(World::Flag* flag, int siteX, int siteY)
+    void GameScene::SetupConstructionSiteTiles(World::Flag* flag, int siteX, int siteY, World::BuildingType buildingType)
     {
         if (!flag || !m_map) return;
 
         char dbg[256];
-        _snprintf(dbg, sizeof(dbg), "[GameScene] CreateConstructionSite at (%d,%d) for flag at (%d,%d)\n",
+        _snprintf(dbg, sizeof(dbg), "[GameScene] SetupConstructionSiteTiles at (%d,%d) for flag at (%d,%d)\n",
             siteX, siteY, flag->pos.x, flag->pos.y);
         OutputDebugStringA(dbg);
 
         World::TileLayer* buildingsLayer = m_map->GetLayer(World::Buildings);
         if (!buildingsLayer || siteX < 0 || siteX >= buildingsLayer->GetWidth() || siteY < 0 || siteY >= buildingsLayer->GetHeight()) {
-            OutputDebugStringA("[GameScene] CreateConstructionSite: invalid coordinates\n");
+            OutputDebugStringA("[GameScene] SetupConstructionSiteTiles: invalid coordinates\n");
             return;
-        }
-
-        // Create the ConstructionSite object
-        World::ConstructionSite* site = new World::ConstructionSite(siteX, siteY, flag->pendingBuilding, flag);
-        if (m_constructionManager) {
-            m_constructionManager->AddSite(site);
-            char dbg2[128];
-            _snprintf(dbg2, sizeof(dbg2), "[GameScene] Sites count=%u\n", (unsigned)m_constructionManager->GetCount());
-            OutputDebugStringA(dbg2);
         }
 
         // Get full collision footprint for the building type
@@ -3614,7 +3673,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         int buildingSpriteIdx = 0; // fallback sprite index
         std::vector<std::pair<int,int>> footMask;
         {
-            const char* namePtr = GetBuildingSpriteName(flag->pendingBuilding);
+            const char* namePtr = GetBuildingSpriteName(buildingType);
             std::string spriteName = (namePtr && namePtr[0]) ? namePtr : "b_unknown";
             TextureRegistry& reg = TextureRegistry::instance();
             reg.getTextureOrLoad("Buildings");
@@ -3649,8 +3708,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         // Hardcoded override: ensure 2x2 buildings use correct footprint
         // (atlas collWidth/collHeight may be wrong for some building types)
         {
-            World::BuildingType bt = flag->pendingBuilding;
-            bool is2x2 = (bt == World::Stonemason || bt == World::Sawmill || bt == World::Farm || bt == World::Mill);
+            bool is2x2 = (buildingType == World::Stonemason || buildingType == World::Sawmill || buildingType == World::Farm || buildingType == World::Mill);
             if (is2x2 && (footW != 2 || footH != 2)) {
                 footW = 2;
                 footH = 2;
@@ -3666,7 +3724,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
             if (bTile.type == World::Tile_None) {
                 bTile.type = World::Decoration;
                 bTile.walkable = true;
-                bTile.buildingType = (int)flag->pendingBuilding;
+                bTile.buildingType = (int)buildingType;
                 if (isBaseTile) {
                     bTile.atlasName = "Buildings";
                     bTile.regionIndex = buildingSpriteIdx;
@@ -3696,8 +3754,8 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
             }
         }
 
-        _snprintf(dbg, sizeof(dbg), "[GameScene] ConstructionSite created at (%d,%d) type=%d wood=%d stone=%d\n",
-            siteX, siteY, (int)flag->pendingBuilding, site->woodNeeded, site->stoneNeeded);
+        _snprintf(dbg, sizeof(dbg), "[GameScene] SetupConstructionSiteTiles at (%d,%d) type=%d\n",
+            siteX, siteY, (int)buildingType);
         OutputDebugStringA(dbg);
     }
 
@@ -4208,6 +4266,16 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                 World::Flag* whFlag = m_economyManager->GetWarehouse()->connectedFlag;
                 m_workerManager->SpawnWorker(building, (float)whFlag->pos.x, (float)whFlag->pos.y);
             }
+        }
+
+        // Broadcast Event_BuildingPlaced
+        if (m_eventBus) {
+            Core::BuildingPlacedData bd;
+            bd.buildingType = (int)site->buildingType;
+            bd.posX = site->x;
+            bd.posY = site->y;
+            bd.flagId = site->flag ? site->flag->id : 0;
+            m_eventBus->Broadcast(Core::Event_BuildingPlaced, &bd);
         }
 
         m_statusText = "Building completed!";
@@ -4829,6 +4897,17 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                 SyncCarriersForFlag(startFlag);
                 SyncCarriersForFlag(endFlag);
             }
+        }
+
+        // Broadcast Event_RoadBuilt
+        if (m_eventBus) {
+            Core::RoadBuiltData rd;
+            rd.startX = m_roadStartX;
+            rd.startY = m_roadStartY;
+            rd.endX = m_roadPreviewPath.empty() ? -1 : m_roadPreviewPath.back().first;
+            rd.endY = m_roadPreviewPath.empty() ? -1 : m_roadPreviewPath.back().second;
+            rd.tileCount = (int)m_roadPreviewPath.size();
+            m_eventBus->Broadcast(Core::Event_RoadBuilt, &rd);
         }
 
         m_statusText = "Road built!";

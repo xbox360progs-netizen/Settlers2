@@ -302,6 +302,7 @@
     <ClInclude Include="Scene\Scene.h" />
     <ClInclude Include="Scene\SceneManager.h" />
     <ClInclude Include="Core\JobManager.h" />
+    <ClInclude Include="Core\EventBus.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="UI\BuildMenu.h" />
     <ClInclude Include="UI\Button.h" />
@@ -387,6 +388,12 @@
     <ClInclude Include="World\Systems\PhysicsSystem.h" />
     <ClInclude Include="World\Systems\AnimalSystem.h" />
     <ClInclude Include="World\Systems\CarrierSystem.h" />
+    <ClInclude Include="World\Systems\ConstructionSystem.h" />
+    <ClInclude Include="World\Systems\TransportSystem.h" />
+    <ClInclude Include="World\Systems\WorkforceSystem.h" />
+    <ClInclude Include="World\Systems\BuildingSystem.h" />
+    <ClInclude Include="World\Systems\SimulationSystem.h" />
+    <ClInclude Include="World\Systems\WorldSystem.h" />
     <ClInclude Include="World\Systems\RenderSystem.h" />
     <ClInclude Include="World\Tile.h" />
     <ClInclude Include="World\TileLayer.h" />
@@ -400,6 +407,7 @@
     <ClCompile Include="Core\GameEngine.cpp" />
     <ClCompile Include="Core\LanguageManager.cpp" />
     <ClCompile Include="Core\JobManager.cpp" />
+    <ClCompile Include="Core\EventBus.cpp" />
     <ClCompile Include="Core\ThreadSync.cpp" />
     <ClCompile Include="Graphics\BatchBuilder.cpp" />
     <ClCompile Include="Graphics\BinFileManager.cpp" />
@@ -500,6 +508,12 @@
     <ClCompile Include="World\Systems\PhysicsSystem.cpp" />
     <ClCompile Include="World\Systems\AnimalSystem.cpp" />
     <ClCompile Include="World\Systems\CarrierSystem.cpp" />
+    <ClCompile Include="World\Systems\ConstructionSystem.cpp" />
+    <ClCompile Include="World\Systems\TransportSystem.cpp" />
+    <ClCompile Include="World\Systems\WorkforceSystem.cpp" />
+    <ClCompile Include="World\Systems\BuildingSystem.cpp" />
+    <ClCompile Include="World\Systems\SimulationSystem.cpp" />
+    <ClCompile Include="World\Systems\WorldSystem.cpp" />
     <ClCompile Include="World\Systems\RenderSystem.cpp" />
     <ClCompile Include="World\TileLayer.cpp" />
     <ClCompile Include="Editor\MapEditor.cpp" />
