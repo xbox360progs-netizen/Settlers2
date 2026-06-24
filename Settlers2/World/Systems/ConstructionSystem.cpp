@@ -10,9 +10,15 @@
 namespace World {
 
 ConstructionSystem::ConstructionSystem()
-    : m_eventBus(NULL)
+    : m_flagManager(NULL)
+    , m_roadManager(NULL)
+    , m_demandManager(NULL)
+    , m_cargoManager(NULL)
+    , m_warehouseFlag(NULL)
+    , m_eventBus(NULL)
     , m_initialized(false)
 {
+    m_completed.reserve(16);
 }
 
 ConstructionSystem::~ConstructionSystem()
@@ -30,6 +36,11 @@ void ConstructionSystem::Initialize(
     Flag* warehouseFlag,
     Core::EventBus* eventBus)
 {
+    m_flagManager = flagManager;
+    m_roadManager = roadManager;
+    m_demandManager = demandManager;
+    m_cargoManager = cargoManager;
+    m_warehouseFlag = warehouseFlag;
     m_manager.SetFlagManager(flagManager);
     m_manager.SetRoadManager(roadManager);
     m_manager.SetDemandManager(demandManager);
@@ -45,15 +56,31 @@ void ConstructionSystem::Initialize(
 
 void ConstructionSystem::Enqueue(const BuildCommand& cmd)
 {
-    if (!cmd.valid) return;
     if (!m_initialized) return;
+    if (cmd.type == Building_None) return;
+    if (!m_flagManager) return;
 
-    Flag* flag = m_manager.GetFlagManager()
-        ? m_manager.GetFlagManager()->GetFlagById(cmd.flagId)
-        : NULL;
-    if (!flag) return;
+    // Determine the entrance flag
+    Flag* flag = cmd.entranceFlag;
+    if (!flag) {
+        // Create a new flag at the building's entrance position.
+        // Default entrance offset (1,0) — the caller should provide
+        // the correct flag if more precision is needed.
+        int entranceX = cmd.tileX + 1;
+        int entranceY = cmd.tileY;
 
-    ConstructionSite* site = new ConstructionSite(cmd.posX, cmd.posY, cmd.buildingType, flag);
+        flag = m_flagManager->CreateFlag(entranceX, entranceY);
+        if (!flag) return;
+        flag->type = FLAG_NORMAL;
+        flag->pendingBuilding = cmd.type;
+        flag->hasBuilding = true;
+    }
+
+    // Mark builder routes dirty to recalculate paths
+    m_manager.MarkBuilderRoutesDirty();
+
+    // Create and register the construction site
+    ConstructionSite* site = new ConstructionSite(cmd.tileX, cmd.tileY, cmd.type, flag);
     m_manager.AddSite(site);
 }
 
@@ -94,13 +121,33 @@ void ConstructionSystem::PostUpdate()
 {
     if (!m_initialized) return;
 
-    // Scan sites for completions and broadcast events
+    // Phase 1: collect newly completed sites into a local array
+    // (never iterate the manager's vector while broadcasting — listeners may modify it)
     const std::vector<ConstructionSite*>& sites = m_manager.GetAllSites();
+    std::vector<ConstructionSite*> newlyCompleted;
+    newlyCompleted.reserve(8);
+
     for (size_t i = 0; i < sites.size(); ++i) {
         ConstructionSite* s = sites[i];
         if (!s->IsComplete()) continue;
 
-        // Broadcast construction complete event
+        // Skip already-reported sites (double-fire guard)
+        bool alreadyReported = false;
+        for (size_t j = 0; j < m_completed.size(); ++j) {
+            if (m_completed[j] == s) {
+                alreadyReported = true;
+                break;
+            }
+        }
+        if (alreadyReported) continue;
+
+        newlyCompleted.push_back(s);
+        m_completed.push_back(s);
+    }
+
+    // Phase 2: broadcast events for all newly completed sites
+    for (size_t i = 0; i < newlyCompleted.size(); ++i) {
+        ConstructionSite* s = newlyCompleted[i];
         if (m_eventBus) {
             Core::ConstructionCompleteData data;
             data.siteX = s->x;
@@ -109,6 +156,27 @@ void ConstructionSystem::PostUpdate()
             data.flagId = s->flag ? s->flag->id : 0;
             m_eventBus->Broadcast(Core::Event_ConstructionComplete, &data);
         }
+    }
+
+    // Phase 3: purge stale pointers from m_completed (sites removed by ConfirmConstruction)
+    // Manual loop instead of erase-remove idiom for C++03 compatibility.
+    {
+        size_t writeIdx = 0;
+        for (size_t i = 0; i < m_completed.size(); ++i) {
+            ConstructionSite* s = m_completed[i];
+            // Check if this pointer still exists in the manager's site list
+            bool stillAlive = false;
+            for (size_t j = 0; j < sites.size(); ++j) {
+                if (sites[j] == s) {
+                    stillAlive = true;
+                    break;
+                }
+            }
+            if (stillAlive) {
+                m_completed[writeIdx++] = s;
+            }
+        }
+        m_completed.resize(writeIdx);
     }
 }
 

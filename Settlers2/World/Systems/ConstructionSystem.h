@@ -7,12 +7,12 @@ namespace Logic { class EconomyManager; }
 namespace World {
 
 struct BuildCommand {
-    BuildingType buildingType;
-    int posX, posY;
-    uint32_t flagId;
-    bool valid;
+    BuildingType type;
+    int tileX, tileY;
+    Flag* entranceFlag;       // NULL = create new flag at calculated entrance position
+    bool autoConnectRoad;     // whether to connect flag to road network and sync carriers
 
-    BuildCommand() : buildingType(Building_None), posX(0), posY(0), flagId(0), valid(false) {}
+    BuildCommand() : type(Building_None), tileX(0), tileY(0), entranceFlag(NULL), autoConnectRoad(true) {}
 };
 
 class ConstructionSystem : public Core::EventListener {
@@ -50,8 +50,15 @@ public:
 
 private:
     ConstructionManager m_manager;
+    FlagManager* m_flagManager;
+    RoadManager* m_roadManager;
+    DemandManager* m_demandManager;
+    CargoManager* m_cargoManager;
+    Flag* m_warehouseFlag;
     Core::EventBus* m_eventBus;
     bool m_initialized;
+
+    std::vector<ConstructionSite*> m_completed; // sites already reported as complete (prevents double-fire)
 };
 
 } // namespace World

@@ -3579,15 +3579,14 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         // Enqueue construction via BuildCommand
         if (m_simulation) {
             World::BuildCommand cmd;
-            cmd.buildingType = m_selectedBuilding;
-            cmd.posX = data.buildX;
-            cmd.posY = data.buildY;
-            cmd.flagId = flag->id;
-            cmd.valid = true;
+            cmd.type = m_selectedBuilding;
+            cmd.tileX = data.buildX;
+            cmd.tileY = data.buildY;
+            cmd.entranceFlag = flag;
+            cmd.autoConnectRoad = true;
             m_simulation->GetConstructionSystem().Enqueue(cmd);
         }
         SetupConstructionSiteTiles(flag, data.buildX, data.buildY, m_selectedBuilding);
-        if (m_constructionManager) m_constructionManager->MarkBuilderRoutesDirty();
 
         // Broadcast Event_FlagPlaced
         if (m_eventBus) {

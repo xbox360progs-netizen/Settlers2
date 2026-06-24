@@ -150,10 +150,17 @@ void SimulationSystem::Update(float dt)
             m_extEconomy->CollectWarehouse();
         }
 
-        // Phase 6: Construction post-update — broadcast completion events
+        // Phase 6: Construction post-update — collect completed sites
         m_construction.PostUpdate();
 
-        // Phase 7: World — tree growth, wildlife regeneration
+        // Phase 7: Event dispatch — deliver queued events to all listeners
+        // (Flush runs after PostUpdate so completion events reach listeners
+        // before World phase mutates the map)
+        if (m_eventBus) {
+            m_eventBus->Flush();
+        }
+
+        // Phase 8: World — tree growth, wildlife regeneration
         m_world.Update(dt);
     } else {
         // Owned mode (future: SimulationSystem owns managers directly)
@@ -165,10 +172,6 @@ void SimulationSystem::Update(float dt)
         m_economy.CollectWarehouse();
     }
 
-    // Phase 6: Flush frame events
-    if (m_eventBus) {
-        m_eventBus->Flush();
-    }
 }
 
 } // namespace World
