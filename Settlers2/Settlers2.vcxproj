@@ -266,6 +266,7 @@
     <ClInclude Include="Graphics\Renderer.h" />
     <ClInclude Include="Graphics\Debug\DebugOverlay.h" />
     <ClInclude Include="Graphics\RenderLayers.h" />
+    <ClInclude Include="Graphics\RenderCommandBuilder.h" />
     <ClInclude Include="Graphics\RenderQueue.h" />
     <ClInclude Include="Graphics\RenderStateValidator.h" />
     <ClInclude Include="Graphics\RenderTargetManager.h" />
@@ -322,7 +323,10 @@
     <ClInclude Include="World\CarrierManager.h" />
     <ClInclude Include="World\Component.h" />
     <ClInclude Include="World\Components\Bakery.h" />
+    <ClInclude Include="World\Components\BronzeMine.h" />
+    <ClInclude Include="World\Components\BronzeSmelter.h" />
     <ClInclude Include="World\Components\Building.h" />
+    <ClInclude Include="World\Components\MineBuilding.h" />
     <ClInclude Include="World\Components\CoalMine.h" />
     <ClInclude Include="World\Components\Farm.h" />
     <ClInclude Include="World\Components\Fisher.h" />
@@ -414,6 +418,7 @@
     <ClCompile Include="Graphics\RenderFrame.cpp" />
     <ClCompile Include="Graphics\Renderer.cpp" />
     <ClCompile Include="Graphics\Debug\DebugOverlay.cpp" />
+    <ClCompile Include="Graphics\RenderCommandBuilder.cpp" />
     <ClCompile Include="Graphics\RenderQueue.cpp" />
     <ClCompile Include="Graphics\RenderStateValidator.cpp" />
     <ClCompile Include="Graphics\RenderTargetManager.cpp" />
@@ -436,6 +441,7 @@
     <ClCompile Include="Logic\ResourceRegistry.cpp" />
     <ClCompile Include="Logic\IsoGrid.cpp" />
     <ClCompile Include="Logic\WeightMap.cpp" />
+    <ClCompile Include="Scene\BuildingPlacement.cpp" />
     <ClCompile Include="Scene\EditorScene.cpp" />
     <ClCompile Include="Scene\GameScene.cpp" />
     <ClCompile Include="Scene\LoadingScene.cpp" />

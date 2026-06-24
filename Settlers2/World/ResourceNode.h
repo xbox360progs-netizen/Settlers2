@@ -45,6 +45,7 @@ enum ResourceType
     ResourceType_WildlifeSpawner_Crocodile,
     ResourceType_WildlifeSpawner_Snake,
     ResourceType_WaterSource,
+    ResourceType_BronzeBar,
     ResourceType_Count
 };
 
@@ -104,6 +105,7 @@ inline const char* ResourceTypeToString(ResourceType type)
         case ResourceType_RealWood: return "RealWood";
         case ResourceType_ExoticWood: return "ExoticWood";
         case ResourceType_BronzeOre: return "BronzeOre";
+        case ResourceType_BronzeBar: return "BronzeBar";
         case ResourceType_Marble: return "Marble";
         case ResourceType_Granite: return "Granite";
         case ResourceType_Titanium: return "Titanium";
@@ -135,6 +137,7 @@ inline const char* ResourceTypeToIconName(ResourceType type)
         case ResourceType_Wheat:      return "r_wheat";
         case ResourceType_Flour:      return "r_flour";
         case ResourceType_Water:      return "r_water";
+        case ResourceType_BronzeBar: return "r_bronzebar";
         case ResourceType_WildlifeSpawner_Deer: return "r_deer";
         case ResourceType_WildlifeSpawner_Rabbit: return "r_rabbit";
         case ResourceType_WildlifeSpawner_Crocodile: return "r_crocodile";
@@ -167,7 +170,8 @@ inline const char* ResourceTypeToDepositIconName(ResourceType type)
         case ResourceType_WildlifeSpawner_Snake: return "deposit_snake";
         case ResourceType_RealWood:   return "deposit_real_wood";
         case ResourceType_ExoticWood: return "deposit_exotic_wood";
-        case ResourceType_BronzeOre:  return "deposit_bronze";
+        case ResourceType_BronzeOre:  return "deposit_bronze_ore";
+        case ResourceType_BronzeBar:  return "deposit_bronze_bar";
         case ResourceType_Marble:     return "deposit_marble";
         case ResourceType_Granite:    return "deposit_granite";
         case ResourceType_Titanium:   return "deposit_titanium";
@@ -189,7 +193,7 @@ inline bool IsDepositResource(ResourceType type)
 
 inline bool ResourceRequiresMountain(ResourceType type)
 {
-    return (type == ResourceType_Stone || type == ResourceType_Coal || type == ResourceType_IronOre || type == ResourceType_GoldOre);
+    return (type == ResourceType_Stone || type == ResourceType_Coal || type == ResourceType_IronOre || type == ResourceType_GoldOre || type == ResourceType_BronzeOre);
 }
 
 inline const char* ResourceTypeToBuildingSpriteName(ResourceType type)

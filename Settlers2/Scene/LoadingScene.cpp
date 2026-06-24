@@ -6,6 +6,7 @@
 #include "../Graphics/ShaderManager.h"
 #include "../Graphics/RenderLayers.h"
 #include "../Graphics/RenderQueue.h"
+#include "../Graphics/RenderCommandBuilder.h"
 #include <functional>
 #include <cstdio>
 #include <iostream>
@@ -454,19 +455,15 @@ void LoadingScene::Render(Graphics::RenderQueue* renderQueue)
 		}
 	}
 	if (m_backgroundTexture.GetTexture()) {
-		Graphics::RenderCommand bgCmd = {};
-		bgCmd.shaderID = SHADER_SPRITE;
-		bgCmd.x = 0.0f;
-		bgCmd.y = 0.0f;
-		bgCmd.width = m_screenW;
-		bgCmd.height = m_screenH;
-		bgCmd.u0 = 0.0f; bgCmd.v0 = 0.0f;
-		bgCmd.u1 = 1.0f; bgCmd.v1 = 1.0f;
-		bgCmd.color = 0xFFFFFFFF;
-		bgCmd.depth = 950;
-		bgCmd.layer = LAYER_UI;
-		bgCmd.textureID = 0;
-		renderQueue->Submit(bgCmd);
+		Graphics::RenderCommandBuilder()
+			.Position(0.0f, 0.0f)
+			.Size(m_screenW, m_screenH)
+			.UV(0.0f, 0.0f, 1.0f, 1.0f)
+			.Texture(0)
+			.Shader(SHADER_SPRITE)
+			.Layer(LAYER_UI)
+			.Depth(950)
+			.Submit(renderQueue);
 	}
 
 	// Progress bar — ensure texture is bound
@@ -484,21 +481,15 @@ void LoadingScene::Render(Graphics::RenderQueue* renderQueue)
 		float barY = m_screenH - 80.0f;
 		float fillWidth = barWidth * m_currentRenderProgress;
 
-		Graphics::RenderCommand barCmd = {};
-		barCmd.shaderID = SHADER_SPRITE;
-		barCmd.x = barX;
-		barCmd.y = barY;
-		barCmd.width = fillWidth;
-		barCmd.height = barHeight;
-		barCmd.u0 = 0.0f;
-		barCmd.v0 = 0.0f;
-		barCmd.u1 = m_currentRenderProgress;
-		barCmd.v1 = 1.0f;
-		barCmd.color = 0xFFFFFFFF;
-		barCmd.depth = 0;
-		barCmd.layer = LAYER_UI;
-		barCmd.textureID = 2;
-		renderQueue->Submit(barCmd);
+		Graphics::RenderCommandBuilder()
+			.Position(barX, barY)
+			.Size(fillWidth, barHeight)
+			.UV(0.0f, 0.0f, m_currentRenderProgress, 1.0f)
+			.Texture(2)
+			.Shader(SHADER_SPRITE)
+			.Layer(LAYER_UI)
+			.Depth(0)
+			.Submit(renderQueue);
 	}
 }
 }

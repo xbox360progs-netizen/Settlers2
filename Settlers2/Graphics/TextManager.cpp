@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "TextManager.h"
+#include "RenderCommandBuilder.h"
 #include "RenderQueue.h"
 #include "RenderLayers.h"
 
@@ -88,29 +89,32 @@ LPDIRECT3DTEXTURE9 TextManager::GetFontTexture(FontID fontID)
     return nullptr;
 }
 
-void TextManager::PushLetterCommand(LPDIRECT3DTEXTURE9 texture, float x, float y, float w, float h, float u0, float v0, float u1, float v1, D3DCOLOR color, float depth, bool isUI)
+void TextManager::PushLetterCommand(LPDIRECT3DTEXTURE9 texture, float x, float y, float w, float h, float u0, float v0, float u1, float v1, D3DCOLOR color, float depth, BYTE layer)
 {
     if (!m_renderQueue) return;
 
-    Graphics::RenderCommand cmd = {};
-    cmd.x = x;
-    cmd.y = y;
-    cmd.width = w;
-    cmd.height = h;
-    cmd.u0 = u0;
-    cmd.v0 = v0;
-    cmd.u1 = u1;
-    cmd.v1 = v1;
-    cmd.color = color;
-    cmd.shaderID = isUI ? SHADER_UI : SHADER_WORLD;
-    cmd.textureID = 15;
-    cmd.blendMode = 1;
-    cmd.layer = isUI ? LAYER_UI : LAYER_EFFECTS;
-    cmd.depth = (WORD)(depth * 1000.0f);
-    m_renderQueue->Submit(cmd);
+    if (layer >= LAYER_UI) {
+        Graphics::RenderCommandBuilder()
+            .UIElement(x, y, w, h, u0, v0, u1, v1, 15, (WORD)(depth * 1000.0f))
+            .Color(color)
+            .Layer(layer)
+            .Submit(m_renderQueue);
+    } else {
+        Graphics::RenderCommandBuilder()
+            .Position(x, y)
+            .Size(w, h)
+            .UV(u0, v0, u1, v1)
+            .Texture(15)
+            .Blend(1)
+            .Color(color)
+            .Depth((WORD)(depth * 1000.0f))
+            .Shader(SHADER_WORLD)
+            .Layer(layer)
+            .Submit(m_renderQueue);
+    }
 }
 
-void TextManager::DrawString(const std::string& text, float x, float y, D3DCOLOR color, float scale, FontID fontID, bool isUI, FontStyle style, float depth)
+void TextManager::DrawString(const std::string& text, float x, float y, D3DCOLOR color, float scale, FontID fontID, FontStyle style, float depth, BYTE layer)
 {
     if (!m_font || !m_renderQueue) return;
 
@@ -148,24 +152,24 @@ void TextManager::DrawString(const std::string& text, float x, float y, D3DCOLOR
         u1 -= uvPad; v1 -= uvPad;
 
         if (style == FONT_STYLE_SHADOW) {
-            PushLetterCommand(fontTexture, charX + 2.0f, charY + 2.0f, charW, charH, u0, v0, u1, v1, 0xFF000000, depth, isUI);
+            PushLetterCommand(fontTexture, charX + 2.0f, charY + 2.0f, charW, charH, u0, v0, u1, v1, 0xFF000000, depth, layer);
         }
 
-        PushLetterCommand(fontTexture, charX, charY, charW, charH, u0, v0, u1, v1, color, depth, isUI);
+        PushLetterCommand(fontTexture, charX, charY, charW, charH, u0, v0, u1, v1, color, depth, layer);
 
         penX += ch.xAdvance * scale;
     }
 }
 
-void TextManager::DrawTextToScreen(const std::string& text, float x, float y, D3DCOLOR color, float scale, FontID fontID, FontStyle style)
+void TextManager::DrawTextToScreen(const std::string& text, float x, float y, D3DCOLOR color, float scale, FontID fontID, FontStyle style, BYTE layer)
 {
-    DrawString(text, x, y, color, scale, fontID, true, style, 0.05f);
+    DrawString(text, x, y, color, scale, fontID, style, 0.05f, layer);
 }
 
-void TextManager::DrawTextCenteredToScreen(const std::string& text, float boxCenterX, float y, D3DCOLOR color, float scale, FontID fontID, FontStyle style)
+void TextManager::DrawTextCenteredToScreen(const std::string& text, float boxCenterX, float y, D3DCOLOR color, float scale, FontID fontID, FontStyle style, BYTE layer)
 {
     float w = GetTextWidth(text, scale, fontID);
-    DrawTextToScreen(text, boxCenterX - w * 0.5f, y, color, scale, fontID, style);
+    DrawTextToScreen(text, boxCenterX - w * 0.5f, y, color, scale, fontID, style, layer);
 }
 
 float TextManager::GetTextWidth(const std::string& text, float scale, FontID fontID)
@@ -184,5 +188,5 @@ float TextManager::GetTextWidth(const std::string& text, float scale, FontID fon
 
 void TextManager::DrawTextToWorld(const std::string& text, float worldX, float worldY, D3DCOLOR color, float scale, FontID fontID, FontStyle style)
 {
-    DrawString(text, worldX, worldY, color, scale, fontID, false, style, 0.5f);
+    DrawString(text, worldX, worldY, color, scale, fontID, style, 0.5f, LAYER_EFFECTS);
 }

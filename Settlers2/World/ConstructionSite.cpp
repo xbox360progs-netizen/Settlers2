@@ -11,6 +11,8 @@ namespace World {
             case CoalMine:      wood = 4;  stone = 0; break;
             case IronMine:      wood = 4;  stone = 0; break;
             case GoldMine:      wood = 4;  stone = 0; break;
+            case BronzeMine:    wood = 2;  stone = 1; break;
+            case BronzeSmelter: wood = 2;  stone = 2; break;
             case IronSmelter:   wood = 3;  stone = 3; break;
             case GoldSmelter:   wood = 3;  stone = 3; break;
             case Farm:          wood = 4;  stone = 0; break;

@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "TileRenderer.h"
+#include "RenderCommandBuilder.h"
 #include "Renderer.h"
 #include "TextureRegistry.h"
 #include "Texture.h"
@@ -185,22 +186,16 @@ void TileRenderer::submitTile(float x, float y, float width, float height,
                                WORD shaderID, BYTE blendMode, BYTE layer, WORD depth) {
     if (!m_renderQueue || !texture) return;
 
-    Graphics::RenderCommand cmd = {};
-    cmd.x = x;
-    cmd.y = y;
-    cmd.width = width;
-    cmd.height = height;
-    cmd.u0 = u0;
-    cmd.v0 = v0;
-    cmd.u1 = u1;
-    cmd.v1 = v1;
-    cmd.color = 0xFFFFFFFF;
-    cmd.shaderID = shaderID;
-    cmd.textureID = textureID;
-    cmd.blendMode = blendMode;
-    cmd.layer = layer;
-    cmd.depth = depth;
-    m_renderQueue->Submit(cmd);
+    Graphics::RenderCommandBuilder()
+        .Position(x, y)
+        .Size(width, height)
+        .UV(u0, v0, u1, v1)
+        .Texture(textureID)
+        .Shader(shaderID)
+        .Blend(blendMode)
+        .Layer(layer)
+        .Depth(depth)
+        .Submit(m_renderQueue);
 }
 
 void TileRenderer::WorldToScreen(int wx, int wy, int& sx, int& sy) {

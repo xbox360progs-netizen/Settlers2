@@ -3,6 +3,7 @@
 #include "RenderLayers.h"
 
 namespace Graphics {
+class RenderQueue;
 
 //-------------------------------------------------------------------------------------
 // RenderCommandBuilder - Fluent API for building render commands

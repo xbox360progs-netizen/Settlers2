@@ -26,6 +26,11 @@ namespace SpriteAtlasTool
         private const float NODE_TILE_H = 74.0f;
         private const float HALF_NODE_W = 59.5f;
         private const float HALF_NODE_H = 37.0f;
+        // Visual diamond size — matches engine GridMenu (m_cellVisualWidth/Height)
+        private const float VISUAL_DIAMOND_W = 117.0f;
+        private const float VISUAL_DIAMOND_H = 72.0f;
+        private const float VISUAL_HALF_W = 58.5f;
+        private const float VISUAL_HALF_H = 36.0f;
         private const int GRID_SIZE = 10;
 
         public CollisionInfo CollisionInfo
@@ -205,7 +210,7 @@ namespace SpriteAtlasTool
                     float sx, sy;
                     TileToScreen(tilePos.X, tilePos.Y, centerX, centerY, out sx, out sy);
 
-                    PointF[] pts = GetDiamondPoints(sx, sy, HALF_NODE_W, HALF_NODE_H);
+                    PointF[] pts = GetDiamondPoints(sx, sy, VISUAL_HALF_W, VISUAL_HALF_H);
                     graphics.FillPolygon(selectBrush, pts);
                     graphics.DrawPolygon(selectPen, pts);
                 }
@@ -286,7 +291,7 @@ namespace SpriteAtlasTool
             using (Brush brush = new SolidBrush(Color.FromArgb(180, Color.Red)))
             using (Pen pen = new Pen(Color.Red, 2.0f))
             {
-                PointF[] pts = GetDiamondPoints(sx, sy, HALF_NODE_W, HALF_NODE_H);
+                PointF[] pts = GetDiamondPoints(sx, sy, VISUAL_HALF_W, VISUAL_HALF_H);
                 graphics.FillPolygon(brush, pts);
                 graphics.DrawPolygon(pen, pts);
             }
@@ -350,7 +355,7 @@ namespace SpriteAtlasTool
                         float sx, sy;
                         TileToScreen(nx, ny, centerX, centerY, out sx, out sy);
 
-                        PointF[] pts = GetDiamondPoints(sx, sy, HALF_NODE_W, HALF_NODE_H);
+                        PointF[] pts = GetDiamondPoints(sx, sy, VISUAL_HALF_W, VISUAL_HALF_H);
                         graphics.FillPolygon(tileBrush, pts);
                         graphics.DrawPolygon(gridPen, pts);
 
@@ -388,7 +393,7 @@ namespace SpriteAtlasTool
                     {
                         float sx, sy;
                         TileToScreen(tilePos.X, tilePos.Y, centerX, centerY, out sx, out sy);
-                        PointF[] pts = GetDiamondPoints(sx, sy, HALF_NODE_W, HALF_NODE_H);
+                        PointF[] pts = GetDiamondPoints(sx, sy, VISUAL_HALF_W, VISUAL_HALF_H);
                         graphics.FillPolygon(coverBrush, pts);
                         graphics.DrawPolygon(coverPen, pts);
                     }
@@ -406,7 +411,7 @@ namespace SpriteAtlasTool
                             int tileY = centerTileY + dy;
                             float sx, sy;
                             TileToScreen(tileX, tileY, centerX, centerY, out sx, out sy);
-                            PointF[] pts = GetDiamondPoints(sx, sy, HALF_NODE_W, HALF_NODE_H);
+                            PointF[] pts = GetDiamondPoints(sx, sy, VISUAL_HALF_W, VISUAL_HALF_H);
                             graphics.FillPolygon(coverBrush, pts);
                             graphics.DrawPolygon(coverPen, pts);
                         }
@@ -536,7 +541,7 @@ namespace SpriteAtlasTool
             float spriteH = m_sprite.OriginalBounds.Height;
 
             int tilesWide = Math.Max(1, (int)Math.Ceiling(spriteW / NODE_TILE_W));
-            int tilesHigh = Math.Max(1, (int)Math.Ceiling(spriteH / NODE_TILE_H));
+            int tilesHigh = Math.Max(1, (int)Math.Ceiling(spriteH / VISUAL_DIAMOND_H));
 
             numWidth.Value = Math.Min(numWidth.Maximum, tilesWide);
             numHeight.Value = Math.Min(numHeight.Maximum, tilesHigh);

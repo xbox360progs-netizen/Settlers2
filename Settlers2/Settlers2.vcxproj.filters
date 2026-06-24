@@ -532,6 +532,21 @@
     <ClInclude Include="UI\UIMenu.h">
       <Filter>UI</Filter>
     </ClInclude>
+    <ClInclude Include="Graphics\RenderCommandBuilder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\Resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\BronzeMine.h">
+      <Filter>World\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\BronzeSmelter.h">
+      <Filter>World\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\MineBuilding.h">
+      <Filter>World\Components</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -830,6 +845,12 @@
     </ClCompile>
     <ClCompile Include="UI\UIMenu.cpp">
       <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\RenderCommandBuilder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\BuildingPlacement.cpp">
+      <Filter>Scene</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

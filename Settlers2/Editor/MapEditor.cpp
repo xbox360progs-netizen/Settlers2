@@ -5,6 +5,7 @@
 #include "../Graphics/Renderer.h"
 #include "../Graphics/RenderQueue.h"
 #include "../Graphics/RenderLayers.h"
+#include "../Graphics/RenderCommandBuilder.h"
 #include <d3dx9.h>
 #include "../Graphics/Texture.h"
 #include "../Input/Gamepad.h"
@@ -499,22 +500,10 @@ void MapEditor::RenderGridLayer() {
                 if (region) { spriteW = (float)region->width; spriteH = (float)region->height; pivotX = region->pivotX; pivotY = region->pivotY; }
             }
 
-            Graphics::RenderCommand cmd = {};
-            cmd.x = wx + 119.0f - pivotX;
-            cmd.y = wy + 74.0f - pivotY;
-            cmd.width = spriteW;
-            cmd.height = spriteH;
-            cmd.u0 = tile.u0;
-            cmd.v0 = tile.v0;
-            cmd.u1 = tile.u1;
-            cmd.v1 = tile.v1;
-            cmd.color = 0xFFFFFFFF;
-            cmd.textureID = groundTexID;
-            cmd.shaderID = SHADER_TERRAIN;
-            cmd.blendMode = 1;
-            cmd.layer = LAYER_TERRAIN;
-            cmd.depth = static_cast<WORD>(0.95f * 65535.0f);
-            m_renderQueue->Submit(cmd);
+            Graphics::RenderCommandBuilder()
+                .WorldSprite(wx + 119.0f - pivotX, wy + 74.0f - pivotY, spriteW, spriteH, tile.u0, tile.v0, tile.u1, tile.v1, groundTexID, static_cast<WORD>(0.95f * 65535.0f))
+                .Layer(LAYER_TERRAIN)
+                .Submit(m_renderQueue);
         }
     }
 
@@ -538,22 +527,11 @@ void MapEditor::RenderGridLayer() {
                         ? D3DCOLOR_ARGB(180, 50, 200, 50)
                         : D3DCOLOR_ARGB(120, 100, 100, 100);
 
-                    Graphics::RenderCommand cmd = {};
-                    cmd.x = wx - dotW * 0.5f;
-                    cmd.y = wy - dotH * 0.5f;
-                    cmd.width = dotW;
-                    cmd.height = dotH;
-                    cmd.u0 = 0.0f;
-                    cmd.v0 = 0.0f;
-                    cmd.u1 = 1.0f;
-                    cmd.v1 = 1.0f;
-                    cmd.color = dotColor;
-                    cmd.textureID = 2;
-                    cmd.shaderID = SHADER_TERRAIN;
-                    cmd.blendMode = 1;
-                    cmd.layer = LAYER_EFFECTS;
-                    cmd.depth = static_cast<WORD>(0.97f * 65535.0f);
-                    m_renderQueue->Submit(cmd);
+                    Graphics::RenderCommandBuilder()
+                        .WorldSprite(wx - dotW * 0.5f, wy - dotH * 0.5f, dotW, dotH, 0.0f, 0.0f, 1.0f, 1.0f, 2, static_cast<WORD>(0.97f * 65535.0f))
+                        .Layer(LAYER_EFFECTS)
+                        .Color(dotColor)
+                        .Submit(m_renderQueue);
                 }
             }
         }
@@ -585,22 +563,11 @@ void MapEditor::RenderGridLayer() {
                         ? D3DCOLOR_ARGB(180, 255, 50, 50)
                         : D3DCOLOR_ARGB(120, 100, 100, 100);
 
-                    Graphics::RenderCommand cmd = {};
-                    cmd.x = wx - dotW * 0.5f;
-                    cmd.y = wy - dotH * 0.5f;
-                    cmd.width = dotW;
-                    cmd.height = dotH;
-                    cmd.u0 = 0.0f;
-                    cmd.v0 = 0.0f;
-                    cmd.u1 = 1.0f;
-                    cmd.v1 = 1.0f;
-                    cmd.color = dotColor;
-                    cmd.textureID = 2;
-                    cmd.shaderID = SHADER_TERRAIN;
-                    cmd.blendMode = 1;
-                    cmd.layer = LAYER_EFFECTS;
-                    cmd.depth = static_cast<WORD>(0.97f * 65535.0f);
-                    m_renderQueue->Submit(cmd);
+                    Graphics::RenderCommandBuilder()
+                        .WorldSprite(wx - dotW * 0.5f, wy - dotH * 0.5f, dotW, dotH, 0.0f, 0.0f, 1.0f, 1.0f, 2, static_cast<WORD>(0.97f * 65535.0f))
+                        .Layer(LAYER_EFFECTS)
+                        .Color(dotColor)
+                        .Submit(m_renderQueue);
                 }
             }
         }
@@ -653,22 +620,11 @@ void MapEditor::RenderGridLayer() {
                     float iconX = wx - pivotX;
                     float iconY = wy - pivotY;
 
-                    Graphics::RenderCommand cmd = {};
-                    cmd.x = iconX;
-                    cmd.y = iconY;
-                    cmd.width = iconW;
-                    cmd.height = iconH;
-                    cmd.u0 = iconRegion->u0;
-                    cmd.v0 = iconRegion->v0;
-                    cmd.u1 = iconRegion->u1;
-                    cmd.v1 = iconRegion->v1;
-                    cmd.color = 0xFFFFFFFF;
-                    cmd.textureID = 12;
-                    cmd.shaderID = SHADER_WORLD;
-                    cmd.blendMode = 1;
-                    cmd.layer = LAYER_EFFECTS;
-                    cmd.depth = 600;
-                    m_renderQueue->Submit(cmd);
+                    Graphics::RenderCommandBuilder()
+                        .WorldSprite(iconX, iconY, iconW, iconH, iconRegion->u0, iconRegion->v0, iconRegion->u1, iconRegion->v1, 12, 600)
+                        .Shader(SHADER_WORLD)
+                        .Layer(LAYER_EFFECTS)
+                        .Submit(m_renderQueue);
                 }
             }
         }
@@ -691,22 +647,10 @@ void MapEditor::RenderGridLayer() {
                     const SpriteRegion* region = m_roadAtlas->GetRegion(tile.regionIndex);
                     if (!region) continue;
 
-                    Graphics::RenderCommand cmd = {};
-                    cmd.x = wx - region->pivotX;
-                    cmd.y = wy - region->pivotY;
-                    cmd.width = (float)region->width;
-                    cmd.height = (float)region->height;
-                    cmd.u0 = region->u0;
-                    cmd.v0 = region->v0;
-                    cmd.u1 = region->u1;
-                    cmd.v1 = region->v1;
-                    cmd.color = 0xFFFFFFFF;
-                    cmd.textureID = 3;
-                    cmd.shaderID = SHADER_TERRAIN;
-                    cmd.blendMode = 0;
-                    cmd.layer = LAYER_WORLD;
-                    cmd.depth = static_cast<WORD>(30000 + y * 400);
-                    m_renderQueue->Submit(cmd);
+                    Graphics::RenderCommandBuilder()
+                        .WorldSprite(wx - region->pivotX, wy - region->pivotY, (float)region->width, (float)region->height, region->u0, region->v0, region->u1, region->v1, 3, static_cast<WORD>(30000 + y * 400))
+                        .Blend(0)
+                        .Submit(m_renderQueue);
                 }
             }
         }
@@ -723,22 +667,9 @@ void MapEditor::RenderGridLayer() {
                 int fy = m_roadFlags[fi].second;
                 float wx, wy;
                 coords.NodeTileToWorld(fx, fy, wx, wy);
-                Graphics::RenderCommand cmd = {};
-                cmd.x = wx - flagRegion->pivotX;
-                cmd.y = wy - flagRegion->pivotY;
-                cmd.width = (float)flagRegion->width;
-                cmd.height = (float)flagRegion->height;
-                cmd.u0 = flagRegion->u0;
-                cmd.v0 = flagRegion->v0;
-                cmd.u1 = flagRegion->u1;
-                cmd.v1 = flagRegion->v1;
-                cmd.color = 0xFFFFFFFF;
-                cmd.textureID = 1;
-                cmd.shaderID = SHADER_TERRAIN;
-                cmd.blendMode = 1;
-                cmd.layer = LAYER_WORLD;
-                cmd.depth = static_cast<WORD>(30010 + fy * 400);
-                m_renderQueue->Submit(cmd);
+                Graphics::RenderCommandBuilder()
+                    .WorldSprite(wx - flagRegion->pivotX, wy - flagRegion->pivotY, (float)flagRegion->width, (float)flagRegion->height, flagRegion->u0, flagRegion->v0, flagRegion->u1, flagRegion->v1, 1, static_cast<WORD>(30010 + fy * 400))
+                    .Submit(m_renderQueue);
             }
         }
     }
@@ -789,22 +720,10 @@ void MapEditor::RenderGridLayer() {
             float wx, wy;
             coords.NodeTileToWorld(px, py, wx, wy);
 
-            Graphics::RenderCommand cmd = {};
-            cmd.x = wx - region->pivotX;
-            cmd.y = wy - region->pivotY;
-            cmd.width = (float)region->width;
-            cmd.height = (float)region->height;
-            cmd.u0 = region->u0;
-            cmd.v0 = region->v0;
-            cmd.u1 = region->u1;
-            cmd.v1 = region->v1;
-            cmd.color = D3DCOLOR_ARGB(160, 255, 255, 255);
-            cmd.textureID = 3;
-            cmd.shaderID = SHADER_TERRAIN;
-            cmd.blendMode = 1;
-            cmd.layer = LAYER_WORLD;
-            cmd.depth = static_cast<WORD>(30000 + py * 400);
-            m_renderQueue->Submit(cmd);
+            Graphics::RenderCommandBuilder()
+                .WorldSprite(wx - region->pivotX, wy - region->pivotY, (float)region->width, (float)region->height, region->u0, region->v0, region->u1, region->v1, 3, static_cast<WORD>(30000 + py * 400))
+                .Color(D3DCOLOR_ARGB(160, 255, 255, 255))
+                .Submit(m_renderQueue);
         }
     }
 
@@ -843,22 +762,11 @@ void MapEditor::RenderGridLayer() {
                     D3DCOLOR_ARGB(120, 255, 0, 0) : // Красный - занято
                     D3DCOLOR_ARGB(120, 100, 100, 100); // Серый - свободно
 
-                Graphics::RenderCommand cmd = {};
-                cmd.x = wx - dotW * 0.5f;
-                cmd.y = wy - dotH * 0.5f;
-                cmd.width = dotW;
-                cmd.height = dotH;
-                cmd.u0 = 0.0f;
-                cmd.v0 = 0.0f;
-                cmd.u1 = 1.0f;
-                cmd.v1 = 1.0f;
-                cmd.color = dotColor;
-                cmd.textureID = 2;
-                cmd.shaderID = SHADER_TERRAIN;
-                cmd.blendMode = 1;
-                cmd.layer = LAYER_EFFECTS;
-                cmd.depth = static_cast<WORD>(0.97f * 65535.0f);
-                m_renderQueue->Submit(cmd);
+                Graphics::RenderCommandBuilder()
+                    .WorldSprite(wx - dotW * 0.5f, wy - dotH * 0.5f, dotW, dotH, 0.0f, 0.0f, 1.0f, 1.0f, 2, static_cast<WORD>(0.97f * 65535.0f))
+                    .Layer(LAYER_EFFECTS)
+                    .Color(dotColor)
+                    .Submit(m_renderQueue);
             }
         }
     }
@@ -912,22 +820,10 @@ void MapEditor::RenderGridLayer() {
                         if (region) { spriteW = (float)region->width; spriteH = (float)region->height; pivotX = region->pivotX; pivotY = region->pivotY; }
                     }
 
-                    Graphics::RenderCommand cmd = {};
-                    cmd.x = wx - pivotX;
-                    cmd.y = wy - pivotY;
-                    cmd.width = spriteW;
-                    cmd.height = spriteH;
-                    cmd.u0 = tile.u0;
-                    cmd.v0 = tile.v0;
-                    cmd.u1 = tile.u1;
-                    cmd.v1 = tile.v1;
-                    cmd.color = 0xFFFFFFFF;
-                    cmd.textureID = texSlot;
-                    cmd.shaderID = SHADER_TERRAIN;
-                    cmd.blendMode = 0;
-                    cmd.layer = LAYER_WORLD;
-                    cmd.depth = static_cast<WORD>(30010 + y * 400);
-                    m_renderQueue->Submit(cmd);
+                    Graphics::RenderCommandBuilder()
+                        .WorldSprite(wx - pivotX, wy - pivotY, spriteW, spriteH, tile.u0, tile.v0, tile.u1, tile.v1, texSlot, static_cast<WORD>(30010 + y * 400))
+                        .Blend(0)
+                        .Submit(m_renderQueue);
                 }
             }
         }
@@ -949,22 +845,10 @@ void MapEditor::RenderGridLayer() {
                     const SpriteRegion* region = m_buildingsAtlas->GetRegion(tile.regionIndex);
                     if (!region) continue;
 
-                    Graphics::RenderCommand cmd = {};
-                    cmd.x = wx - region->pivotX;
-                    cmd.y = wy - region->pivotY;
-                    cmd.width = (float)region->width;
-                    cmd.height = (float)region->height;
-                    cmd.u0 = tile.u0;
-                    cmd.v0 = tile.v0;
-                    cmd.u1 = tile.u1;
-                    cmd.v1 = tile.v1;
-                    cmd.color = 0xFFFFFFFF;
-                    cmd.textureID = 1;
-                    cmd.shaderID = SHADER_TERRAIN;
-                    cmd.blendMode = 0;
-                    cmd.layer = LAYER_WORLD;
-                    cmd.depth = static_cast<WORD>(30010 + y * 400);
-                    m_renderQueue->Submit(cmd);
+                    Graphics::RenderCommandBuilder()
+                        .WorldSprite(wx - region->pivotX, wy - region->pivotY, (float)region->width, (float)region->height, tile.u0, tile.v0, tile.u1, tile.v1, 1, static_cast<WORD>(30010 + y * 400))
+                        .Blend(0)
+                        .Submit(m_renderQueue);
                 }
             }
         }
@@ -988,22 +872,10 @@ void MapEditor::RenderCursor() {
                 cursorWorldX -= previewRegion->pivotX;
                 cursorWorldY -= previewRegion->pivotY;
 
-                Graphics::RenderCommand cmd = {};
-                cmd.x = cursorWorldX;
-                cmd.y = cursorWorldY;
-                cmd.width = cursorW;
-                cmd.height = cursorH;
-                cmd.u0 = previewRegion->u0;
-                cmd.v0 = previewRegion->v0;
-                cmd.u1 = previewRegion->u1;
-                cmd.v1 = previewRegion->v1;
-                cmd.color = 0xFFFFFFFF;
-                cmd.textureID = 3;
-                cmd.shaderID = SHADER_TERRAIN;
-                cmd.blendMode = 1;
-                cmd.layer = LAYER_EFFECTS;
-                cmd.depth = static_cast<WORD>(0.99f * 65535.0f);
-                m_renderQueue->Submit(cmd);
+                Graphics::RenderCommandBuilder()
+                    .WorldSprite(cursorWorldX, cursorWorldY, cursorW, cursorH, previewRegion->u0, previewRegion->v0, previewRegion->u1, previewRegion->v1, 3, static_cast<WORD>(0.99f * 65535.0f))
+                    .Layer(LAYER_EFFECTS)
+                    .Submit(m_renderQueue);
                 return;
             }
         }
@@ -1051,22 +923,10 @@ void MapEditor::RenderCursor() {
                     cursorWorldY -= previewRegion->pivotY;
                 }
 
-                Graphics::RenderCommand cmd = {};
-                cmd.x = cursorWorldX;
-                cmd.y = cursorWorldY;
-                cmd.width = cursorW;
-                cmd.height = cursorH;
-                cmd.u0 = previewRegion->u0;
-                cmd.v0 = previewRegion->v0;
-                cmd.u1 = previewRegion->u1;
-                cmd.v1 = previewRegion->v1;
-                cmd.color = 0xFFFFFFFF;
-                cmd.textureID = texID;
-                cmd.shaderID = SHADER_TERRAIN;
-                cmd.blendMode = 1;
-                cmd.layer = LAYER_EFFECTS;
-                cmd.depth = static_cast<WORD>(0.99f * 65535.0f);
-                m_renderQueue->Submit(cmd);
+                Graphics::RenderCommandBuilder()
+                    .WorldSprite(cursorWorldX, cursorWorldY, cursorW, cursorH, previewRegion->u0, previewRegion->v0, previewRegion->u1, previewRegion->v1, texID, static_cast<WORD>(0.99f * 65535.0f))
+                    .Layer(LAYER_EFFECTS)
+                    .Submit(m_renderQueue);
                 return; // Return so we don't draw the fallback outline
             }
         }
@@ -1112,22 +972,10 @@ void MapEditor::RenderCursor() {
         }
     }
 
-    Graphics::RenderCommand cmd = {};
-    cmd.x = cursorWorldX;
-    cmd.y = cursorWorldY;
-    cmd.width = cursorW;
-    cmd.height = cursorH;
-    cmd.u0 = u0;
-    cmd.v0 = v0;
-    cmd.u1 = u1;
-    cmd.v1 = v1;
-    cmd.color = 0xFFFFFFFF;
-    cmd.textureID = 4;
-    cmd.shaderID = SHADER_TERRAIN;
-    cmd.blendMode = 1;
-    cmd.layer = LAYER_FOREGROUND;
-    cmd.depth = static_cast<WORD>(0.99f * 65535.0f);
-    m_renderQueue->Submit(cmd);
+    Graphics::RenderCommandBuilder()
+        .WorldSprite(cursorWorldX, cursorWorldY, cursorW, cursorH, u0, v0, u1, v1, 4, static_cast<WORD>(0.99f * 65535.0f))
+        .Layer(LAYER_FOREGROUND)
+        .Submit(m_renderQueue);
 }
 
 void MapEditor::SetLayer(World::LayerType layer) {
@@ -1606,6 +1454,7 @@ void MapEditor::PaintCurrentTile() {
                     rn.type = autoRt;
                     rn.amount = World::GetDefaultResourceAmount(autoRt);
                     rn.isVisible = true;
+                    rn.surveyed = true;
                 }
             }
         }
@@ -2306,22 +2155,10 @@ void MapEditor::RenderActiveTile() {
     float screenW = static_cast<float>(m_renderer->GetScreenWidth());
     float tileSize = 64.0f;
 
-    Graphics::RenderCommand cmd = {};
-    cmd.x = screenW - tileSize - 10.0f;
-    cmd.y = 10.0f;
-    cmd.width = tileSize;
-    cmd.height = tileSize;
-    cmd.u0 = region->u0;
-    cmd.v0 = region->v0;
-    cmd.u1 = region->u1;
-    cmd.v1 = region->v1;
-    cmd.color = 0xFFFFFFFF;
-    cmd.shaderID = SHADER_SPRITE;
-    cmd.textureID = 0;
-    cmd.blendMode = 1;
-    cmd.layer = LAYER_UI;
-    cmd.depth = 100;
-    m_renderQueue->Submit(cmd);
+    Graphics::RenderCommandBuilder()
+        .UIElement(screenW - tileSize - 10.0f, 10.0f, tileSize, tileSize, region->u0, region->v0, region->u1, region->v1, 0)
+        .Shader(SHADER_SPRITE)
+        .Submit(m_renderQueue);
 }
 
 void MapEditor::CacheNodePositions() {
@@ -2396,22 +2233,11 @@ void MapEditor::RenderWeightMap() {
             BYTE w = m_map->GetNodeWeight(nx, ny);
             const NodePos& pos = m_nodesCache[ny][nx];
 
-            Graphics::RenderCommand cmd = {};
-            cmd.x = pos.worldX - dotW * 0.5f;
-            cmd.y = pos.worldY - dotH * 0.5f;
-            cmd.width = dotW;
-            cmd.height = dotH;
-            cmd.u0 = 0.0f;
-            cmd.v0 = 0.0f;
-            cmd.u1 = 1.0f;
-            cmd.v1 = 1.0f;
-            cmd.color = WeightToColor(w);
-            cmd.textureID = 2;
-            cmd.shaderID = SHADER_TERRAIN;
-            cmd.blendMode = 1;
-            cmd.layer = LAYER_EFFECTS;
-            cmd.depth = static_cast<WORD>(0.98f * 65535.0f);
-            m_renderQueue->Submit(cmd);
+            Graphics::RenderCommandBuilder()
+                .WorldSprite(pos.worldX - dotW * 0.5f, pos.worldY - dotH * 0.5f, dotW, dotH, 0.0f, 0.0f, 1.0f, 1.0f, 2, static_cast<WORD>(0.98f * 65535.0f))
+                .Layer(LAYER_EFFECTS)
+                .Color(WeightToColor(w))
+                .Submit(m_renderQueue);
             --remaining;
         }
     }
@@ -2578,6 +2404,7 @@ void MapEditor::AutoAssignResourcesForTrees() {
                 rn.type = rt;
                 rn.amount = World::GetDefaultResourceAmount(rt);
                 rn.isVisible = true;
+                rn.surveyed = true;
                 assigned++;
             }
         }

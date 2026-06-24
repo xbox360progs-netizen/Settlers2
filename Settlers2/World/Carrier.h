@@ -243,7 +243,7 @@ namespace World {
                                 if (!c->ticket || c->ticket->state != Ticket_Active || !c->ticket->demand) continue;
                                 if (c->ticket->demand->targetFlag == atFlag->handle) continue;
                                 // Check if this road is the next hop toward destination
-                                bool routeOk = true;
+                                bool routeOk = false;
                                 uint32_t destIdx = c->ticket->demand->targetFlag.index;
                                 if (m_roadManager) {
                                     Flag* dest = m_roadManager->GetFlagManager()->ResolveFlag(c->ticket->demand->targetFlag);
@@ -251,8 +251,8 @@ namespace World {
                                         Flag* nextHop = m_roadManager->GetNextHop(atFlag, dest);
                                         if (nextHop) {
                                             FlagHandle otherEnd = (road->a == atFlag->handle) ? road->b : road->a;
-                                            if (!(otherEnd == nextHop->handle))
-                                                routeOk = false;
+                                            if (otherEnd == nextHop->handle)
+                                                routeOk = true;
                                         }
                                     }
                                 }
@@ -274,25 +274,27 @@ namespace World {
                             available = atFlag->TakeCargoForRoad(road, m_demandManager, m_cargoManager);
                             if (available && m_roadManager && available->ticket && available->ticket->demand) {
                                 Flag* dest = m_roadManager->GetFlagManager()->ResolveFlag(available->ticket->demand->targetFlag);
+                                bool routeValid = false;
                                 if (dest) {
                                     Flag* nextHop = m_roadManager->GetNextHop(atFlag, dest);
                                     if (nextHop) {
                                         FlagHandle otherEnd = (road->a == atFlag->handle) ? road->b : road->a;
-                                        if (!(otherEnd == nextHop->handle)) {
-                                            ResourceType rejectedType = available->type;
-                                            { char dbg[256]; _snprintf(dbg, sizeof(dbg), "[Carrier] Reject slot road=%u atFlag=%u type=%s (wrong direction)\n", road->id, atFlag->id, ResourceTypeToString(rejectedType)); OutputDebugStringA(dbg); }
-                                            m_demandManager->ReleaseTicket(available->ticket);
-                                            available->ticket = NULL;
-                                            // Put resource back: prefer ResourceSlot, fallback to Cargo on flag
-                                            if (!atFlag->AddResource(rejectedType, 1)) {
-                                                available->state = Cargo_OnFlag;
-                                                available->currentFlag = atFlag->handle;
-                                            } else {
-                                                m_cargoManager->Release(available->id);
-                                            }
-                                            available = NULL;
-                                        }
+                                        routeValid = (otherEnd == nextHop->handle);
                                     }
+                                }
+                                if (!routeValid) {
+                                    ResourceType rejectedType = available->type;
+                                    { char dbg[256]; _snprintf(dbg, sizeof(dbg), "[Carrier] Reject slot road=%u atFlag=%u type=%s (no route)\n", road->id, atFlag->id, ResourceTypeToString(rejectedType)); OutputDebugStringA(dbg); }
+                                    m_demandManager->ReleaseTicket(available->ticket);
+                                    available->ticket = NULL;
+                                    // Put resource back: prefer ResourceSlot, fallback to Cargo on flag
+                                    if (!atFlag->AddResource(rejectedType, 1)) {
+                                        available->state = Cargo_OnFlag;
+                                        available->currentFlag = atFlag->handle;
+                                    } else {
+                                        m_cargoManager->Release(available->id);
+                                    }
+                                    available = NULL;
                                 }
                             }
                         }

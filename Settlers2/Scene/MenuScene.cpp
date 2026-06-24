@@ -10,6 +10,7 @@
 #include "../Graphics/RenderLayers.h"
 #include "../Graphics/ShaderManager.h"
 #include "../Graphics/RenderQueue.h"
+#include "../Graphics/RenderCommandBuilder.h"
 
 using namespace Scene;
 #include <d3dx9.h>
@@ -252,19 +253,15 @@ void MenuScene::Render(RenderQueue* renderQueue) {
 
 //    OutputDebugStringA("[MenuScene::Render] submitting background\n");
     // Background sprite
-    Graphics::RenderCommand bgCmd = {};
-    bgCmd.shaderID = SHADER_SPRITE;
-    bgCmd.x = 0.0f;
-    bgCmd.y = 0.0f;
-    bgCmd.width = 1280.0f;
-    bgCmd.height = 720.0f;
-    bgCmd.u0 = 0.0f; bgCmd.v0 = 0.0f;
-    bgCmd.u1 = 1.0f; bgCmd.v1 = 1.0f;
-    bgCmd.color = 0xFFFFFFFF;
-    bgCmd.depth = 900;
-    bgCmd.layer = LAYER_UI;
-    bgCmd.textureID = 0;
-    renderQueue->Submit(bgCmd);
+    Graphics::RenderCommandBuilder()
+        .Position(0.0f, 0.0f)
+        .Size(1280.0f, 720.0f)
+        .UV(0.0f, 0.0f, 1.0f, 1.0f)
+        .Texture(0)
+        .Shader(SHADER_SPRITE)
+        .Layer(LAYER_UI)
+        .Depth(900)
+        .Submit(renderQueue);
 
     // UI atlas sprites for menu
     TextureRegistry& reg = TextureRegistry::instance();
@@ -280,19 +277,9 @@ void MenuScene::Render(RenderQueue* renderQueue) {
         if (gridIdx != 0xFFFFFFFF) {
             const SpriteRegion* gridReg = uiAtlas->GetRegion(gridIdx);
             if (gridReg) {
-                Graphics::RenderCommand gridCmd = {};
-                gridCmd.x = 100.0f; gridCmd.y = 170.0f;
-                gridCmd.width = 400.0f; gridCmd.height = 340.0f;
-                gridCmd.u0 = gridReg->u0; gridCmd.v0 = gridReg->v0;
-                gridCmd.u1 = gridReg->u1; gridCmd.v1 = gridReg->v1;
-                gridCmd.color = 0xFFFFFFFF;
-                gridCmd.shaderID = SHADER_UI;
-                gridCmd.blendMode = 1;
-                gridCmd.depth = 899;
-                gridCmd.layer = LAYER_UI;
-                gridCmd.textureID = 5;
-                gridCmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, 5, 899);
-                renderQueue->Submit(gridCmd);
+                Graphics::RenderCommandBuilder()
+                    .UIElement(100.0f, 170.0f, 400.0f, 340.0f, gridReg->u0, gridReg->v0, gridReg->u1, gridReg->v1, 5, 899)
+                    .Submit(renderQueue);
             }
         }
     }
@@ -317,19 +304,9 @@ void MenuScene::Render(RenderQueue* renderQueue) {
                     if (btnIdx != 0xFFFFFFFF) {
                         const SpriteRegion* btnReg = uiAtlas->GetRegion(btnIdx);
                         if (btnReg) {
-                            Graphics::RenderCommand btnCmd = {};
-                            btnCmd.x = 140.0f; btnCmd.y = startY + (i * spacingY) - 4.0f;
-                            btnCmd.width = 32.0f; btnCmd.height = 32.0f;
-                            btnCmd.u0 = btnReg->u0; btnCmd.v0 = btnReg->v0;
-                            btnCmd.u1 = btnReg->u1; btnCmd.v1 = btnReg->v1;
-                            btnCmd.color = 0xFFFFFFFF;
-                            btnCmd.shaderID = SHADER_UI;
-                            btnCmd.blendMode = 1;
-                            btnCmd.depth = 898;
-                            btnCmd.layer = LAYER_UI;
-                            btnCmd.textureID = 5;
-                            btnCmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, 5, 898);
-                            renderQueue->Submit(btnCmd);
+                            Graphics::RenderCommandBuilder()
+                                .UIElement(140.0f, startY + (i * spacingY) - 4.0f, 32.0f, 32.0f, btnReg->u0, btnReg->v0, btnReg->u1, btnReg->v1, 5, 898)
+                                .Submit(renderQueue);
                         }
                     }
                 }
@@ -347,19 +324,9 @@ void MenuScene::Render(RenderQueue* renderQueue) {
                     if (btnIdx != 0xFFFFFFFF) {
                         const SpriteRegion* btnReg = uiAtlas->GetRegion(btnIdx);
                         if (btnReg) {
-                            Graphics::RenderCommand btnCmd = {};
-                            btnCmd.x = 140.0f; btnCmd.y = startY + (i * spacingY) - 4.0f;
-                            btnCmd.width = 32.0f; btnCmd.height = 32.0f;
-                            btnCmd.u0 = btnReg->u0; btnCmd.v0 = btnReg->v0;
-                            btnCmd.u1 = btnReg->u1; btnCmd.v1 = btnReg->v1;
-                            btnCmd.color = 0xFFFFFFFF;
-                            btnCmd.shaderID = SHADER_UI;
-                            btnCmd.blendMode = 1;
-                            btnCmd.depth = 898;
-                            btnCmd.layer = LAYER_UI;
-                            btnCmd.textureID = 5;
-                            btnCmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, 5, 898);
-                            renderQueue->Submit(btnCmd);
+                            Graphics::RenderCommandBuilder()
+                                .UIElement(140.0f, startY + (i * spacingY) - 4.0f, 32.0f, 32.0f, btnReg->u0, btnReg->v0, btnReg->u1, btnReg->v1, 5, 898)
+                                .Submit(renderQueue);
                         }
                     }
                 }
@@ -373,38 +340,18 @@ void MenuScene::Render(RenderQueue* renderQueue) {
             if (backIdx != 0xFFFFFFFF) {
                 const SpriteRegion* backReg = uiAtlas->GetRegion(backIdx);
                 if (backReg) {
-                    Graphics::RenderCommand cmd = {};
-                    cmd.x = 20.0f; cmd.y = 660.0f;
-                    cmd.width = 28.0f; cmd.height = 28.0f;
-                    cmd.u0 = backReg->u0; cmd.v0 = backReg->v0;
-                    cmd.u1 = backReg->u1; cmd.v1 = backReg->v1;
-                    cmd.color = 0xFFFFFFFF;
-                    cmd.shaderID = SHADER_UI;
-                    cmd.blendMode = 1;
-                    cmd.depth = 898;
-                    cmd.layer = LAYER_UI;
-                    cmd.textureID = 5;
-                    cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, 5, 898);
-                    renderQueue->Submit(cmd);
+                    Graphics::RenderCommandBuilder()
+                        .UIElement(20.0f, 660.0f, 28.0f, 28.0f, backReg->u0, backReg->v0, backReg->u1, backReg->v1, 5, 898)
+                        .Submit(renderQueue);
                 }
             }
             m_textManager->DrawString("Back", 52.0f, 664.0f, 0xFF888888, 0.22f);
             if (startIdx != 0xFFFFFFFF) {
                 const SpriteRegion* startReg = uiAtlas->GetRegion(startIdx);
                 if (startReg) {
-                    Graphics::RenderCommand cmd = {};
-                    cmd.x = 120.0f; cmd.y = 660.0f;
-                    cmd.width = 40.0f; cmd.height = 28.0f;
-                    cmd.u0 = startReg->u0; cmd.v0 = startReg->v0;
-                    cmd.u1 = startReg->u1; cmd.v1 = startReg->v1;
-                    cmd.color = 0xFFFFFFFF;
-                    cmd.shaderID = SHADER_UI;
-                    cmd.blendMode = 1;
-                    cmd.depth = 898;
-                    cmd.layer = LAYER_UI;
-                    cmd.textureID = 5;
-                    cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, 5, 898);
-                    renderQueue->Submit(cmd);
+                    Graphics::RenderCommandBuilder()
+                        .UIElement(120.0f, 660.0f, 40.0f, 28.0f, startReg->u0, startReg->v0, startReg->u1, startReg->v1, 5, 898)
+                        .Submit(renderQueue);
                 }
             }
             m_textManager->DrawString("Select", 165.0f, 664.0f, 0xFF888888, 0.22f);

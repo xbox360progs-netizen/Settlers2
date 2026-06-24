@@ -17,6 +17,7 @@ struct Tile
     int regionIndex;
     float u0, v0, u1, v1;
     std::string atlasName;
+    int buildingType; // BuildingType enum value, -1 = none/unknown (serialized in v8+)
 
     Tile()
         : type(Tile_None)
@@ -27,6 +28,7 @@ struct Tile
         , buildable(true)
         , regionIndex(-1)
         , u0(0.0f), v0(0.0f), u1(0.0f), v1(0.0f)
+        , buildingType(-1)
     {
     }
 
@@ -40,6 +42,7 @@ struct Tile
         , buildable(true)
         , regionIndex(0)
         , u0(0.0f), v0(0.0f), u1(0.0f), v1(0.0f)
+        , buildingType(-1)
     {
         UpdateProperties();
     }

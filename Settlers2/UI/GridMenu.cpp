@@ -7,6 +7,7 @@
 #include "../Graphics/ShaderManager.h"
 #include "../Graphics/RenderLayers.h"
 #include "../Graphics/TextManager.h"
+#include "../Graphics/RenderCommandBuilder.h"
 
 namespace
 {
@@ -437,22 +438,11 @@ void GridMenu::Render()
 
     // 1. Background (menu_Grid from UI atlas) - full menu area
     if (m_backgroundTexture) {
-        Graphics::RenderCommand cmd = {};
-        cmd.x = menuLeft;
-        cmd.y = menuTop;
-        cmd.width = m_menuWidth;
-        cmd.height = m_menuHeight;
-        cmd.u0 = m_backgroundUV.u0; cmd.v0 = m_backgroundUV.v0;
-        cmd.u1 = m_backgroundUV.u1; cmd.v1 = m_backgroundUV.v1;
-        cmd.color = 0xFFFFFFFF;
-        cmd.shaderID = SHADER_UI;
-        cmd.textureID = m_backgroundSlot;
-        cmd.blendMode = 1;
-        cmd.layer = LAYER_UI;
-        cmd.depth = 10;
-        cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, m_backgroundSlot, 10);
-
-        m_renderQueue->Submit(cmd);
+        Graphics::RenderCommandBuilder()
+            .UIElement(menuLeft, menuTop, m_menuWidth, m_menuHeight,
+                       m_backgroundUV.u0, m_backgroundUV.v0, m_backgroundUV.u1, m_backgroundUV.v1,
+                       m_backgroundSlot, 10)
+            .Submit(m_renderQueue);
     }
 
     // 2. Cell backgrounds (menu_cell from UI atlas) - 4x4 grid
@@ -467,22 +457,11 @@ void GridMenu::Render()
                 float cellOffsetX = (cellSpacingX - m_cellVisualWidth) * 0.5f;
                 float cellOffsetY = (cellSpacingY - m_cellVisualHeight) * 0.5f;
 
-                Graphics::RenderCommand cmd = {};
-                cmd.x = cellX + cellOffsetX;
-                cmd.y = cellY + cellOffsetY;
-                cmd.width = m_cellVisualWidth;
-                cmd.height = m_cellVisualHeight;
-                cmd.u0 = m_cellUV.u0; cmd.v0 = m_cellUV.v0;
-                cmd.u1 = m_cellUV.u1; cmd.v1 = m_cellUV.v1;
-                cmd.color = 0xFFFFFFFF;
-                cmd.shaderID = SHADER_UI;
-                cmd.textureID = m_cellSlot;
-                cmd.blendMode = 1;
-                cmd.layer = LAYER_UI;
-                cmd.depth = 20;
-                cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, m_cellSlot, 20);
-
-                m_renderQueue->Submit(cmd);
+                Graphics::RenderCommandBuilder()
+                    .UIElement(cellX + cellOffsetX, cellY + cellOffsetY, m_cellVisualWidth, m_cellVisualHeight,
+                               m_cellUV.u0, m_cellUV.v0, m_cellUV.u1, m_cellUV.v1,
+                               m_cellSlot, 20)
+                    .Submit(m_renderQueue);
             }
         }
     }
@@ -498,22 +477,12 @@ void GridMenu::Render()
             float cellOffsetX = (cellSpacingX - m_cellVisualWidth) * 0.5f;
             float cellOffsetY = (cellSpacingY - m_cellVisualHeight) * 0.5f;
 
-            Graphics::RenderCommand cmd = {};
-            cmd.x = cellX + cellOffsetX + m_cellPadding;
-            cmd.y = cellY + cellOffsetY + m_cellPadding;
-            cmd.width = m_cellVisualWidth - m_cellPadding * 2.0f;
-            cmd.height = m_cellVisualHeight - m_cellPadding * 2.0f;
-            cmd.u0 = tileUV.u0; cmd.v0 = tileUV.v0;
-            cmd.u1 = tileUV.u1; cmd.v1 = tileUV.v1;
-            cmd.color = 0xFFFFFFFF;
-            cmd.shaderID = SHADER_UI;
-            cmd.textureID = m_atlasSlot;
-            cmd.blendMode = 1;
-            cmd.layer = LAYER_FOREGROUND;
-            cmd.depth = 100;
-            cmd.sortKey = Graphics::BuildSortKey(LAYER_FOREGROUND, 1, SHADER_UI, m_atlasSlot, 100);
-
-            m_renderQueue->Submit(cmd);
+            Graphics::RenderCommandBuilder()
+                .ForegroundElement(cellX + cellOffsetX + m_cellPadding, cellY + cellOffsetY + m_cellPadding,
+                                   m_cellVisualWidth - m_cellPadding * 2.0f, m_cellVisualHeight - m_cellPadding * 2.0f,
+                                   tileUV.u0, tileUV.v0, tileUV.u1, tileUV.v1,
+                                   m_atlasSlot, 100)
+                .Submit(m_renderQueue);
         }
 
         // 3b. Cell labels below each cell
@@ -550,42 +519,26 @@ void GridMenu::Render()
         float highlightOffsetX = (highlightSizeX - m_cellVisualWidth) * 0.5f;
         float highlightOffsetY = (highlightSizeY - m_cellVisualHeight) * 0.5f;
 
-        Graphics::RenderCommand highlightCmd = {};
-        highlightCmd.x = selX + cellOffsetX - highlightOffsetX;
-        highlightCmd.y = selY + cellOffsetY - highlightOffsetY;
-        highlightCmd.width = highlightSizeX;
-        highlightCmd.height = highlightSizeY;
-        highlightCmd.u0 = m_cellUV.u0; highlightCmd.v0 = m_cellUV.v0;
-        highlightCmd.u1 = m_cellUV.u1; highlightCmd.v1 = m_cellUV.v1;
-        highlightCmd.color = 0xCCFFFF00;
-        highlightCmd.shaderID = SHADER_UI;
-        highlightCmd.textureID = m_cellSlot;
-        highlightCmd.blendMode = 1;
-        highlightCmd.layer = LAYER_UI;
-        highlightCmd.depth = 150;
-        highlightCmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, m_cellSlot, 150);
-        m_renderQueue->Submit(highlightCmd);
+        Graphics::RenderCommandBuilder()
+            .UIElement(selX + cellOffsetX - highlightOffsetX, selY + cellOffsetY - highlightOffsetY,
+                       highlightSizeX, highlightSizeY,
+                       m_cellUV.u0, m_cellUV.v0, m_cellUV.u1, m_cellUV.v1,
+                       m_cellSlot, 150)
+            .Color(0xCCFFFF00)
+            .Submit(m_renderQueue);
 
         // White glow behind selected icon
         if (m_selectedIndex < (int)m_tileUVs.size()) {
             const TileUV& tileUV = m_tileUVs[m_selectedIndex];
             float glowPadX = 6.0f;
             float glowPadY = 4.0f;
-            Graphics::RenderCommand glowCmd = {};
-            glowCmd.x = selX + cellOffsetX - glowPadX;
-            glowCmd.y = selY + cellOffsetY - glowPadY;
-            glowCmd.width = m_cellVisualWidth + glowPadX * 2.0f;
-            glowCmd.height = m_cellVisualHeight + glowPadY * 2.0f;
-            glowCmd.u0 = tileUV.u0; glowCmd.v0 = tileUV.v0;
-            glowCmd.u1 = tileUV.u1; glowCmd.v1 = tileUV.v1;
-            glowCmd.color = 0x60FFFFFF;
-            glowCmd.shaderID = SHADER_UI;
-            glowCmd.textureID = m_atlasSlot;
-            glowCmd.blendMode = 1;
-            glowCmd.layer = LAYER_FOREGROUND;
-            glowCmd.depth = 110;
-            glowCmd.sortKey = Graphics::BuildSortKey(LAYER_FOREGROUND, 1, SHADER_UI, m_atlasSlot, 110);
-            m_renderQueue->Submit(glowCmd);
+            Graphics::RenderCommandBuilder()
+                .ForegroundElement(selX + cellOffsetX - glowPadX, selY + cellOffsetY - glowPadY,
+                                   m_cellVisualWidth + glowPadX * 2.0f, m_cellVisualHeight + glowPadY * 2.0f,
+                                   tileUV.u0, tileUV.v0, tileUV.u1, tileUV.v1,
+                                   m_atlasSlot, 110)
+                .Color(0x60FFFFFF)
+                .Submit(m_renderQueue);
         }
 
         // Draw selected icon slightly larger on top
@@ -593,21 +546,12 @@ void GridMenu::Render()
             const TileUV& tileUV = m_tileUVs[m_selectedIndex];
             float iconPadX = 4.0f;
             float iconPadY = 2.0f;
-            Graphics::RenderCommand iconCmd = {};
-            iconCmd.x = selX + cellOffsetX - iconPadX;
-            iconCmd.y = selY + cellOffsetY - iconPadY;
-            iconCmd.width = m_cellVisualWidth + iconPadX * 2.0f;
-            iconCmd.height = m_cellVisualHeight + iconPadY * 2.0f;
-            iconCmd.u0 = tileUV.u0; iconCmd.v0 = tileUV.v0;
-            iconCmd.u1 = tileUV.u1; iconCmd.v1 = tileUV.v1;
-            iconCmd.color = 0xFFFFFFFF;
-            iconCmd.shaderID = SHADER_UI;
-            iconCmd.textureID = m_atlasSlot;
-            iconCmd.blendMode = 1;
-            iconCmd.layer = LAYER_FOREGROUND;
-            iconCmd.depth = 130;
-            iconCmd.sortKey = Graphics::BuildSortKey(LAYER_FOREGROUND, 1, SHADER_UI, m_atlasSlot, 130);
-            m_renderQueue->Submit(iconCmd);
+            Graphics::RenderCommandBuilder()
+                .ForegroundElement(selX + cellOffsetX - iconPadX, selY + cellOffsetY - iconPadY,
+                                   m_cellVisualWidth + iconPadX * 2.0f, m_cellVisualHeight + iconPadY * 2.0f,
+                                   tileUV.u0, tileUV.v0, tileUV.u1, tileUV.v1,
+                                   m_atlasSlot, 130)
+                .Submit(m_renderQueue);
         }
     }
 }

@@ -3,6 +3,7 @@
 #include "../World/TileLayer.h"
 #include "../Logic/AStar.h"
 #include "../Graphics/ShaderManager.h"
+#include "../Graphics/RenderCommandBuilder.h"
 
 namespace Game {
 
@@ -282,22 +283,12 @@ void UnitManager::Render()
         const SpriteRegion* region = m_atlas->GetRegion(spriteIdx);
         if (!region) continue;
 
-        Graphics::RenderCommand cmd = {};
-        cmd.x = u.worldX - region->pivotX;
-        cmd.y = u.worldY - region->pivotY;
-        cmd.width = (float)region->width;
-        cmd.height = (float)region->height;
-        cmd.u0 = region->u0;
-        cmd.v0 = region->v0;
-        cmd.u1 = region->u1;
-        cmd.v1 = region->v1;
-        cmd.color = 0xFFFFFFFF;
-        cmd.textureID = m_textureSlot;
-        cmd.shaderID = SHADER_TERRAIN;
-        cmd.blendMode = 1;
-        cmd.layer = LAYER_WORLD;
-        cmd.depth = static_cast<WORD>(30020 + u.flagBY * 400);
-        m_renderQueue->Submit(cmd);
+        Graphics::RenderCommandBuilder()
+            .WorldSprite(u.worldX - region->pivotX, u.worldY - region->pivotY,
+                (float)region->width, (float)region->height,
+                region->u0, region->v0, region->u1, region->v1,
+                m_textureSlot, static_cast<WORD>(30020 + u.flagBY * 400))
+            .Submit(m_renderQueue);
     }
 }
 

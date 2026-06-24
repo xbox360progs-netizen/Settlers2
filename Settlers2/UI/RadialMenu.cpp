@@ -2,6 +2,7 @@
 #include "RadialMenu.h"
 #include "../Graphics/Quad.h"
 #include "../Graphics/TextureRegistry.h"
+#include "../Graphics/RenderCommandBuilder.h"
 #include "../Graphics/RenderLayers.h"
 #include <map>
 
@@ -320,22 +321,9 @@ void RadialMenu::RenderIcons(Graphics::RenderQueue* renderQueue)
         const float drawX = centerX - (region->width * 0.5f);
         const float drawY = centerY - (region->height * 0.5f);
 
-        Graphics::RenderCommand cmd = {};
-        cmd.shaderID = SHADER_UI;
-        cmd.x = drawX;
-        cmd.y = drawY;
-        cmd.width = (float)region->width;
-        cmd.height = (float)region->height;
-        cmd.u0 = region->u0;
-        cmd.v0 = region->v0;
-        cmd.u1 = region->u1;
-        cmd.v1 = region->v1;
-        cmd.color = 0xFFFFFFFF;
-        cmd.depth = 100;
-        cmd.layer = LAYER_UI;
-        cmd.blendMode = 1;
-        cmd.textureID = m_iconTextureSlot;
-        renderQueue->Submit(cmd);
+        Graphics::RenderCommandBuilder()
+            .UIElement(drawX, drawY, (float)region->width, (float)region->height, region->u0, region->v0, region->u1, region->v1, m_iconTextureSlot, 100)
+            .Submit(renderQueue);
     }
 
     const MenuItem* centerItem = GetCenterItem();
@@ -349,22 +337,10 @@ void RadialMenu::RenderIcons(Graphics::RenderQueue* renderQueue)
                     const float centerDrawX = m_screenX - (centerRegion->width * 0.5f);
                     const float centerDrawY = m_screenY - (centerRegion->height * 0.5f);
 
-                    Graphics::RenderCommand cmd = {};
-                    cmd.shaderID = SHADER_UI;
-                    cmd.x = centerDrawX;
-                    cmd.y = centerDrawY;
-                    cmd.width = (float)centerRegion->width;
-                    cmd.height = (float)centerRegion->height;
-                    cmd.u0 = centerRegion->u0;
-                    cmd.v0 = centerRegion->v0;
-                    cmd.u1 = centerRegion->u1;
-                    cmd.v1 = centerRegion->v1;
-                    cmd.color = 0xFFF6EBDD;
-                    cmd.depth = 50;
-                    cmd.layer = LAYER_UI;
-                    cmd.blendMode = 1;
-                    cmd.textureID = m_iconTextureSlot;
-                    renderQueue->Submit(cmd);
+                    Graphics::RenderCommandBuilder()
+                        .UIElement(centerDrawX, centerDrawY, (float)centerRegion->width, (float)centerRegion->height, centerRegion->u0, centerRegion->v0, centerRegion->u1, centerRegion->v1, m_iconTextureSlot, 50)
+                        .Color(0xFFF6EBDD)
+                        .Submit(renderQueue);
                 }
             }
         }

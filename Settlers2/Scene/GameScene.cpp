@@ -1,6 +1,8 @@
 #include "stdafx.h"
 #include "GameScene.h"
+#include "BuildingPlacement.h"
 #include "../Graphics/RenderQueue.h"
+#include "../Graphics/RenderCommandBuilder.h"
 #include "../Graphics/Renderer.h"
 #include "../Graphics/SpriteAtlas.h"
 #include "../Graphics/SpriteRenderer.h"
@@ -74,6 +76,7 @@ namespace Scene {
         , m_selectedBuilding(World::Building_None)
         , m_placementIconIdx(-1)
         , m_placementConstrIdx(-1)
+        , m_placementManager(NULL)
         , m_storehouseManager(NULL)
         , m_flagManager(NULL)
         , m_roadManager(NULL)
@@ -118,6 +121,10 @@ namespace Scene {
 
     GameScene::~GameScene()
     {
+        if (m_placementManager) {
+            delete m_placementManager;
+            m_placementManager = NULL;
+        }
         if (m_objectLifecycleManager) {
             delete m_objectLifecycleManager;
             m_objectLifecycleManager = NULL;
@@ -340,6 +347,8 @@ namespace Scene {
             }
         }
 
+        AssignOreDepositsToMountains();
+
         OutputDebugStringA("[GameScene::Load] EconomyManager ready\n");
 
         // Set up ECS carrier system and carrier manager
@@ -368,6 +377,15 @@ namespace Scene {
             char dbg[256];
             _snprintf(dbg, sizeof(dbg), "[GameScene::Load] Loaded %u flags from save (v4)\n", (unsigned)loadedFlagData.size());
             OutputDebugStringA(dbg);
+            for (size_t fi = 0; fi < m_flagManager->GetCount(); ++fi) {
+                World::Flag* ff = m_flagManager->GetFlag(fi);
+                if (ff) {
+                    _snprintf(dbg, sizeof(dbg), "[FlagLoaded] idx=%zu id=%u type=%d pos=(%d,%d) handle=(%u,%u) hasBuilding=%d\n",
+                        fi, ff->id, (int)ff->type, ff->pos.x, ff->pos.y,
+                        ff->handle.index, ff->handle.generation, (int)ff->hasBuilding);
+                    OutputDebugStringA(dbg);
+                }
+            }
         }
         m_carrierManager->SetFlagManager(m_flagManager);
         // Create RoadManager
@@ -521,6 +539,12 @@ namespace Scene {
             m_flagManager, m_roadManager, m_carrierManager, m_cargoManager,
             m_transportJobManager, m_constructionManager, m_economyManager);
         OutputDebugStringA("[GameScene::Load] ObjectLifecycleManager ready\n");
+
+        // Create building placement manager
+        m_placementManager = new BuildingPlacementManager(
+            m_map, m_flagManager, m_roadManager, m_carrierManager,
+            m_economyManager, m_demandManager);
+        OutputDebugStringA("[GameScene::Load] BuildingPlacementManager ready\n");
 
         // Initialize tile renderer
         OutputDebugStringA("[GameScene::Load] Creating TileRenderer\n");
@@ -701,9 +725,17 @@ namespace Scene {
                         for (int y = 0; y < buildingsLayer->GetHeight(); ++y) {
                             for (int x = 0; x < buildingsLayer->GetWidth(); ++x) {
                                 World::Tile& tile = buildingsLayer->GetTile(x, y);
-                                if (tile.atlasName == "Buildings" && tile.type != World::Tile_None &&
-                                    (static_cast<uint32_t>(tile.regionIndex) == cIdx ||
-                                     (tile.u0 == 0.0f && tile.v0 == 0.0f && tile.u1 == 1.0f && tile.v1 == 1.0f)))
+                                if (tile.atlasName != "Buildings" || tile.type == World::Tile_None) continue;
+                                bool isConstr = false;
+                                const SpriteRegion* rr = buildingsAtlas->GetRegion(static_cast<uint32_t>(tile.regionIndex));
+                                if (rr) {
+                                    const std::string& sn = rr->name;
+                                    isConstr = (sn.find("construction") != std::string::npos ||
+                                                sn.find("Construction") != std::string::npos);
+                                }
+                                if (isConstr ||
+                                    static_cast<uint32_t>(tile.regionIndex) == cIdx ||
+                                    (tile.u0 == 0.0f && tile.v0 == 0.0f && tile.u1 == 1.0f && tile.v1 == 1.0f))
                                 {
                                     tile.u0 = CONSTRUCTION_U0;
                                     tile.v0 = CONSTRUCTION_V0;
@@ -727,6 +759,33 @@ namespace Scene {
 
         // Restore any buildings placed in the editor from the Buildings layer
         RestoreBuildingsFromLayer();
+
+        // ─── DEBUG: dump all Buildings layer tiles ─────────────────────
+        {
+            World::TileLayer* bl = m_map ? m_map->GetLayer(World::Buildings) : NULL;
+            TextureRegistry& treg = TextureRegistry::instance();
+            std::tr1::shared_ptr<SpriteAtlas> batlas = treg.getAtlas("Buildings");
+            if (bl) {
+                int bw = bl->GetWidth(), bh = bl->GetHeight();
+                for (int by = 0; by < bh; ++by) {
+                    for (int bx = 0; bx < bw; ++bx) {
+                        const World::Tile& btl = bl->GetTile(bx, by);
+                        if (btl.atlasName == "Buildings" || (btl.regionIndex >= 0 && batlas)) {
+                            const char* spriteName = "";
+                            if (batlas) {
+                                const SpriteRegion* rr = batlas->GetRegion(static_cast<uint32_t>(btl.regionIndex));
+                                if (rr) spriteName = rr->name.c_str();
+                            }
+                            char dbg[512];
+                            _snprintf(dbg, sizeof(dbg), "[BuildingsLayer] (%d,%d) regionIdx=%d sprite='%s' atlas='%s' walkable=%d type=%d u=(%g,%g) v=(%g,%g)\n",
+                                bx, by, btl.regionIndex, spriteName, btl.atlasName.c_str(), (int)btl.walkable, (int)btl.type,
+                                btl.u0, btl.v0, btl.u1, btl.v1);
+                            OutputDebugStringA(dbg);
+                        }
+                    }
+                }
+            }
+        }
 
         // Wire StorehouseManager into existing warehouse (if restored from save)
         if (m_economyManager && m_economyManager->GetWarehouse() && m_storehouseManager) {
@@ -843,7 +902,8 @@ namespace Scene {
             if (m_demandManager && hqFlag) {
                 World::ResourceType allTypes[] = {
                     World::ResourceType_Wood, World::ResourceType_Stone, World::ResourceType_Planks,
-                    World::ResourceType_Fish, World::ResourceType_Meat, World::ResourceType_Coal
+                    World::ResourceType_Fish, World::ResourceType_Meat, World::ResourceType_Coal,
+                    World::ResourceType_BronzeBar
                 };
                 for (int ri = 0; ri < sizeof(allTypes)/sizeof(allTypes[0]); ++ri) {
                     m_demandManager->SetDemand(allTypes[ri], 9999, hqFlag->handle, 10);
@@ -1176,13 +1236,14 @@ void GameScene::Update(float deltaTime)
                 if (node.type != World::ResourceType_None && node.amount > 0) {
                     const char* name = "";
                     switch (node.type) {
-                        case World::ResourceType_Coal:    name = "Coal vein";       break;
-                        case World::ResourceType_IronOre: name = "Iron ore";        break;
-                        case World::ResourceType_GoldOre: name = "Gold vein";       break;
-                        case World::ResourceType_Stone:   name = "Stone deposit";   break;
-                        case World::ResourceType_Marble:  name = "Marble deposit";  break;
-                        case World::ResourceType_Granite: name = "Granite deposit"; break;
-                        default:                          name = "Minerals";        break;
+                        case World::ResourceType_Coal:     name = "Coal vein";        break;
+                        case World::ResourceType_IronOre:  name = "Iron ore";         break;
+                        case World::ResourceType_GoldOre:  name = "Gold vein";        break;
+                        case World::ResourceType_BronzeOre:name = "Bronze ore vein";  break;
+                        case World::ResourceType_Stone:    name = "Stone deposit";    break;
+                        case World::ResourceType_Marble:   name = "Marble deposit";   break;
+                        case World::ResourceType_Granite:  name = "Granite deposit";  break;
+                        default:                           name = "Minerals";         break;
                     }
                     _snprintf(buf, sizeof(buf), "%s found! Units: %d", name, node.amount);
                 } else {
@@ -1321,7 +1382,8 @@ void GameScene::Update(float deltaTime)
                                     else if (lowerName == "stronghold") bt = World::Stronghold;
                                     else if (lowerName == "well") bt = World::Well;
                                     else if (lowerName == "bronzemine") bt = World::BronzeMine;
-                                    else if (lowerName == "toolmaker") bt = World::ToolMaker;
+                                    else if (lowerName == "bronzesmelter") bt = World::BronzeSmelter;
+                                    else if (lowerName == "toolmaker") bt = World::ToolWorkshop;
                                     m_selectedBuilding = bt;
 
                                     // Force-load Buildings atlas for construction sprite lookup
@@ -1790,20 +1852,10 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         LPDIRECT3DTEXTURE9 bgTex = regBg.getTextureOrLoad("background_game");
         if (bgTex && spriteRenderer) {
             spriteRenderer->SetTextureSlot(SLOT_BACKGROUND, bgTex);
-            Graphics::RenderCommand bgCmd = {};
-            bgCmd.shaderID = SHADER_UI;
-            bgCmd.x = 0.0f;
-            bgCmd.y = 0.0f;
-            bgCmd.width = 1280.0f;
-            bgCmd.height = 720.0f;
-            bgCmd.u0 = 0.0f; bgCmd.v0 = 0.0f;
-            bgCmd.u1 = 1.0f; bgCmd.v1 = 1.0f;
-            bgCmd.color = 0xFFFFFFFF;
-            bgCmd.depth = 0;
-            bgCmd.layer = LAYER_EFFECTS;
-            bgCmd.textureID = SLOT_BACKGROUND;
-            bgCmd.blendMode = 1;
-            renderQueue->Submit(bgCmd);
+            Graphics::RenderCommandBuilder()
+                .UIElement(0, 0, 1280, 720, 0, 0, 1, 1, SLOT_BACKGROUND, 0)
+                .Layer(LAYER_EFFECTS)
+                .Submit(renderQueue);
         }
     }
 
@@ -1835,22 +1887,12 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                                 float cx = (wx1 + wx2) * 0.5f;
                                 float cy = (wy1 + wy2) * 0.5f;
                                 float dx = (float)fabs(wx2 - wx1);
-                                Graphics::RenderCommand cmd = {};
-                                cmd.x = cx - dx * 0.5f;
-                                cmd.y = cy - 3.0f;
-                                cmd.width = dx;
-                                cmd.height = 6.0f;
-                                cmd.u0 = ewRegion->u0;
-                                cmd.v0 = ewRegion->v0;
-                                cmd.u1 = ewRegion->u1;
-                                cmd.v1 = ewRegion->v1;
-                                cmd.color = 0xFFFFFFFF;
-                                cmd.textureID = SLOT_STREETS;
-                                cmd.shaderID = SHADER_TERRAIN;
-                                cmd.blendMode = 1;
-                                cmd.layer = LAYER_WORLD;
-                                cmd.depth = static_cast<WORD>(30000 + y * 400);
-                                renderQueue->Submit(cmd);
+                                Graphics::RenderCommandBuilder()
+                                    .WorldSprite(cx - dx * 0.5f, cy - 3.0f,
+                                        dx, 6.0f,
+                                        ewRegion->u0, ewRegion->v0, ewRegion->u1, ewRegion->v1,
+                                        SLOT_STREETS, static_cast<WORD>(30000 + y * 400))
+                                    .Submit(renderQueue);
                             }
                         }
                     }
@@ -1860,52 +1902,29 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
     }
 
     // ─── Render cursor or placement preview ─────────────────────────────
-    if (m_buildState == BUILDSTATE_PLACE_FLAG && m_selectedBuilding != World::Building_None) {
-        // Calculate building footprint position (offset from cursor using entrance offset)
-        const char* spriteName = GetBuildingSpriteName(m_selectedBuilding);
-        int entranceX = 0, entranceY = 0;
-        GetEntranceOffset(spriteName ? spriteName : "", entranceX, entranceY);
-        int buildY = m_cursorTileY - entranceY;
-        bool buildingEvenY = (buildY % 2 == 0);
-        AdjustEntranceForParity(buildingEvenY, entranceX, entranceY);
-        int buildX = m_cursorTileX - entranceX;
+    if (m_buildState == BUILDSTATE_PLACE_FLAG && m_selectedBuilding != World::Building_None && m_placementManager) {
+        m_placementManager->SelectBuilding(m_selectedBuilding);
+        PlacementData pd = m_placementManager->GetPlacementData(m_cursorTileX, m_cursorTileY);
 
-        // Render the actual building sprite from Buildings atlas as a preview
-        std::tr1::shared_ptr<SpriteAtlas> buildingsAtlas = reg.getAtlas("Buildings");
-        if (buildingsAtlas) {
-            const char* spriteName = GetBuildingSpriteName(m_selectedBuilding);
-            if (spriteName && spriteName[0]) {
-                uint32_t idx = buildingsAtlas->GetIndex(spriteName);
-                if (idx != 0xFFFFFFFF) {
-                    const SpriteRegion* r = buildingsAtlas->GetRegion(idx);
-                    if (r) {
-                        float wx, wy;
-                        CoordinateSystem::GetInstance().NodeTileToWorld(buildX, buildY, wx, wy);
+        if (pd.spriteRegion) {
+            float wx, wy;
+            CoordinateSystem::GetInstance().NodeTileToWorld(pd.buildX, pd.buildY, wx, wy);
 
-                        if (spriteRenderer) {
-                            LPDIRECT3DTEXTURE9 buildingsTex = buildingsAtlas->GetTexture();
-                            if (buildingsTex) spriteRenderer->SetTextureSlot(SLOT_BUILDINGS_HIGHLIGHT, buildingsTex);
-                        }
-
-                        Graphics::RenderCommand pcmd = {};
-                        pcmd.x = wx - r->pivotX;
-                        pcmd.y = wy - r->pivotY;
-                        pcmd.width = (float)r->width;
-                        pcmd.height = (float)r->height;
-                        pcmd.u0 = r->u0;
-                        pcmd.v0 = r->v0;
-                        pcmd.u1 = r->u1;
-                        pcmd.v1 = r->v1;
-                        pcmd.color = 0xAAFFFFFF;
-                        pcmd.textureID = SLOT_BUILDINGS_HIGHLIGHT;
-                        pcmd.shaderID = SHADER_TERRAIN;
-                        pcmd.blendMode = 1;
-                        pcmd.layer = LAYER_FOREGROUND;
-                        pcmd.depth = static_cast<WORD>(0.98f * 65535.0f);
-                        renderQueue->Submit(pcmd);
-                    }
-                }
+            if (spriteRenderer) {
+                std::tr1::shared_ptr<SpriteAtlas> buildingsAtlas = reg.getAtlas("Buildings");
+                if (buildingsAtlas && buildingsAtlas->GetTexture())
+                    spriteRenderer->SetTextureSlot(SLOT_BUILDINGS_HIGHLIGHT, buildingsAtlas->GetTexture());
             }
+
+            Graphics::RenderCommandBuilder()
+                .WorldSprite(wx - pd.spriteRegion->pivotX, wy - pd.spriteRegion->pivotY,
+                    (float)pd.spriteRegion->width, (float)pd.spriteRegion->height,
+                    pd.spriteRegion->u0, pd.spriteRegion->v0,
+                    pd.spriteRegion->u1, pd.spriteRegion->v1,
+                    SLOT_BUILDINGS_HIGHLIGHT, static_cast<WORD>(0.98f * 65535.0f))
+                .Color(pd.valid ? 0xAAFFFFFF : 0x44FF4444)
+                .Layer(LAYER_FOREGROUND)
+                .Submit(renderQueue);
         }
 //        OutputDebugStringA("[GameScene::Render] Placement preview rendered\n");
     } else if (!m_menuActive && !m_roadMenuActive && !m_flagMenuActive && !m_geologistMenuActive) {
@@ -1930,22 +1949,12 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                     int fy = pairs[fi].second;
                     float wx, wy;
                     coords.NodeTileToWorld(fx, fy, wx, wy);
-                    Graphics::RenderCommand cmd = {};
-                    cmd.x = wx - flagRegion->pivotX;
-                    cmd.y = wy - flagRegion->pivotY;
-                    cmd.width = (float)flagRegion->width;
-                    cmd.height = (float)flagRegion->height;
-                    cmd.u0 = flagRegion->u0;
-                    cmd.v0 = flagRegion->v0;
-                    cmd.u1 = flagRegion->u1;
-                    cmd.v1 = flagRegion->v1;
-                    cmd.color = 0xFFFFFFFF;
-                    cmd.textureID = SLOT_BUILDINGS_HIGHLIGHT;
-                    cmd.shaderID = SHADER_TERRAIN;
-                    cmd.blendMode = 1;
-                    cmd.layer = LAYER_WORLD;
-                    cmd.depth = static_cast<WORD>(30010 + fy * 400);
-                    renderQueue->Submit(cmd);
+                    Graphics::RenderCommandBuilder()
+                        .WorldSprite(wx - flagRegion->pivotX, wy - flagRegion->pivotY,
+                            (float)flagRegion->width, (float)flagRegion->height,
+                            flagRegion->u0, flagRegion->v0, flagRegion->u1, flagRegion->v1,
+                            SLOT_BUILDINGS_HIGHLIGHT, static_cast<WORD>(30010 + fy * 400))
+                        .Submit(renderQueue);
                 }
             }
         }
@@ -1988,20 +1997,12 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                     const SpriteRegion* r = iconAtlas->GetRegion(idx);
                     if (!r) continue;
 
-                    Graphics::RenderCommand cmd = {};
-                    cmd.x = fx - r->pivotX * 0.5f;
-                    cmd.y = fy - r->pivotY * 0.5f - 30.0f + iconY * -16.0f;
-                    cmd.width = r->width * 0.5f;
-                    cmd.height = r->height * 0.5f;
-                    cmd.u0 = r->u0; cmd.v0 = r->v0;
-                    cmd.u1 = r->u1; cmd.v1 = r->v1;
-                    cmd.color = 0xFFFFFFFF;
-                    cmd.textureID = SLOT_FLAG_RESOURCES;
-                    cmd.shaderID = SHADER_TERRAIN;
-                    cmd.blendMode = 1;
-                    cmd.layer = LAYER_WORLD;
-                    cmd.depth = static_cast<WORD>(30011 + flag->pos.y * 400 + iconY);
-                    renderQueue->Submit(cmd);
+                    Graphics::RenderCommandBuilder()
+                        .WorldSprite(fx - r->pivotX * 0.5f, fy - r->pivotY * 0.5f - 30.0f + iconY * -16.0f,
+                            r->width * 0.5f, r->height * 0.5f,
+                            r->u0, r->v0, r->u1, r->v1,
+                            SLOT_FLAG_RESOURCES, static_cast<WORD>(30011 + flag->pos.y * 400 + iconY))
+                        .Submit(renderQueue);
                     iconY--;
                 }
             }
@@ -2101,20 +2102,12 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                     const SpriteRegion* r = unitsAtlas->GetRegion(spriteIdx);
                     if (!r) continue;
 
-                    Graphics::RenderCommand cmd = {};
-                    cmd.x = wx - r->pivotX;
-                    cmd.y = wy - r->pivotY;
-                    cmd.width = (float)r->width;
-                    cmd.height = (float)r->height;
-                    cmd.u0 = r->u0; cmd.v0 = r->v0;
-                    cmd.u1 = r->u1; cmd.v1 = r->v1;
-                    cmd.color = 0xFFFFFFFF;
-                    cmd.textureID = SLOT_UNITS;
-                    cmd.shaderID = SHADER_TERRAIN;
-                    cmd.blendMode = 1;
-                    cmd.layer = LAYER_WORLD;
-                    cmd.depth = static_cast<WORD>(30020 + tileA.y * 400);
-                    renderQueue->Submit(cmd);
+                    Graphics::RenderCommandBuilder()
+                        .WorldSprite(wx - r->pivotX, wy - r->pivotY,
+                            (float)r->width, (float)r->height,
+                            r->u0, r->v0, r->u1, r->v1,
+                            SLOT_UNITS, static_cast<WORD>(30020 + tileA.y * 400))
+                        .Submit(renderQueue);
 
                     // Render cargo icon above carrier
                     if (carrier->m_cargo) {
@@ -2127,22 +2120,12 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                                     const SpriteRegion* cargoR = cargoAtlas->GetRegion(cargoIdx);
                                     if (cargoR) {
                                         float cargoSize = 16.0f;
-                                        Graphics::RenderCommand ccmd = {};
-                                        ccmd.x = wx - cargoSize * 0.5f;
-                                        ccmd.y = wy - r->pivotY - cargoSize;
-                                        ccmd.width = cargoSize;
-                                        ccmd.height = cargoSize;
-                                        ccmd.u0 = cargoR->u0;
-                                        ccmd.v0 = cargoR->v0;
-                                        ccmd.u1 = cargoR->u1;
-                                        ccmd.v1 = cargoR->v1;
-                                        ccmd.color = 0xFFFFFFFF;
-                                        ccmd.textureID = SLOT_UI_MENU_ICON;
-                                        ccmd.shaderID = SHADER_TERRAIN;
-                                        ccmd.blendMode = 1;
-                                        ccmd.layer = LAYER_WORLD;
-                                        ccmd.depth = static_cast<WORD>(30030 + tileA.y * 400);
-                                        renderQueue->Submit(ccmd);
+                                        Graphics::RenderCommandBuilder()
+                                            .WorldSprite(wx - cargoSize * 0.5f, wy - r->pivotY - cargoSize,
+                                                cargoSize, cargoSize,
+                                                cargoR->u0, cargoR->v0, cargoR->u1, cargoR->v1,
+                                                SLOT_UI_MENU_ICON, static_cast<WORD>(30030 + tileA.y * 400))
+                                            .Submit(renderQueue);
                                     }
                                 }
                             }
@@ -2170,20 +2153,12 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                     const SpriteRegion* wr = unitsAtlas->GetRegion(wSpriteIdx);
                     if (!wr) continue;
 
-                    Graphics::RenderCommand wcmd = {};
-                    wcmd.x = wx - wr->pivotX;
-                    wcmd.y = wy - wr->pivotY;
-                    wcmd.width = (float)wr->width;
-                    wcmd.height = (float)wr->height;
-                    wcmd.u0 = wr->u0; wcmd.v0 = wr->v0;
-                    wcmd.u1 = wr->u1; wcmd.v1 = wr->v1;
-                    wcmd.color = 0xFFFFFFFF;
-                    wcmd.textureID = SLOT_UNITS;
-                    wcmd.shaderID = SHADER_TERRAIN;
-                    wcmd.blendMode = 1;
-                    wcmd.layer = LAYER_WORLD;
-                    wcmd.depth = static_cast<WORD>(30020 + (moving ? (int)(wy + 0.5f) : flag->building->pos.y) * 400);
-                    renderQueue->Submit(wcmd);
+                    Graphics::RenderCommandBuilder()
+                        .WorldSprite(wx - wr->pivotX, wy - wr->pivotY,
+                            (float)wr->width, (float)wr->height,
+                            wr->u0, wr->v0, wr->u1, wr->v1,
+                            SLOT_UNITS, static_cast<WORD>(30020 + (moving ? (int)(wy + 0.5f) : flag->building->pos.y) * 400))
+                        .Submit(renderQueue);
                 }
             }
 
@@ -2198,20 +2173,12 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                     coords.NodeTileToWorld(wx, wy, wx, wy);
                     const SpriteRegion* wr = unitsAtlas->GetRegion(spriteIdx);
                     if (!wr) continue;
-                    Graphics::RenderCommand wcmd = {};
-                    wcmd.x = wx - wr->pivotX;
-                    wcmd.y = wy - wr->pivotY;
-                    wcmd.width = (float)wr->width;
-                    wcmd.height = (float)wr->height;
-                    wcmd.u0 = wr->u0; wcmd.v0 = wr->v0;
-                    wcmd.u1 = wr->u1; wcmd.v1 = wr->v1;
-                    wcmd.color = 0xFFFFFFFF;
-                    wcmd.textureID = SLOT_UNITS;
-                    wcmd.shaderID = SHADER_TERRAIN;
-                    wcmd.blendMode = 1;
-                    wcmd.layer = LAYER_WORLD;
-                    wcmd.depth = static_cast<WORD>(30020 + (int)(wy + 0.5f) * 400);
-                    renderQueue->Submit(wcmd);
+                    Graphics::RenderCommandBuilder()
+                        .WorldSprite(wx - wr->pivotX, wy - wr->pivotY,
+                            (float)wr->width, (float)wr->height,
+                            wr->u0, wr->v0, wr->u1, wr->v1,
+                            SLOT_UNITS, static_cast<WORD>(30020 + (int)(wy + 0.5f) * 400))
+                        .Submit(renderQueue);
                 }
             }
 
@@ -2282,20 +2249,12 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                     const SpriteRegion* r = unitsAtlas->GetRegion(spriteIdx);
                     if (!r) continue;
 
-                    Graphics::RenderCommand cmd = {};
-                    cmd.x = wx - r->pivotX;
-                    cmd.y = wy - r->pivotY;
-                    cmd.width = (float)r->width;
-                    cmd.height = (float)r->height;
-                    cmd.u0 = r->u0; cmd.v0 = r->v0;
-                    cmd.u1 = r->u1; cmd.v1 = r->v1;
-                    cmd.color = 0xFFFFFFFF;
-                    cmd.textureID = SLOT_UNITS;
-                    cmd.shaderID = SHADER_TERRAIN;
-                    cmd.blendMode = 1;
-                    cmd.layer = LAYER_WORLD;
-                    cmd.depth = static_cast<WORD>(30020 + site->flag->pos.y * 400);
-                    renderQueue->Submit(cmd);
+                    Graphics::RenderCommandBuilder()
+                        .WorldSprite(wx - r->pivotX, wy - r->pivotY,
+                            (float)r->width, (float)r->height,
+                            r->u0, r->v0, r->u1, r->v1,
+                            SLOT_UNITS, static_cast<WORD>(30020 + site->flag->pos.y * 400))
+                        .Submit(renderQueue);
                 }
             }
         }
@@ -2334,20 +2293,12 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                         if (!r) continue;
                         float wx, wy;
                         coords.NodeTileToWorld(a.x, a.y, wx, wy);
-                        Graphics::RenderCommand cmd = {};
-                        cmd.x = wx - r->pivotX;
-                        cmd.y = wy - r->pivotY;
-                        cmd.width = (float)r->width;
-                        cmd.height = (float)r->height;
-                        cmd.u0 = r->u0; cmd.v0 = r->v0;
-                        cmd.u1 = r->u1; cmd.v1 = r->v1;
-                        cmd.color = 0xFFFFFFFF;
-                        cmd.textureID = SLOT_UNITS;
-                        cmd.shaderID = SHADER_TERRAIN;
-                        cmd.blendMode = 1;
-                        cmd.layer = LAYER_WORLD;
-                        cmd.depth = static_cast<WORD>(30005 + (int)(a.y + 0.5f) * 400);
-                        renderQueue->Submit(cmd);
+                        Graphics::RenderCommandBuilder()
+                            .WorldSprite(wx - r->pivotX, wy - r->pivotY,
+                                (float)r->width, (float)r->height,
+                                r->u0, r->v0, r->u1, r->v1,
+                                SLOT_UNITS, static_cast<WORD>(30005 + (int)(a.y + 0.5f) * 400))
+                            .Submit(renderQueue);
                     }
                 }
             }
@@ -2408,22 +2359,14 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
             float wx, wy;
             coords.NodeTileToWorld(px, py, wx, wy);
 
-            Graphics::RenderCommand cmd = {};
-            cmd.x = wx - region->pivotX + flagAlignOffsetX;
-            cmd.y = wy - region->pivotY;
-            cmd.width = (float)region->width;
-            cmd.height = (float)region->height;
-            cmd.u0 = region->u0;
-            cmd.v0 = region->v0;
-            cmd.u1 = region->u1;
-            cmd.v1 = region->v1;
-            cmd.color = D3DCOLOR_ARGB(160, 255, 255, 255);
-            cmd.textureID = SLOT_STREETS;
-            cmd.shaderID = SHADER_TERRAIN;
-            cmd.blendMode = 1;
-            cmd.layer = LAYER_FOREGROUND;
-            cmd.depth = static_cast<WORD>(0.98f * 65535.0f);
-            renderQueue->Submit(cmd);
+            Graphics::RenderCommandBuilder()
+                .WorldSprite(wx - region->pivotX + flagAlignOffsetX, wy - region->pivotY,
+                    (float)region->width, (float)region->height,
+                    region->u0, region->v0, region->u1, region->v1,
+                    SLOT_STREETS, static_cast<WORD>(0.98f * 65535.0f))
+                .Color(D3DCOLOR_ARGB(160, 255, 255, 255))
+                .Layer(LAYER_FOREGROUND)
+                .Submit(renderQueue);
         }
 
         // E/W connection quads for preview path
@@ -2444,22 +2387,14 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                         float cx = (wx1 + wx2) * 0.5f;
                         float cy = (wy1 + wy2) * 0.5f;
                         float dx = (float)fabs(wx2 - wx1);
-                        Graphics::RenderCommand cmd = {};
-                        cmd.x = cx - dx * 0.5f + flagAlignOffsetX;
-                        cmd.y = cy - 3.0f;
-                        cmd.width = dx;
-                        cmd.height = 6.0f;
-                        cmd.u0 = ewRegion->u0;
-                        cmd.v0 = ewRegion->v0;
-                        cmd.u1 = ewRegion->u1;
-                        cmd.v1 = ewRegion->v1;
-                        cmd.color = D3DCOLOR_ARGB(160, 255, 255, 255);
-                        cmd.textureID = SLOT_STREETS;
-                        cmd.shaderID = SHADER_TERRAIN;
-                        cmd.blendMode = 1;
-                        cmd.layer = LAYER_FOREGROUND;
-                        cmd.depth = static_cast<WORD>(0.98f * 65535.0f);
-                        renderQueue->Submit(cmd);
+                        Graphics::RenderCommandBuilder()
+                            .WorldSprite(cx - dx * 0.5f + flagAlignOffsetX, cy - 3.0f,
+                                dx, 6.0f,
+                                ewRegion->u0, ewRegion->v0, ewRegion->u1, ewRegion->v1,
+                                SLOT_STREETS, static_cast<WORD>(0.98f * 65535.0f))
+                            .Color(D3DCOLOR_ARGB(160, 255, 255, 255))
+                            .Layer(LAYER_FOREGROUND)
+                            .Submit(renderQueue);
                     }
                 }
             }
@@ -2489,22 +2424,14 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                         int ay = m_roadAutoPath[i].second;
                         float wx, wy;
                         coords.NodeTileToWorld(ax, ay, wx, wy);
-                        Graphics::RenderCommand cmd = {};
-                        cmd.x = wx - region->pivotX + flagAlignOffsetX;
-                        cmd.y = wy - region->pivotY;
-                        cmd.width = (float)region->width;
-                        cmd.height = (float)region->height;
-                        cmd.u0 = region->u0;
-                        cmd.v0 = region->v0;
-                        cmd.u1 = region->u1;
-                        cmd.v1 = region->v1;
-                        cmd.color = D3DCOLOR_ARGB(160, 100, 200, 255);
-                        cmd.textureID = SLOT_STREETS;
-                        cmd.shaderID = SHADER_TERRAIN;
-                        cmd.blendMode = 1;
-                        cmd.layer = LAYER_FOREGROUND;
-                        cmd.depth = static_cast<WORD>(0.98f * 65535.0f);
-                        renderQueue->Submit(cmd);
+                        Graphics::RenderCommandBuilder()
+                            .WorldSprite(wx - region->pivotX + flagAlignOffsetX, wy - region->pivotY,
+                                (float)region->width, (float)region->height,
+                                region->u0, region->v0, region->u1, region->v1,
+                                SLOT_STREETS, static_cast<WORD>(0.98f * 65535.0f))
+                            .Color(D3DCOLOR_ARGB(160, 100, 200, 255))
+                            .Layer(LAYER_FOREGROUND)
+                            .Submit(renderQueue);
                     }
                 }
             }
@@ -2527,22 +2454,14 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                             float cx = (wx1 + wx2) * 0.5f;
                             float cy = (wy1 + wy2) * 0.5f;
                             float dx = (float)fabs(wx2 - wx1);
-                            Graphics::RenderCommand cmd = {};
-                            cmd.x = cx - dx * 0.5f + flagAlignOffsetX;
-                            cmd.y = cy - 3.0f;
-                            cmd.width = dx;
-                            cmd.height = 6.0f;
-                            cmd.u0 = ewRegion->u0;
-                            cmd.v0 = ewRegion->v0;
-                            cmd.u1 = ewRegion->u1;
-                            cmd.v1 = ewRegion->v1;
-                            cmd.color = D3DCOLOR_ARGB(160, 100, 200, 255);
-                            cmd.textureID = SLOT_STREETS;
-                            cmd.shaderID = SHADER_TERRAIN;
-                            cmd.blendMode = 1;
-                            cmd.layer = LAYER_FOREGROUND;
-                            cmd.depth = static_cast<WORD>(0.98f * 65535.0f);
-                            renderQueue->Submit(cmd);
+                            Graphics::RenderCommandBuilder()
+                                .WorldSprite(cx - dx * 0.5f + flagAlignOffsetX, cy - 3.0f,
+                                    dx, 6.0f,
+                                    ewRegion->u0, ewRegion->v0, ewRegion->u1, ewRegion->v1,
+                                    SLOT_STREETS, static_cast<WORD>(0.98f * 65535.0f))
+                                .Color(D3DCOLOR_ARGB(160, 100, 200, 255))
+                                .Layer(LAYER_FOREGROUND)
+                                .Submit(renderQueue);
                         }
                     }
                 }
@@ -2573,22 +2492,14 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                         int ny = m_roadValidNeighbors[i].second;
                         float wx, wy;
                         coords.NodeTileToWorld(nx, ny, wx, wy);
-                        Graphics::RenderCommand cmd = {};
-                        cmd.x = wx - region->pivotX + flagAlignOffsetX;
-                        cmd.y = wy - region->pivotY;
-                        cmd.width = (float)region->width;
-                        cmd.height = (float)region->height;
-                        cmd.u0 = region->u0;
-                        cmd.v0 = region->v0;
-                        cmd.u1 = region->u1;
-                        cmd.v1 = region->v1;
-                        cmd.color = D3DCOLOR_ARGB(120, 255, 100, 100);
-                        cmd.textureID = SLOT_STREETS;
-                        cmd.shaderID = SHADER_TERRAIN;
-                        cmd.blendMode = 1;
-                        cmd.layer = LAYER_FOREGROUND;
-                        cmd.depth = static_cast<WORD>(0.99f * 65535.0f);
-                        renderQueue->Submit(cmd);
+                        Graphics::RenderCommandBuilder()
+                            .WorldSprite(wx - region->pivotX + flagAlignOffsetX, wy - region->pivotY,
+                                (float)region->width, (float)region->height,
+                                region->u0, region->v0, region->u1, region->v1,
+                                SLOT_STREETS, static_cast<WORD>(0.99f * 65535.0f))
+                            .Color(D3DCOLOR_ARGB(120, 255, 100, 100))
+                            .Layer(LAYER_FOREGROUND)
+                            .Submit(renderQueue);
                     }
                 }
             }
@@ -2625,22 +2536,14 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                         // Render deer icon
                         if (deerR) {
                             float iconSize = 20.0f;
-                            Graphics::RenderCommand icmd = {};
-                            icmd.x = wx - iconSize * 0.5f;
-                            icmd.y = wy - iconSize;
-                            icmd.width = iconSize;
-                            icmd.height = iconSize;
-                            icmd.u0 = deerR->u0;
-                            icmd.v0 = deerR->v0;
-                            icmd.u1 = deerR->u1;
-                            icmd.v1 = deerR->v1;
-                            icmd.color = D3DCOLOR_ARGB(200, 255, 255, 255);
-                            icmd.textureID = SLOT_UI_MENU_ICON;
-                            icmd.shaderID = SHADER_TERRAIN;
-                            icmd.blendMode = 1;
-                            icmd.layer = LAYER_FOREGROUND;
-                            icmd.depth = static_cast<WORD>(0.99f * 65535.0f);
-                            renderQueue->Submit(icmd);
+                            Graphics::RenderCommandBuilder()
+                                .WorldSprite(wx - iconSize * 0.5f, wy - iconSize,
+                                    iconSize, iconSize,
+                                    deerR->u0, deerR->v0, deerR->u1, deerR->v1,
+                                    SLOT_UI_MENU_ICON, static_cast<WORD>(0.99f * 65535.0f))
+                                .Color(D3DCOLOR_ARGB(200, 255, 255, 255))
+                                .Layer(LAYER_FOREGROUND)
+                                .Submit(renderQueue);
                         }
                         // Render amount text
                         char buf[8];
@@ -2675,22 +2578,14 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                     // Render icon sprite
                     if (iconR) {
                         float iconSize = 24.0f;
-                        Graphics::RenderCommand icmd = {};
-                        icmd.x = wx - iconSize * 0.5f;
-                        icmd.y = wy - iconSize - 8.0f;
-                        icmd.width = iconSize;
-                        icmd.height = iconSize;
-                        icmd.u0 = iconR->u0;
-                        icmd.v0 = iconR->v0;
-                        icmd.u1 = iconR->u1;
-                        icmd.v1 = iconR->v1;
-                        icmd.color = D3DCOLOR_ARGB(220, 255, 255, 255);
-                        icmd.textureID = SLOT_UI_MENU_ICON;
-                        icmd.shaderID = SHADER_TERRAIN;
-                        icmd.blendMode = 1;
-                        icmd.layer = LAYER_FOREGROUND;
-                        icmd.depth = static_cast<WORD>(0.99f * 65535.0f);
-                        renderQueue->Submit(icmd);
+                        Graphics::RenderCommandBuilder()
+                            .WorldSprite(wx - iconSize * 0.5f, wy - iconSize - 8.0f,
+                                iconSize, iconSize,
+                                iconR->u0, iconR->v0, iconR->u1, iconR->v1,
+                                SLOT_UI_MENU_ICON, static_cast<WORD>(0.99f * 65535.0f))
+                            .Color(D3DCOLOR_ARGB(220, 255, 255, 255))
+                            .Layer(LAYER_FOREGROUND)
+                            .Submit(renderQueue);
                     }
                     // Render amount text
                     char buf[16];
@@ -2712,22 +2607,14 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                     if (r) {
                         float wx, wy;
                         CoordinateSystem::GetInstance().NodeTileToWorld(10, 8, wx, wy);
-                        Graphics::RenderCommand cmd = {};
-                        cmd.x = wx - r->pivotX;
-                        cmd.y = wy - r->pivotY;
-                        cmd.width = (float)r->width;
-                        cmd.height = (float)r->height;
-                        cmd.u0 = r->u0;
-                        cmd.v0 = r->v0;
-                        cmd.u1 = r->u1;
-                        cmd.v1 = r->v1;
-                        cmd.color = D3DCOLOR_ARGB(80, 255, 255, 255);
-                        cmd.textureID = SLOT_BUILDINGS_HIGHLIGHT;
-                        cmd.shaderID = SHADER_TERRAIN;
-                        cmd.blendMode = 1;
-                        cmd.layer = LAYER_FOREGROUND;
-                        cmd.depth = static_cast<WORD>(0.99f * 65535.0f);
-                        renderQueue->Submit(cmd);
+                        Graphics::RenderCommandBuilder()
+                            .WorldSprite(wx - r->pivotX, wy - r->pivotY,
+                                (float)r->width, (float)r->height,
+                                r->u0, r->v0, r->u1, r->v1,
+                                SLOT_BUILDINGS_HIGHLIGHT, static_cast<WORD>(0.99f * 65535.0f))
+                            .Color(D3DCOLOR_ARGB(80, 255, 255, 255))
+                            .Layer(LAYER_FOREGROUND)
+                            .Submit(renderQueue);
                     }
                 }
             }
@@ -2745,23 +2632,12 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
             float panelLeft = (screenW - m_townHallPanelW) * 0.5f;
             float panelTop = (screenH - m_townHallPanelH) * 0.5f;
 
-            Graphics::RenderCommand cmd = {};
-            cmd.x = panelLeft;
-            cmd.y = panelTop;
-            cmd.width = m_townHallPanelW;
-            cmd.height = m_townHallPanelH;
-            cmd.u0 = m_townHallPanelU0;
-            cmd.v0 = m_townHallPanelV0;
-            cmd.u1 = m_townHallPanelU1;
-            cmd.v1 = m_townHallPanelV1;
-            cmd.color = 0xFFFFFFFF;
-            cmd.textureID = SLOT_UI_TOWNHALL_PANEL;
-            cmd.shaderID = SHADER_UI;
-            cmd.blendMode = 1;
-            cmd.layer = LAYER_UI;
-            cmd.depth = 10;
-            cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, SLOT_UI_TOWNHALL_PANEL, 10);
-            renderQueue->Submit(cmd);
+            Graphics::RenderCommandBuilder()
+                .UIElement(panelLeft, panelTop,
+                    m_townHallPanelW, m_townHallPanelH,
+                    m_townHallPanelU0, m_townHallPanelV0, m_townHallPanelU1, m_townHallPanelV1,
+                    SLOT_UI_TOWNHALL_PANEL, 10)
+                .Submit(renderQueue);
 
             // Render resource counts on the panel (total stock across all storage)
             if (m_textManager && m_economyManager) {
@@ -2794,9 +2670,14 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
             for (size_t fi = 0; fi < m_flagManager->GetCount(); ++fi) {
                 World::Flag* flag = m_flagManager->GetFlag(fi);
                 if (!flag || !flag->building) continue;
-                const char* spriteName = GetBuildingSpriteName(flag->building->type);
-                if (!spriteName || !*spriteName) continue;
-                uint32_t sprIdx = buildingsAtlas->GetIndex(spriteName);
+                uint32_t sprIdx;
+                if (flag->building->IsDepleted() && flag->building->m_depletedSpriteIdx >= 0) {
+                    sprIdx = (uint32_t)flag->building->m_depletedSpriteIdx;
+                } else {
+                    const char* spriteName = GetBuildingSpriteName(flag->building->type);
+                    if (!spriteName || !*spriteName) continue;
+                    sprIdx = buildingsAtlas->GetIndex(spriteName);
+                }
                 if (sprIdx == 0xFFFFFFFF) continue;
                 const SpriteRegion* r = buildingsAtlas->GetRegion(sprIdx);
                 if (!r) continue;
@@ -2804,22 +2685,52 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                 int bldY = flag->building->pos.y;
                 float wx, wy;
                 coords.NodeTileToWorld(bldX, bldY, wx, wy);
-                Graphics::RenderCommand cmd = {};
-                cmd.x = wx - r->pivotX;
-                cmd.y = wy - r->pivotY;
-                cmd.width = (float)r->width;
-                cmd.height = (float)r->height;
-                cmd.u0 = r->u0;
-                cmd.v0 = r->v0;
-                cmd.u1 = r->u1;
-                cmd.v1 = r->v1;
-                cmd.color = D3DCOLOR_ARGB(80, 255, 255, 255);
-                cmd.textureID = SLOT_BUILDINGS_HIGHLIGHT;
-                cmd.shaderID = SHADER_TERRAIN;
-                cmd.blendMode = 1;
-                cmd.layer = LAYER_FOREGROUND;
-                cmd.depth = static_cast<WORD>(0.99f * 65535.0f);
-                renderQueue->Submit(cmd);
+                Graphics::RenderCommandBuilder()
+                    .WorldSprite(wx - r->pivotX, wy - r->pivotY,
+                        (float)r->width, (float)r->height,
+                        r->u0, r->v0, r->u1, r->v1,
+                        SLOT_BUILDINGS_HIGHLIGHT, static_cast<WORD>(0.99f * 65535.0f))
+                    .Color(D3DCOLOR_ARGB(80, 255, 255, 255))
+                    .Layer(LAYER_FOREGROUND)
+                    .Submit(renderQueue);
+            }
+        }
+    }
+
+    // ─── Work-site sprites (mine frameworks at resource nodes) ──────────
+    {
+        std::tr1::shared_ptr<SpriteAtlas> buildingsAtlas = reg.getAtlas("Buildings");
+        if (buildingsAtlas && m_economyManager) {
+            LPDIRECT3DTEXTURE9 buildingsTex = buildingsAtlas->GetTexture();
+            if (spriteRenderer && buildingsTex)
+                spriteRenderer->SetTextureSlot(SLOT_BUILDINGS_HIGHLIGHT, buildingsTex);
+            for (int i = 0; i < m_economyManager->GetBuildingCount(); ++i) {
+                World::Building* b = m_economyManager->GetBuilding(i);
+                if (!b) continue;
+                Vector2i wsPos;
+                const char* wsSpriteName = NULL;
+                if (!b->GetWorkSiteRenderInfo(wsPos, wsSpriteName)) continue;
+                if (!wsSpriteName || !*wsSpriteName) continue;
+                uint32_t sprIdx = buildingsAtlas->GetIndex(wsSpriteName);
+                if (sprIdx == 0xFFFFFFFF) {
+                    std::string lowerName = wsSpriteName;
+                    for (size_t ci = 0; ci < lowerName.size(); ++ci)
+                        if (lowerName[ci] >= 'A' && lowerName[ci] <= 'Z')
+                            lowerName[ci] = lowerName[ci] - 'A' + 'a';
+                    sprIdx = buildingsAtlas->GetIndex(lowerName.c_str());
+                }
+                if (sprIdx == 0xFFFFFFFF) continue;
+                const SpriteRegion* r = buildingsAtlas->GetRegion(sprIdx);
+                if (!r) continue;
+                float wx, wy;
+                CoordinateSystem::GetInstance().NodeTileToWorld(wsPos.x, wsPos.y, wx, wy);
+                Graphics::RenderCommandBuilder()
+                    .WorldSprite(wx - r->pivotX, wy - r->pivotY,
+                        (float)r->width, (float)r->height,
+                        r->u0, r->v0, r->u1, r->v1,
+                        SLOT_BUILDINGS_HIGHLIGHT, static_cast<WORD>(0.97f * 65535.0f))
+                    .Layer(LAYER_EFFECTS)
+                    .Submit(renderQueue);
             }
         }
     }
@@ -2841,22 +2752,13 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                 if (!r) continue;
 
                 // Render icon
-                Graphics::RenderCommand icmd = {};
-                icmd.x = barX;
-                icmd.y = barY;
-                icmd.width = iconSize;
-                icmd.height = iconSize;
-                icmd.u0 = r->u0;
-                icmd.v0 = r->v0;
-                icmd.u1 = r->u1;
-                icmd.v1 = r->v1;
-                icmd.color = 0xFFFFFFFF;
-                icmd.textureID = SLOT_UI_MENU_ICON;
-                icmd.shaderID = SHADER_UI;
-                icmd.blendMode = 1;
-                icmd.layer = LAYER_FOREGROUND;
-                icmd.depth = 200;
-                renderQueue->Submit(icmd);
+                Graphics::RenderCommandBuilder()
+                    .UIElement(barX, barY,
+                        iconSize, iconSize,
+                        r->u0, r->v0, r->u1, r->v1,
+                        SLOT_UI_MENU_ICON, 200)
+                    .Layer(LAYER_FOREGROUND)
+                    .Submit(renderQueue);
 
                 // Render resource count (total stock across all storage)
                 if (m_economyManager) {
@@ -2894,20 +2796,13 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         // Banner sliding from right edge (top-left pivot), LAYER_EFFECTS so it
         // sorts before LAYER_UI text regardless of texture slot differences
         if (m_bannerLoaded && m_bannerSlideX < 1280.0f) {
-            Graphics::RenderCommand bcmd = {};
-            bcmd.x = m_bannerSlideX;
-            bcmd.y = textY - m_bannerH;
-            bcmd.width = m_bannerW;
-            bcmd.height = m_bannerH;
-            bcmd.u0 = m_bannerU0; bcmd.v0 = m_bannerV0;
-            bcmd.u1 = m_bannerU1; bcmd.v1 = m_bannerV1;
-            bcmd.color = 0xFFFFFFFF;
-            bcmd.textureID = SLOT_UI_MENU_BG;
-            bcmd.shaderID = SHADER_UI;
-            bcmd.blendMode = 1;
-            bcmd.layer = LAYER_EFFECTS;
-            bcmd.depth = 0;
-            renderQueue->Submit(bcmd);
+            Graphics::RenderCommandBuilder()
+                .UIElement(m_bannerSlideX, textY - m_bannerH,
+                    m_bannerW, m_bannerH,
+                    m_bannerU0, m_bannerV0, m_bannerU1, m_bannerV1,
+                    SLOT_UI_MENU_BG, 0)
+                .Layer(LAYER_EFFECTS)
+                .Submit(renderQueue);
         }
         // Status text inside the banner
         float textX = m_bannerSlideX + 40.0f;
@@ -2953,7 +2848,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
 
                 float ty = wy + 12.0f;
                 if (flag->hasBuilding) ty += 20.0f;
-                m_textManager->DrawString(buf, wx - 30.0f, ty, D3DCOLOR_ARGB(220, 255, 255, 200), 0.06f, FONT_DEBUG, false);
+                m_textManager->DrawString(buf, wx - 30.0f, ty, D3DCOLOR_ARGB(220, 255, 255, 200), 0.06f, FONT_DEBUG, FONT_STYLE_NORMAL, 0.05f, LAYER_EFFECTS);
             }
         }
 
@@ -3009,7 +2904,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                 } else {
                     _snprintf(buf, sizeof(buf), "%s (transit)", cargoName);
                 }
-                m_textManager->DrawString(buf, wx - 20.0f, wy - 20.0f, D3DCOLOR_ARGB(220, 200, 255, 200), 0.05f, FONT_DEBUG, false);
+                m_textManager->DrawString(buf, wx - 20.0f, wy - 20.0f, D3DCOLOR_ARGB(220, 200, 255, 200), 0.05f, FONT_DEBUG, FONT_STYLE_NORMAL, 0.05f, LAYER_EFFECTS);
             }
         }
 
@@ -3062,22 +2957,13 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         CoordinateSystem::GetInstance().NodeTileToWorld(m_cursorTileX, m_cursorTileY, worldX, worldY);
 
         // Match EditorScene: use sprite atlas pivot so cursor center aligns with node position
-        Graphics::RenderCommand cmd = {};
-        cmd.x = worldX - cursorRegion->pivotX;
-        cmd.y = worldY - cursorRegion->pivotY;
-        cmd.width = (float)cursorRegion->width;
-        cmd.height = (float)cursorRegion->height;
-        cmd.u0 = cursorRegion->u0;
-        cmd.v0 = cursorRegion->v0;
-        cmd.u1 = cursorRegion->u1;
-        cmd.v1 = cursorRegion->v1;
-        cmd.color = 0xFFFFFFFF;
-        cmd.textureID = SLOT_UI_CURSOR;
-        cmd.shaderID = SHADER_TERRAIN;
-        cmd.blendMode = 1;
-        cmd.layer = LAYER_FOREGROUND;
-        cmd.depth = static_cast<WORD>(0.99f * 65535.0f);
-        renderQueue->Submit(cmd);
+        Graphics::RenderCommandBuilder()
+            .WorldSprite(worldX - cursorRegion->pivotX, worldY - cursorRegion->pivotY,
+                (float)cursorRegion->width, (float)cursorRegion->height,
+                cursorRegion->u0, cursorRegion->v0, cursorRegion->u1, cursorRegion->v1,
+                SLOT_UI_CURSOR, static_cast<WORD>(0.99f * 65535.0f))
+            .Layer(LAYER_FOREGROUND)
+            .Submit(renderQueue);
     }
 
     void GameScene::InitBuildMenu()
@@ -3590,19 +3476,36 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
             }
         }
 
+        int anchorX = buildX + footOffX;
+        int anchorY = buildY + footOffY;
+
         if (!footMask.empty()) {
             for (size_t i = 0; i < footMask.size(); ++i) {
-                int tx = buildX + footOffX + footMask[i].first;
-                int ty = buildY + footOffY + footMask[i].second;
+                int tx = anchorX + footMask[i].first;
+                int ty = anchorY + footMask[i].second;
                 if (!checkTile(tx, ty)) return false;
             }
         } else {
             for (int dy = 0; dy < footH; ++dy) {
                 for (int dx = 0; dx < footW; ++dx) {
-                    int tx = buildX + footOffX + dx;
-                    int ty = buildY + footOffY + dy;
+                    int tx = anchorX + dx;
+                    int ty = anchorY + dy;
                     if (!checkTile(tx, ty)) return false;
                 }
+            }
+        }
+
+        // For mines, require the resource node directly on the anchor tile
+        World::ResourceType requiredRes = GetResourceTypeForMine(type);
+        if (requiredRes != World::ResourceType_None) {
+            if (anchorX < 0 || anchorX >= nodesW || anchorY < 0 || anchorY >= nodesH) return false;
+            const World::ResourceNode& node = m_map->GetResourceNode(anchorX, anchorY);
+            if (node.type != requiredRes) {
+                char dbg[256];
+                _snprintf(dbg, sizeof(dbg), "[CanPlaceBuilding] FAIL: no %s node at anchor (%d,%d)\n",
+                    World::ResourceTypeToString(requiredRes), anchorX, anchorY);
+                OutputDebugStringA(dbg);
+                return false;
             }
         }
 
@@ -3611,120 +3514,43 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
 
     void GameScene::PlaceFlag(int tileX, int tileY)
     {
-        if (!m_flagManager || !m_map) return;
+        if (!m_flagManager || !m_map || !m_placementManager) return;
         if (m_selectedBuilding == World::Building_None) return;
 
-        char dbg[256];
-        _snprintf(dbg, sizeof(dbg), "[GameScene] PlaceFlag at (%d,%d) for building type %d\n",
-            tileX, tileY, (int)m_selectedBuilding);
-        OutputDebugStringA(dbg);
-
-        CoordinateSystem& coords = CoordinateSystem::GetInstance();
-        int nodesW = coords.GetNodesWidth();
-        int nodesH = coords.GetNodesHeight();
-        if (tileX < 0 || tileX >= nodesW || tileY < 0 || tileY >= nodesH) return;
-
-        // Get entrance offset for the building
-        const char* spriteName = GetBuildingSpriteName(m_selectedBuilding);
-        int entranceX = 0, entranceY = 0;
-        GetEntranceOffset(spriteName ? spriteName : "", entranceX, entranceY);
-
-        // Calculate building footprint position (flag position minus entrance offset)
-        int buildY = tileY - entranceY;
-        bool buildingEvenY = (buildY % 2 == 0);
-        AdjustEntranceForParity(buildingEvenY, entranceX, entranceY);
-        int buildX = tileX - entranceX;
-
-        // Validate building footprint with CanPlaceBuilding
-        bool canPlace = CanPlaceBuilding(m_selectedBuilding, buildX, buildY);
-        {
+        m_placementManager->SelectBuilding(m_selectedBuilding);
+        PlacementData data = m_placementManager->GetPlacementData(tileX, tileY);
+        if (!data.valid) {
             char dbg[256];
-            _snprintf(dbg, sizeof(dbg), "[GameScene] CanPlaceBuilding(%d,%d) type=%d result=%d\n",
-                buildX, buildY, (int)m_selectedBuilding, canPlace ? 1 : 0);
+            _snprintf(dbg, sizeof(dbg), "[GameScene] PlaceFlag: cannot place at (%d,%d): %s\n",
+                tileX, tileY, data.errorMsg ? data.errorMsg : "unknown");
             OutputDebugStringA(dbg);
-        }
-        if (!canPlace) {
-            OutputDebugStringA("[GameScene] PlaceFlag: cannot place building at footprint\n");
+            m_placementManager->SelectBuilding(m_selectedBuilding);
             return;
         }
 
-        // Check flag position node weight (not building position — the flag goes on the road/entrance)
-        BYTE flagWeight = m_map->GetNodeWeight(tileX, tileY);
-        if (flagWeight == World::Weight_Deep) {
-            OutputDebugStringA("[GameScene] PlaceFlag: flag position is deep water\n");
-            return;
-        }
-
-        // Check for existing flag — if free, convert to building flag; if already occupied, reject
-        World::Flag* existingFlag = m_flagManager->GetFlagAt(tileX, tileY);
-        if (existingFlag) {
-            if (existingFlag->hasBuilding || existingFlag->pendingBuilding != World::Building_None) {
-                OutputDebugStringA("[GameScene] PlaceFlag: building already exists at this flag\n");
-                return;
-            }
-            // DEBUG: verify existing flag identity before conversion
-            {
-                char dbg[256];
-                _snprintf(dbg, sizeof(dbg),
-                    "[PlaceFlag] CONVERT existing flag ptr=%p id=%u handleIdx=%u pos=(%d,%d) type=%d\n",
-                    existingFlag, existingFlag->id, existingFlag->handle.index,
-                    existingFlag->pos.x, existingFlag->pos.y, (int)existingFlag->type);
-                OutputDebugStringA(dbg);
-            }
-            // Convert free flag to building flag
-            existingFlag->type = World::FLAG_BUILDING;
-            existingFlag->pendingBuilding = m_selectedBuilding;
-            CreateConstructionSite(existingFlag, buildX, buildY);
-            SplitRoadAtFlag(existingFlag);
-            LinkFlagToRoadNetwork(existingFlag);
-            SyncCarriersForFlag(existingFlag);
-            if (m_constructionManager) m_constructionManager->MarkBuilderRoutesDirty();
-            m_buildState = BUILDSTATE_NONE;
-            m_selectedBuilding = World::Building_None;
-            m_statusText = "Building construction started!";
-            m_statusTextTimer = 2.0f;
-            OutputDebugStringA("[GameScene] PlaceFlag: converted free flag to building flag\n");
-            return;
-        }
-
-        // Create the flag with Building type
-        World::Flag* flag = m_flagManager->CreateFlag(tileX, tileY);
-        flag->type = World::FLAG_BUILDING;
+        World::Flag* flag = m_flagManager->CreateFlag(data.flagX, data.flagY);
+        flag->type = World::FLAG_NORMAL;
         flag->pendingBuilding = m_selectedBuilding;
-        flag->hasBuilding = false;
+        flag->hasBuilding = true;
 
-        // DEBUG: verify new flag identity
-        {
-            char dbg[256];
-            _snprintf(dbg, sizeof(dbg),
-                "[PlaceFlag] NEW flag ptr=%p id=%u handleIdx=%u pos=(%d,%d)\n",
-                flag, flag->id, flag->handle.index, flag->pos.x, flag->pos.y);
-            OutputDebugStringA(dbg);
-        }
-
-        // Create the construction site object and tile
-        CreateConstructionSite(flag, buildX, buildY);
-
-        // Split any road that passes through this flag position (BEFORE linking)
         SplitRoadAtFlag(flag);
-
-        // Link flag to road network so carriers can reach it
         LinkFlagToRoadNetwork(flag);
         SyncCarriersForFlag(flag);
+        CreateConstructionSite(flag, data.buildX, data.buildY);
         if (m_constructionManager) m_constructionManager->MarkBuilderRoutesDirty();
 
-        // Reset build state
         m_buildState = BUILDSTATE_NONE;
         m_placementIconIdx = -1;
         m_placementConstrIdx = -1;
         m_selectedBuilding = World::Building_None;
-
         m_statusText = "Building construction started!";
         m_statusTextTimer = 2.0f;
-
-        _snprintf(dbg, sizeof(dbg), "[GameScene] Flag placed at (%d,%d) -> building at (%d,%d), entrance offset (%d,%d)\n",
-            tileX, tileY, buildX, buildY, entranceX, entranceY);
-        OutputDebugStringA(dbg);
+        {
+            char dbg[256];
+            _snprintf(dbg, sizeof(dbg), "[GameScene] PlaceFlag: placed type=%d at (%d,%d)\n",
+                (int)flag->pendingBuilding, data.buildX, data.buildY);
+            OutputDebugStringA(dbg);
+        }
     }
 
     void GameScene::PlaceFreeFlag(int tileX, int tileY)
@@ -3840,6 +3666,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
             if (bTile.type == World::Tile_None) {
                 bTile.type = World::Decoration;
                 bTile.walkable = true;
+                bTile.buildingType = (int)flag->pendingBuilding;
                 if (isBaseTile) {
                     bTile.atlasName = "Buildings";
                     bTile.regionIndex = buildingSpriteIdx;
@@ -3886,11 +3713,13 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
             case World::Forester:     return "b_forester";
             case World::Sawmill:      return "b_sawmill";
             case World::Stonemason:   return "b_mason";
-            case World::CoalMine:     return "b_coalmine";
-            case World::IronMine:     return "b_ironmine";
-            case World::GoldMine:     return "b_goldmine";
+            case World::CoalMine:
+            case World::BronzeMine:   return "b_mine";
+            case World::IronMine:     return "b_mine";
+            case World::GoldMine:     return "b_mine";
             case World::IronSmelter:  return "b_ironsmelter";
             case World::GoldSmelter:  return "b_goldsmelter";
+            case World::BronzeSmelter: return "b_bronzesmelter";
             case World::Farm:         return "b_farm";
             case World::Mill:         return "b_mill";
             case World::Bakery:       return "b_bakery";
@@ -3901,6 +3730,97 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
             case World::Well:         return "b_well";
             case World::Barracks:     return "b_barracks";
             default:                  return "";
+        }
+    }
+
+    World::ResourceType GameScene::GetResourceTypeForMine(World::BuildingType buildingType) const
+    {
+        switch (buildingType) {
+            case World::CoalMine:   return World::ResourceType_Coal;
+            case World::BronzeMine: return World::ResourceType_BronzeOre;
+            case World::IronMine:   return World::ResourceType_IronOre;
+            case World::GoldMine:   return World::ResourceType_GoldOre;
+            default:                return World::ResourceType_None;
+        }
+    }
+
+    bool GameScene::IsMineType(World::BuildingType type) const
+    {
+        return GetResourceTypeForMine(type) != World::ResourceType_None;
+    }
+
+    void GameScene::AssignOreDepositsToMountains()
+    {
+        if (!m_map) { OutputDebugStringA("[AssignOre] FAIL: no map\n"); return; }
+        World::TileLayer* objLayer = m_map->GetLayer(World::Objects);
+        if (!objLayer) { OutputDebugStringA("[AssignOre] FAIL: no Objects layer\n"); return; }
+
+        int w = objLayer->GetWidth();
+        int h = objLayer->GetHeight();
+        int mountainCount = 0;
+        int assigned = 0;
+
+        for (int y = 0; y < h; ++y) {
+            for (int x = 0; x < w; ++x) {
+                const World::Tile& tile = objLayer->GetTile(x, y);
+                if (tile.type == World::Mountain || tile.type == World::MountainOnWater) {
+                    mountainCount++;
+                } else {
+                    continue;
+                }
+
+                World::ResourceNode& rn = m_map->GetResourceNode(x, y);
+                if (rn.type != World::ResourceType_Stone && rn.type != World::ResourceType_None) continue;
+
+                float roll = (float)rand() / RAND_MAX;
+                World::ResourceType oreType;
+                int amount;
+
+                if (roll < 0.30f) {
+                    oreType = World::ResourceType_Coal;
+                    amount = 15 + rand() % 11;
+                } else if (roll < 0.50f) {
+                    oreType = World::ResourceType_IronOre;
+                    amount = 10 + rand() % 11;
+                } else if (roll < 0.70f) {
+                    oreType = World::ResourceType_BronzeOre;
+                    amount = 12 + rand() % 9;
+                } else if (roll < 0.85f) {
+                    oreType = World::ResourceType_GoldOre;
+                    amount = 8 + rand() % 8;
+                } else {
+                    oreType = World::ResourceType_Stone;
+                    amount = 15 + rand() % 16;
+                }
+
+                rn.type = oreType;
+                rn.amount = amount;
+                rn.isVisible = true;
+                rn.surveyed = false;
+
+                if (m_economyManager) {
+                    m_economyManager->GetRegistry().RegisterWorldResource(oreType, x, y);
+                }
+                assigned++;
+            }
+        }
+
+        {
+            char dbg[512];
+            int pos = _snprintf(dbg, sizeof(dbg), "[GameScene] Mountains=%d assigned=%d map=(%dx%d)", mountainCount, assigned, w, h);
+            if (assigned > 0) {
+                pos += _snprintf(dbg + pos, sizeof(dbg) - pos, "\n");
+                for (int y = 0; y < h && assigned > 0; ++y) {
+                    for (int x = 0; x < w; ++x) {
+                        const World::Tile& tile = objLayer->GetTile(x, y);
+                        if (tile.type != World::Mountain && tile.type != World::MountainOnWater) continue;
+                        const World::ResourceNode& rn = m_map->GetResourceNode(x, y);
+                        if (rn.type == World::ResourceType_None) continue;
+                        pos += _snprintf(dbg + pos, sizeof(dbg) - pos, "  Mountain (%d,%d) -> %s (amount=%d)\n", x, y, World::ResourceTypeToString(rn.type), rn.amount);
+                    }
+                }
+            }
+            OutputDebugStringA(dbg);
         }
     }
 
@@ -3926,6 +3846,8 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
             { "toolworkshop", World::ToolWorkshop },
             { "warehouse",    World::Storehouse },
             { "townhall",     World::Storehouse },
+            { "bronzemine",   World::BronzeMine },
+            { "bronzesmelter", World::BronzeSmelter },
         };
 
         for (int i = 0; i < sizeof(entries)/sizeof(entries[0]); ++i) {
@@ -3967,14 +3889,36 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                     spriteName.find("Construction") != std::string::npos);
                 // Also detect by UV mismatch: if tile UVs don't match the atlas region,
                 // the UVs were overridden (e.g. for construction sites)
-                bool uvMismatch = (tile.u0 != region->u0 || tile.v0 != region->v0 ||
-                    tile.u1 != region->u1 || tile.v1 != region->v1);
-                if (isConstruction || uvMismatch)
+                if (isConstruction)
                 { skipped++; continue; }
 
-                // Determine building type from sprite name
+                // Determine building type: from serialized tile, sprite name, or resource node
                 bool isBuildingSprite = region->isBuilding;
-                World::BuildingType type = GetBuildingTypeFromSpriteName(spriteName);
+                World::BuildingType type = World::Building_None;
+                if (tile.buildingType >= 0) {
+                    type = static_cast<World::BuildingType>(tile.buildingType);
+                } else {
+                    type = GetBuildingTypeFromSpriteName(spriteName);
+                    if (type == World::Building_None) {
+                        // Check for mine sprite — determine type from resource node (old saves)
+                        std::string key = spriteName;
+                        if (key.compare(0, 2, "b_") == 0) key = key.substr(2);
+                        if (key == "mine" && m_map) {
+                            const World::ResourceNode& rn = m_map->GetResourceNode(x, y);
+                            switch (rn.type) {
+                                case World::ResourceType_Coal:      type = World::CoalMine; break;
+                                case World::ResourceType_IronOre:   type = World::IronMine; break;
+                                case World::ResourceType_GoldOre:   type = World::GoldMine; break;
+                                case World::ResourceType_BronzeOre: type = World::BronzeMine; break;
+                                case World::ResourceType_Stone:     type = World::Stonemason; break;
+                                default:
+                                    type = World::CoalMine;
+                                    { char buf[256]; _snprintf(buf, sizeof(buf), "[Restore] Unknown mine node at (%d,%d), defaulting to CoalMine\n", x, y); OutputDebugStringA(buf); }
+                                    break;
+                            }
+                        }
+                    }
+                }
                 if (type == World::Building_None && !isBuildingSprite)
                 { skipped++; continue; }
                 if (type == World::Building_None) continue; // decorative only
@@ -4009,6 +3953,9 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
 
                 // Skip if this flag already has a building linked
                 if (flag->building) { skipped++; continue; }
+
+                // Only create one warehouse — skip if already restored
+                if (isWarehouseType && m_economyManager->GetWarehouse()) { skipped++; continue; }
 
                 World::Building* building = NULL;
 
@@ -4050,7 +3997,8 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                     if (m_demandManager && flag) {
                         World::ResourceType allTypes[] = {
                             World::ResourceType_Wood, World::ResourceType_Stone, World::ResourceType_Planks,
-                            World::ResourceType_Fish, World::ResourceType_Meat, World::ResourceType_Coal
+                            World::ResourceType_Fish, World::ResourceType_Meat, World::ResourceType_Coal,
+                            World::ResourceType_BronzeBar
                         };
                         for (int ri = 0; ri < sizeof(allTypes)/sizeof(allTypes[0]); ++ri) {
                             m_demandManager->SetDemand(allTypes[ri], 9999, flag->handle, 10);
@@ -4065,6 +4013,25 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                     flag->building = building;
                     flag->hasBuilding = true;
                     flag->pendingBuilding = World::Building_None;
+
+                    // Set footprint from atlas region for ForceDeleteBuilding safety
+                    {
+                        const SpriteRegion* r2 = atlas->GetRegion(tile.regionIndex);
+                        if (r2) {
+                            building->m_footprintX = r2->collOffX;
+                            building->m_footprintY = r2->collOffY;
+                            building->m_footprintW = (int)r2->collWidth;
+                            building->m_footprintH = (int)r2->collHeight;
+                            if (building->m_footprintW < 1) building->m_footprintW = 1;
+                            if (building->m_footprintH < 1) building->m_footprintH = 1;
+                            // Hardcoded override: ensure 2x2 buildings use correct footprint
+                            bool is2x2 = (type == World::Stonemason || type == World::Sawmill || type == World::Farm || type == World::Mill);
+                            if (is2x2 && (building->m_footprintW != 2 || building->m_footprintH != 2)) {
+                                building->m_footprintW = 2;
+                                building->m_footprintH = 2;
+                            }
+                        }
+                    }
 
                     // Restored buildings already have workers
                     if (building->m_maxPopulation > 0) {
@@ -4103,6 +4070,9 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         World::ConstructionSite* site = m_constructionManager ? m_constructionManager->GetSiteForFlag(flag) : NULL;
         if (!site) return;
 
+        // Footprint dimensions — set from atlas below, used for building creation
+        int footOffX = 0, footOffY = 0, footW = 1, footH = 1;
+
         World::TileLayer* buildingsLayer = m_map->GetLayer(World::Buildings);
         if (buildingsLayer) {
             const char* buildingName = GetBuildingSpriteName(site->buildingType);
@@ -4121,14 +4091,20 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                             lowerName[ci] = lowerName[ci] - 'A' + 'a';
                     spriteIdx = buildingsAtlas->GetIndex(lowerName.c_str());
                 }
+                // Fallback: try common building sprites if the specific one is missing
+                if (spriteIdx == 0xFFFFFFFF) {
+                    const char* fallbacks[] = { "b_warehouse", "b_residence", "b_well", "b_mason" };
+                    for (int fi = 0; fi < 4 && spriteIdx == 0xFFFFFFFF; ++fi)
+                        spriteIdx = buildingsAtlas->GetIndex(fallbacks[fi]);
+                }
                 if (spriteIdx != 0xFFFFFFFF) {
                     const SpriteRegion* r = buildingsAtlas->GetRegion(spriteIdx);
                     if (r) {
                         // Get footprint dimensions from the atlas region
-                        int footOffX = r->collOffX;
-                        int footOffY = r->collOffY;
-                        int footW = (int)r->collWidth;
-                        int footH = (int)r->collHeight;
+                        footOffX = r->collOffX;
+                        footOffY = r->collOffY;
+                        footW = (int)r->collWidth;
+                        footH = (int)r->collHeight;
                         if (footW < 1) footW = 1;
                         if (footH < 1) footH = 1;
                         // Hardcoded override: ensure 2x2 buildings use correct footprint
@@ -4168,6 +4144,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                                     tile.type = World::Tile_None;
                                     tile.regionIndex = -1;
                                     tile.walkable = false;
+                                    tile.buildingType = -1;
                                 }
                             }
                         }
@@ -4189,10 +4166,35 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
 
         if (building) {
             building->state = World::State_Finished;
+            // Store footprint on the Building object for ForceDeleteBuilding tile cleanup
+            building->m_footprintX = footOffX;
+            building->m_footprintY = footOffY;
+            building->m_footprintW = footW;
+            building->m_footprintH = footH;
             building->connectedFlag = flag;
             flag->building = building;
             flag->hasBuilding = true;
             flag->pendingBuilding = World::Building_None;
+
+            // Look up depleted sprite index for mines
+            const char* depletedSpriteName = NULL;
+            switch (site->buildingType) {
+                case World::Stonemason: depletedSpriteName = "mine_ruin_stone_marble"; break;
+                case World::CoalMine:
+                case World::BronzeMine:
+                case World::IronMine:
+                case World::GoldMine: depletedSpriteName = "mine_ruin"; break;
+            }
+            if (depletedSpriteName) {
+                TextureRegistry& reg2 = TextureRegistry::instance();
+                reg2.getTextureOrLoad("Buildings");
+                std::tr1::shared_ptr<SpriteAtlas> buildingsAtlas2 = reg2.getAtlas("Buildings");
+                if (buildingsAtlas2) {
+                    uint32_t depletedIdx = buildingsAtlas2->GetIndex(depletedSpriteName);
+                    if (depletedIdx != 0xFFFFFFFF)
+                        building->m_depletedSpriteIdx = (int)depletedIdx;
+                }
+            }
 
             if (m_economyManager) {
                 m_economyManager->AddBuilding(building);
@@ -4212,6 +4214,29 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         m_statusTextTimer = 2.0f;
 
 //        OutputDebugStringA("[GameScene] ConfirmConstruction - building completed\n");
+    }
+
+    void GameScene::ClearBuildingFootprint(int startX, int startY, int width, int height)
+    {
+        if (!m_map) return;
+        CoordinateSystem& coords = CoordinateSystem::GetInstance();
+        int nodesW = coords.GetNodesWidth();
+        int nodesH = coords.GetNodesHeight();
+        World::TileLayer* buildingsLayer = m_map->GetLayer(World::Buildings);
+        if (!buildingsLayer) return;
+        for (int dy = 0; dy < height; ++dy) {
+            for (int dx = 0; dx < width; ++dx) {
+                int tx = startX + dx;
+                int ty = startY + dy;
+                if (tx < 0 || tx >= nodesW || ty < 0 || ty >= nodesH) continue;
+                World::Tile& t = buildingsLayer->GetTile(tx, ty);
+                t.atlasName = "";
+                t.type = World::Tile_None;
+                t.regionIndex = -1;
+                t.walkable = false;
+                t.buildingType = -1;
+            }
+        }
     }
 
     void GameScene::ConfirmDeleteFlag(int tileX, int tileY)
@@ -4252,16 +4277,21 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                 buildY = flag->building->pos.y;
             } else {
                 std::string nameStr = buildingName ? buildingName : "";
-                if (nameStr.compare(0, 3, "ib_") == 0)
-                    nameStr = nameStr.substr(3);
-                int entranceX = 0, entranceY = 0;
-                GetEntranceOffset(nameStr, entranceX, entranceY);
-                buildY = flag->pos.y - entranceY;
-                {
-                    bool buildingEvenY = (buildY % 2 == 0);
-                    AdjustEntranceForParity(buildingEvenY, entranceX, entranceY);
+                if (nameStr.empty()) {
+                    buildX = flag->pos.x;
+                    buildY = flag->pos.y;
+                } else {
+                    if (nameStr.compare(0, 3, "ib_") == 0)
+                        nameStr = nameStr.substr(3);
+                    int entranceX = 0, entranceY = 0;
+                    GetEntranceOffset(nameStr, entranceX, entranceY);
+                    buildY = flag->pos.y - entranceY;
+                    {
+                        bool buildingEvenY = (buildY % 2 == 0);
+                        AdjustEntranceForParity(buildingEvenY, entranceX, entranceY);
+                    }
+                    buildX = flag->pos.x - entranceX;
                 }
-                buildX = flag->pos.x - entranceX;
             }
 
             // Clear footprint tiles
@@ -4296,22 +4326,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                                 footW = 2;
                                 footH = 2;
                             }
-                            CoordinateSystem& coords = CoordinateSystem::GetInstance();
-                            int nodesW = coords.GetNodesWidth();
-                            int nodesH = coords.GetNodesHeight();
-                            for (int dy = 0; dy < footH; ++dy) {
-                                for (int dx = 0; dx < footW; ++dx) {
-                                    int tx = buildX + footOffX + dx;
-                                    int ty = buildY + footOffY + dy;
-                                    if (tx >= 0 && tx < nodesW && ty >= 0 && ty < nodesH) {
-                                        World::Tile& t = buildingsLayer->GetTile(tx, ty);
-                                        t.atlasName = "";
-                                        t.type = World::Tile_None;
-                                        t.regionIndex = -1;
-                                        t.walkable = false;
-                                    }
-                                }
-                            }
+                            ClearBuildingFootprint(buildX + footOffX, buildY + footOffY, footW, footH);
                         }
                     }
                 }
@@ -4319,7 +4334,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
 
             // Remove the building from EconomyManager and delete the object
             if (flag->building) {
-                m_objectLifecycleManager->ForceDeleteBuilding(flag->building);
+                m_objectLifecycleManager->ForceDeleteBuilding(flag->building, m_map);
                 flag->building = NULL;
                 flag->hasBuilding = false;
             }
@@ -4468,8 +4483,8 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
             if (buildingsLayer && !hasFlag) {
                 const World::Tile& bt = buildingsLayer->GetTile(tx, ty);
                 if (bt.regionIndex >= 0) {
-                    char dbg[128];
-                    _snprintf(dbg, sizeof(dbg), "[Road] Dir %d: (%d,%d) blocked by building\n", i, tx, ty);
+                    char dbg[256];
+                    _snprintf(dbg, sizeof(dbg), "[Road] Dir %d: (%d,%d) blocked by building regionIdx=%d atlas='%s'\n", i, tx, ty, bt.regionIndex, bt.atlasName.c_str());
                     OutputDebugStringA(dbg);
                     continue;
                 }
@@ -5270,21 +5285,14 @@ void GameScene::CancelRoad()
                 std::tr1::shared_ptr<SpriteAtlas> buildingsAtlas = reg.getAtlas("Buildings");
                 LPDIRECT3DTEXTURE9 buildingsTex = buildingsAtlas ? buildingsAtlas->GetTexture() : NULL;
                 if (sr && buildingsTex) sr->SetTextureSlot(SLOT_BUILDINGS_HIGHLIGHT, buildingsTex);
-                Graphics::RenderCommand cmd = {};
-                cmd.x = wx;
-                cmd.y = wy;
-                cmd.width = (float)tileW;
-                cmd.height = (float)tileH;
-                // Use a tiny UV region to act as a solid-color pixel
-                cmd.u0 = 0.5f; cmd.v0 = 0.5f;
-                cmd.u1 = 0.5001f; cmd.v1 = 0.5001f;
-                cmd.color = D3DCOLOR_ARGB(80, 255, 255, 0);
-                cmd.textureID = SLOT_BUILDINGS_HIGHLIGHT;
-                cmd.shaderID = SHADER_TERRAIN;
-                cmd.blendMode = 1;
-                cmd.layer = LAYER_FOREGROUND;
-                cmd.depth = static_cast<WORD>(0.98f * 65535.0f);
-                renderQueue->Submit(cmd);
+                Graphics::RenderCommandBuilder()
+                    .WorldSprite(wx, wy,
+                        (float)tileW, (float)tileH,
+                        0.5f, 0.5f, 0.5001f, 0.5001f,
+                        SLOT_BUILDINGS_HIGHLIGHT, static_cast<WORD>(0.98f * 65535.0f))
+                    .Color(D3DCOLOR_ARGB(80, 255, 255, 0))
+                    .Layer(LAYER_EFFECTS)
+                    .Submit(renderQueue);
             }
         }
 
@@ -5303,6 +5311,9 @@ void GameScene::CancelRoad()
                 float yOff = 200.0f;
                 int iconSize = 40;
 
+                // Slot constants for lambda capture (Xbox 360 compiler bug: enum values not accessible in lambdas)
+                WORD kSlotBg = SLOT_UI_MENU_BG;
+                WORD kSlotIcon = SLOT_UI_MENU_ICON;
                 // Helper lambda: render a sprite by name from UI atlas, fallback Icon, fallback colored quad
                 auto renderIcon = [&](const char* name, float x, float y, float w, float h, D3DCOLOR fallback) {
                     bool ok = false;
@@ -5324,42 +5335,29 @@ void GameScene::CancelRoad()
                             }
                         }
                         if (tex) {
-                            WORD slot = tex == uiAtl->GetTexture() ? SLOT_UI_MENU_BG : SLOT_UI_MENU_ICON;
+                            WORD slot = tex == uiAtl->GetTexture() ? kSlotBg : kSlotIcon;
                             sr2->SetTextureSlot(slot, tex);
-                            Graphics::RenderCommand ic = {};
-                            ic.x = x; ic.y = y; ic.width = w; ic.height = h;
-                            ic.u0 = u0; ic.v0 = v0; ic.u1 = u1; ic.v1 = v1;
-                            ic.color = 0xFFFFFFFF;
-                            ic.textureID = slot;
-                            ic.shaderID = SHADER_UI;
-                            ic.blendMode = 1;
-                            ic.layer = LAYER_UI;
-                            ic.depth = 100;
-                            renderQueue->Submit(ic);
+                            Graphics::RenderCommandBuilder()
+                                .UIElement(x, y, w, h, u0, v0, u1, v1, slot, 100)
+                                .Submit(renderQueue);
                             ok = true;
                         }
                     }
                     if (!ok) {
-                        Graphics::RenderCommand ic = {};
-                        ic.x = x; ic.y = y; ic.width = w; ic.height = h;
-                        ic.u0 = 0.5f; ic.v0 = 0.5f; ic.u1 = 0.5001f; ic.v1 = 0.5001f;
-                        ic.color = fallback;
-                        ic.textureID = SLOT_UI_MENU_BG;
-                        ic.shaderID = SHADER_UI;
-                        ic.blendMode = 1;
-                        ic.layer = LAYER_UI;
-                        ic.depth = 100;
-                        renderQueue->Submit(ic);
+                        Graphics::RenderCommandBuilder()
+                            .UIElement(x, y, w, h, 0.5f, 0.5f, 0.5001f, 0.5001f, kSlotBg, 100)
+                            .Color(fallback)
+                            .Submit(renderQueue);
                     }
                 };
 
                 // Layout: icon_mountain, "Геолог", icon_geologist, ornament_1, "Отправить..."
                 renderIcon("icon_mountain", cx - 24.0f, yOff, 48.0f, 48.0f, D3DCOLOR_ARGB(200, 140, 110, 80));
-                m_textManager->DrawTextCenteredToScreen("Геолог", cx, yOff + 54.0f, D3DCOLOR_ARGB(255, 255, 255, 220), 0.095f);
+                m_textManager->DrawTextCenteredToScreen("Геолог", cx, yOff + 54.0f, D3DCOLOR_ARGB(255, 255, 255, 220), 0.095f, FONT_MENU, FONT_STYLE_NORMAL, LAYER_FOREGROUND);
                 renderIcon("icon_geologist", cx - 18.0f, yOff + 90.0f, 36.0f, 36.0f, D3DCOLOR_ARGB(200, 255, 220, 100));
                 renderIcon("ornament_1", cx - 50.0f, yOff + 132.0f, 100.0f, 14.0f, D3DCOLOR_ARGB(180, 180, 150, 80));
                 m_textManager->DrawTextCenteredToScreen("Отправить геолога для поиска полезных ископаемых",
-                    cx, yOff + 162.0f, D3DCOLOR_ARGB(255, 200, 200, 200), 0.08f);
+                    cx, yOff + 162.0f, D3DCOLOR_ARGB(255, 200, 200, 200), 0.08f, FONT_MENU, FONT_STYLE_NORMAL, LAYER_FOREGROUND);
             }
         }
 
@@ -5389,20 +5387,14 @@ void GameScene::CancelRoad()
                             if (depositIdx != 0xFFFFFFFF) {
                                 const SpriteRegion* depositReg = iconAtlas->GetRegion(depositIdx);
                                 if (depositReg) {
-                                    Graphics::RenderCommand icmd = {};
-                                    icmd.x = wx;
-                                    icmd.y = wy - 40.0f;
-                                    icmd.width = (float)depositReg->width * 0.8f;
-                                    icmd.height = (float)depositReg->height * 0.8f;
-                                    icmd.u0 = depositReg->u0; icmd.v0 = depositReg->v0;
-                                    icmd.u1 = depositReg->u1; icmd.v1 = depositReg->v1;
-                                    icmd.color = D3DCOLOR_ARGB(220, 255, 255, 255);
-                                    icmd.textureID = SLOT_UI_MENU_ICON;
-                                    icmd.shaderID = SHADER_TERRAIN;
-                                    icmd.blendMode = 1;
-                                    icmd.layer = LAYER_FOREGROUND;
-                                    icmd.depth = static_cast<WORD>(0.97f * 65535.0f);
-                                    renderQueue->Submit(icmd);
+                                    Graphics::RenderCommandBuilder()
+                                        .WorldSprite(wx, wy - 40.0f,
+                                            (float)depositReg->width * 0.8f, (float)depositReg->height * 0.8f,
+                                            depositReg->u0, depositReg->v0, depositReg->u1, depositReg->v1,
+                                            SLOT_UI_MENU_ICON, static_cast<WORD>(0.97f * 65535.0f))
+                                        .Color(D3DCOLOR_ARGB(220, 255, 255, 255))
+                                        .Layer(LAYER_EFFECTS)
+                                        .Submit(renderQueue);
                                     iconRendered = true;
                                 }
                             }
@@ -5421,20 +5413,14 @@ void GameScene::CancelRoad()
                         case World::ResourceType_Granite: fallbackColor = D3DCOLOR_ARGB(200, 130, 90, 70);   break;
                         default:                         fallbackColor = D3DCOLOR_ARGB(200, 255, 255, 0);   break;
                     }
-                    Graphics::RenderCommand icmd = {};
-                    icmd.x = wx;
-                    icmd.y = wy - 40.0f;
-                    icmd.width = 24.0f;
-                    icmd.height = 24.0f;
-                    icmd.u0 = 0.5f; icmd.v0 = 0.5f;
-                    icmd.u1 = 0.5001f; icmd.v1 = 0.5001f;
-                    icmd.color = fallbackColor;
-                    icmd.textureID = SLOT_UI_MENU_ICON;
-                    icmd.shaderID = SHADER_TERRAIN;
-                    icmd.blendMode = 1;
-                    icmd.layer = LAYER_FOREGROUND;
-                    icmd.depth = static_cast<WORD>(0.97f * 65535.0f);
-                    renderQueue->Submit(icmd);
+                    Graphics::RenderCommandBuilder()
+                        .WorldSprite(wx, wy - 40.0f,
+                            24.0f, 24.0f,
+                            0.5f, 0.5f, 0.5001f, 0.5001f,
+                            SLOT_UI_MENU_ICON, static_cast<WORD>(0.97f * 65535.0f))
+                        .Color(fallbackColor)
+                        .Layer(LAYER_EFFECTS)
+                        .Submit(renderQueue);
                 }
             }
         }
@@ -5452,20 +5438,13 @@ void GameScene::CancelRoad()
                     if (workIdx != 0xFFFFFFFF) {
                         const SpriteRegion* workReg = iconAtlas->GetRegion(workIdx);
                         if (workReg) {
-                            Graphics::RenderCommand wcmd = {};
-                            wcmd.x = wx;
-                            wcmd.y = wy - 50.0f;
-                            wcmd.width = (float)workReg->width;
-                            wcmd.height = (float)workReg->height;
-                            wcmd.u0 = workReg->u0; wcmd.v0 = workReg->v0;
-                            wcmd.u1 = workReg->u1; wcmd.v1 = workReg->v1;
-                            wcmd.color = 0xFFFFFFFF;
-                            wcmd.textureID = SLOT_UI_MENU_ICON;
-                            wcmd.shaderID = SHADER_TERRAIN;
-                            wcmd.blendMode = 1;
-                            wcmd.layer = LAYER_FOREGROUND;
-                            wcmd.depth = static_cast<WORD>(0.97f * 65535.0f);
-                            renderQueue->Submit(wcmd);
+                            Graphics::RenderCommandBuilder()
+                                .WorldSprite(wx, wy - 50.0f,
+                                    (float)workReg->width, (float)workReg->height,
+                                    workReg->u0, workReg->v0, workReg->u1, workReg->v1,
+                                    SLOT_UI_MENU_ICON, static_cast<WORD>(0.97f * 65535.0f))
+                                    .Layer(LAYER_EFFECTS)
+                                    .Submit(renderQueue);
                             iconRendered = true;
                         }
                     }
@@ -5473,20 +5452,14 @@ void GameScene::CancelRoad()
             }
             // Fallback: pulsing yellow quad if icon sprite not found
             if (!iconRendered) {
-                Graphics::RenderCommand wcmd = {};
-                wcmd.x = wx - 16.0f;
-                wcmd.y = wy - 50.0f;
-                wcmd.width = 32.0f;
-                wcmd.height = 32.0f;
-                wcmd.u0 = 0.5f; wcmd.v0 = 0.5f;
-                wcmd.u1 = 0.5001f; wcmd.v1 = 0.5001f;
-                wcmd.color = D3DCOLOR_ARGB(180, 255, 255, 0);
-                wcmd.textureID = SLOT_UI_MENU_ICON;
-                wcmd.shaderID = SHADER_TERRAIN;
-                wcmd.blendMode = 1;
-                wcmd.layer = LAYER_FOREGROUND;
-                wcmd.depth = static_cast<WORD>(0.97f * 65535.0f);
-                renderQueue->Submit(wcmd);
+                Graphics::RenderCommandBuilder()
+                    .WorldSprite(wx - 16.0f, wy - 50.0f,
+                        32.0f, 32.0f,
+                        0.5f, 0.5f, 0.5001f, 0.5001f,
+                        SLOT_UI_MENU_ICON, static_cast<WORD>(0.97f * 65535.0f))
+                    .Color(D3DCOLOR_ARGB(180, 255, 255, 0))
+                    .Layer(LAYER_EFFECTS)
+                    .Submit(renderQueue);
             }
         }
     }
@@ -5657,22 +5630,14 @@ void GameScene::CancelRoad()
                                 if (uiTex) sr->SetTextureSlot(SLOT_UI_CURSOR, uiTex);
                             }
 
-                            Graphics::RenderCommand cmd = {};
-                            cmd.x = wx - cursorRegion->pivotX;
-                            cmd.y = wy - cursorRegion->pivotY;
-                            cmd.width = (float)cursorRegion->width;
-                            cmd.height = (float)cursorRegion->height;
-                            cmd.u0 = cursorRegion->u0;
-                            cmd.v0 = cursorRegion->v0;
-                            cmd.u1 = cursorRegion->u1;
-                            cmd.v1 = cursorRegion->v1;
-                            cmd.color = D3DCOLOR_ARGB(255, 0, 255, 0);
-                            cmd.textureID = SLOT_UI_CURSOR;
-                            cmd.shaderID = SHADER_TERRAIN;
-                            cmd.blendMode = 1;
-                            cmd.layer = LAYER_FOREGROUND;
-                            cmd.depth = static_cast<WORD>(0.99f * 65535.0f);
-                            rq->Submit(cmd);
+                            Graphics::RenderCommandBuilder()
+                                .WorldSprite(wx - cursorRegion->pivotX, wy - cursorRegion->pivotY,
+                                    (float)cursorRegion->width, (float)cursorRegion->height,
+                                    cursorRegion->u0, cursorRegion->v0, cursorRegion->u1, cursorRegion->v1,
+                                    SLOT_UI_CURSOR, static_cast<WORD>(0.99f * 65535.0f))
+                                .Color(D3DCOLOR_ARGB(255, 0, 255, 0))
+                                .Layer(LAYER_FOREGROUND)
+                                .Submit(rq);
                         }
                     }
                 }

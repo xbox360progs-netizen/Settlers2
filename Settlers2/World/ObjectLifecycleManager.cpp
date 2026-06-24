@@ -7,6 +7,8 @@
 #include "TransportJobManager.h"
 #include "ConstructionManager.h"
 #include "Components/Building.h"
+#include "Map.h"
+#include "../Logic/CoordinateSystem.h"
 #include "Carrier.h"
 #include "Flag.h"
 #include "Road.h"
@@ -70,8 +72,27 @@ namespace World {
         delete carrier;
     }
 
-    void ObjectLifecycleManager::ForceDeleteBuilding(Building* building) {
+    void ObjectLifecycleManager::ForceDeleteBuilding(Building* building, Map* map) {
         if (!building) return;
+        // Clear the building's footprint on the Buildings layer before deletion
+        if (map) {
+            CoordinateSystem& coords = CoordinateSystem::GetInstance();
+            int nodesW = coords.GetNodesWidth();
+            int nodesH = coords.GetNodesHeight();
+            TileLayer* buildingsLayer = map->GetLayer(LayerType::Buildings);
+            if (buildingsLayer) {
+                for (int dy = 0; dy < building->m_footprintH; ++dy) {
+                    for (int dx = 0; dx < building->m_footprintW; ++dx) {
+                        int tx = building->pos.x + building->m_footprintX + dx;
+                        int ty = building->pos.y + building->m_footprintY + dy;
+                        if (tx >= 0 && tx < nodesW && ty >= 0 && ty < nodesH) {
+                            Tile& t = buildingsLayer->GetTile(tx, ty);
+                            t.buildingType = -1;
+                        }
+                    }
+                }
+            }
+        }
         if (m_economyManager) m_economyManager->RemoveBuilding(building);
         if (building->connectedFlag) {
             building->connectedFlag->building = NULL;

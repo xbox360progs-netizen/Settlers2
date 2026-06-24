@@ -5,6 +5,7 @@
 #pragma once
 #include "BitmapFont.h"
 #include "RenderTypes.h"
+#include "RenderLayers.h"
 #include <vector>
 #include <string>
 #include <map>
@@ -50,17 +51,17 @@ public:
     LPDIRECT3DTEXTURE9 SetFontAtlas(FontID fontID, LPDIRECT3DTEXTURE9 texture);
     LPDIRECT3DTEXTURE9 GetFontTexture(FontID fontID);
 
-    void DrawString(const std::string& text, float x, float y, D3DCOLOR color = 0xFFFFFFFF, float scale = 0.10f, FontID fontID = FONT_MENU, bool isUI = true, FontStyle style = FONT_STYLE_NORMAL, float depth = 0.05f);
+    void DrawString(const std::string& text, float x, float y, D3DCOLOR color = 0xFFFFFFFF, float scale = 0.10f, FontID fontID = FONT_MENU, FontStyle style = FONT_STYLE_NORMAL, float depth = 0.05f, BYTE layer = LAYER_UI);
 
-    void DrawTextToScreen(const std::string& text, float x, float y, D3DCOLOR color = 0xFFFFFFFF, float scale = 0.10f, FontID fontID = FONT_MENU, FontStyle style = FONT_STYLE_NORMAL);
+    void DrawTextToScreen(const std::string& text, float x, float y, D3DCOLOR color = 0xFFFFFFFF, float scale = 0.10f, FontID fontID = FONT_MENU, FontStyle style = FONT_STYLE_NORMAL, BYTE layer = LAYER_UI);
     void DrawTextToWorld(const std::string& text, float worldX, float worldY, D3DCOLOR color = 0xFFFFFFFF, float scale = 0.1f, FontID fontID = FONT_MENU, FontStyle style = FONT_STYLE_NORMAL);
 
     // Centered within the given box (centers text at boxCenterX)
-    void DrawTextCenteredToScreen(const std::string& text, float boxCenterX, float y, D3DCOLOR color = 0xFFFFFFFF, float scale = 0.10f, FontID fontID = FONT_MENU, FontStyle style = FONT_STYLE_NORMAL);
+    void DrawTextCenteredToScreen(const std::string& text, float boxCenterX, float y, D3DCOLOR color = 0xFFFFFFFF, float scale = 0.10f, FontID fontID = FONT_MENU, FontStyle style = FONT_STYLE_NORMAL, BYTE layer = LAYER_UI);
 
 private:
     float GetTextWidth(const std::string& text, float scale, FontID fontID);
-    void PushLetterCommand(LPDIRECT3DTEXTURE9 texture, float x, float y, float w, float h, float u0, float v0, float u1, float v1, D3DCOLOR color, float depth, bool isUI);
+    void PushLetterCommand(LPDIRECT3DTEXTURE9 texture, float x, float y, float w, float h, float u0, float v0, float u1, float v1, D3DCOLOR color, float depth, BYTE layer);
 
     BitmapFont* m_font;
     Graphics::RenderQueue* m_renderQueue;

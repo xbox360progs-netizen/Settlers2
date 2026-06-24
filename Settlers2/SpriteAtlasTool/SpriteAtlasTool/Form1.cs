@@ -561,9 +561,8 @@ namespace SpriteAtlasTool
         {
             if (selectedSprite != null)
             {
-                // Центр спрайта
-                int centerX = selectedSprite.Bounds.Width / 2;
-                int centerY = selectedSprite.Bounds.Height / 2;
+                int centerX = selectedSprite.OriginalBounds.Width / 2;
+                int centerY = selectedSprite.OriginalBounds.Height / 2;
                 selectedSprite.Pivot = new Point(centerX, centerY);
                 pictureBox1.Invalidate();
                 UpdatePreview();

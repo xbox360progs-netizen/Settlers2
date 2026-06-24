@@ -20,7 +20,19 @@ private:
     bool m_isCacheInitialized;
     ResourceType m_targetResourceType;
 
+    bool m_hasClaimedSpot;
+    bool m_hasWorkSite;
+
+    void UnclaimSpot() {
+        if (!m_hasClaimedSpot || !map) return;
+        ResourceNode& node = map->GetResourceNode(m_targetPos.x, m_targetPos.y);
+        if (node.type == m_targetResourceType)
+            node.amount++;
+        m_hasClaimedSpot = false;
+    }
+
     void GoIdle() override {
+        UnclaimSpot();
         WorkerBuilding::GoIdle();
     }
 
@@ -38,29 +50,29 @@ private:
 
         for (int i = 0; i < m_localNodesCount; ++i) {
             const Vector2i& nodePos = m_localNodes[i].pos;
-            const ResourceNode& node = map->GetResourceNode(nodePos.x, nodePos.y);
+            ResourceNode& node = map->GetResourceNode(nodePos.x, nodePos.y);
 
             if (node.type == m_targetResourceType && node.amount > 0 && node.surveyed) {
                 m_targetPos = nodePos;
+                node.amount--;
+                m_hasClaimedSpot = true;
                 return true;
             }
         }
+
+        // All local nodes depleted
+        m_isDepleted = true;
         return false;
     }
 
     bool ValidateTarget() const override {
-        if (!map) return false;
+        if (!map || !m_hasClaimedSpot) return false;
         const ResourceNode& node = map->GetResourceNode(m_targetPos.x, m_targetPos.y);
-        return node.type == m_targetResourceType && node.amount > 0 && node.surveyed;
+        return node.type == m_targetResourceType;
     }
 
     void Produce() override {
-        if (map) {
-            ResourceNode& node = map->GetResourceNode(m_targetPos.x, m_targetPos.y);
-            if (node.type == m_targetResourceType && node.amount > 0) {
-                node.amount--;
-            }
-        }
+        m_hasClaimedSpot = false;
     }
 
     void OnArriveHome() override {
@@ -77,6 +89,8 @@ public:
         , m_localNodesCount(0)
         , m_isCacheInitialized(false)
         , m_targetResourceType(ResourceType_Stone)
+        , m_hasClaimedSpot(false)
+        , m_hasWorkSite(false)
     {
         outputResources.push_back(ResourceType_Stone);
         outputResources.push_back(ResourceType_Marble);
@@ -86,6 +100,15 @@ public:
         m_workDuration = 3.0f;
         m_workerSpeed = 1.0f;
         m_searchCooldown = 5.0f;
+    }
+
+    void Update(float dt) override {
+        WorkerState prevState = m_wState;
+        WorkerBuilding::Update(dt);
+        // When first entering Working state, place work-site at the resource node
+        if (m_wState == WState_Working && prevState != WState_Working && m_hasTarget) {
+            m_hasWorkSite = true;
+        }
     }
 
     void ChangeTargetResource(ResourceType newType) {
@@ -145,6 +168,15 @@ public:
             if (m_targetResourceType == ResourceType_Marble) resOffset = 2;
             else if (m_targetResourceType == ResourceType_Granite) resOffset = 4;
             outSpriteIdx = (m_wDir == 0) ? (20 + resOffset) : (21 + resOffset);
+            return true;
+        }
+        return false;
+    }
+
+    bool GetWorkSiteRenderInfo(Vector2i& outPosition, const char*& outSpriteName) const override {
+        if (m_hasWorkSite && m_hasTarget) {
+            outPosition = m_targetPos;
+            outSpriteName = m_isDepleted ? "mine_ruin_stone_marble" : "mine_stone_framework";
             return true;
         }
         return false;

@@ -2,6 +2,7 @@
 #include "UIMenu.h"
 #include "../Graphics/ShaderManager.h"
 #include "../Graphics/RenderLayers.h"
+#include "../Graphics/RenderCommandBuilder.h"
 #include "../Input/Gamepad.h"
 #include "../Graphics/TextManager.h"
 
@@ -113,20 +114,11 @@ void UIMenu::Render()
 
     // Background
     if (m_hasBackground) {
-        Graphics::RenderCommand bgCmd = {};
-        bgCmd.x = m_background.x;
-        bgCmd.y = m_background.y;
-        bgCmd.width = m_background.w;
-        bgCmd.height = m_background.h;
-        bgCmd.u0 = m_background.u0; bgCmd.v0 = m_background.v0;
-        bgCmd.u1 = m_background.u1; bgCmd.v1 = m_background.v1;
-        bgCmd.color = 0xFFFFFFFF;
-        bgCmd.shaderID = SHADER_UI;
-        bgCmd.textureID = m_atlasSlot;
-        bgCmd.blendMode = 1;
-        bgCmd.layer = LAYER_UI;
-        bgCmd.depth = 10;
-        m_renderQueue->Submit(bgCmd);
+        Graphics::RenderCommandBuilder()
+            .UIElement(m_background.x, m_background.y, m_background.w, m_background.h,
+                       m_background.u0, m_background.v0, m_background.u1, m_background.v1,
+                       m_atlasSlot, 10)
+            .Submit(m_renderQueue);
     }
 
     // Items
@@ -135,37 +127,20 @@ void UIMenu::Render()
 
         // Selection highlight behind selected item
         if (i == m_selectedIndex) {
-            Graphics::RenderCommand hlCmd = {};
-            hlCmd.x = item.x - 4.0f;
-            hlCmd.y = item.y - 4.0f;
-            hlCmd.width = item.w + 8.0f;
-            hlCmd.height = item.h + 8.0f;
-            hlCmd.u0 = 0.5f; hlCmd.v0 = 0.5f;
-            hlCmd.u1 = 0.5001f; hlCmd.v1 = 0.5001f;
-            hlCmd.color = D3DCOLOR_ARGB(100, 255, 255, 0);
-            hlCmd.shaderID = SHADER_UI;
-            hlCmd.textureID = m_atlasSlot;
-            hlCmd.blendMode = 1;
-            hlCmd.layer = LAYER_UI;
-            hlCmd.depth = 50;
-            m_renderQueue->Submit(hlCmd);
+            Graphics::RenderCommandBuilder()
+                .UIElement(item.x - 4.0f, item.y - 4.0f, item.w + 8.0f, item.h + 8.0f,
+                           0.5f, 0.5f, 0.5001f, 0.5001f,
+                           m_atlasSlot, 50)
+                .Color(D3DCOLOR_ARGB(100, 255, 255, 0))
+                .Submit(m_renderQueue);
         }
 
         // Item sprite
-        Graphics::RenderCommand cmd = {};
-        cmd.x = item.x;
-        cmd.y = item.y;
-        cmd.width = item.w;
-        cmd.height = item.h;
-        cmd.u0 = item.u0; cmd.v0 = item.v0;
-        cmd.u1 = item.u1; cmd.v1 = item.v1;
-        cmd.color = 0xFFFFFFFF;
-        cmd.shaderID = SHADER_UI;
-        cmd.textureID = m_atlasSlot;
-        cmd.blendMode = 1;
-        cmd.layer = LAYER_UI;
-        cmd.depth = 100;
-        m_renderQueue->Submit(cmd);
+        Graphics::RenderCommandBuilder()
+            .UIElement(item.x, item.y, item.w, item.h,
+                       item.u0, item.v0, item.u1, item.v1,
+                       m_atlasSlot)
+            .Submit(m_renderQueue);
 
         // Item label
         if (m_textManager && item.label) {

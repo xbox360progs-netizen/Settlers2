@@ -37,6 +37,7 @@
 #include <string>
 #include <string.h>
 #include "../World/UiDefs.h"
+#include "BuildingPlacement.h"
 
 namespace Scene {
 
@@ -158,6 +159,7 @@ private:
     int m_placementIconIdx;    // UI atlas sprite index for preview at cursor
     int m_placementConstrIdx;  // Buildings atlas sprite index for construction site
     std::string m_selectedIconName;
+    BuildingPlacementManager* m_placementManager;
 
     // Flags & Roads
     World::FlagManager* m_flagManager;
@@ -246,12 +248,16 @@ private:
     void CreateConstructionSite(World::Flag* flag, int siteX, int siteY);
     void ConfirmConstruction(World::Flag* flag);
     void ConfirmDeleteFlag(int tileX, int tileY);
+    void ClearBuildingFootprint(int startX, int startY, int width, int height);
     void ClearRoadTilesForFlag(World::Flag* flag);
     const char* GetBuildingName(World::BuildingType type) const;
     const char* GetBuildingSpriteName(World::BuildingType type) const;
     World::BuildingType GetBuildingTypeFromSpriteName(const std::string& name) const;
+    World::ResourceType GetResourceTypeForMine(World::BuildingType buildingType) const;
+    bool IsMineType(World::BuildingType type) const;
 
     void RestoreBuildingsFromLayer();
+    void AssignOreDepositsToMountains();
 
     // Geologist system
     void ShowGeologistConfirm(int tx, int ty);

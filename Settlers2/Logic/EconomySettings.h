@@ -51,6 +51,9 @@ namespace Logic {
             routeConfig[World::ResourceType_Coal]    .transferPriority = 50;
             routeConfig[World::ResourceType_IronOre] .transferPriority = 40;
             routeConfig[World::ResourceType_Bread]   .transferPriority = 60;
+
+            // Bronze: route to warehouse (no downstream consumer yet)
+            routeConfig[World::ResourceType_BronzeBar] = ResourceRouteConfig(ROUTE_WAREHOUSE, 30);
         }
     };
 }

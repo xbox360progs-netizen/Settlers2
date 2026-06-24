@@ -15,6 +15,8 @@
 #include "Bakery.h"
 #include "Mill.h"
 #include "ToolWorkshop.h"
+#include "BronzeMine.h"
+#include "BronzeSmelter.h"
 
 namespace World {
 
@@ -35,6 +37,8 @@ namespace World {
             case Bakery:         return new class Bakery(x, y, owner, map);
             case Mill:           return new class Mill(x, y, owner, map);
             case ToolWorkshop:   return new class ToolWorkshop(x, y, owner, map);
+            case BronzeMine:     return new class BronzeMine(x, y, owner, map);
+            case BronzeSmelter:  return new class BronzeSmelter(x, y, owner, map);
             default:             return NULL;
         }
     }

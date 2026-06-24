@@ -18,6 +18,7 @@
 #include "../Graphics/SpriteAtlas.h"
 #include "../Graphics/TextureRegistry.h"
 #include "../Graphics/RenderLayers.h"
+#include "../Graphics/RenderCommandBuilder.h"
 #include "../Core/LanguageManager.h"
 #include <iostream>
 #include <cstdio>
@@ -56,7 +57,8 @@ namespace Scene {
         if (lowerName == "stronghold") return World::Stronghold;
         if (lowerName == "well") return World::Well;
         if (lowerName == "bronzemine") return World::BronzeMine;
-        if (lowerName == "toolmaker") return World::ToolMaker;
+        if (lowerName == "bronzesmelter") return World::BronzeSmelter;
+        if (lowerName == "toolmaker") return World::ToolWorkshop;
         if (lowerName == "barracks") return World::Barracks;
 
         return World::Building_None;
@@ -1405,19 +1407,11 @@ void EditorScene::RenderSaveLoadMenu(Graphics::RenderQueue* renderQueue) {
             if (menuIdx != 0xFFFFFFFF) {
                 const SpriteRegion* menuReg = uiAtl->GetRegion(menuIdx);
                 if (menuReg) {
-                    Graphics::RenderCommand menuCmd = {};
-                    menuCmd.x = 440.0f; menuCmd.y = 60.0f;
-                    menuCmd.width = 400.0f; menuCmd.height = 400.0f;
-                    menuCmd.u0 = menuReg->u0; menuCmd.v0 = menuReg->v0;
-                    menuCmd.u1 = menuReg->u1; menuCmd.v1 = menuReg->v1;
-                    menuCmd.color = 0xFFFFFFFF;
-                    menuCmd.textureID = 14;
-                    menuCmd.shaderID = SHADER_UI;
-                    menuCmd.blendMode = 1;
-                    menuCmd.layer = LAYER_UI;
-                    menuCmd.depth = 199;
-                    menuCmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, 14, 199);
-                    renderQueue->Submit(menuCmd);
+                    Graphics::RenderCommandBuilder()
+                        .UIElement(440.0f, 60.0f, 400.0f, 400.0f,
+                            menuReg->u0, menuReg->v0, menuReg->u1, menuReg->v1,
+                            14, 199)
+                        .Submit(renderQueue);
                 }
             }
         }
@@ -1608,18 +1602,11 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
     // Background via render queue (slot 10, LAYER_UI so it renders on top of world tiles)
     if (m_bgEditorTexture.GetTexture() && m_spriteRenderer) {
         m_spriteRenderer->SetTextureSlot(10, m_bgEditorTexture.GetTexture());
-        Graphics::RenderCommand cmd = {};
-        cmd.x = 0.0f; cmd.y = 0.0f;
-        cmd.width = 1280.0f; cmd.height = 720.0f;
-        cmd.u0 = 0.0f; cmd.v0 = 0.0f;
-        cmd.u1 = 1.0f; cmd.v1 = 1.0f;
-        cmd.color = 0xFFFFFFFF;
-        cmd.shaderID = SHADER_UI;
-        cmd.textureID = 10;
-        cmd.blendMode = 1;
-        cmd.layer = LAYER_UI;
-        cmd.depth = 255;
-        renderQueue->Submit(cmd);
+        Graphics::RenderCommandBuilder()
+            .UIElement(0.0f, 0.0f, 1280.0f, 720.0f,
+                0.0f, 0.0f, 1.0f, 1.0f,
+                10, 255)
+            .Submit(renderQueue);
     }
     // Render world content
     m_mapEditor->RenderGeometry();
@@ -1667,20 +1654,12 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
                         if (!r) continue;
                         float wx, wy;
                         coords.NodeTileToWorld(a.x, a.y, wx, wy);
-                        Graphics::RenderCommand cmd = {};
-                        cmd.x = wx - r->pivotX;
-                        cmd.y = wy - r->pivotY;
-                        cmd.width = (float)r->width;
-                        cmd.height = (float)r->height;
-                        cmd.u0 = r->u0; cmd.v0 = r->v0;
-                        cmd.u1 = r->u1; cmd.v1 = r->v1;
-                        cmd.color = 0xFFFFFFFF;
-                        cmd.textureID = SLOT_UNITS;
-                        cmd.shaderID = SHADER_TERRAIN;
-                        cmd.blendMode = 1;
-                        cmd.layer = LAYER_WORLD;
-                        cmd.depth = static_cast<WORD>(30005 + (int)(a.y + 0.5f) * 400);
-                        renderQueue->Submit(cmd);
+                        Graphics::RenderCommandBuilder()
+                            .WorldSprite(wx - r->pivotX, wy - r->pivotY,
+                                (float)r->width, (float)r->height,
+                                r->u0, r->v0, r->u1, r->v1,
+                                SLOT_UNITS, static_cast<WORD>(30005 + (int)(a.y + 0.5f) * 400))
+                            .Submit(renderQueue);
                     }
                 }
             }
@@ -1774,37 +1753,21 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
 
             // Bottom-left: button_A + Select (cell start + 5px = 407)
             {
-                Graphics::RenderCommand btnCmd = {};
-                btnCmd.x = 407.0f; btnCmd.y = 567.0f;
-                btnCmd.width = 32.0f; btnCmd.height = 32.0f;
-                btnCmd.u0 = m_buttonAUV.u0; btnCmd.v0 = m_buttonAUV.v0;
-                btnCmd.u1 = m_buttonAUV.u1; btnCmd.v1 = m_buttonAUV.v1;
-                btnCmd.color = 0xFFFFFFFF;
-                btnCmd.shaderID = SHADER_UI;
-                btnCmd.textureID = 13;
-                btnCmd.blendMode = 1;
-                btnCmd.layer = LAYER_UI;
-                btnCmd.depth = 60;
-                btnCmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, 13, 60);
-                renderQueue->Submit(btnCmd);
+                Graphics::RenderCommandBuilder()
+                    .UIElement(407.0f, 567.0f, 32.0f, 32.0f,
+                        m_buttonAUV.u0, m_buttonAUV.v0, m_buttonAUV.u1, m_buttonAUV.v1,
+                        13, 60)
+                    .Submit(renderQueue);
             }
             m_textManager->DrawTextToScreen("Select", 424.0f, 563.0f, 0xFF44FF44, 0.22f);
             // Bottom-right: Close + button_B (cell end - 5px = 871, 15px gap from Close to B)
             m_textManager->DrawTextToScreen("Close", 784.0f, 563.0f, 0xFFFF4444, 0.22f);
             {
-                Graphics::RenderCommand btnCmd = {};
-                btnCmd.x = 839.0f; btnCmd.y = 567.0f;
-                btnCmd.width = 32.0f; btnCmd.height = 32.0f;
-                btnCmd.u0 = m_buttonBUV.u0; btnCmd.v0 = m_buttonBUV.v0;
-                btnCmd.u1 = m_buttonBUV.u1; btnCmd.v1 = m_buttonBUV.v1;
-                btnCmd.color = 0xFFFFFFFF;
-                btnCmd.shaderID = SHADER_UI;
-                btnCmd.textureID = 13;
-                btnCmd.blendMode = 1;
-                btnCmd.layer = LAYER_UI;
-                btnCmd.depth = 60;
-                btnCmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, 13, 60);
-                renderQueue->Submit(btnCmd);
+                Graphics::RenderCommandBuilder()
+                    .UIElement(839.0f, 567.0f, 32.0f, 32.0f,
+                        m_buttonBUV.u0, m_buttonBUV.v0, m_buttonBUV.u1, m_buttonBUV.v1,
+                        13, 60)
+                    .Submit(renderQueue);
             }
         }
     }
@@ -1850,21 +1813,11 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
             if (atlas && tileIdx < (int)atlas->GetRegionCount()) {
                 const SpriteRegion* region = atlas->GetRegion(tileIdx);
                 if (region) {
-                    Graphics::RenderCommand cmd = {};
-                    cmd.x = 10.0f;
-                    cmd.y = 40.0f;
-                    cmd.width = 64.0f;
-                    cmd.height = 64.0f;
-                    cmd.u0 = region->u0; cmd.v0 = region->v0;
-                    cmd.u1 = region->u1; cmd.v1 = region->v1;
-                    cmd.color = 0xFFFFFFFF;
-                    cmd.shaderID = SHADER_UI;
-                    cmd.textureID = texSlot;
-                    cmd.blendMode = 1;
-                    cmd.layer = LAYER_UI;
-                    cmd.depth = 200;
-                    cmd.sortKey = Graphics::BuildSortKey(LAYER_UI, 1, SHADER_UI, texSlot, 200);
-                    renderQueue->Submit(cmd);
+                    Graphics::RenderCommandBuilder()
+                        .UIElement(10.0f, 40.0f, 64.0f, 64.0f,
+                            region->u0, region->v0, region->u1, region->v1,
+                            texSlot, 200)
+                        .Submit(renderQueue);
                 }
             }
         }
@@ -1887,20 +1840,12 @@ void EditorScene::Render(Graphics::RenderQueue* renderQueue) {
                 if (m_spriteRenderer)
                     m_spriteRenderer->SetTextureSlot(12, iconAtl->GetTexture());
 
-                Graphics::RenderCommand cmd = {};
-                cmd.x = wx - region->pivotX;
-                cmd.y = wy - region->pivotY;
-                cmd.width = previewW;
-                cmd.height = previewH;
-                cmd.u0 = region->u0; cmd.v0 = region->v0;
-                cmd.u1 = region->u1; cmd.v1 = region->v1;
-                cmd.color = 0xFFFFFFFF;
-                cmd.shaderID = SHADER_TERRAIN;
-                cmd.textureID = 12;
-                cmd.blendMode = 1;
-                cmd.layer = LAYER_WORLD;
-                cmd.depth = static_cast<WORD>(0.99f * 65535.0f);
-                renderQueue->Submit(cmd);
+                Graphics::RenderCommandBuilder()
+                    .WorldSprite(wx - region->pivotX, wy - region->pivotY,
+                        previewW, previewH,
+                        region->u0, region->v0, region->u1, region->v1,
+                        12, static_cast<WORD>(0.99f * 65535.0f))
+                    .Submit(renderQueue);
             }
         }
     }

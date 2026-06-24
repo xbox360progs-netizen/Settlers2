@@ -31,7 +31,7 @@ namespace World {
         void ForceDeleteFlag(Flag* flag);
         void ForceDeleteRoad(Road* road);
         void ForceDeleteCarrier(Carrier* carrier);
-        void ForceDeleteBuilding(class Building* building);
+        void ForceDeleteBuilding(class Building* building, class Map* map = NULL);
 
     private:
         FlagManager* m_flagManager;

@@ -14,7 +14,7 @@ class Map;
 enum BuildingType {
     Building_None, Hut, Tower, Fortress, Castle, Forester, Woodcutter, Sawmill, Stonemason,
     CoalMine, IronMine, GoldMine, IronSmelter, GoldSmelter, Farm, Mill, Bakery, Fisher, Hunter, Baker, Brewer, ToolWorkshop, Storehouse,
-    Residence, Stronghold, Well, BronzeMine, ToolMaker, Barracks
+    Residence, Stronghold, Well, BronzeMine, ToolMaker, Barracks, BronzeSmelter
 };
 
 enum BuildingState {
@@ -100,6 +100,18 @@ public:
      int m_population;
      int m_maxPopulation;
  
+     // Depletion tracking
+     bool m_isDepleted;
+     int m_depletedSpriteIdx;
+     int m_totalProduced;
+     int m_maxProduction;
+
+     // Footprint dimensions (set on construction, used for tile cleanup on delete)
+     int m_footprintX;
+     int m_footprintY;
+     int m_footprintW;
+     int m_footprintH;
+ 
      // Refresh cached resource nodes. Override in production buildings for O(1) FindTarget.
      virtual void RefreshResourceCache() { m_cachedNodeCount = 0; }
 
@@ -108,10 +120,12 @@ public:
      std::map<ResourceType, int> deliveredMaterials;
  
          Building(BuildingType t, int x, int y, uint8_t o, Map* m)
-             : type(t), state(State_Ghost), owner(o), connectedFlag(NULL), map(m), m_numRules(0), 
-               m_hasTarget(false), m_fsmState(BuildingFSM_Idle), m_productionTimer(0.0f),
-               m_productionInterval(3.0f), m_population(0), m_maxPopulation(0),
-               m_cachedNodeCount(0), m_cacheTimer(0.0f)
+              : type(t), state(State_Ghost), owner(o), connectedFlag(NULL), map(m), m_numRules(0), 
+                m_hasTarget(false), m_fsmState(BuildingFSM_Idle), m_productionTimer(0.0f),
+                m_productionInterval(3.0f), m_population(0), m_maxPopulation(0),
+                m_cachedNodeCount(0), m_cacheTimer(0.0f),
+                m_isDepleted(false), m_depletedSpriteIdx(-1), m_totalProduced(0), m_maxProduction(0),
+              m_footprintX(0), m_footprintY(0), m_footprintW(1), m_footprintH(1)
          {
              pos.x = x;
              pos.y = y;
@@ -132,11 +146,12 @@ public:
              case Stonemason:
                  m_maxPopulation = 1;
                  break;
-             case CoalMine:
-             case IronMine:
-             case GoldMine:
-                 m_maxPopulation = 3;
-                 break;
+            case CoalMine:
+            case BronzeMine:
+            case IronMine:
+            case GoldMine:
+                m_maxPopulation = 3;
+                break;
              case IronSmelter:
              case GoldSmelter:
                  m_maxPopulation = 2;
@@ -157,6 +172,7 @@ public:
                  m_maxPopulation = 1;
                  break;
              case ToolWorkshop:
+             case BronzeSmelter:
                  m_maxPopulation = 2;
                  break;
              default:
@@ -201,6 +217,9 @@ public:
     // When true, fills outX/outY (float node coords) and outSpriteIdx (flat Units atlas index).
     virtual bool GetWorkerRenderInfo(float& outX, float& outY, int& outSpriteIdx) const { return false; }
 
+    // Returns true if there's a work-site sprite to render (e.g., mine framework at resource node)
+    virtual bool GetWorkSiteRenderInfo(Vector2i& outPosition, const char*& outSpriteName) const { return false; }
+
     virtual bool IsWarehouse() const { return false; }
 
     // Polymorphic resource-mode switching (overridden by configurable buildings like Stonemason)
@@ -211,6 +230,9 @@ public:
     void SetStorage(ResourceType type, int val) { m_storage[type] = val; }
     void AddStorage(ResourceType type, int val) { m_storage[type] += val; }
     bool HasStorage(ResourceType type, int min = 1) const { return m_storage[type] >= min; }
+
+    void SetDepleted() { m_isDepleted = true; }
+    bool IsDepleted() const { return m_isDepleted; }
 
     int ConsumeFood() {
         int varietyBonus = 0;

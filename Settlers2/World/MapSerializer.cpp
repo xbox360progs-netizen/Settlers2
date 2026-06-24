@@ -15,7 +15,7 @@ struct Header {
 };
 #pragma pack(pop)
 
-static const int CURRENT_VERSION = 7;  // v7 adds ResourceNode.surveyed
+static const int CURRENT_VERSION = 8;  // v8 adds Tile.buildingType
 
 // Вспомогательные функции для буферизации
 static void Append(std::vector<BYTE>& buf, const void* data, size_t size) {
@@ -96,6 +96,8 @@ bool MapSerializer::Save(const World::Map& map, const std::string& path, const s
                 Append(buffer, &nameLen, sizeof(nameLen));
                 if (nameLen > 0)
                     Append(buffer, tile.atlasName.c_str(), nameLen);
+                int bt = tile.buildingType;
+                Append(buffer, &bt, sizeof(bt));
             }
         }
     }
@@ -204,6 +206,9 @@ bool MapSerializer::Load(World::Map& map, const std::string& path, std::vector<s
                     reader.Read(buf.data(), nameLen);
                     tile.atlasName = buf.data();
                 }
+                if (hdr.version >= 8) {
+                    reader.Read(&tile.buildingType, sizeof(tile.buildingType));
+                }
                 if (x < readW && y < readH) {
                     layer->SetTile(x, y, tile);
                 }
@@ -227,6 +232,11 @@ bool MapSerializer::Load(World::Map& map, const std::string& path, std::vector<s
         reader.Read(&vis, 1);
         map.SetResourceNode(x, y, static_cast<World::ResourceType>(rt), amount, vis != 0);
         map.SetNodeWeight(x, y, weight);
+        if (hdr.version >= 7) {
+            BYTE surv;
+            reader.Read(&surv, 1);
+            map.GetResourceNode(x, y).surveyed = (surv != 0);
+        }
     }
 
     // Road flags (version 2+)
@@ -304,6 +314,8 @@ bool MapSerializer::SaveV4(const World::Map& map, const std::string& path, const
                 Append(buffer, &nameLen, sizeof(nameLen));
                 if (nameLen > 0)
                     Append(buffer, tile.atlasName.c_str(), nameLen);
+                int bt = tile.buildingType;
+                Append(buffer, &bt, sizeof(bt));
             }
         }
     }
@@ -455,6 +467,9 @@ bool MapSerializer::LoadV4(World::Map& map, const std::string& path, std::vector
                     std::vector<char> buf(nameLen + 1, 0);
                     reader.Read(buf.data(), nameLen);
                     tile.atlasName = buf.data();
+                }
+                if (hdr.version >= 8) {
+                    reader.Read(&tile.buildingType, sizeof(tile.buildingType));
                 }
                 if (x < readW && y < readH) {
                     layer->SetTile(x, y, tile);

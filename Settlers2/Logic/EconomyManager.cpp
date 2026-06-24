@@ -4,6 +4,7 @@
 #include "../World/Flag.h"
 #include "../World/Warehouse.h"
 #include "../World/Worker.h"
+#include "../World/Map.h"
 
 namespace Logic {
 
@@ -241,6 +242,25 @@ namespace Logic {
             World::Building* b = m_buildings[i];
             if (b->state != World::State_Finished) continue;
             b->Update(dt);
+        }
+
+        // ─── Phase 5: Depleted building sprite update ────────────────────
+        for (size_t i = 0; i < m_buildings.size(); ++i) {
+            World::Building* b = m_buildings[i];
+            if (b->state != World::State_Finished) continue;
+            if (!b->IsDepleted() || b->m_depletedSpriteIdx < 0) continue;
+
+            World::TileLayer* buildingsLayer = b->map ? b->map->GetLayer(World::Buildings) : NULL;
+            if (buildingsLayer) {
+                int tx = b->pos.x;
+                int ty = b->pos.y;
+                if (tx >= 0 && tx < buildingsLayer->GetWidth() && ty >= 0 && ty < buildingsLayer->GetHeight()) {
+                    World::Tile& tile = buildingsLayer->GetTile(tx, ty);
+                    tile.regionIndex = b->m_depletedSpriteIdx;
+                }
+            }
+            // Clear the idx so we only update once
+            b->m_depletedSpriteIdx = -1;
         }
 
         // ─── Phase 6: Outbound — routing-aware surplus distribution ──────
