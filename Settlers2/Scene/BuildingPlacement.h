@@ -1,14 +1,22 @@
 #pragma once
 
-#include "../World/Map.h"
-#include "../World/FlagManager.h"
-#include "../World/RoadManager.h"
-#include "../World/CarrierManager.h"
-#include "../Logic/EconomyManager.h"
-#include "../World/DemandManager.h"
-#include "../Graphics/SpriteAtlas.h"
+#include "../World/Components/Building.h" // BuildingType enum
+#include "../World/ResourceNode.h"         // ResourceType enum
 #include <string>
 #include <vector>
+
+namespace World {
+    class Map;
+    class FlagManager;
+    class RoadManager;
+    class CarrierManager;
+    class DemandManager;
+    struct SpriteRegion;
+}
+
+namespace Logic {
+    class EconomyManager;
+}
 
 namespace Scene {
 

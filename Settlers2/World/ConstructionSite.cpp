@@ -25,11 +25,20 @@ namespace World {
         }
     }
 
+    static ConstructionSiteId s_nextId = 0;
+
+    ConstructionSiteId ConstructionSite::GenerateId()
+    {
+        return s_nextId++;
+    }
+
     ConstructionSite::ConstructionSite(int x, int y, BuildingType type, Flag* flag)
-        : x(x), y(y), buildingType(type), flag(flag)
+        : id(GenerateId())
+        , x(x), y(y), buildingType(type), flag(flag)
         , woodNeeded(0), stoneNeeded(0)
         , woodDelivered(0), stoneDelivered(0)
         , woodRequested(0), stoneRequested(0)
+        , lastWoodRequested(0), lastStoneRequested(0)
         , buildProgress(0.0f)
         , builderState(Builder_None)
         , builderRouteCount(0)

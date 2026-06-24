@@ -389,6 +389,8 @@
     <ClInclude Include="World\Systems\AnimalSystem.h" />
     <ClInclude Include="World\Systems\CarrierSystem.h" />
     <ClInclude Include="World\Systems\ConstructionSystem.h" />
+    <ClInclude Include="World\Systems\ConstructionFactory.h" />
+    <ClInclude Include="World\Systems\BuildContext.h" />
     <ClInclude Include="World\Systems\TransportSystem.h" />
     <ClInclude Include="World\Systems\WorkforceSystem.h" />
     <ClInclude Include="World\Systems\BuildingSystem.h" />
@@ -509,6 +511,7 @@
     <ClCompile Include="World\Systems\AnimalSystem.cpp" />
     <ClCompile Include="World\Systems\CarrierSystem.cpp" />
     <ClCompile Include="World\Systems\ConstructionSystem.cpp" />
+    <ClCompile Include="World\Systems\ConstructionFactory.cpp" />
     <ClCompile Include="World\Systems\TransportSystem.cpp" />
     <ClCompile Include="World\Systems\WorkforceSystem.cpp" />
     <ClCompile Include="World\Systems\BuildingSystem.cpp" />

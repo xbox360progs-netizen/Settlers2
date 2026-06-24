@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "EventBus.h"
 #include <cstring>
+#include <cstdio>
 
 namespace Core {
 
@@ -66,21 +67,48 @@ void EventBus::Broadcast(EventType type, void* data)
     }
 }
 
-void EventBus::Post(EventType type, void* data)
+bool EventBus::Flush()
 {
-    if (m_frameEventCount < MAX_FRAME_EVENTS) {
-        m_frameEvents[m_frameEventCount].type = type;
-        m_frameEvents[m_frameEventCount].data = data;
-        m_frameEventCount++;
+    // Depth guard prevents runaway recursion when a listener calls Flush()
+    // from inside a Broadcast handler.  Sequential calls from Simulation
+    // (while(Flush())) are not affected — depth resets at the top level.
+    static int s_flushDepth = 0;
+    if (++s_flushDepth > MAX_FLUSH_DEPTH) {
+        --s_flushDepth;
+        return m_frameEventCount > 0;
     }
-}
 
-void EventBus::Flush()
-{
-    for (int i = 0; i < m_frameEventCount; ++i) {
-        Broadcast(m_frameEvents[i].type, m_frameEvents[i].data);
+    // Per-frame event limit — resets at top-level Flush, protects against
+    // infinite A→B→A→B loops that never drain the queue.
+    static int s_frameProcessed = 0;
+    if (s_flushDepth == 1) {
+        s_frameProcessed = 0; // reset at the beginning of a flush cycle
     }
+
+    // Snapshot the current batch then immediately drain so new Posts
+    // during Broadcast go into a fresh buffer, not the current one.
+    int count = m_frameEventCount;
     m_frameEventCount = 0;
+    bool limitHit = false;
+    for (int i = 0; i < count; ++i) {
+        if (++s_frameProcessed > MAX_EVENTS_PER_FRAME) {
+            limitHit = true;
+            break;
+        }
+        Broadcast(m_frameEvents[i].type, &m_frameEvents[i].data);
+    }
+
+    --s_flushDepth;
+
+    if (limitHit) {
+        // Hard limit hit — discard the rest of the current batch AND any
+        // events posted during Broadcast (they'll be re-posted next frame).
+        m_frameEventCount = 0;
+        return false;
+    }
+
+    // Return true if more events arrived during dispatch
+    return m_frameEventCount > 0;
 }
 
 } // namespace Core

@@ -97,10 +97,10 @@ void SimulationSystem::Initialize(
 
         m_buildings.Initialize(map, flagManager, m_eventBus);
 
-        m_construction.Initialize(
-            flagManager, roadManager,
-            m_extDemand, m_extCargo,
-            warehouseFlag, m_eventBus);
+        {
+            BuildContext ctx(flagManager, roadManager, m_extDemand, m_extCargo, warehouseFlag);
+            m_construction.Initialize(ctx, m_eventBus);
+        }
 
         // Initialize WorldSystem
         m_world.Initialize(map, flagManager, m_extCargo, m_eventBus);
@@ -153,11 +153,13 @@ void SimulationSystem::Update(float dt)
         // Phase 6: Construction post-update — collect completed sites
         m_construction.PostUpdate();
 
-        // Phase 7: Event dispatch — deliver queued events to all listeners
-        // (Flush runs after PostUpdate so completion events reach listeners
-        // before World phase mutates the map)
+        // Phase 7: Event dispatch — drain all pending events
+        // Loop ensures cascading events from listeners are delivered within
+        // the same frame.  Flush returns false when the queue is empty.
+        // Depth guard inside Flush() prevents runaway recursion when a
+        // listener calls Flush() directly.
         if (m_eventBus) {
-            m_eventBus->Flush();
+            while (m_eventBus->Flush()) { }
         }
 
         // Phase 8: World — tree growth, wildlife regeneration
@@ -170,6 +172,11 @@ void SimulationSystem::Update(float dt)
         m_workforce.Update(dt);
         m_transport.Update(dt);
         m_economy.CollectWarehouse();
+
+        // Event dispatch
+        if (m_eventBus) {
+            while (m_eventBus->Flush()) { }
+        }
     }
 
 }

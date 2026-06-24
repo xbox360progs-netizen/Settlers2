@@ -3588,13 +3588,13 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         }
         SetupConstructionSiteTiles(flag, data.buildX, data.buildY, m_selectedBuilding);
 
-        // Broadcast Event_FlagPlaced
+        // Post Event_FlagPlaced (dispatched by Simulation::Flush)
         if (m_eventBus) {
             Core::FlagPlacedData fd;
             fd.flagId = flag->id;
             fd.posX = flag->pos.x;
             fd.posY = flag->pos.y;
-            m_eventBus->Broadcast(Core::Event_FlagPlaced, &fd);
+            m_eventBus->Post(Core::Event_FlagPlaced, fd);
         }
 
         m_buildState = BUILDSTATE_NONE;
@@ -3637,13 +3637,13 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         SyncCarriersForFlag(flag);
         if (m_constructionManager) m_constructionManager->MarkBuilderRoutesDirty();
 
-        // Broadcast Event_FlagPlaced
+        // Post Event_FlagPlaced (dispatched by Simulation::Flush)
         if (m_eventBus) {
             Core::FlagPlacedData fd;
             fd.flagId = flag->id;
             fd.posX = flag->pos.x;
             fd.posY = flag->pos.y;
-            m_eventBus->Broadcast(Core::Event_FlagPlaced, &fd);
+            m_eventBus->Post(Core::Event_FlagPlaced, fd);
         }
 
         char dbg[256];
@@ -4267,14 +4267,14 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
             }
         }
 
-        // Broadcast Event_BuildingPlaced
+        // Post Event_BuildingPlaced (dispatched by Simulation::Flush)
         if (m_eventBus) {
             Core::BuildingPlacedData bd;
             bd.buildingType = (int)site->buildingType;
             bd.posX = site->x;
             bd.posY = site->y;
             bd.flagId = site->flag ? site->flag->id : 0;
-            m_eventBus->Broadcast(Core::Event_BuildingPlaced, &bd);
+            m_eventBus->Post(Core::Event_BuildingPlaced, bd);
         }
 
         m_statusText = "Building completed!";
@@ -4898,7 +4898,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
             }
         }
 
-        // Broadcast Event_RoadBuilt
+        // Post Event_RoadBuilt (dispatched by Simulation::Flush)
         if (m_eventBus) {
             Core::RoadBuiltData rd;
             rd.startX = m_roadStartX;
@@ -4906,7 +4906,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
             rd.endX = m_roadPreviewPath.empty() ? -1 : m_roadPreviewPath.back().first;
             rd.endY = m_roadPreviewPath.empty() ? -1 : m_roadPreviewPath.back().second;
             rd.tileCount = (int)m_roadPreviewPath.size();
-            m_eventBus->Broadcast(Core::Event_RoadBuilt, &rd);
+            m_eventBus->Post(Core::Event_RoadBuilt, rd);
         }
 
         m_statusText = "Road built!";

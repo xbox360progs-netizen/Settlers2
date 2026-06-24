@@ -1,4 +1,6 @@
 #pragma once
+#include "ConstructionFactory.h"
+#include "BuildContext.h"
 #include "../ConstructionManager.h"
 #include "../../Core/EventBus.h"
 
@@ -6,34 +8,22 @@ namespace Logic { class EconomyManager; }
 
 namespace World {
 
-struct BuildCommand {
-    BuildingType type;
-    int tileX, tileY;
-    Flag* entranceFlag;       // NULL = create new flag at calculated entrance position
-    bool autoConnectRoad;     // whether to connect flag to road network and sync carriers
-
-    BuildCommand() : type(Building_None), tileX(0), tileY(0), entranceFlag(NULL), autoConnectRoad(true) {}
-};
-
 class ConstructionSystem : public Core::EventListener {
 public:
     ConstructionSystem();
     ~ConstructionSystem();
 
-    void Initialize(FlagManager* flagManager, RoadManager* roadManager,
-                    DemandManager* demandManager, CargoManager* cargoManager,
-                    Flag* warehouseFlag, Core::EventBus* eventBus);
+    void Initialize(const BuildContext& ctx, Core::EventBus* eventBus);
 
     void Enqueue(const BuildCommand& cmd);
 
     void Update(float dt);
 
-    // PostUpdate checks for completed sites and broadcasts
-    // Event_ConstructionComplete before they are removed.
+    // PostUpdate detects completed sites and broadcasts Event_ConstructionComplete.
+    // Call between Economy and EventDispatch phases.
     void PostUpdate();
 
     void GenerateRequests(Logic::EconomyManager* economy);
-
     void OnRoadRemoved(Road* road);
 
     ConstructionSite* GetSiteAt(int x, int y) const;
@@ -50,15 +40,12 @@ public:
 
 private:
     ConstructionManager m_manager;
-    FlagManager* m_flagManager;
-    RoadManager* m_roadManager;
-    DemandManager* m_demandManager;
-    CargoManager* m_cargoManager;
-    Flag* m_warehouseFlag;
+    ConstructionFactory m_factory;
     Core::EventBus* m_eventBus;
     bool m_initialized;
 
-    std::vector<ConstructionSite*> m_completed; // sites already reported as complete (prevents double-fire)
+    // Use stable site IDs for double-fire guard (safe across delete/reuse)
+    std::vector<ConstructionSiteId> m_completedIds;
 };
 
 } // namespace World

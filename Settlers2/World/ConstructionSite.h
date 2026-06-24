@@ -15,8 +15,13 @@ namespace World {
         Builder_Returning
     };
 
+    typedef unsigned int ConstructionSiteId;
+
     class ConstructionSite {
     public:
+        static ConstructionSiteId GenerateId();
+
+        ConstructionSiteId id;
         int x;
         int y;
         BuildingType buildingType;

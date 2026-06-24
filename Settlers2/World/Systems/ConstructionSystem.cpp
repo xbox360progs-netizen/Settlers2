@@ -10,15 +10,11 @@
 namespace World {
 
 ConstructionSystem::ConstructionSystem()
-    : m_flagManager(NULL)
-    , m_roadManager(NULL)
-    , m_demandManager(NULL)
-    , m_cargoManager(NULL)
-    , m_warehouseFlag(NULL)
+    : m_factory(NULL)
     , m_eventBus(NULL)
     , m_initialized(false)
 {
-    m_completed.reserve(16);
+    m_completedIds.reserve(16);
 }
 
 ConstructionSystem::~ConstructionSystem()
@@ -28,23 +24,13 @@ ConstructionSystem::~ConstructionSystem()
     }
 }
 
-void ConstructionSystem::Initialize(
-    FlagManager* flagManager,
-    RoadManager* roadManager,
-    DemandManager* demandManager,
-    CargoManager* cargoManager,
-    Flag* warehouseFlag,
-    Core::EventBus* eventBus)
+void ConstructionSystem::Initialize(const BuildContext& ctx, Core::EventBus* eventBus)
 {
-    m_flagManager = flagManager;
-    m_roadManager = roadManager;
-    m_demandManager = demandManager;
-    m_cargoManager = cargoManager;
-    m_warehouseFlag = warehouseFlag;
-    m_manager.SetFlagManager(flagManager);
-    m_manager.SetRoadManager(roadManager);
-    m_manager.SetDemandManager(demandManager);
-    m_manager.SetWarehouseFlag(warehouseFlag);
+    m_factory.SetFlagManager(ctx.flags);
+    m_manager.SetFlagManager(ctx.flags);
+    m_manager.SetRoadManager(ctx.roads);
+    m_manager.SetDemandManager(ctx.demand);
+    m_manager.SetWarehouseFlag(ctx.warehouse);
     m_eventBus = eventBus;
 
     if (m_eventBus) {
@@ -57,30 +43,11 @@ void ConstructionSystem::Initialize(
 void ConstructionSystem::Enqueue(const BuildCommand& cmd)
 {
     if (!m_initialized) return;
-    if (cmd.type == Building_None) return;
-    if (!m_flagManager) return;
 
-    // Determine the entrance flag
-    Flag* flag = cmd.entranceFlag;
-    if (!flag) {
-        // Create a new flag at the building's entrance position.
-        // Default entrance offset (1,0) — the caller should provide
-        // the correct flag if more precision is needed.
-        int entranceX = cmd.tileX + 1;
-        int entranceY = cmd.tileY;
+    ConstructionSite* site = m_factory.Create(cmd);
+    if (!site) return;
 
-        flag = m_flagManager->CreateFlag(entranceX, entranceY);
-        if (!flag) return;
-        flag->type = FLAG_NORMAL;
-        flag->pendingBuilding = cmd.type;
-        flag->hasBuilding = true;
-    }
-
-    // Mark builder routes dirty to recalculate paths
     m_manager.MarkBuilderRoutesDirty();
-
-    // Create and register the construction site
-    ConstructionSite* site = new ConstructionSite(cmd.tileX, cmd.tileY, cmd.type, flag);
     m_manager.AddSite(site);
 }
 
@@ -122,7 +89,7 @@ void ConstructionSystem::PostUpdate()
     if (!m_initialized) return;
 
     // Phase 1: collect newly completed sites into a local array
-    // (never iterate the manager's vector while broadcasting — listeners may modify it)
+    // (never broadcast while iterating the manager's vector — listeners may modify it)
     const std::vector<ConstructionSite*>& sites = m_manager.GetAllSites();
     std::vector<ConstructionSite*> newlyCompleted;
     newlyCompleted.reserve(8);
@@ -131,10 +98,10 @@ void ConstructionSystem::PostUpdate()
         ConstructionSite* s = sites[i];
         if (!s->IsComplete()) continue;
 
-        // Skip already-reported sites (double-fire guard)
+        // Skip already-reported sites (double-fire guard using stable ID)
         bool alreadyReported = false;
-        for (size_t j = 0; j < m_completed.size(); ++j) {
-            if (m_completed[j] == s) {
+        for (size_t j = 0; j < m_completedIds.size(); ++j) {
+            if (m_completedIds[j] == s->id) {
                 alreadyReported = true;
                 break;
             }
@@ -142,10 +109,11 @@ void ConstructionSystem::PostUpdate()
         if (alreadyReported) continue;
 
         newlyCompleted.push_back(s);
-        m_completed.push_back(s);
+        m_completedIds.push_back(s->id);
     }
 
-    // Phase 2: broadcast events for all newly completed sites
+    // Phase 2: post events for all newly completed sites
+    // (dispatched by Simulation::Flush in phase 7)
     for (size_t i = 0; i < newlyCompleted.size(); ++i) {
         ConstructionSite* s = newlyCompleted[i];
         if (m_eventBus) {
@@ -154,29 +122,27 @@ void ConstructionSystem::PostUpdate()
             data.siteY = s->y;
             data.buildingType = (int)s->buildingType;
             data.flagId = s->flag ? s->flag->id : 0;
-            m_eventBus->Broadcast(Core::Event_ConstructionComplete, &data);
+            m_eventBus->Post(Core::Event_ConstructionComplete, data);
         }
     }
 
-    // Phase 3: purge stale pointers from m_completed (sites removed by ConfirmConstruction)
-    // Manual loop instead of erase-remove idiom for C++03 compatibility.
+    // Phase 3: purge stale IDs from m_completedIds (sites removed by ConfirmConstruction)
     {
         size_t writeIdx = 0;
-        for (size_t i = 0; i < m_completed.size(); ++i) {
-            ConstructionSite* s = m_completed[i];
-            // Check if this pointer still exists in the manager's site list
+        for (size_t i = 0; i < m_completedIds.size(); ++i) {
+            ConstructionSiteId pid = m_completedIds[i];
             bool stillAlive = false;
             for (size_t j = 0; j < sites.size(); ++j) {
-                if (sites[j] == s) {
+                if (sites[j]->id == pid) {
                     stillAlive = true;
                     break;
                 }
             }
             if (stillAlive) {
-                m_completed[writeIdx++] = s;
+                m_completedIds[writeIdx++] = pid;
             }
         }
-        m_completed.resize(writeIdx);
+        m_completedIds.resize(writeIdx);
     }
 }
 
