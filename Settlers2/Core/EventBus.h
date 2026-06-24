@@ -76,6 +76,26 @@ struct ListenerSlot {
     bool active;
 };
 
+// Type safety guard for Post<T>().  Only types explicitly registered via
+// DECLARE_EVENT_TYPE are allowed as event payloads.  This prevents accidental
+// Post of non-POD or non-event types that would silently memcpy incorrectly.
+template<typename T>
+struct EventTraits {
+    enum { Allowed = false };
+};
+
+#define DECLARE_EVENT_TYPE(T) \
+    template<> struct EventTraits<T> { enum { Allowed = true }; }
+
+DECLARE_EVENT_TYPE(ConstructionCompleteData);
+DECLARE_EVENT_TYPE(BuildingPlacedData);
+DECLARE_EVENT_TYPE(FlagPlacedData);
+DECLARE_EVENT_TYPE(RoadBuiltData);
+DECLARE_EVENT_TYPE(ResourceDeliveredData);
+DECLARE_EVENT_TYPE(BuildingProductionData);
+DECLARE_EVENT_TYPE(WorkerArrivedData);
+DECLARE_EVENT_TYPE(WarehouseTransferData);
+
 // Union large enough to hold any event data struct by value.
 // Post() copies into this union so the caller's data can be stack-local.
 union EventData {
@@ -127,6 +147,7 @@ public:
     template<typename T>
     void Post(EventType type, const T& data)
     {
+        EVENT_STATIC_ASSERT(EventTraits<T>::Allowed, Type_not_registered_as_event);
         if (m_frameEventCount >= MAX_FRAME_EVENTS) return;
         FrameEvent& ev = m_frameEvents[m_frameEventCount];
         ev.type = type;
