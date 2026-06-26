@@ -295,6 +295,8 @@
     <ClInclude Include="Logic\MapConstants.h" />
     <ClInclude Include="Logic\ResourceRegistry.h" />
     <ClInclude Include="Logic\WeightMap.h" />
+    <ClInclude Include="Scene\ConstructionVisualizer.h" />
+    <ClInclude Include="Scene\PlacementController.h" />
     <ClInclude Include="Scene\EditorScene.h" />
     <ClInclude Include="Scene\GameScene.h" />
     <ClInclude Include="Scene\LoadingScene.h" />
@@ -452,6 +454,8 @@
     <ClCompile Include="Logic\IsoGrid.cpp" />
     <ClCompile Include="Logic\WeightMap.cpp" />
     <ClCompile Include="Scene\BuildingPlacement.cpp" />
+    <ClCompile Include="Scene\ConstructionVisualizer.cpp" />
+    <ClCompile Include="Scene\PlacementController.cpp" />
     <ClCompile Include="Scene\EditorScene.cpp" />
     <ClCompile Include="Scene\GameScene.cpp" />
     <ClCompile Include="Scene\LoadingScene.cpp" />

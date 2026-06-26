@@ -39,6 +39,8 @@ namespace World {
         void SetRoadManager(RoadManager* rm) { m_roadManager = rm; }
         void SetWarehouseFlag(Flag* f) { m_warehouseFlag = f; }
         void SetDemandManager(DemandManager* dm) { m_demandManager = dm; }
+        FlagManager* GetFlagManager() const { return m_flagManager; }
+        RoadManager* GetRoadManager() const { return m_roadManager; }
         Flag* GetWarehouseFlag() const { return m_warehouseFlag; }
 
         ConstructionSite* GetSiteAt(int x, int y) const;

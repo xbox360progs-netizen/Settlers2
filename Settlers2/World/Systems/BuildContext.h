@@ -6,6 +6,9 @@ class FlagManager;
 class RoadManager;
 class DemandManager;
 class CargoManager;
+class CarrierManager;
+class ObjectLifecycleManager;
+class Map;
 class Flag;
 
 // BuildContext bundles all world managers that ConstructionSystem needs.
@@ -16,6 +19,8 @@ struct BuildContext {
     RoadManager* const roads;
     DemandManager* const demand;
     CargoManager* const cargo;
+    CarrierManager* const carriers;
+    Map* const map;
     Flag* const warehouse;
 
     BuildContext()
@@ -23,15 +28,20 @@ struct BuildContext {
         , roads(NULL)
         , demand(NULL)
         , cargo(NULL)
+        , carriers(NULL)
+        , map(NULL)
         , warehouse(NULL)
     {
     }
 
-    BuildContext(FlagManager* f, RoadManager* r, DemandManager* d, CargoManager* c, Flag* w)
+    BuildContext(FlagManager* f, RoadManager* r, DemandManager* d, CargoManager* c,
+                 CarrierManager* cr, Map* mp, Flag* w)
         : flags(f)
         , roads(r)
         , demand(d)
         , cargo(c)
+        , carriers(cr)
+        , map(mp)
         , warehouse(w)
     {
     }

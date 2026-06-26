@@ -12,6 +12,11 @@ enum EventType {
     Event_BuildingProduction,
     Event_WorkerArrived,
     Event_WarehouseTransfer,
+    Event_RemoveConstructionSite,
+    Event_DeleteFlag,
+    Event_DeleteBuilding,
+    Event_FlagTopologyChanged,
+    Event_PlaceFlag,
     Event_MAX
 };
 
@@ -30,6 +35,8 @@ struct BuildingPlacedData {
 struct FlagPlacedData {
     uint32_t flagId;
     int posX, posY;
+    int buildingType;     // Building_None for free flags
+    int buildX, buildY;   // construction site position (meaningful when buildingType != Building_None)
 };
 
 struct RoadBuiltData {
@@ -60,6 +67,26 @@ struct WarehouseTransferData {
     uint32_t dstFlagId;
     int resourceType;
     int amount;
+};
+
+struct RemoveConstructionSiteData {
+    unsigned int siteId;
+};
+
+struct DeleteFlagData {
+    uint32_t flagId;
+};
+
+struct DeleteBuildingData {
+    uint32_t flagId; // flag whose building should be deleted
+};
+
+struct PlaceFlagData {
+    int tileX, tileY;
+    int buildingType; // World::BuildingType, or Building_None for free flag
+    bool isFreeFlag;  // true = no pending building, false = has pendingBuilding
+    int buildX, buildY; // construction site position (meaningful when !isFreeFlag)
+    bool autoConnectRoad;
 };
 
 class EventListener {
@@ -95,6 +122,10 @@ DECLARE_EVENT_TYPE(ResourceDeliveredData);
 DECLARE_EVENT_TYPE(BuildingProductionData);
 DECLARE_EVENT_TYPE(WorkerArrivedData);
 DECLARE_EVENT_TYPE(WarehouseTransferData);
+DECLARE_EVENT_TYPE(RemoveConstructionSiteData);
+DECLARE_EVENT_TYPE(DeleteFlagData);
+DECLARE_EVENT_TYPE(DeleteBuildingData);
+DECLARE_EVENT_TYPE(PlaceFlagData);
 
 // Union large enough to hold any event data struct by value.
 // Post() copies into this union so the caller's data can be stack-local.
@@ -107,6 +138,10 @@ union EventData {
     BuildingProductionData buildingProduction;
     WorkerArrivedData workerArrived;
     WarehouseTransferData warehouseTransfer;
+    RemoveConstructionSiteData removeConstructionSite;
+    DeleteFlagData deleteFlag;
+    DeleteBuildingData deleteBuilding;
+    PlaceFlagData placeFlag;
 };
 
 // Compile-time checks: every event data struct must fit inside EventData.
@@ -121,6 +156,10 @@ EVENT_STATIC_ASSERT(sizeof(ResourceDeliveredData) <= sizeof(EventData), Resource
 EVENT_STATIC_ASSERT(sizeof(BuildingProductionData) <= sizeof(EventData), BuildingProductionData_fits);
 EVENT_STATIC_ASSERT(sizeof(WorkerArrivedData) <= sizeof(EventData), WorkerArrivedData_fits);
 EVENT_STATIC_ASSERT(sizeof(WarehouseTransferData) <= sizeof(EventData), WarehouseTransferData_fits);
+EVENT_STATIC_ASSERT(sizeof(RemoveConstructionSiteData) <= sizeof(EventData), RemoveConstructionSiteData_fits);
+EVENT_STATIC_ASSERT(sizeof(DeleteFlagData) <= sizeof(EventData), DeleteFlagData_fits);
+EVENT_STATIC_ASSERT(sizeof(DeleteBuildingData) <= sizeof(EventData), DeleteBuildingData_fits);
+EVENT_STATIC_ASSERT(sizeof(PlaceFlagData) <= sizeof(EventData), PlaceFlagData_fits);
 
 // Calculate the value that sizeof(EventData) has at compile time
 enum { EVENT_DATA_SIZE = sizeof(EventData) };

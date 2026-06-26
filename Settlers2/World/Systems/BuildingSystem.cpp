@@ -3,7 +3,7 @@
 #include "../Map.h"
 #include "../FlagManager.h"
 #include "../Flag.h"
-#include "../Components/BuildingFactory.h"
+#include "../Components/BuildingFactory.h" // provides World::CreateBuilding()
 #include "../TileLayer.h"
 #include "../../Core/EventBus.h"
 
@@ -51,7 +51,7 @@ void BuildingSystem::UnregisterBuilding(Building* building)
 
 Building* BuildingSystem::CreateBuilding(BuildingType type, int posX, int posY, Flag* flag)
 {
-    Building* building = BuildingFactory::Create(type, posX, posY, 0);
+    Building* building = World::CreateBuilding(type, posX, posY, 0, m_map);
     if (!building) return NULL;
 
     building->connectedFlag = flag;

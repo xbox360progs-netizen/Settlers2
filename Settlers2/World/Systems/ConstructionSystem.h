@@ -5,6 +5,8 @@
 #include "../../Core/EventBus.h"
 
 namespace Logic { class EconomyManager; }
+class CarrierManager;
+class Map;
 
 namespace World {
 
@@ -39,9 +41,16 @@ public:
     virtual void OnEvent(Core::EventType type, void* data);
 
 private:
+    void HandlePlaceFlag(const Core::PlaceFlagData& cmd);
+    void SplitRoadAtFlag(Flag* flag);
+    void LinkFlagToRoadNetwork(Flag* flag);
+    void SyncCarriersForFlag(Flag* flag);
+
     ConstructionManager m_manager;
     ConstructionFactory m_factory;
     Core::EventBus* m_eventBus;
+    CarrierManager* m_carriers;
+    Map* m_map;
     bool m_initialized;
 
     // Use stable site IDs for double-fire guard (safe across delete/reuse)

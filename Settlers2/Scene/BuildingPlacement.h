@@ -5,13 +5,14 @@
 #include <string>
 #include <vector>
 
+struct SpriteRegion;
+
 namespace World {
     class Map;
     class FlagManager;
     class RoadManager;
     class CarrierManager;
     class DemandManager;
-    struct SpriteRegion;
 }
 
 namespace Logic {

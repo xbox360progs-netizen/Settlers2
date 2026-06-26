@@ -1,6 +1,8 @@
 #include "stdafx.h"
 #include "GameScene.h"
+#include "../Core/JobManager.h"
 #include "BuildingPlacement.h"
+#include "ConstructionVisualizer.h"
 #include "../Graphics/RenderQueue.h"
 #include "../Graphics/RenderCommandBuilder.h"
 #include "../Graphics/Renderer.h"
@@ -21,25 +23,11 @@
 
 namespace Scene {
 
-    // Construction sprite UV fix — pixel rect (1022,1883,196,139) in 2048x2048 atlas
-    const float GameScene::CONSTRUCTION_U0 = 0.199f;
-    const float GameScene::CONSTRUCTION_V0 = 0.239f;
-    const float GameScene::CONSTRUCTION_U1 = 0.295f;
-    const float GameScene::CONSTRUCTION_V1 = 0.307f;
-    const uint32_t GameScene::CONSTRUCTION_ATLAS_W = 2048;
-    const uint32_t GameScene::CONSTRUCTION_ATLAS_H = 2048;
-    const uint32_t GameScene::CONSTRUCTION_PIXEL_X = 1022;
-    const uint32_t GameScene::CONSTRUCTION_PIXEL_Y = 1883;
-    const uint32_t GameScene::CONSTRUCTION_PIXEL_W = 196;
-    const uint32_t GameScene::CONSTRUCTION_PIXEL_H = 139;
-
-    static void AIChunkJobFunc(void* data);
     static void AdjustEntranceForParity(bool buildingEvenY, int& entranceX, int entranceY);
     static void AdjustEntranceForParity(bool buildingEvenY, int& entranceX, int entranceY);
 
     GameScene::GameScene()
         : Scene("Game")
-        , m_jobManager(NULL)
         , m_eventBus(NULL)
         , m_transportJobManager(NULL)
         , m_map(NULL)
@@ -73,28 +61,21 @@ namespace Scene {
         , m_gamepadCursorCooldown(0.0f)
         , m_gamepadActive(false)
         , m_popupCount(0)
-        , m_buildState(BUILDSTATE_NONE)
-        , m_selectedBuilding(World::Building_None)
-        , m_placementIconIdx(-1)
-        , m_placementConstrIdx(-1)
         , m_placementManager(NULL)
         , m_storehouseManager(NULL)
         , m_flagManager(NULL)
         , m_roadManager(NULL)
         , m_constructionManager(NULL)
+        , m_constructionVisualizer(NULL)
         , m_objectLifecycleManager(NULL)
         , m_workerManager(NULL)
-        , m_roadStartX(-1)
-        , m_roadStartY(-1)
+
         , m_textManager(NULL)
         , m_statusText("")
         , m_statusTextTimer(0.0f)
         , m_townHallPanelBgIdx(-1)
         , m_townHallPanelU0(0.0f), m_townHallPanelV0(0.0f), m_townHallPanelU1(0.0f), m_townHallPanelV1(0.0f)
         , m_townHallPanelW(0.0f), m_townHallPanelH(0.0f)
-        , m_confirmAction(CONFIRM_NONE)
-        , m_confirmTargetX(-1)
-        , m_confirmTargetY(-1)
         , m_resourceHudLoaded(false)
         , m_frameCount(0)
         , m_groundWoodIconIdx(-1)
@@ -134,6 +115,10 @@ namespace Scene {
             delete m_constructionManager;
             m_constructionManager = NULL;
         }
+        if (m_constructionVisualizer) {
+            delete m_constructionVisualizer;
+            m_constructionVisualizer = NULL;
+        }
         if (m_buildMenu) {
             delete m_buildMenu;
             m_buildMenu = NULL;
@@ -165,12 +150,6 @@ namespace Scene {
         OutputDebugStringA("[GameScene::Initialize] START\n");
         (void)device;
         (void)spriteRenderer;
-        
-        OutputDebugStringA("[GameScene::Initialize] Creating JobManager\n");
-        m_jobManager = new JobManager();
-        int processors[] = { 1, 2 };
-        m_jobManager->Initialize(2, processors);
-        OutputDebugStringA("[GameScene::Initialize] JobManager initialized\n");
 
         // NOTE: Do NOT create a new Renderer here - it will conflict with the main game renderer
         // The renderer should be set via SetRenderer() method or passed from caller
@@ -186,15 +165,6 @@ namespace Scene {
     {
         OutputDebugStringA("[GameScene::Load] START\n");
         
-        // Create job manager first (already created in Initialize, but just in case)
-        OutputDebugStringA("[GameScene::Load] Creating JobManager if needed\n");
-        if (!m_jobManager) {
-            m_jobManager = new JobManager();
-            int processors[] = { 1, 2 };
-            m_jobManager->Initialize(2, processors);
-        }
-        OutputDebugStringA("[GameScene::Load] JobManager ready\n");
-
         // Load or create map
         OutputDebugStringA("[GameScene::Load] Loading or creating Map\n");
 
@@ -303,6 +273,10 @@ namespace Scene {
             OutputDebugStringA("[GameScene::Load] No save file found, creating default map\n");
         }
         OutputDebugStringA("[GameScene::Load] Map ready\n");
+
+        // Create ConstructionVisualizer (tile-level construction visualisation)
+        m_constructionVisualizer = new ConstructionVisualizer(m_map);
+        OutputDebugStringA("[GameScene::Load] ConstructionVisualizer ready\n");
 
         // Set up EventBus (foundation for decoupled communication)
         OutputDebugStringA("[GameScene::Load] Creating EventBus\n");
@@ -556,7 +530,7 @@ namespace Scene {
                 m_demandManager,
                 m_storehouseManager);
 
-            Flag* whFlag = NULL;
+            World::Flag* whFlag = NULL;
             if (m_economyManager && m_economyManager->GetWarehouse()) {
                 whFlag = m_economyManager->GetWarehouse()->connectedFlag;
             }
@@ -568,6 +542,16 @@ namespace Scene {
                 whFlag,
                 m_economyManager ? m_economyManager->GetWarehouse() : NULL,
                 m_eventBus);
+
+            // Set up JobManager for parallel AI planning
+            {
+                JobManager* jm = new JobManager();
+                int processors[] = { 1, 2 };
+                jm->Initialize(2, processors);
+                m_simulation.SetJobManager(jm);
+                m_simulation.SetAISystem(m_aiSystem);
+                OutputDebugStringA("[GameScene::Load] JobManager passed to SimulationSystem\n");
+            }
 
             // Wire up legacy EconomyManager pointers into SimulationSystem
             World::EconomySystem& ecoSys = m_simulation.GetEconomy();
@@ -587,13 +571,21 @@ namespace Scene {
         // Create lifecycle manager
         m_objectLifecycleManager = new World::ObjectLifecycleManager(
             m_flagManager, m_roadManager, m_carrierManager, m_cargoManager,
-            m_transportJobManager, m_constructionManager, m_economyManager);
+            m_transportJobManager, m_constructionManager, m_economyManager, m_map);
+        if (m_eventBus && m_objectLifecycleManager) {
+            m_eventBus->Register(Core::Event_DeleteFlag, m_objectLifecycleManager);
+            m_eventBus->Register(Core::Event_DeleteBuilding, m_objectLifecycleManager);
+        }
         OutputDebugStringA("[GameScene::Load] ObjectLifecycleManager ready\n");
 
         // Create building placement manager
         m_placementManager = new BuildingPlacementManager(
             m_map, m_flagManager, m_roadManager, m_carrierManager,
             m_economyManager, m_demandManager);
+        m_placement.SetPlacementManager(m_placementManager);
+        if (m_eventBus) {
+            m_eventBus->Register(Core::Event_FlagPlaced, this);
+        }
         OutputDebugStringA("[GameScene::Load] BuildingPlacementManager ready\n");
 
         // Initialize tile renderer
@@ -760,51 +752,8 @@ namespace Scene {
         }
 
         // ─── Fix construction sprite UV on existing tiles ────────────────
-        {
-            TextureRegistry& reg = TextureRegistry::instance();
-            reg.getTextureOrLoad("Buildings");
-            std::tr1::shared_ptr<SpriteAtlas> buildingsAtlas = reg.getAtlas("Buildings");
-            if (buildingsAtlas) {
-                uint32_t cIdx = buildingsAtlas->GetIndex("construction");
-                if (cIdx == 0xFFFFFFFF) cIdx = buildingsAtlas->GetIndex("Construction");
-                if (cIdx == 0xFFFFFFFF) cIdx = buildingsAtlas->GetIndex("ConstructionSite");
-                if (cIdx != 0xFFFFFFFF) {
-                    World::TileLayer* buildingsLayer = m_map->GetLayer(World::Buildings);
-                    if (buildingsLayer) {
-                        int fixed = 0;
-                        for (int y = 0; y < buildingsLayer->GetHeight(); ++y) {
-                            for (int x = 0; x < buildingsLayer->GetWidth(); ++x) {
-                                World::Tile& tile = buildingsLayer->GetTile(x, y);
-                                if (tile.atlasName != "Buildings" || tile.type == World::Tile_None) continue;
-                                bool isConstr = false;
-                                const SpriteRegion* rr = buildingsAtlas->GetRegion(static_cast<uint32_t>(tile.regionIndex));
-                                if (rr) {
-                                    const std::string& sn = rr->name;
-                                    isConstr = (sn.find("construction") != std::string::npos ||
-                                                sn.find("Construction") != std::string::npos);
-                                }
-                                if (isConstr ||
-                                    static_cast<uint32_t>(tile.regionIndex) == cIdx ||
-                                    (tile.u0 == 0.0f && tile.v0 == 0.0f && tile.u1 == 1.0f && tile.v1 == 1.0f))
-                                {
-                                    tile.u0 = CONSTRUCTION_U0;
-                                    tile.v0 = CONSTRUCTION_V0;
-                                    tile.u1 = CONSTRUCTION_U1;
-                                    tile.v1 = CONSTRUCTION_V1;
-                                    fixed++;
-                                }
-                            }
-                        }
-                        {
-                            char dbg[256];
-                            _snprintf(dbg, sizeof(dbg), "[GameScene] Fixed %d existing construction tile UVs\n", fixed);
-                            OutputDebugStringA(dbg);
-                        }
-                    }
-                } else {
-                    OutputDebugStringA("[GameScene] WARNING: construction sprite NOT FOUND in Buildings atlas\n");
-                }
-            }
+        if (m_constructionVisualizer) {
+            m_constructionVisualizer->FixConstructionTilesUV();
         }
 
         // Restore any buildings placed in the editor from the Buildings layer
@@ -1056,14 +1005,22 @@ void GameScene::Unload()
         m_demandManager = NULL;
     }
 
-    if (m_constructionManager) {
-        delete m_constructionManager;
-        m_constructionManager = NULL;
-    }
-
-    if (m_objectLifecycleManager) {
+        if (m_constructionManager) {
+            delete m_constructionManager;
+            m_constructionManager = NULL;
+        }
+        if (m_constructionVisualizer) {
+            delete m_constructionVisualizer;
+            m_constructionVisualizer = NULL;
+        }
+        if (m_objectLifecycleManager) {
+        if (m_eventBus) m_eventBus->UnregisterAll(m_objectLifecycleManager);
         delete m_objectLifecycleManager;
         m_objectLifecycleManager = NULL;
+    }
+
+    if (m_eventBus) {
+        m_eventBus->UnregisterAll(this);
     }
 
     if (m_flagManager) {
@@ -1134,11 +1091,6 @@ void GameScene::Unload()
         delete m_renderer;
         m_renderer = NULL;
     }
-    if (m_jobManager) {
-        m_jobManager->Shutdown();
-        delete m_jobManager;
-        m_jobManager = NULL;
-    }
     m_loaded = false;
 }
 
@@ -1152,11 +1104,42 @@ void GameScene::Update(float deltaTime)
 
     ++m_frameCount;
 
-    // ─── Camera movement and zoom (disabled during menu or town hall panel) ──
+    UpdateCamera(deltaTime);
+    UpdateCursor();
+    UpdateBanner(deltaTime);
+    UpdateStatusText(deltaTime);
+    HandleGamepadInput();
+    UpdateGamepadUI(deltaTime);
+    UpdateGeologist(deltaTime);
+    HandleInput();
+
+    // ─── Simulation ─────────────────────────────────────────────────
+    if (m_simulation.IsInitialized()) {
+        m_simulation.Update(deltaTime);
+
+        static int simLogCounter = 0;
+        if (++simLogCounter % 120 == 0) {
+            int carriers = m_carrierManager ? m_carrierManager->GetCarrierCount() : 0;
+            int flags = m_flagManager ? (int)m_flagManager->GetCount() : 0;
+            int sites = m_constructionManager ? (int)m_constructionManager->GetCount() : 0;
+            char dbg[256];
+            _snprintf(dbg, sizeof(dbg), "[Status] Carriers=%d Flags=%d ConstSites=%d\n",
+                carriers, flags, sites);
+            OutputDebugStringA(dbg);
+        }
+    }
+
+    UpdateWildlife(deltaTime);
+    CollectGroundResources();
+    CheckConstructionSites();
+}
+
+void GameScene::UpdateCamera(float dt)
+{
     if (!m_menuActive && !m_roadMenuActive && !m_flagMenuActive && !m_geologistMenuActive && !m_townHallPanelOpen && m_camera && m_inputManager) {
         Input::Gamepad* gamepad = m_inputManager->GetGamepad();
         if (gamepad) {
-            float moveSpeed = 2000.0f * deltaTime;
+            float moveSpeed = 2000.0f * dt;
             float stickX, stickY;
             gamepad->GetLeftStick(stickX, stickY);
             if (fabsf(stickX) > 0.1f || fabsf(stickY) > 0.1f) {
@@ -1165,72 +1148,43 @@ void GameScene::Update(float deltaTime)
             float rightX, rightY;
             gamepad->GetRightStick(rightX, rightY);
             if (fabsf(rightY) > 0.1f) {
-                m_camera->Zoom(rightY * 0.3f * deltaTime);
+                m_camera->Zoom(rightY * 0.3f * dt);
             }
         }
     }
     if (m_camera) {
-        m_camera->Update(deltaTime);
+        m_camera->Update(dt);
     }
+}
 
-    // ─── Cursor update ────────────────────────────────────────────────
-    UpdateCursor();
-    m_cursorOnTownHall = false;
-    // Check if cursor is on a warehouse building tile
-    if (m_map) {
-        World::TileLayer* buildingsLayer = m_map->GetLayer(World::Buildings);
-        if (buildingsLayer) {
-            int bx = m_cursorTileX;
-            int by = m_cursorTileY;
-            if (bx >= 0 && bx < buildingsLayer->GetWidth() && by >= 0 && by < buildingsLayer->GetHeight()) {
-                const World::Tile& tile = buildingsLayer->GetTile(bx, by);
-                if (tile.atlasName == "Buildings" && tile.regionIndex >= 0) {
-                    TextureRegistry& reg = TextureRegistry::instance();
-                    std::tr1::shared_ptr<SpriteAtlas> atlas = reg.getAtlas("Buildings");
-                    if (atlas) {
-                        const SpriteRegion* region = atlas->GetRegion(tile.regionIndex);
-                        if (region) {
-                            World::BuildingType type = GetBuildingTypeFromSpriteName(region->name);
-                            if (type == World::Storehouse) m_cursorOnTownHall = true;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    // Also check flag position (for entrance-flag hover)
-    // NOTE: not flag-based detection — A on flag opens road menu, not town hall panel
-
-    // Auto-update A* road preview when cursor moves during road building
-    if (m_buildState == BUILDSTATE_PLACE_ROAD) {
-        UpdateRoadPreview(m_cursorTileX, m_cursorTileY);
-    }
-
-    // ─── Update status text & banner animation ────────────────────────
-    // ─── Banner slide logic: show with text, animate for temporary ──
+void GameScene::UpdateBanner(float dt)
+{
     if (m_bannerLoaded) {
         if (m_statusText.empty()) {
-            m_bannerTargetX = 1280.0f; // slide out
+            m_bannerTargetX = 1280.0f;
         } else {
-            m_bannerTargetX = 1280.0f - m_bannerW; // slide in
+            m_bannerTargetX = 1280.0f - m_bannerW;
         }
         float speed = 1200.0f;
         if (m_bannerSlideX > m_bannerTargetX) {
-            m_bannerSlideX -= speed * deltaTime;
+            m_bannerSlideX -= speed * dt;
             if (m_bannerSlideX < m_bannerTargetX) m_bannerSlideX = m_bannerTargetX;
         } else if (m_bannerSlideX < m_bannerTargetX) {
-            m_bannerSlideX += speed * deltaTime;
+            m_bannerSlideX += speed * dt;
             if (m_bannerSlideX > m_bannerTargetX) m_bannerSlideX = m_bannerTargetX;
         }
     }
-    // ─── Update status text timer ───────────────────────────────────
+}
+
+void GameScene::UpdateStatusText(float dt)
+{
     if (m_statusTextTimer > 0.0f) {
-        m_statusTextTimer -= deltaTime;
+        m_statusTextTimer -= dt;
         if (m_statusTextTimer <= 0.0f) m_statusText = "";
     }
     if (m_statusText.empty() || m_statusTextTimer <= 0.0f) {
-        switch (m_buildState) {
-            case BUILDSTATE_NONE:
+        switch (m_placement.GetState()) {
+            case PLACESTATE_NONE:
                 if (m_menuActive) {
                     m_statusText = "BUILD MENU: select a building";
                 } else if (m_roadMenuActive || m_flagMenuActive || m_geologistMenuActive) {
@@ -1239,17 +1193,17 @@ void GameScene::Update(float deltaTime)
                     m_statusText = "";
                 }
                 break;
-            case BUILDSTATE_PLACE_FLAG:
+            case PLACESTATE_PLACE_FLAG:
                 m_statusText = "PLACE FLAG: A=place  B=cancel";
                 break;
-            case BUILDSTATE_PLACE_ROAD: {
-                if (!m_roadAutoPath.empty()) {
+            case PLACESTATE_PLACE_ROAD: {
+                if (!m_roadController.GetAutoPath().empty()) {
                     char rdbg[64] = "";
-                    _snprintf(rdbg, sizeof(rdbg), " (%d tiles)", (int)m_roadAutoPath.size());
+                    _snprintf(rdbg, sizeof(rdbg), " (%d tiles)", (int)m_roadController.GetAutoPath().size());
                     m_statusText = std::string("ROAD: auto-path to flag") + rdbg + "  A=confirm";
                 } else {
                     char rdbg[64] = "";
-                    int pathLen = (int)m_roadPreviewPath.size();
+                    int pathLen = (int)m_roadController.GetPreviewPath().size();
                     if (pathLen > 0) {
                         _snprintf(rdbg, sizeof(rdbg), " %d cells", pathLen);
                     }
@@ -1257,33 +1211,30 @@ void GameScene::Update(float deltaTime)
                 }
                 break;
             }
-            case BUILDSTATE_CONFIRM: {
+            case PLACESTATE_CONFIRM: {
                 char cdbg[128];
                 int flagsExact = (m_flagManager && m_flagManager->GetFlagAt(m_cursorTileX, m_cursorTileY)) ? 1 : 0;
                 _snprintf(cdbg, sizeof(cdbg), "@(%d,%d) target(%d,%d) exact=%d ",
-                    m_cursorTileX, m_cursorTileY, m_confirmTargetX, m_confirmTargetY, flagsExact);
+                    m_cursorTileX, m_cursorTileY, m_placement.GetConfirmTargetX(), m_placement.GetConfirmTargetY(), flagsExact);
                 std::string prefix(cdbg);
-                if (m_confirmAction == CONFIRM_PLACE_FLAG)
+                if (m_placement.GetConfirmAction() == PLACECONFIRM_PLACE_FLAG)
                     m_statusText = prefix + "Place a flag? A=Yes  B=No";
-                else if (m_confirmAction == CONFIRM_START_ROAD)
+                else if (m_placement.GetConfirmAction() == PLACECONFIRM_START_ROAD)
                     m_statusText = prefix + "Build road? A=Yes  B=No";
-                else if (m_confirmAction == CONFIRM_DELETE_FLAG)
+                else if (m_placement.GetConfirmAction() == PLACECONFIRM_DELETE_FLAG)
                     m_statusText = prefix + "Delete building and flag? A=Yes  B=No";
                 break;
             }
         }
     }
+}
 
-    // ─── Gamepad input & UI updates ───────────────────────────────
-    HandleGamepadInput();
-    UpdateGamepadUI(deltaTime);
-
-    // ─── Geologist timer ──────────────────────────────────────────
+void GameScene::UpdateGeologist(float dt)
+{
     if (m_geologistState == GEOLOGIST_WORKING) {
-        m_geologistTimer -= deltaTime;
+        m_geologistTimer -= dt;
         if (m_geologistTimer <= 0.0f) {
             m_geologistTimer = 0.0f;
-            // Survey complete — mark resource node and show result in banner
             if (m_map && m_geologistTileX >= 0 && m_geologistTileY >= 0) {
                 World::ResourceNode& node = m_map->GetResourceNode(m_geologistTileX, m_geologistTileY);
                 node.surveyed = true;
@@ -1309,482 +1260,335 @@ void GameScene::Update(float deltaTime)
             }
             m_geologistState = GEOLOGIST_NONE;
         } else {
-            // Update status text with remaining time
             char buf[48];
             _snprintf(buf, sizeof(buf), "Geologist working... %.0f sec", m_geologistTimer);
             m_statusText = buf;
             m_statusTextTimer = 0.0f;
         }
     }
+}
 
-    // ─── Input handling ──────────────────────────────────────────────
-    if (m_inputManager) {
-        Input::Gamepad* pad = m_inputManager->GetGamepad();
-        if (pad) {
-            bool rbPressed = pad->IsButtonPressed(Input::GP_RB);
-            bool bPressed = pad->IsButtonPressed(Input::GP_B);
-            bool aPressed = pad->IsButtonPressed(Input::GP_A);
-            bool yPressed = pad->IsButtonPressed(Input::GP_Y);
+void GameScene::HandleInput()
+{
+    if (!m_inputManager) return;
+    Input::Gamepad* pad = m_inputManager->GetGamepad();
+    if (!pad) return;
 
-            // Back button toggles logistics debug overlay
-            if (pad->IsButtonPressed(Input::GP_Back)) {
-                m_logisticsDebug = !m_logisticsDebug;
-                char dbg[64];
-                _snprintf(dbg, sizeof(dbg), "[GameScene] Logistics debug %s\n", m_logisticsDebug ? "ON" : "OFF");
-                OutputDebugStringA(dbg);
-                m_statusText = m_logisticsDebug ? "LOGISTICS DEBUG ON" : "LOGISTICS DEBUG OFF";
-                m_statusTextTimer = 2.0f;
+    bool rbPressed = pad->IsButtonPressed(Input::GP_RB);
+    bool bPressed = pad->IsButtonPressed(Input::GP_B);
+    bool aPressed = pad->IsButtonPressed(Input::GP_A);
+    bool yPressed = pad->IsButtonPressed(Input::GP_Y);
+
+    if (pad->IsButtonPressed(Input::GP_Back)) {
+        m_logisticsDebug = !m_logisticsDebug;
+        char dbg[64];
+        _snprintf(dbg, sizeof(dbg), "[GameScene] Logistics debug %s\n", m_logisticsDebug ? "ON" : "OFF");
+        OutputDebugStringA(dbg);
+        m_statusText = m_logisticsDebug ? "LOGISTICS DEBUG ON" : "LOGISTICS DEBUG OFF";
+        m_statusTextTimer = 2.0f;
+    }
+
+    if (m_placement.GetState() == PLACESTATE_PLACE_FLAG) {
+        if (aPressed) {
+            HandlePlaceAtCursor();
+        } else if (bPressed) {
+            m_placement.Cancel();
+            m_statusText = "Placement cancelled";
+            m_statusTextTimer = 2.0f;
+            OutputDebugStringA("[GameScene] Flag placement cancelled\n");
+        }
+    } else if (m_placement.GetState() == PLACESTATE_PLACE_ROAD) {
+        if (aPressed) {
+            m_roadController.TryAddTile(m_cursorTileX, m_cursorTileY);
+            if (m_roadController.GetStatusText()) { m_statusText = m_roadController.GetStatusText(); m_statusTextTimer = m_roadController.GetStatusTimer(); m_roadController.ClearStatus(); }
+        } else if (bPressed) {
+            m_statusText = "Road cancelled";
+            m_statusTextTimer = 2.0f;
+            m_roadController.Cancel();
+            OutputDebugStringA("[GameScene] Road cancelled\n");
+        }
+    } else if (m_placement.GetState() == PLACESTATE_CONFIRM) {
+        if (aPressed) {
+            if (m_placement.GetConfirmAction() == PLACECONFIRM_PLACE_FLAG) {
+                HandleConfirmFreeFlag();
+            } else if (m_placement.GetConfirmAction() == PLACECONFIRM_START_ROAD) {
+                m_roadController.Start(m_placement.GetConfirmTargetX(), m_placement.GetConfirmTargetY());
+                if (m_roadController.GetStatusText()) { m_statusText = m_roadController.GetStatusText(); m_statusTextTimer = m_roadController.GetStatusTimer(); m_roadController.ClearStatus(); }
+            } else if (m_placement.GetConfirmAction() == PLACECONFIRM_DELETE_FLAG) {
+                ConfirmDeleteFlag(m_placement.GetConfirmTargetX(), m_placement.GetConfirmTargetY());
+                m_placement.CancelConfirm();
+            }
+        } else if (bPressed) {
+            m_statusText = "Cancelled";
+            m_statusTextTimer = 2.0f;
+            m_placement.CancelConfirm();
+        }
+    } else if (m_menuActive) {
+        if (m_buildMenu) {
+            m_buildMenu->Update(pad, 1.0f / 60.0f);
+
+            if (bPressed) {
+                m_menuActive = false;
+                m_buildMenu->Hide();
             }
 
-            if (m_buildState == BUILDSTATE_PLACE_FLAG) {
-                // Flag placement mode: A to place flag with pending building, B to cancel
-                if (aPressed) {
-                    PlaceFlag(m_cursorTileX, m_cursorTileY);
-                } else if (bPressed) {
-                    m_buildState = BUILDSTATE_NONE;
-                    m_placementIconIdx = -1;
-                    m_placementConstrIdx = -1;
-                    m_selectedBuilding = World::Building_None;
-                    m_statusText = "Placement cancelled";
-                    m_statusTextTimer = 2.0f;
-                    OutputDebugStringA("[GameScene] Flag placement cancelled\n");
-                }
-        } else if (m_buildState == BUILDSTATE_PLACE_ROAD) {
-                // Road building mode (tile-by-tile): A to add tile, B to cancel
-                if (aPressed) {
-                    TryAddRoadTile(m_cursorTileX, m_cursorTileY);
-                } else if (bPressed) {
-                    m_statusText = "Road cancelled";
-                    m_statusTextTimer = 2.0f;
-                    CancelRoad();
-                    OutputDebugStringA("[GameScene] Road cancelled\n");
-                }
-                } else if (m_buildState == BUILDSTATE_CONFIRM) {
-                // Confirm action: A to confirm, B to cancel
-                if (aPressed) {
-                    if (m_confirmAction == CONFIRM_PLACE_FLAG) {
-                        PlaceFreeFlag(m_confirmTargetX, m_confirmTargetY);
-                        m_statusText = "Flag placed!";
-                        m_statusTextTimer = 2.0f;
-                        m_buildState = BUILDSTATE_NONE;
-                        OutputDebugStringA("[GameScene] Confirm: free flag placed\n");
-                    } else if (m_confirmAction == CONFIRM_START_ROAD) {
-                        StartRoad(m_confirmTargetX, m_confirmTargetY);
-                        // StartRoad sets BUILDSTATE_PLACE_ROAD — don't reset
-                        OutputDebugStringA("[GameScene] Confirm: starting road\n");
-                    } else if (m_confirmAction == CONFIRM_DELETE_FLAG) {
-                        OutputDebugStringA("[GameScene] Confirm: deleting flag\n");
-                        ConfirmDeleteFlag(m_confirmTargetX, m_confirmTargetY);
-                        m_confirmAction = CONFIRM_NONE;
-                        m_buildState = BUILDSTATE_NONE;
-                    }
-                    m_confirmAction = CONFIRM_NONE;
-                } else if (bPressed) {
-                    m_statusText = "Cancelled";
-                    m_statusTextTimer = 2.0f;
-                    m_buildState = BUILDSTATE_NONE;
-                    m_confirmAction = CONFIRM_NONE;
-                    OutputDebugStringA("[GameScene] Confirm cancelled\n");
-                }
-            } else if (m_menuActive) {
-                // Build menu is open
-                if (m_buildMenu) {
-                    m_buildMenu->Update(pad, deltaTime);
-
-                    if (bPressed) {
-                        m_menuActive = false;
-                        m_buildMenu->Hide();
-                        OutputDebugStringA("[GameScene] Build menu closed\n");
-                    }
-
-                    if (m_buildMenu->HasSelection()) {
-                        int selIdx = m_buildMenu->GetSelectedSpriteIndex();
-                        if (selIdx >= 0) {
-                            std::tr1::shared_ptr<SpriteAtlas> iconAtlas = TextureRegistry::instance().getAtlas("Icon");
-                            if (iconAtlas) {
-                                const SpriteRegion* reg = iconAtlas->GetRegion(selIdx);
-                                if (reg) {
-                                    m_selectedIconName = reg->name;
-                                    m_placementIconIdx = selIdx;
-                                    // Extract building name from icon name
-                                    std::string buildingName = reg->name;
-                                    if (buildingName.compare(0, 3, "ib_") == 0) {
-                                        buildingName = buildingName.substr(3);
-                                    }
-                                    // Map icon name to BuildingType (case-insensitive)
-                                    World::BuildingType bt = World::Building_None;
-                                    std::string lowerName = buildingName;
-                                    for (size_t ci = 0; ci < lowerName.size(); ++ci)
-                                        if (lowerName[ci] >= 'A' && lowerName[ci] <= 'Z')
-                                            lowerName[ci] = lowerName[ci] - 'A' + 'a';
-                                    if (lowerName == "woodcutter") bt = World::Woodcutter;
-                                    else if (lowerName == "forester") bt = World::Forester;
-                                    else if (lowerName == "sawmill") bt = World::Sawmill;
-                                    else if (lowerName == "stonemason") bt = World::Stonemason;
-                                    else if (lowerName == "coalmine") bt = World::CoalMine;
-                                    else if (lowerName == "ironmine") bt = World::IronMine;
-                                    else if (lowerName == "goldmine") bt = World::GoldMine;
-                                    else if (lowerName == "ironsmelter") bt = World::IronSmelter;
-                                    else if (lowerName == "goldsmelter") bt = World::GoldSmelter;
-                                    else if (lowerName == "farm") bt = World::Farm;
-                                    else if (lowerName == "mill") bt = World::Mill;
-                                    else if (lowerName == "bakery") bt = World::Bakery;
-                                    else if (lowerName == "fisher") bt = World::Fisher;
-                                    else if (lowerName == "hunter") bt = World::Hunter;
-                                    else if (lowerName == "toolworkshop") bt = World::ToolWorkshop;
-                                    else if (lowerName == "warehouse" || lowerName == "storehouse") bt = World::Storehouse;
-                                    else if (lowerName == "residence") bt = World::Residence;
-                                    else if (lowerName == "stronghold") bt = World::Stronghold;
-                                    else if (lowerName == "well") bt = World::Well;
-                                    else if (lowerName == "bronzemine") bt = World::BronzeMine;
-                                    else if (lowerName == "bronzesmelter") bt = World::BronzeSmelter;
-                                    else if (lowerName == "toolmaker") bt = World::ToolWorkshop;
-                                    m_selectedBuilding = bt;
-
-                                    // Force-load Buildings atlas for construction sprite lookup
-                                    TextureRegistry& tr = TextureRegistry::instance();
-                                    tr.getTextureOrLoad("Buildings");
-                                    std::tr1::shared_ptr<SpriteAtlas> buildingsAtlas = tr.getAtlas("Buildings");
-                                    if (buildingsAtlas) {
-                                        uint32_t cIdx = buildingsAtlas->GetIndex("construction");
-                                        if (cIdx == 0xFFFFFFFF) cIdx = buildingsAtlas->GetIndex("Construction");
-                                        if (cIdx == 0xFFFFFFFF) cIdx = buildingsAtlas->GetIndex("ConstructionSite");
-                                        if (cIdx != 0xFFFFFFFF) {
-                                            m_placementConstrIdx = (int)cIdx;
-                                        } else {
-                                            m_placementConstrIdx = -1;
-                                            OutputDebugStringA("[GameScene] WARNING: 'construction' not found in Buildings atlas, using -1\n");
-                                        }
-                                    }
-                                    // Enter flag-placement mode
-                                    m_buildState = BUILDSTATE_PLACE_FLAG;
-                                    OutputDebugStringA("[GameScene] Entered flag-placement mode\n");
-                                }
+            if (m_buildMenu->HasSelection()) {
+                int selIdx = m_buildMenu->GetSelectedSpriteIndex();
+                if (selIdx >= 0) {
+                    std::tr1::shared_ptr<SpriteAtlas> iconAtlas = TextureRegistry::instance().getAtlas("Icon");
+                    if (iconAtlas) {
+                        const SpriteRegion* reg = iconAtlas->GetRegion(selIdx);
+                        if (reg) {
+                            std::string iconName = reg->name;
+                            int constrIdx = -1;
+                            TextureRegistry& tr = TextureRegistry::instance();
+                            tr.getTextureOrLoad("Buildings");
+                            std::tr1::shared_ptr<SpriteAtlas> buildingsAtlas = tr.getAtlas("Buildings");
+                            if (buildingsAtlas) {
+                                uint32_t cIdx = buildingsAtlas->GetIndex("construction");
+                                if (cIdx == 0xFFFFFFFF) cIdx = buildingsAtlas->GetIndex("Construction");
+                                if (cIdx == 0xFFFFFFFF) cIdx = buildingsAtlas->GetIndex("ConstructionSite");
+                                if (cIdx != 0xFFFFFFFF) constrIdx = (int)cIdx;
+                            }
+                            World::BuildingType bt = GetBuildingTypeFromSpriteName(iconName);
+                            if (bt != World::Building_None) {
+                                m_placement.EnterBuildMode(bt, selIdx, constrIdx, iconName);
                             }
                         }
-                        m_menuActive = false;
-                        m_buildMenu->Hide();
-                        m_buildMenu->ResetSelection();
                     }
                 }
-            } else if (m_flagMenuActive) {
-                // Flag/UIMenu is open
-                if (m_flagMenu) {
-                    m_flagMenu->Update(pad, deltaTime);
+                m_menuActive = false;
+                m_buildMenu->Hide();
+                m_buildMenu->ResetSelection();
+            }
+        }
+    } else if (m_flagMenuActive) {
+        if (m_flagMenu) {
+            m_flagMenu->Update(pad, 1.0f / 60.0f);
 
-                    if (bPressed || !m_flagMenu->IsVisible()) {
-                        m_flagMenuActive = false;
-                        m_flagMenu->Hide();
-                        OutputDebugStringA("[GameScene] Flag menu closed\n");
-                    }
+            if (bPressed || !m_flagMenu->IsVisible()) {
+                m_flagMenuActive = false;
+                m_flagMenu->Hide();
+            }
 
-                    if (m_flagMenu->HasSelection()) {
-                        int selIdx = m_flagMenu->GetSelectedIndex();
-                        if (selIdx >= 0 && selIdx < m_flagMenuItemCount) {
-                            if (selIdx == 0) {
-                                // Set Flag
-                                PlaceFreeFlag(m_cursorTileX, m_cursorTileY);
-                                m_statusText = "Flag placed!";
-                                m_statusTextTimer = 2.0f;
-                            } else if (selIdx == 1) {
-                                // Delete Flag
-                                OutputDebugStringA("[FlagMenu] Deleting flag...\n");
-                                if (m_flagManager) {
-                                    World::Flag* f = m_flagManager->GetFlagAt(m_confirmTargetX, m_confirmTargetY);
-                                    if (!f) {
-                                        // Search nearby for nearest flag
-                                        int nearestDist = 999;
-                                        for (int dy = -1; dy <= 1; ++dy) {
-                                            for (int dx = -1; dx <= 1; ++dx) {
-                                                World::Flag* tf = m_flagManager->GetFlagAt(m_confirmTargetX + dx, m_confirmTargetY + dy);
-                                                if (tf) { f = tf; break; }
-                                            }
-                                            if (f) break;
-                                        }
+            if (m_flagMenu->HasSelection()) {
+                int selIdx = m_flagMenu->GetSelectedIndex();
+                if (selIdx >= 0 && selIdx < m_flagMenuItemCount) {
+                    if (selIdx == 0) {
+                        HandleConfirmFreeFlag();
+                    } else if (selIdx == 1) {
+                        if (m_flagManager) {
+                            World::Flag* f = m_flagManager->GetFlagAt(m_cursorTileX, m_cursorTileY);
+                            if (!f) {
+                                for (int dy = -1; dy <= 1; ++dy) {
+                                    for (int dx = -1; dx <= 1; ++dx) {
+                                        World::Flag* tf = m_flagManager->GetFlagAt(m_cursorTileX + dx, m_cursorTileY + dy);
+                                        if (tf) { f = tf; break; }
                                     }
-                                    if (f) {
-                                        if (f->type == World::FLAG_WAREHOUSE) {
-                                            m_statusText = "Cannot delete town hall flag!";
-                                            m_statusTextTimer = 2.0f;
-                                        } else if (f->building || f->pendingBuilding != World::Building_None) {
-                                            m_confirmAction = CONFIRM_DELETE_FLAG;
-                                            m_confirmTargetX = f->pos.x;
-                                            m_confirmTargetY = f->pos.y;
-                                            m_buildState = BUILDSTATE_CONFIRM;
-                                            m_statusText = "Delete building and flag? A=Yes B=No";
-                                            m_statusTextTimer = 3.0f;
-                                        } else {
-                                            ClearRoadTilesForFlag(f);
-                                            m_objectLifecycleManager->ForceDeleteFlag(f);
-                                            m_statusText = "Flag removed!";
-                                            m_statusTextTimer = 2.0f;
-                                        }
-                                    } else {
-                                        m_statusText = "No flag found nearby";
-                                        m_statusTextTimer = 2.0f;
-                                    }
+                                    if (f) break;
                                 }
-                            } else if (selIdx == 2) {
-                                // Build Road → start road building from nearest flag or new flag
-                                m_flagMenuActive = false;
-                                m_flagMenu->Hide();
-                                if (m_flagManager && !m_flagManager->GetFlagAt(m_confirmTargetX, m_confirmTargetY)) {
-                                    PlaceFreeFlag(m_confirmTargetX, m_confirmTargetY);
-                                }
-                                StartRoad(m_confirmTargetX, m_confirmTargetY);
-                                OutputDebugStringA("[GameScene] Flag menu: Build Road\n");
                             }
-                        }
-                        m_flagMenuActive = false;
-                        m_flagMenu->Hide();
-                        m_flagMenu->ResetSelection();
-                    }
-                }
-            } else if (m_townHallPanelOpen) {
-                // Town hall resource panel is open → B to close
-                if (bPressed) {
-                    m_townHallPanelOpen = false;
-                    m_statusText = "";
-                    m_statusTextTimer = 0.0f;
-                }
-            } else {
-                // Normal mode: A to open town hall or road menu, RB to open build menu
-                if (bPressed && m_geologistState == GEOLOGIST_CONFIRM) {
-                    CancelGeologistMenu();
-                }
-                if (aPressed) {
-                    // Geologist confirm menu on mountain takes priority
-                    bool handled = false;
-                    if (m_map) {
-                        const World::Tile& objTile = m_map->GetTile(World::Objects, m_cursorTileX, m_cursorTileY);
-                        if (objTile.type == World::Mountain || objTile.type == World::MountainOnWater || objTile.type == World::Rock) {
-                            if (m_geologistState == GEOLOGIST_CONFIRM) {
-                                StartGeologistSurvey();
-                            } else if (m_geologistState == GEOLOGIST_NONE) {
-                                // Check if already surveyed
-                                const World::ResourceNode& node = m_map->GetResourceNode(m_cursorTileX, m_cursorTileY);
-                                if (!node.surveyed) {
-                                    ShowGeologistConfirm(m_cursorTileX, m_cursorTileY);
+                            if (f) {
+                                if (f->type == World::FLAG_WAREHOUSE) {
+                                    m_statusText = "Cannot delete town hall flag!";
+                                    m_statusTextTimer = 2.0f;
+                                } else if (f->building || f->pendingBuilding != World::Building_None) {
+                                    m_placement.SetConfirm(PLACECONFIRM_DELETE_FLAG, f->pos.x, f->pos.y);
+                                    m_statusText = "Delete building and flag? A=Yes B=No";
+                                    m_statusTextTimer = 3.0f;
                                 } else {
-                                    m_statusText = "This mountain is already surveyed";
+                                    ClearRoadTilesForFlag(f);
+                                    if (m_eventBus) {
+                                        Core::DeleteFlagData dfd;
+                                        dfd.flagId = f->id;
+                                        m_eventBus->Post(Core::Event_DeleteFlag, dfd);
+                                    }
+                                    m_statusText = "Flag removed!";
                                     m_statusTextTimer = 2.0f;
                                 }
+                            } else {
+                                m_statusText = "No flag found nearby";
+                                m_statusTextTimer = 2.0f;
                             }
-                            handled = true;
                         }
-                    }
-                    if (!handled && m_cursorOnTownHall) {
-                        m_townHallPanelOpen = true;
+                    } else if (selIdx == 2) {
+                        m_flagMenuActive = false;
+                        m_flagMenu->Hide();
+                        if (m_flagManager && !m_flagManager->GetFlagAt(m_cursorTileX, m_cursorTileY)) {
+                            HandleConfirmFreeFlag();
+                        }
+                        m_roadController.Start(m_cursorTileX, m_cursorTileY);
+                        if (m_roadController.GetStatusText()) { m_statusText = m_roadController.GetStatusText(); m_statusTextTimer = m_roadController.GetStatusTimer(); m_roadController.ClearStatus(); }
                     }
                 }
-                // ─── Y button: Flag construction menu (skip mountain & water) ─
-                if (yPressed) {
-                    bool skipFlagMenu = false;
-                    if (m_map) {
-                        // 1. Skip mountain tiles (have collision)
-                        const World::Tile& objTile = m_map->GetTile(World::Objects, m_cursorTileX, m_cursorTileY);
-                        if (objTile.type == World::Mountain || objTile.type == World::MountainOnWater || objTile.type == World::Rock) {
-                            skipFlagMenu = true;
-                        }
-                        // 2. Skip water / shallow
-                        if (!skipFlagMenu) {
-                            BYTE weight = m_map->GetNodeWeight(m_cursorTileX, m_cursorTileY);
-                            if (weight == World::Weight_Deep || weight == World::Weight_Shallow) {
-                                skipFlagMenu = true;
-                            }
+                m_flagMenuActive = false;
+                m_flagMenu->Hide();
+                m_flagMenu->ResetSelection();
+            }
+        }
+    } else if (m_townHallPanelOpen) {
+        if (bPressed) {
+            m_townHallPanelOpen = false;
+            m_statusText = "";
+            m_statusTextTimer = 0.0f;
+        }
+    } else {
+        if (bPressed && m_geologistState == GEOLOGIST_CONFIRM) {
+            CancelGeologistMenu();
+        }
+        if (aPressed) {
+            bool handled = false;
+            if (m_map) {
+                const World::Tile& objTile = m_map->GetTile(World::Objects, m_cursorTileX, m_cursorTileY);
+                if (objTile.type == World::Mountain || objTile.type == World::MountainOnWater || objTile.type == World::Rock) {
+                    if (m_geologistState == GEOLOGIST_CONFIRM) {
+                        StartGeologistSurvey();
+                    } else if (m_geologistState == GEOLOGIST_NONE) {
+                        const World::ResourceNode& node = m_map->GetResourceNode(m_cursorTileX, m_cursorTileY);
+                        if (!node.surveyed) {
+                            ShowGeologistConfirm(m_cursorTileX, m_cursorTileY);
+                        } else {
+                            m_statusText = "This mountain is already surveyed";
+                            m_statusTextTimer = 2.0f;
                         }
                     }
-                    if (!skipFlagMenu) {
-                        // Search 3x3 neighborhood for nearest flag
-                        World::Flag* nearestFlag = NULL;
-                        int nearestDist = 999;
-                        int flagX = m_cursorTileX, flagY = m_cursorTileY;
-                        if (m_flagManager) {
-                            for (int dy = -1; dy <= 1; ++dy) {
-                                for (int dx = -1; dx <= 1; ++dx) {
-                                    World::Flag* f = m_flagManager->GetFlagAt(m_cursorTileX + dx, m_cursorTileY + dy);
-                                    if (f) {
-                                        int dist = abs(dx) + abs(dy);
-                                        if (dist < nearestDist) {
-                                            nearestDist = dist;
-                                            nearestFlag = f;
-                                            flagX = m_cursorTileX + dx;
-                                            flagY = m_cursorTileY + dy;
-                                        }
-                                    }
+                    handled = true;
+                }
+            }
+            if (!handled && m_cursorOnTownHall) {
+                m_townHallPanelOpen = true;
+            }
+        }
+        if (yPressed) {
+            bool skipFlagMenu = false;
+            if (m_map) {
+                const World::Tile& objTile = m_map->GetTile(World::Objects, m_cursorTileX, m_cursorTileY);
+                if (objTile.type == World::Mountain || objTile.type == World::MountainOnWater || objTile.type == World::Rock) {
+                    skipFlagMenu = true;
+                }
+                if (!skipFlagMenu) {
+                    BYTE weight = m_map->GetNodeWeight(m_cursorTileX, m_cursorTileY);
+                    if (weight == World::Weight_Deep || weight == World::Weight_Shallow) {
+                        skipFlagMenu = true;
+                    }
+                }
+            }
+            if (!skipFlagMenu) {
+                World::Flag* nearestFlag = NULL;
+                int nearestDist = 999;
+                int flagX = m_cursorTileX, flagY = m_cursorTileY;
+                if (m_flagManager) {
+                    for (int dy = -1; dy <= 1; ++dy) {
+                        for (int dx = -1; dx <= 1; ++dx) {
+                            World::Flag* f = m_flagManager->GetFlagAt(m_cursorTileX + dx, m_cursorTileY + dy);
+                            if (f) {
+                                int dist = abs(dx) + abs(dy);
+                                if (dist < nearestDist) {
+                                    nearestDist = dist;
+                                    nearestFlag = f;
+                                    flagX = m_cursorTileX + dx;
+                                    flagY = m_cursorTileY + dy;
                                 }
                             }
                         }
-                        if (nearestFlag) {
-                            m_confirmTargetX = flagX;
-                            m_confirmTargetY = flagY;
-                            m_flagMenuActive = true;
-                            m_flagMenu->Show();
-                            OutputDebugStringA("[GameScene] Flag menu opened on flag\n");
-                        } else {
-                            m_confirmTargetX = m_cursorTileX;
-                            m_confirmTargetY = m_cursorTileY;
-                            m_flagMenuActive = true;
-                            m_flagMenu->Show();
-                            OutputDebugStringA("[GameScene] Flag menu opened on ground\n");
-                        }
                     }
-                } else if (rbPressed && m_buildMenu) {
-                    m_menuActive = true;
-                    m_buildMenu->ResetSelection();
-                    m_buildMenu->Show(640.0f, 360.0f);
-                    OutputDebugStringA("[GameScene] Build menu opened\n");
                 }
+                if (nearestFlag) {
+                    m_placement.SetConfirmTarget(flagX, flagY);
+                } else {
+                    m_placement.SetConfirmTarget(m_cursorTileX, m_cursorTileY);
+                }
+                m_flagMenuActive = true;
+                m_flagMenu->Show();
             }
+        } else if (rbPressed && m_buildMenu) {
+            m_menuActive = true;
+            m_buildMenu->ResetSelection();
+            m_buildMenu->Show(640.0f, 360.0f);
         }
     }
+}
 
-    // ─── Simulation: delegates to ConstructionSystem → EconomySystem →
-    //     WorkforceSystem → TransportSystem in the correct order ─────────
-    if (m_simulation.IsInitialized()) {
-        m_simulation.Update(deltaTime);
+void GameScene::UpdateWildlife(float dt)
+{
+    if (m_wildlife) {
+        m_wildlife->Update(dt, m_map->GetHabitatRegistry());
+    }
+    if (m_map) {
+        m_wildlifeRegenTimer += dt;
+        if (m_wildlifeRegenTimer >= 60.0f) {
+            m_wildlifeRegenTimer = 0.0f;
+            m_map->RegenerateWildlifeResources();
+        }
+        m_treeGrowthTimer += dt;
+        if (m_treeGrowthTimer >= 30.0f) {
+            m_treeGrowthTimer = 0.0f;
+            m_map->GrowTrees();
+        }
+    }
+}
 
-        // Periodic status logging
-        {
-            static int simLogCounter = 0;
-            if (++simLogCounter % 120 == 0) {
-                int carriers = m_carrierManager ? m_carrierManager->GetCarrierCount() : 0;
-                int flags = m_flagManager ? (int)m_flagManager->GetCount() : 0;
-                int sites = m_constructionManager ? (int)m_constructionManager->GetCount() : 0;
+void GameScene::CollectGroundResources()
+{
+    if (!m_map || !m_flagManager) return;
+
+    uint32_t whFlagId = World::INVALID_FLAG_ID;
+    if (m_economyManager) {
+        World::Warehouse* wh = m_economyManager->GetWarehouse();
+        if (wh && wh->connectedFlag)
+            whFlagId = wh->connectedFlag->id;
+    }
+    int n = m_map->GetGroundResourceCount();
+    for (int gi = n - 1; gi >= 0; --gi) {
+        World::GroundResource* gr = m_map->GetGroundResource(gi);
+        if (!gr) continue;
+        if (gr->type == World::ResourceType_Wood) continue;
+        float bestDist = 1e9f;
+        World::Flag* bestFlag = NULL;
+        for (size_t fi = 0; fi < m_flagManager->GetCount(); ++fi) {
+            World::Flag* f = m_flagManager->GetFlag(fi);
+            if (!f) continue;
+            float dx = (float)(gr->pos.x - f->pos.x);
+            float dy = (float)(gr->pos.y - f->pos.y);
+            float d = dx * dx + dy * dy;
+            if (d < bestDist) {
+                bestDist = d;
+                bestFlag = f;
+            }
+        }
+        if (bestFlag) {
+            bool added = bestFlag->AddResource(gr->type, 1, whFlagId);
+            if (added) {
+                gr->amount--;
                 char dbg[256];
-                _snprintf(dbg, sizeof(dbg), "[Status] Carriers=%d Flags=%d ConstSites=%d\n",
-                    carriers, flags, sites);
+                _snprintf(dbg, sizeof(dbg), "[FLAG PUT] flag=%u type=%s amount=1 remaining=%d dst=%u\n",
+                    bestFlag->id,
+                    (gr->type == World::ResourceType_Wood) ? "Wood" : "Resource",
+                    gr->amount, whFlagId);
                 OutputDebugStringA(dbg);
+                if (gr->amount <= 0)
+                    m_map->RemoveGroundResource(gi);
             }
         }
     }
+}
 
-    // ─── Wildlife movement & spawn update ───────────────────────────
-        if (m_wildlife) {
-            m_wildlife->Update(deltaTime, m_map->GetHabitatRegistry());
+void GameScene::CheckConstructionSites()
+{
+    if (!m_constructionManager) return;
+    const std::vector<World::ConstructionSite*>& sites = m_constructionManager->GetAllSites();
+    for (int ci = (int)sites.size() - 1; ci >= 0; --ci) {
+        World::ConstructionSite* s = sites[ci];
+        if (!s->IsComplete()) continue;
+        if (!s->flag->hasBuilding) {
+            ConfirmConstruction(s->flag);
         }
-
-        // ─── Wildlife resource node regeneration ─────────────────────
-        if (m_map) {
-            m_wildlifeRegenTimer += deltaTime;
-            if (m_wildlifeRegenTimer >= 60.0f) {
-                m_wildlifeRegenTimer = 0.0f;
-                m_map->RegenerateWildlifeResources();
-            }
-            m_treeGrowthTimer += deltaTime;
-            if (m_treeGrowthTimer >= 30.0f) {
-                m_treeGrowthTimer = 0.0f;
-                m_map->GrowTrees();
-            }
+        if (s->builderState == World::Builder_None && m_eventBus) {
+            Core::RemoveConstructionSiteData cmd;
+            cmd.siteId = s->id;
+            m_eventBus->Post(Core::Event_RemoveConstructionSite, cmd);
         }
-
-        // ─── Phase D: Collect ground resources to nearest player flag ──
-        if (m_map && m_flagManager) {
-            // Determine warehouse destination for transport
-            uint32_t whFlagId = World::INVALID_FLAG_ID;
-            if (m_economyManager) {
-                World::Warehouse* wh = m_economyManager->GetWarehouse();
-                if (wh && wh->connectedFlag)
-                    whFlagId = wh->connectedFlag->id;
-            }
-            int n = m_map->GetGroundResourceCount();
-            for (int gi = n - 1; gi >= 0; --gi) {
-                World::GroundResource* gr = m_map->GetGroundResource(gi);
-                if (!gr) continue;
-                // Wood ground resources are handled by the Woodcutter (CarryWoodHome),
-                // not by the generic ground collection loop.
-                assert(gr->type != World::ResourceType_Wood || gr->visualOnly);
-                if (gr->type == World::ResourceType_Wood)
-                    continue;
-                // Find nearest player-owned flag with an open slot
-                float bestDist = 1e9f;
-                World::Flag* bestFlag = NULL;
-                for (size_t fi = 0; fi < m_flagManager->GetCount(); ++fi) {
-                    World::Flag* f = m_flagManager->GetFlag(fi);
-                    if (!f) continue;
-                    float dx = (float)(gr->pos.x - f->pos.x);
-                    float dy = (float)(gr->pos.y - f->pos.y);
-                    float d = dx * dx + dy * dy;
-                    if (d < bestDist) {
-                        bestDist = d;
-                        bestFlag = f;
-                    }
-                }
-                if (bestFlag) {
-                    bool added = bestFlag->AddResource(gr->type, 1, whFlagId);
-                    if (added) {
-                        gr->amount--;
-                        char dbg[256];
-                        _snprintf(dbg, sizeof(dbg), "[FLAG PUT] flag=%u type=%s amount=1 remaining=%d dst=%u\n",
-                                  bestFlag->id,
-                                  (gr->type == World::ResourceType_Wood) ? "Wood" : "Resource",
-                                  gr->amount, whFlagId);
-                        OutputDebugStringA(dbg);
-                        if (gr->amount <= 0)
-                            m_map->RemoveGroundResource(gi);
-                    }
-                }
-            }
-        }
-
-        // ─── Check completed construction sites ────────────────────────
-        if (m_constructionManager) {
-            const std::vector<World::ConstructionSite*>& sites = m_constructionManager->GetAllSites();
-            for (int ci = (int)sites.size() - 1; ci >= 0; --ci) {
-                World::ConstructionSite* s = sites[ci];
-                if (!s->IsComplete()) continue;
-                if (!s->flag->hasBuilding) {
-                    ConfirmConstruction(s->flag);
-                }
-                if (s->builderState == World::Builder_None) {
-                    m_constructionManager->RemoveSite(s);
-                }
-            }
-        }
-
-        // ─── AI chunks — read-only PlanBuild, use reservations + cache ───────
-        m_aiSystem->ClearReservations();
-
-        m_aiChunks[0].ai = m_aiSystem;
-        m_aiChunks[0].types[0] = World::Woodcutter;
-        m_aiChunks[0].types[1] = World::Sawmill;
-        m_aiChunks[0].types[2] = World::CoalMine;
-        m_aiChunks[0].numTypes = 3;
-        m_aiChunks[0].numRequests = 0;
-
-        m_aiChunks[1].ai = m_aiSystem;
-        m_aiChunks[1].types[0] = World::IronMine;
-        m_aiChunks[1].types[1] = World::IronSmelter;
-        m_aiChunks[1].types[2] = World::ToolWorkshop;
-        m_aiChunks[1].numTypes = 3;
-        m_aiChunks[1].numRequests = 0;
-
-        m_aiChunks[2].ai = m_aiSystem;
-        m_aiChunks[2].types[0] = World::Farm;
-        m_aiChunks[2].types[1] = World::Mill;
-        m_aiChunks[2].types[2] = World::Bakery;
-        m_aiChunks[2].numTypes = 3;
-        m_aiChunks[2].numRequests = 0;
-
-        m_aiChunks[3].ai = m_aiSystem;
-        m_aiChunks[3].types[0] = World::Hunter;
-        m_aiChunks[3].types[1] = World::Fisher;
-        m_aiChunks[3].types[2] = World::GoldMine;
-        m_aiChunks[3].types[3] = World::GoldSmelter;
-        m_aiChunks[3].numTypes = 4;
-        m_aiChunks[3].numRequests = 0;
-
-        m_jobManager->Submit(AIChunkJobFunc, &m_aiChunks[0]);
-        m_jobManager->Submit(AIChunkJobFunc, &m_aiChunks[1]);
-        m_jobManager->Submit(AIChunkJobFunc, &m_aiChunks[2]);
-        m_jobManager->Submit(AIChunkJobFunc, &m_aiChunks[3]);
-        m_jobManager->WaitAll();
-
-        // ─── Phase C: Apply Build Commands (single-threaded) ───────────────────
-        for (int c = 0; c < 4; ++c)
-            m_aiSystem->ApplyBuildRequests(m_aiChunks[c].requests, m_aiChunks[c].numRequests);
-
-//        OutputDebugStringA("[GameScene::Update] DONE\n");
+    }
 }
 
 void GameScene::Render(Graphics::RenderQueue* renderQueue)
@@ -1941,9 +1745,8 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
     }
 
     // ─── Render cursor or placement preview ─────────────────────────────
-    if (m_buildState == BUILDSTATE_PLACE_FLAG && m_selectedBuilding != World::Building_None && m_placementManager) {
-        m_placementManager->SelectBuilding(m_selectedBuilding);
-        PlacementData pd = m_placementManager->GetPlacementData(m_cursorTileX, m_cursorTileY);
+    if (m_placement.GetState() == PLACESTATE_PLACE_FLAG && !m_placement.IsIdle()) {
+        PlacementData pd = m_placement.GetPlacementData(m_cursorTileX, m_cursorTileY);
 
         if (pd.spriteRegion) {
             float wx, wy;
@@ -2345,7 +2148,8 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
     }
 
     // ─── Render road preview (placed tiles) ─────────────────────────
-    if (m_buildState == BUILDSTATE_PLACE_ROAD && !m_roadPreviewPath.empty()) {
+    const std::vector<std::pair<int,int>>& roadPath = m_roadController.GetPreviewPath();
+    if (m_placement.GetState() == PLACESTATE_PLACE_ROAD && !roadPath.empty()) {
         std::tr1::shared_ptr<SpriteAtlas> streetsAtlas = reg.getAtlas("streets");
         if (!streetsAtlas) return;
         CoordinateSystem& coords = CoordinateSystem::GetInstance();
@@ -2358,11 +2162,11 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
             if (rg && !rg->empty()) { const SpriteRegion* rr = streetsAtlas->GetRegion((*rg)[0]);
             if (rr) { flagAlignOffsetX = (fr->width * 0.5f - fr->pivotX) - (rr->width * 0.5f - rr->pivotX); }}}}
 
-        for (size_t i = 0; i < m_roadPreviewPath.size(); ++i) {
-            int px = m_roadPreviewPath[i].first;
-            int py = m_roadPreviewPath[i].second;
+        for (size_t i = 0; i < m_roadController.GetPreviewPath().size(); ++i) {
+            int px = m_roadController.GetPreviewPath()[i].first;
+            int py = m_roadController.GetPreviewPath()[i].second;
             World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
-            int pattern = CalcPatternAt(px, py, roadsLayer, m_roadPreviewPath);
+            int pattern = RoadController::CalcPatternAt(px, py, roadsLayer, m_roadController.GetPreviewPath());
 
             char groupBuf[16];
             const char* groupName = groupBuf;
@@ -2414,11 +2218,11 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
             uint32_t ewIdx = (*ewGroup)[0];
             const SpriteRegion* ewRegion = streetsAtlas->GetRegion(ewIdx);
             if (ewRegion) {
-                for (size_t i = 0; i + 1 < m_roadPreviewPath.size(); ++i) {
-                    int x1 = m_roadPreviewPath[i].first;
-                    int y1 = m_roadPreviewPath[i].second;
-                    int x2 = m_roadPreviewPath[i + 1].first;
-                    int y2 = m_roadPreviewPath[i + 1].second;
+                for (size_t i = 0; i + 1 < m_roadController.GetPreviewPath().size(); ++i) {
+                    int x1 = m_roadController.GetPreviewPath()[i].first;
+                    int y1 = m_roadController.GetPreviewPath()[i].second;
+                    int x2 = m_roadController.GetPreviewPath()[i + 1].first;
+                    int y2 = m_roadController.GetPreviewPath()[i + 1].second;
                     if (abs(x1 - x2) == 1 && y1 == y2) {
                         float wx1, wy1, wx2, wy2;
                         coords.NodeTileToWorld(x1, y1, wx1, wy1);
@@ -2441,7 +2245,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
     }
 
     // ─── Render auto-path preview (blue, when cursor on flag) ─────
-    if (m_buildState == BUILDSTATE_PLACE_ROAD && !m_roadAutoPath.empty()) {
+    if (m_placement.GetState() == PLACESTATE_PLACE_ROAD && !m_roadController.GetAutoPath().empty()) {
         std::tr1::shared_ptr<SpriteAtlas> streetsAtlas = reg.getAtlas("streets");
         if (streetsAtlas) {
             CoordinateSystem& coords = CoordinateSystem::GetInstance();
@@ -2458,9 +2262,9 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                 uint32_t regionIdx = (*group)[0];
                 const SpriteRegion* region = streetsAtlas->GetRegion(regionIdx);
                 if (region) {
-                    for (size_t i = 0; i < m_roadAutoPath.size(); ++i) {
-                        int ax = m_roadAutoPath[i].first;
-                        int ay = m_roadAutoPath[i].second;
+                    for (size_t i = 0; i < m_roadController.GetAutoPath().size(); ++i) {
+                        int ax = m_roadController.GetAutoPath()[i].first;
+                        int ay = m_roadController.GetAutoPath()[i].second;
                         float wx, wy;
                         coords.NodeTileToWorld(ax, ay, wx, wy);
                         Graphics::RenderCommandBuilder()
@@ -2481,11 +2285,11 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                 uint32_t ewIdx = (*ewGroup)[0];
                 const SpriteRegion* ewRegion = streetsAtlas->GetRegion(ewIdx);
                 if (ewRegion) {
-                    for (size_t i = 0; i + 1 < m_roadAutoPath.size(); ++i) {
-                        int x1 = m_roadAutoPath[i].first;
-                        int y1 = m_roadAutoPath[i].second;
-                        int x2 = m_roadAutoPath[i + 1].first;
-                        int y2 = m_roadAutoPath[i + 1].second;
+                    for (size_t i = 0; i + 1 < m_roadController.GetAutoPath().size(); ++i) {
+                        int x1 = m_roadController.GetAutoPath()[i].first;
+                        int y1 = m_roadController.GetAutoPath()[i].second;
+                        int x2 = m_roadController.GetAutoPath()[i + 1].first;
+                        int y2 = m_roadController.GetAutoPath()[i + 1].second;
                         if (abs(x1 - x2) == 1 && y1 == y2) {
                             float wx1, wy1, wx2, wy2;
                             coords.NodeTileToWorld(x1, y1, wx1, wy1);
@@ -2509,7 +2313,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
     }
 
     // ─── Render valid neighbor tiles (green) ────────────────
-    if (m_buildState == BUILDSTATE_PLACE_ROAD && !m_roadValidNeighbors.empty()) {
+    if (m_placement.GetState() == PLACESTATE_PLACE_ROAD && !m_roadController.GetValidNeighbors().empty()) {
         std::tr1::shared_ptr<SpriteAtlas> streetsAtlas = reg.getAtlas("streets");
         if (streetsAtlas) {
             CoordinateSystem& coords = CoordinateSystem::GetInstance();
@@ -2526,9 +2330,9 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                 uint32_t regionIdx = (*group)[0];
                 const SpriteRegion* region = streetsAtlas->GetRegion(regionIdx);
                 if (region) {
-                    for (size_t i = 0; i < m_roadValidNeighbors.size(); ++i) {
-                        int nx = m_roadValidNeighbors[i].first;
-                        int ny = m_roadValidNeighbors[i].second;
+                    for (size_t i = 0; i < m_roadController.GetValidNeighbors().size(); ++i) {
+                        int nx = m_roadController.GetValidNeighbors()[i].first;
+                        int ny = m_roadController.GetValidNeighbors()[i].second;
                         float wx, wy;
                         coords.NodeTileToWorld(nx, ny, wx, wy);
                         Graphics::RenderCommandBuilder()
@@ -2557,7 +2361,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
 
     // ─── Hunting spots overlay when hunter building is selected ─────────
     if (m_flagMenuActive && m_flagManager && m_map && m_textManager) {
-        World::Flag* flag = m_flagManager->GetFlagAt(m_confirmTargetX, m_confirmTargetY);
+        World::Flag* flag = m_flagManager->GetFlagAt(m_placement.GetConfirmTargetX(), m_placement.GetConfirmTargetY());
         if (flag && flag->building && flag->building->type == World::Hunter) {
             Logic::ResourceRegistry* registry = m_map->GetResourceRegistry();
             CoordinateSystem& coords = CoordinateSystem::GetInstance();
@@ -2713,7 +2517,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                 if (flag->building->IsDepleted() && flag->building->m_depletedSpriteIdx >= 0) {
                     sprIdx = (uint32_t)flag->building->m_depletedSpriteIdx;
                 } else {
-                    const char* spriteName = GetBuildingSpriteName(flag->building->type);
+                    const char* spriteName = BuildingPlacementManager::GetBuildingSpriteName(flag->building->type);
                     if (!spriteName || !*spriteName) continue;
                     sprIdx = buildingsAtlas->GetIndex(spriteName);
                 }
@@ -2971,6 +2775,33 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         if (m_cursorTileX >= nodesW) m_cursorTileX = nodesW - 1;
         if (m_cursorTileY < 0) m_cursorTileY = 0;
         if (m_cursorTileY >= nodesH) m_cursorTileY = nodesH - 1;
+
+        // Town hall hover detection
+        m_cursorOnTownHall = false;
+        World::TileLayer* buildingsLayer = m_map->GetLayer(World::Buildings);
+        if (buildingsLayer) {
+            int bx = m_cursorTileX;
+            int by = m_cursorTileY;
+            if (bx >= 0 && bx < buildingsLayer->GetWidth() && by >= 0 && by < buildingsLayer->GetHeight()) {
+                const World::Tile& tile = buildingsLayer->GetTile(bx, by);
+                if (tile.atlasName == "Buildings" && tile.regionIndex >= 0) {
+                    TextureRegistry& reg = TextureRegistry::instance();
+                    std::tr1::shared_ptr<SpriteAtlas> atlas = reg.getAtlas("Buildings");
+                    if (atlas) {
+                        const SpriteRegion* region = atlas->GetRegion(tile.regionIndex);
+                        if (region) {
+                            World::BuildingType type = GetBuildingTypeFromSpriteName(region->name);
+                            if (type == World::Storehouse) m_cursorOnTownHall = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Auto-update road preview during road building
+        if (m_placement.GetState() == PLACESTATE_PLACE_ROAD) {
+            m_roadController.UpdatePreview(m_cursorTileX, m_cursorTileY);
+        }
     }
 
     void GameScene::RenderCursor(Graphics::RenderQueue* renderQueue)
@@ -3383,7 +3214,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                 rt.atlasName = "";
                 rt.regionIndex = -1;
                 rt.walkable = false;
-                UpdateRoadNeighbors(tx, ty);
+                m_roadController.UpdateNeighbors(tx, ty);
             }
         }
     }
@@ -3438,7 +3269,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         if (!m_map) { OutputDebugStringA("[CanPlaceBuilding] FAIL: no map\n"); return false; }
 
         // Get building collision footprint from atlas
-        const char* spriteNamePtr = GetBuildingSpriteName(type);
+        const char* spriteNamePtr = BuildingPlacementManager::GetBuildingSpriteName(type);
         std::string spriteName = spriteNamePtr ? spriteNamePtr : "";
 
         int footOffX = 0, footOffY = 0;
@@ -3510,7 +3341,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                 footH = 2;
                 char warn[256];
                 _snprintf(warn, sizeof(warn), "[CanPlaceBuilding] WARNING: %s atlas footprint != 2x2, forcing 2x2\n",
-                    GetBuildingSpriteName(type));
+                    BuildingPlacementManager::GetBuildingSpriteName(type));
                 OutputDebugStringA(warn);
             }
         }
@@ -3535,7 +3366,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         }
 
         // For mines, require the resource node directly on the anchor tile
-        World::ResourceType requiredRes = GetResourceTypeForMine(type);
+        World::ResourceType requiredRes = BuildingPlacementManager::GetResourceTypeForMine(type);
         if (requiredRes != World::ResourceType_None) {
             if (anchorX < 0 || anchorX >= nodesW || anchorY < 0 || anchorY >= nodesH) return false;
             const World::ResourceNode& node = m_map->GetResourceNode(anchorX, anchorY);
@@ -3551,69 +3382,48 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         return true;
     }
 
-    void GameScene::PlaceFlag(int tileX, int tileY)
+    void GameScene::HandlePlaceAtCursor()
     {
-        if (!m_flagManager || !m_map || !m_placementManager) return;
-        if (m_selectedBuilding == World::Building_None) return;
+        if (!m_placementManager) return;
 
-        m_placementManager->SelectBuilding(m_selectedBuilding);
-        PlacementData data = m_placementManager->GetPlacementData(tileX, tileY);
-        if (!data.valid) {
+        PlacementRequest req = m_placement.TryPlaceFlag(m_cursorTileX, m_cursorTileY);
+        if (!req.valid) {
             char dbg[256];
             _snprintf(dbg, sizeof(dbg), "[GameScene] PlaceFlag: cannot place at (%d,%d): %s\n",
-                tileX, tileY, data.errorMsg ? data.errorMsg : "unknown");
+                m_cursorTileX, m_cursorTileY, req.errorMsg ? req.errorMsg : "unknown");
             OutputDebugStringA(dbg);
-            m_placementManager->SelectBuilding(m_selectedBuilding);
             return;
         }
 
-        World::Flag* flag = m_flagManager->CreateFlag(data.flagX, data.flagY);
-        flag->type = World::FLAG_NORMAL;
-        flag->pendingBuilding = m_selectedBuilding;
-        flag->hasBuilding = true;
-
-        SplitRoadAtFlag(flag);
-        LinkFlagToRoadNetwork(flag);
-        SyncCarriersForFlag(flag);
-
-        // Enqueue construction via BuildCommand
-        if (m_simulation) {
-            World::BuildCommand cmd;
-            cmd.type = m_selectedBuilding;
-            cmd.tileX = data.buildX;
-            cmd.tileY = data.buildY;
-            cmd.entranceFlag = flag;
-            cmd.autoConnectRoad = true;
-            m_simulation->GetConstructionSystem().Enqueue(cmd);
-        }
-        SetupConstructionSiteTiles(flag, data.buildX, data.buildY, m_selectedBuilding);
-
-        // Post Event_FlagPlaced (dispatched by Simulation::Flush)
         if (m_eventBus) {
-            Core::FlagPlacedData fd;
-            fd.flagId = flag->id;
-            fd.posX = flag->pos.x;
-            fd.posY = flag->pos.y;
-            m_eventBus->Post(Core::Event_FlagPlaced, fd);
+            Core::PlaceFlagData pfd;
+            pfd.tileX = req.flagX;
+            pfd.tileY = req.flagY;
+            pfd.buildingType = req.type;
+            pfd.isFreeFlag = false;
+            pfd.buildX = req.buildX;
+            pfd.buildY = req.buildY;
+            pfd.autoConnectRoad = true;
+            m_eventBus->Post(Core::Event_PlaceFlag, pfd);
         }
 
-        m_buildState = BUILDSTATE_NONE;
-        m_placementIconIdx = -1;
-        m_placementConstrIdx = -1;
-        m_selectedBuilding = World::Building_None;
+        m_placement.Cancel();
         m_statusText = "Building construction started!";
         m_statusTextTimer = 2.0f;
         {
             char dbg[256];
             _snprintf(dbg, sizeof(dbg), "[GameScene] PlaceFlag: placed type=%d at (%d,%d)\n",
-                (int)flag->pendingBuilding, data.buildX, data.buildY);
+                (int)req.type, req.buildX, req.buildY);
             OutputDebugStringA(dbg);
         }
     }
 
-    void GameScene::PlaceFreeFlag(int tileX, int tileY)
+    void GameScene::HandleConfirmFreeFlag()
     {
         if (!m_flagManager || !m_map) return;
+
+        int tileX = m_cursorTileX;
+        int tileY = m_cursorTileY;
 
         CoordinateSystem& coords = CoordinateSystem::GetInstance();
         int nodesW = coords.GetNodesWidth();
@@ -3625,185 +3435,39 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
 
         if (m_flagManager->GetFlagAt(tileX, tileY)) return;
 
-        World::Flag* flag = m_flagManager->CreateFlag(tileX, tileY);
-        flag->type = World::FLAG_NORMAL;
-        flag->pendingBuilding = World::Building_None;
-        flag->hasBuilding = false;
-
-        // Split any road that passes through this flag position (BEFORE linking)
-        SplitRoadAtFlag(flag);
-
-        LinkFlagToRoadNetwork(flag);
-        SyncCarriersForFlag(flag);
-        if (m_constructionManager) m_constructionManager->MarkBuilderRoutesDirty();
-
-        // Post Event_FlagPlaced (dispatched by Simulation::Flush)
         if (m_eventBus) {
-            Core::FlagPlacedData fd;
-            fd.flagId = flag->id;
-            fd.posX = flag->pos.x;
-            fd.posY = flag->pos.y;
-            m_eventBus->Post(Core::Event_FlagPlaced, fd);
+            Core::PlaceFlagData pfd;
+            pfd.tileX = tileX;
+            pfd.tileY = tileY;
+            pfd.buildingType = World::Building_None;
+            pfd.isFreeFlag = true;
+            pfd.buildX = 0;
+            pfd.buildY = 0;
+            pfd.autoConnectRoad = false;
+            m_eventBus->Post(Core::Event_PlaceFlag, pfd);
+            m_eventBus->Post(Core::Event_FlagTopologyChanged);
         }
 
+        m_statusText = "Flag placed!";
+        m_statusTextTimer = 2.0f;
         char dbg[256];
         _snprintf(dbg, sizeof(dbg), "[GameScene] Free flag placed at (%d,%d)\n", tileX, tileY);
         OutputDebugStringA(dbg);
     }
 
-    void GameScene::SetupConstructionSiteTiles(World::Flag* flag, int siteX, int siteY, World::BuildingType buildingType)
+    void GameScene::OnEvent(Core::EventType type, void* data)
     {
-        if (!flag || !m_map) return;
-
-        char dbg[256];
-        _snprintf(dbg, sizeof(dbg), "[GameScene] SetupConstructionSiteTiles at (%d,%d) for flag at (%d,%d)\n",
-            siteX, siteY, flag->pos.x, flag->pos.y);
-        OutputDebugStringA(dbg);
-
-        World::TileLayer* buildingsLayer = m_map->GetLayer(World::Buildings);
-        if (!buildingsLayer || siteX < 0 || siteX >= buildingsLayer->GetWidth() || siteY < 0 || siteY >= buildingsLayer->GetHeight()) {
-            OutputDebugStringA("[GameScene] SetupConstructionSiteTiles: invalid coordinates\n");
-            return;
-        }
-
-        // Get full collision footprint for the building type
-        int footOffX = 0, footOffY = 0;
-        int footW = 1, footH = 1;
-        int buildingSpriteIdx = 0; // fallback sprite index
-        std::vector<std::pair<int,int>> footMask;
-        {
-            const char* namePtr = GetBuildingSpriteName(buildingType);
-            std::string spriteName = (namePtr && namePtr[0]) ? namePtr : "b_unknown";
-            TextureRegistry& reg = TextureRegistry::instance();
-            reg.getTextureOrLoad("Buildings");
-            std::tr1::shared_ptr<SpriteAtlas> buildingsAtlas = reg.getAtlas("Buildings");
-            if (buildingsAtlas) {
-                uint32_t idx = buildingsAtlas->GetIndex(spriteName.c_str());
-                if (idx == 0xFFFFFFFF) {
-                    std::string lowerName = spriteName;
-                    for (size_t ci = 0; ci < lowerName.size(); ++ci)
-                        if (lowerName[ci] >= 'A' && lowerName[ci] <= 'Z')
-                            lowerName[ci] = lowerName[ci] - 'A' + 'a';
-                    idx = buildingsAtlas->GetIndex(lowerName.c_str());
-                }
-                if (idx != 0xFFFFFFFF) {
-                    buildingSpriteIdx = (int)idx;
-                    const SpriteRegion* r = buildingsAtlas->GetRegion(idx);
-                    if (r) {
-                        footOffX = r->collOffX;
-                        footOffY = r->collOffY;
-                        footW = (int)r->collWidth;
-                        footH = (int)r->collHeight;
-                        footMask = r->collMask;
-                    }
+        if (type == Core::Event_FlagPlaced) {
+            Core::FlagPlacedData* fd = static_cast<Core::FlagPlacedData*>(data);
+            if (m_flagManager && m_constructionVisualizer && fd->buildingType != World::Building_None) {
+                World::Flag* flag = m_flagManager->GetFlagById(fd->flagId);
+                if (flag) {
+                    m_constructionVisualizer->SetupConstructionSiteTiles(
+                        flag, fd->buildX, fd->buildY,
+                        static_cast<World::BuildingType>(fd->buildingType));
                 }
             }
         }
-
-        CoordinateSystem& coords = CoordinateSystem::GetInstance();
-        int nodesW = coords.GetNodesWidth();
-        int nodesH = coords.GetNodesHeight();
-
-        // Hardcoded override: ensure 2x2 buildings use correct footprint
-        // (atlas collWidth/collHeight may be wrong for some building types)
-        {
-            bool is2x2 = (buildingType == World::Stonemason || buildingType == World::Sawmill || buildingType == World::Farm || buildingType == World::Mill);
-            if (is2x2 && (footW != 2 || footH != 2)) {
-                footW = 2;
-                footH = 2;
-            }
-        }
-
-        // Mark all footprint tiles on the Buildings layer.
-        // Only the base tile (dx=0, dy=0) renders the construction tent sprite;
-        // the other tiles are marked occupied to block placement but stay invisible.
-        auto markTile = [&](int tx, int ty, bool isBaseTile) {
-            if (tx < 0 || tx >= nodesW || ty < 0 || ty >= nodesH) return;
-            World::Tile& bTile = buildingsLayer->GetTile(tx, ty);
-            if (bTile.type == World::Tile_None) {
-                bTile.type = World::Decoration;
-                bTile.walkable = true;
-                bTile.buildingType = (int)buildingType;
-                if (isBaseTile) {
-                    bTile.atlasName = "Buildings";
-                    bTile.regionIndex = buildingSpriteIdx;
-                    bTile.u0 = CONSTRUCTION_U0; bTile.v0 = CONSTRUCTION_V0;
-                    bTile.u1 = CONSTRUCTION_U1; bTile.v1 = CONSTRUCTION_V1;
-                } else {
-                    bTile.atlasName = "";
-                    bTile.regionIndex = -1;
-                    bTile.u0 = 0.0f; bTile.v0 = 0.0f;
-                    bTile.u1 = 1.0f; bTile.v1 = 1.0f;
-                }
-            }
-        };
-
-        if (!footMask.empty()) {
-            for (size_t i = 0; i < footMask.size(); ++i) {
-                markTile(siteX + footOffX + footMask[i].first,
-                         siteY + footOffY + footMask[i].second,
-                         i == 0);
-            }
-        } else {
-            for (int dy = 0; dy < footH; ++dy) {
-                for (int dx = 0; dx < footW; ++dx) {
-                    markTile(siteX + footOffX + dx, siteY + footOffY + dy,
-                             dx == 0 && dy == 0);
-                }
-            }
-        }
-
-        _snprintf(dbg, sizeof(dbg), "[GameScene] SetupConstructionSiteTiles at (%d,%d) type=%d\n",
-            siteX, siteY, (int)buildingType);
-        OutputDebugStringA(dbg);
-    }
-
-    const char* GameScene::GetBuildingName(World::BuildingType type) const
-    {
-        return GetBuildingSpriteName(type);
-    }
-
-    const char* GameScene::GetBuildingSpriteName(World::BuildingType type) const
-    {
-        switch (type) {
-            case World::Woodcutter:   return "b_woodcutter";
-            case World::Forester:     return "b_forester";
-            case World::Sawmill:      return "b_sawmill";
-            case World::Stonemason:   return "b_mason";
-            case World::CoalMine:
-            case World::BronzeMine:   return "b_mine";
-            case World::IronMine:     return "b_mine";
-            case World::GoldMine:     return "b_mine";
-            case World::IronSmelter:  return "b_ironsmelter";
-            case World::GoldSmelter:  return "b_goldsmelter";
-            case World::BronzeSmelter: return "b_bronzesmelter";
-            case World::Farm:         return "b_farm";
-            case World::Mill:         return "b_mill";
-            case World::Bakery:       return "b_bakery";
-            case World::Fisher:       return "b_fisher";
-            case World::Hunter:       return "b_hunter";
-            case World::ToolWorkshop: return "b_toolworkshop";
-            case World::Storehouse:   return "b_warehouse";
-            case World::Well:         return "b_well";
-            case World::Barracks:     return "b_barracks";
-            default:                  return "";
-        }
-    }
-
-    World::ResourceType GameScene::GetResourceTypeForMine(World::BuildingType buildingType) const
-    {
-        switch (buildingType) {
-            case World::CoalMine:   return World::ResourceType_Coal;
-            case World::BronzeMine: return World::ResourceType_BronzeOre;
-            case World::IronMine:   return World::ResourceType_IronOre;
-            case World::GoldMine:   return World::ResourceType_GoldOre;
-            default:                return World::ResourceType_None;
-        }
-    }
-
-    bool GameScene::IsMineType(World::BuildingType type) const
-    {
-        return GetResourceTypeForMine(type) != World::ResourceType_None;
     }
 
     void GameScene::AssignOreDepositsToMountains()
@@ -4132,7 +3796,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
 
         World::TileLayer* buildingsLayer = m_map->GetLayer(World::Buildings);
         if (buildingsLayer) {
-            const char* buildingName = GetBuildingSpriteName(site->buildingType);
+            const char* buildingName = BuildingPlacementManager::GetBuildingSpriteName(site->buildingType);
 
             TextureRegistry& reg = TextureRegistry::instance();
             reg.getTextureOrLoad("Buildings");
@@ -4283,29 +3947,6 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
 //        OutputDebugStringA("[GameScene] ConfirmConstruction - building completed\n");
     }
 
-    void GameScene::ClearBuildingFootprint(int startX, int startY, int width, int height)
-    {
-        if (!m_map) return;
-        CoordinateSystem& coords = CoordinateSystem::GetInstance();
-        int nodesW = coords.GetNodesWidth();
-        int nodesH = coords.GetNodesHeight();
-        World::TileLayer* buildingsLayer = m_map->GetLayer(World::Buildings);
-        if (!buildingsLayer) return;
-        for (int dy = 0; dy < height; ++dy) {
-            for (int dx = 0; dx < width; ++dx) {
-                int tx = startX + dx;
-                int ty = startY + dy;
-                if (tx < 0 || tx >= nodesW || ty < 0 || ty >= nodesH) continue;
-                World::Tile& t = buildingsLayer->GetTile(tx, ty);
-                t.atlasName = "";
-                t.type = World::Tile_None;
-                t.regionIndex = -1;
-                t.walkable = false;
-                t.buildingType = -1;
-            }
-        }
-    }
-
     void GameScene::ConfirmDeleteFlag(int tileX, int tileY)
     {
         if (!m_flagManager || !m_map) return;
@@ -4331,11 +3972,11 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
             int buildY = flag->pos.y;
 
             if (flag->building) {
-                buildingName = GetBuildingName(flag->building->type);
+                buildingName = BuildingPlacementManager::GetBuildingSpriteName(flag->building->type);
                 buildX = flag->building->pos.x;
                 buildY = flag->building->pos.y;
             } else {
-                buildingName = GetBuildingName(flag->pendingBuilding);
+                buildingName = BuildingPlacementManager::GetBuildingSpriteName(flag->pendingBuilding);
             }
 
             // For completed buildings, use stored position; for construction sites compute from entrance offset
@@ -4393,31 +4034,45 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                                 footW = 2;
                                 footH = 2;
                             }
-                            ClearBuildingFootprint(buildX + footOffX, buildY + footOffY, footW, footH);
+                            if (m_constructionVisualizer) {
+                                m_constructionVisualizer->ClearBuildingFootprint(buildX + footOffX, buildY + footOffY, footW, footH);
+                            }
                         }
                     }
                 }
             }
 
-            // Remove the building from EconomyManager and delete the object
+            // Post events for building/site deletion (actual logic handled by listeners)
             if (flag->building) {
-                m_objectLifecycleManager->ForceDeleteBuilding(flag->building, m_map);
+                if (m_eventBus) {
+                    Core::DeleteBuildingData bd;
+                    bd.flagId = flag->id;
+                    m_eventBus->Post(Core::Event_DeleteBuilding, bd);
+                }
                 flag->building = NULL;
                 flag->hasBuilding = false;
             }
 
-            // Remove construction site if present
             if (flag->pendingBuilding != World::Building_None) {
-                if (m_constructionManager) {
-                    m_constructionManager->RemoveSiteAt(buildX, buildY);
+                if (m_eventBus && m_constructionManager) {
+                    World::ConstructionSite* site = m_constructionManager->GetSiteAt(buildX, buildY);
+                    if (site) {
+                        Core::RemoveConstructionSiteData rd;
+                        rd.siteId = site->id;
+                        m_eventBus->Post(Core::Event_RemoveConstructionSite, rd);
+                    }
                 }
                 flag->pendingBuilding = World::Building_None;
             }
         }
 
-        // Remove visual road tiles, then the flag via lifecycle manager
+        // Remove visual road tiles, then post delete flag command
         ClearRoadTilesForFlag(flag);
-        m_objectLifecycleManager->ForceDeleteFlag(flag);
+        if (m_eventBus) {
+            Core::DeleteFlagData dfd;
+            dfd.flagId = flag->id;
+            m_eventBus->Post(Core::Event_DeleteFlag, dfd);
+        }
 
         m_statusText = "Building and flag deleted!";
         m_statusTextTimer = 2.0f;
@@ -4426,639 +4081,9 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         OutputDebugStringA(dbg);
     }
 
-    // ─── Road building helpers ──────────────────────────────────────────────
+    // ─── Road building delegated to m_roadController
 
-    bool GameScene::IsNodeRoad(int nx, int ny, World::TileLayer* roadsLayer, const std::vector<std::pair<int,int>>& previewPath)
-    {
-        if (nx < 0 || ny < 0) return false;
-        if (roadsLayer && roadsLayer->GetTile(nx, ny).regionIndex >= 0) return true;
-        for (size_t k = 0; k < previewPath.size(); ++k) {
-            if (previewPath[k].first == nx && previewPath[k].second == ny) return true;
-        }
-        return false;
-    }
-
-    int GameScene::CalcPatternAt(int x, int y, World::TileLayer* roadsLayer, const std::vector<std::pair<int,int>>& previewPath)
-    {
-        int pattern = 0;
-        bool evenRow = (y % 2 == 0);
-        if (evenRow) {
-            if (IsNodeRoad(x+1, y-1, roadsLayer, previewPath)) pattern |= 1;
-            if (IsNodeRoad(x+1, y+1, roadsLayer, previewPath)) pattern |= 2;
-            if (IsNodeRoad(x, y+1, roadsLayer, previewPath))   pattern |= 4;
-            if (IsNodeRoad(x, y-1, roadsLayer, previewPath))   pattern |= 8;
-        } else {
-            if (IsNodeRoad(x, y-1, roadsLayer, previewPath))   pattern |= 1;
-            if (IsNodeRoad(x, y+1, roadsLayer, previewPath))   pattern |= 2;
-            if (IsNodeRoad(x-1, y+1, roadsLayer, previewPath)) pattern |= 4;
-            if (IsNodeRoad(x-1, y-1, roadsLayer, previewPath)) pattern |= 8;
-        }
-        return pattern;
-    }
-
-    void GameScene::StartRoad(int x, int y)
-    {
-        if (!m_map) return;
-        CoordinateSystem& coords = CoordinateSystem::GetInstance();
-        int nodesW = coords.GetNodesWidth();
-        int nodesH = coords.GetNodesHeight();
-        if (x < 0 || x >= nodesW || y < 0 || y >= nodesH) return;
-        BYTE weight = m_map->GetNodeWeight(x, y);
-        if (weight == World::Weight_Deep || weight == World::Weight_Block) return;
-
-        if (!m_flagManager || !m_flagManager->GetFlagAt(x, y)) return;
-
-        m_buildState = BUILDSTATE_PLACE_ROAD;
-        m_roadStartX = x;
-        m_roadStartY = y;
-        m_roadPreviewPath.clear();
-        m_roadPreviewPath.push_back(std::make_pair(x, y));
-        m_roadValidNeighbors.clear();
-        m_roadAutoPath.clear();
-        m_statusText = "ROAD: A=add tile  B=cancel";
-        OutputDebugStringA("[GameScene] Road building started (tile-by-tile)\n");
-    }
-
-    void GameScene::UpdateRoadPreview(int cursorX, int cursorY)
-    {
-        if (m_buildState != BUILDSTATE_PLACE_ROAD) return;
-        if (!m_map || m_roadPreviewPath.empty()) return;
-
-        int lastX = m_roadPreviewPath.back().first;
-        int lastY = m_roadPreviewPath.back().second;
-
-        CoordinateSystem& coords = CoordinateSystem::GetInstance();
-        int nodesW = coords.GetNodesWidth();
-        int nodesH = coords.GetNodesHeight();
-        World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
-        World::TileLayer* objectsLayer = m_map->GetLayer(World::Objects);
-        World::TileLayer* buildingsLayer = m_map->GetLayer(World::Buildings);
-        World::TileLayer* placementLayer = m_map->GetLayer(World::Placement);
-
-        // ── Compute 4 valid neighbors matching CalcPatternAt ──
-        bool evenRow = (lastY % 2 == 0);
-        int nx[4], ny[4];
-        if (evenRow) {
-            nx[0] = lastX + 1; ny[0] = lastY - 1; // 1: (x+1, y-1)
-            nx[1] = lastX + 1; ny[1] = lastY + 1; // 2: (x+1, y+1)
-            nx[2] = lastX;     ny[2] = lastY + 1; // 4: (x, y+1)
-            nx[3] = lastX;     ny[3] = lastY - 1; // 8: (x, y-1)
-        } else {
-            nx[0] = lastX;     ny[0] = lastY - 1; // 1: (x, y-1)
-            nx[1] = lastX;     ny[1] = lastY + 1; // 2: (x, y+1)
-            nx[2] = lastX - 1; ny[2] = lastY + 1; // 4: (x-1, y+1)
-            nx[3] = lastX - 1; ny[3] = lastY - 1; // 8: (x-1, y-1)
-        }
-
-        m_roadValidNeighbors.clear();
-        for (int i = 0; i < 4; ++i) {
-            int tx = nx[i], ty = ny[i];
-            if (tx < 0 || tx >= nodesW || ty < 0 || ty >= nodesH) continue;
-
-            bool alreadyPlaced = false;
-            for (size_t j = 0; j < m_roadPreviewPath.size(); ++j) {
-                if (m_roadPreviewPath[j].first == tx && m_roadPreviewPath[j].second == ty) {
-                    alreadyPlaced = true; break;
-                }
-            }
-            if (alreadyPlaced) {
-                char dbg[128];
-                _snprintf(dbg, sizeof(dbg), "[Road] Dir %d: (%d,%d) already in path\n", i, tx, ty);
-                OutputDebugStringA(dbg);
-                continue;
-            }
-
-            BYTE w = m_map->GetNodeWeight(tx, ty);
-            if (w == World::Weight_Deep || w == World::Weight_Block) {
-                char dbg[128];
-                _snprintf(dbg, sizeof(dbg), "[Road] Dir %d: (%d,%d) weight=%d (blocked)\n", i, tx, ty, (int)w);
-                OutputDebugStringA(dbg);
-                continue;
-            }
-
-            bool hasFlag = m_flagManager && m_flagManager->GetFlagAt(tx, ty) != NULL;
-
-            if (objectsLayer && !hasFlag) {
-                const World::Tile& ot = objectsLayer->GetTile(tx, ty);
-                if (ot.u1 > ot.u0 && ot.v1 > ot.v0) {
-                    char dbg[128];
-                    _snprintf(dbg, sizeof(dbg), "[Road] Dir %d: (%d,%d) blocked by object\n", i, tx, ty);
-                    OutputDebugStringA(dbg);
-                    continue;
-                }
-            }
-            if (buildingsLayer && !hasFlag) {
-                const World::Tile& bt = buildingsLayer->GetTile(tx, ty);
-                if (bt.regionIndex >= 0) {
-                    char dbg[256];
-                    _snprintf(dbg, sizeof(dbg), "[Road] Dir %d: (%d,%d) blocked by building regionIdx=%d atlas='%s'\n", i, tx, ty, bt.regionIndex, bt.atlasName.c_str());
-                    OutputDebugStringA(dbg);
-                    continue;
-                }
-            }
-            if (placementLayer && !hasFlag) {
-                const World::Tile& pt = placementLayer->GetTile(tx, ty);
-                if (pt.regionIndex >= 0 && pt.atlasName != "streets") {
-                    char dbg[128];
-                    _snprintf(dbg, sizeof(dbg), "[Road] Dir %d: (%d,%d) blocked by placement '%s'\n", i, tx, ty, pt.atlasName.c_str());
-                    OutputDebugStringA(dbg);
-                    continue;
-                }
-            }
-
-            char dbg[128];
-            _snprintf(dbg, sizeof(dbg), "[Road] Dir %d: (%d,%d) VALID\n", i, tx, ty);
-            OutputDebugStringA(dbg);
-            m_roadValidNeighbors.push_back(std::make_pair(tx, ty));
-        }
-
-        // ── Additionally, if cursor is on a flag, compute A* auto-path ──
-        m_roadAutoPath.clear();
-        bool cursorOnFlag = m_flagManager && m_flagManager->GetFlagAt(cursorX, cursorY) != NULL;
-        bool cursorSameAsLast = (cursorX == lastX && cursorY == lastY);
-        if (cursorOnFlag && !cursorSameAsLast)
-        {
-            struct RoadPassable {
-                World::Map* map;
-                World::FlagManager* flagManager;
-                World::TileLayer* roadsLayer;
-                World::TileLayer* objectsLayer;
-                World::TileLayer* buildingsLayer;
-                World::TileLayer* placementLayer;
-                RoadPassable(World::Map* m, World::FlagManager* fm,
-                    World::TileLayer* rl, World::TileLayer* ol,
-                    World::TileLayer* bl, World::TileLayer* pl)
-                    : map(m), flagManager(fm), roadsLayer(rl), objectsLayer(ol),
-                      buildingsLayer(bl), placementLayer(pl) {}
-                bool operator()(int x, int y) {
-                    BYTE w = map->GetNodeWeight(x, y);
-                    if (w == World::Weight_Deep || w == World::Weight_Block) return false;
-                    bool hasFlag = flagManager && flagManager->GetFlagAt(x, y) != NULL;
-                    if (hasFlag) return true;
-                    if (roadsLayer) {
-                        const World::Tile& rt = roadsLayer->GetTile(x, y);
-                        if (rt.regionIndex >= 0) return true;
-                    }
-                    if (objectsLayer) {
-                        const World::Tile& ot = objectsLayer->GetTile(x, y);
-                        if (ot.u1 > ot.u0 && ot.v1 > ot.v0) return false;
-                    }
-                    if (buildingsLayer) {
-                        const World::Tile& bt = buildingsLayer->GetTile(x, y);
-                        if (bt.regionIndex >= 0) return false;
-                    }
-                    if (placementLayer) {
-                        const World::Tile& pt = placementLayer->GetTile(x, y);
-                        if (pt.regionIndex >= 0 && pt.atlasName != "streets") return false;
-                    }
-                    return true;
-                }
-            };
-            struct RoadCost {
-                float operator()(int, int) { return 1.0f; }
-            };
-            Logic::IsoNeighbors isoNeighbors;
-            Logic::AStar::FindPath(
-                lastX, lastY, cursorX, cursorY,
-                nodesW, nodesH,
-                RoadPassable(m_map, m_flagManager, roadsLayer, objectsLayer, buildingsLayer, placementLayer),
-                RoadCost(),
-                isoNeighbors,
-                m_roadAutoPath
-            );
-            if (!m_roadAutoPath.empty() && m_roadAutoPath[0].first == lastX && m_roadAutoPath[0].second == lastY) {
-                m_roadAutoPath.erase(m_roadAutoPath.begin());
-            }
-        }
-    }
-
-    void GameScene::TryAddRoadTile(int x, int y)
-    {
-        if (m_buildState != BUILDSTATE_PLACE_ROAD || m_roadPreviewPath.empty()) return;
-
-        int lastX = m_roadPreviewPath.back().first;
-        int lastY = m_roadPreviewPath.back().second;
-
-        // Case 1: cursor on the last tile → place flag and finish
-        if (x == lastX && y == lastY) {
-            CommitRoad();
-            return;
-        }
-
-        // Case 2: auto-path to a flag
-        if (!m_roadAutoPath.empty()) {
-            // Append all auto-path tiles (they lead to the destination flag)
-            for (size_t i = 0; i < m_roadAutoPath.size(); ++i) {
-                m_roadPreviewPath.push_back(m_roadAutoPath[i]);
-            }
-            m_statusText = "ROAD: auto-path built!";
-            CommitRoad();
-            return;
-        }
-
-        // Check if (x,y) is a valid neighbor (tile-by-tile mode)
-        bool isValid = false;
-        int dirIndex = -1;
-        for (size_t i = 0; i < m_roadValidNeighbors.size(); ++i) {
-            if (m_roadValidNeighbors[i].first == x && m_roadValidNeighbors[i].second == y) {
-                isValid = true; dirIndex = (int)i; break;
-            }
-        }
-        if (!isValid) {
-            m_statusText = "Cannot build here!";
-            m_statusTextTimer = 1.5f;
-            return;
-        }
-
-        // Determine which hex direction this is from the last tile
-        int dx = x - lastX;
-        int dy = y - lastY;
-        bool evenRow = (lastY % 2 == 0);
-        int hexDir = -1; // 0=W,1=E,2=NW,3=NE,4=SW,5=SE
-        if      (dx == -1 && dy ==  0) hexDir = 0; // W
-        else if (dx ==  1 && dy ==  0) hexDir = 1; // E
-        else if (evenRow) {
-            if      (dx == -1 && dy == -1) hexDir = 2; // NW
-            else if (dx ==  0 && dy == -1) hexDir = 3; // NE
-            else if (dx == -1 && dy ==  1) hexDir = 4; // SW
-            else if (dx ==  0 && dy ==  1) hexDir = 5; // SE
-        } else {
-            if      (dx ==  0 && dy == -1) hexDir = 2; // NW
-            else if (dx ==  1 && dy == -1) hexDir = 3; // NE
-            else if (dx ==  0 && dy ==  1) hexDir = 4; // SW
-            else if (dx ==  1 && dy ==  1) hexDir = 5; // SE
-        }
-
-        m_roadPreviewPath.push_back(std::make_pair(x, y));
-
-        {
-            char dbg[256];
-            _snprintf(dbg, sizeof(dbg), "[Road] Added tile (%d,%d) dir=%d hexDir=%d pathLen=%u  last->(%d,%d)\n",
-                x, y, dirIndex, hexDir, (unsigned)m_roadPreviewPath.size(), lastX, lastY);
-            OutputDebugStringA(dbg);
-        }
-
-        // Neighbor has an existing flag → commit road
-        if (m_flagManager && m_flagManager->GetFlagAt(x, y)) {
-            CommitRoad();
-            return;
-        }
-
-        // Neighbor has an existing road (no flag) → commit (connect to it)
-        if (m_map) {
-            World::TileLayer* rl = m_map->GetLayer(World::Roads);
-            if (rl && rl->GetTile(x, y).regionIndex >= 0) {
-                char dbg[128];
-                _snprintf(dbg, sizeof(dbg), "[Road] Tile (%d,%d) has existing road — committing\n", x, y);
-                OutputDebugStringA(dbg);
-                CommitRoad();
-                return;
-            }
-        }
-
-        // Empty tile → continue building
-        m_statusText = "ROAD: A=add tile  B=cancel";
-        char dbg[128];
-        _snprintf(dbg, sizeof(dbg), "[Road] Tile added: (%d,%d) path=%u cells\n",
-            x, y, (unsigned)m_roadPreviewPath.size());
-        OutputDebugStringA(dbg);
-    }
-
-    void GameScene::CommitRoad()
-    {
-        if (m_buildState != BUILDSTATE_PLACE_ROAD) return;
-        if (!m_map) return;
-
-        World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
-        if (!roadsLayer) return;
-
-        // Reject if any intermediate tile (not start, not end) already has a road
-        for (size_t i = 1; i + 1 < m_roadPreviewPath.size(); ++i) {
-            int px = m_roadPreviewPath[i].first;
-            int py = m_roadPreviewPath[i].second;
-            const World::Tile& rt = roadsLayer->GetTile(px, py);
-            if (rt.regionIndex >= 0) {
-                m_statusText = "Cannot build through existing road!";
-                m_statusTextTimer = 3.0f;
-                CancelRoad();
-                return;
-            }
-        }
-
-        World::TileLayer* placementLayer = m_map->GetLayer(World::Placement);
-
-        for (size_t i = 0; i < m_roadPreviewPath.size(); ++i) {
-            int px = m_roadPreviewPath[i].first;
-            int py = m_roadPreviewPath[i].second;
-            CoordinateSystem& coords = CoordinateSystem::GetInstance();
-            int nodesW = coords.GetNodesWidth();
-            int nodesH = coords.GetNodesHeight();
-            if (px < 0 || px >= nodesW || py < 0 || py >= nodesH) continue;
-
-            World::TileLayer* objectsLayer = m_map->GetLayer(World::Objects);
-            bool hasObject = false;
-            if (objectsLayer) {
-                const World::Tile& ot = objectsLayer->GetTile(px, py);
-                if (ot.u1 > ot.u0 && ot.v1 > ot.v0) hasObject = true;
-            }
-            if (hasObject) {
-                if (!m_flagManager || !m_flagManager->GetFlagAt(px, py)) continue;
-            }
-            if (placementLayer) {
-                const World::Tile& pt = placementLayer->GetTile(px, py);
-                if (pt.regionIndex >= 0 && pt.atlasName != "streets") continue;
-            }
-
-            World::Tile& tile = roadsLayer->GetTile(px, py);
-            if (tile.regionIndex < 0) {
-                tile.type = World::Decoration;
-                tile.regionIndex = 0;
-                tile.atlasName = "streets";
-                tile.walkable = true;
-                tile.buildable = false;
-                m_map->SetNodeWeight(px, py, World::Weight_Land);
-                if (placementLayer) {
-                    World::Tile& pt = placementLayer->GetTile(px, py);
-                    pt.regionIndex = 0;
-                    pt.type = World::Tile_None;
-                    pt.atlasName = "streets";
-                    pt.walkable = true;
-                    pt.buildable = false;
-                }
-            } else {
-                if (placementLayer) {
-                    World::Tile& pt = placementLayer->GetTile(px, py);
-                    if (pt.regionIndex < 0) {
-                        pt.regionIndex = 0;
-                        pt.type = World::Tile_None;
-                        pt.atlasName = "streets";
-                        pt.walkable = true;
-                        pt.buildable = false;
-                    }
-                }
-            }
-        }
-
-        for (size_t i = 0; i < m_roadPreviewPath.size(); ++i) {
-            int px = m_roadPreviewPath[i].first;
-            int py = m_roadPreviewPath[i].second;
-            CoordinateSystem& coords = CoordinateSystem::GetInstance();
-            int nodesW = coords.GetNodesWidth();
-            int nodesH = coords.GetNodesHeight();
-            if (px < 0 || px >= nodesW || py < 0 || py >= nodesH) continue;
-
-            World::TileLayer* objectsLayer2 = m_map->GetLayer(World::Objects);
-            bool hasObject = false;
-            if (objectsLayer2) {
-                const World::Tile& ot = objectsLayer2->GetTile(px, py);
-                if (ot.u1 > ot.u0 && ot.v1 > ot.v0) hasObject = true;
-            }
-            if (hasObject) {
-                if (!m_flagManager || !m_flagManager->GetFlagAt(px, py)) continue;
-            }
-            if (placementLayer) {
-                const World::Tile& pt = placementLayer->GetTile(px, py);
-                if (pt.regionIndex >= 0 && pt.atlasName != "streets") continue;
-            }
-            RebuildRoadSprite(px, py);
-            UpdateRoadNeighbors(px, py);
-        }
-
-        if (!m_roadPreviewPath.empty()) {
-            int endX = m_roadPreviewPath.back().first;
-            int endY = m_roadPreviewPath.back().second;
-            World::Flag* endFlag = NULL;
-            if (m_flagManager) {
-                endFlag = m_flagManager->GetFlagAt(endX, endY);
-                if (!endFlag) {
-                    endFlag = m_flagManager->CreateFlag(endX, endY);
-                    endFlag->type = World::FLAG_NORMAL;
-                    char buf[128];
-                    _snprintf(buf, sizeof(buf), "[GameScene] Auto-flag placed at (%d,%d)\n", endX, endY);
-                    OutputDebugStringA(buf);
-                }
-                // If end position sits on an existing road, split it (no-op if already split)
-                SplitRoadAtFlag(endFlag);
-            }
-
-            // Create Road object linking start and end flags
-            World::Flag* startFlag = m_flagManager ? m_flagManager->GetFlagAt(m_roadStartX, m_roadStartY) : NULL;
-            {
-                char dbg[256];
-                _snprintf(dbg, sizeof(dbg), "[RoadDebug] CommitRoad: start=(%d,%d) end=(%d,%d) startFlag=%p endFlag=%p\n",
-                    m_roadStartX, m_roadStartY, endX, endY, startFlag, endFlag);
-                OutputDebugStringA(dbg);
-                if (!startFlag) {
-                    _snprintf(dbg, sizeof(dbg), "[RoadDebug] NO START FLAG AT (%d,%d) — searching adjacent...\n",
-                        m_roadStartX, m_roadStartY);
-                    OutputDebugStringA(dbg);
-                    bool evenRow = (m_roadStartY % 2 == 0);
-                    int sx[6], sy[6];
-                    if (evenRow) {
-                        int eSX[] = {m_roadStartX-1, m_roadStartX+1, m_roadStartX-1, m_roadStartX, m_roadStartX-1, m_roadStartX};
-                        int eSY[] = {m_roadStartY, m_roadStartY, m_roadStartY-1, m_roadStartY-1, m_roadStartY+1, m_roadStartY+1};
-                        memcpy(sx, eSX, sizeof(sx)); memcpy(sy, eSY, sizeof(sy));
-                    } else {
-                        int oSX[] = {m_roadStartX-1, m_roadStartX+1, m_roadStartX, m_roadStartX+1, m_roadStartX, m_roadStartX+1};
-                        int oSY[] = {m_roadStartY, m_roadStartY, m_roadStartY-1, m_roadStartY-1, m_roadStartY+1, m_roadStartY+1};
-                        memcpy(sx, oSX, sizeof(sx)); memcpy(sy, oSY, sizeof(sy));
-                    }
-                    for (int di = 0; di < 6; ++di) {
-                        World::Flag* adj = m_flagManager ? m_flagManager->GetFlagAt(sx[di], sy[di]) : NULL;
-                        if (adj) {
-                            _snprintf(dbg, sizeof(dbg), "[RoadDebug] Found adjacent start flag at (%d,%d) id=%u\n",
-                                sx[di], sy[di], adj->id);
-                            OutputDebugStringA(dbg);
-                            startFlag = adj;
-                            break;
-                        }
-                    }
-                }
-            }
-            if (startFlag && endFlag && startFlag != endFlag && m_roadManager) {
-                // Build tile path from preview
-                std::vector<Vector2i> tilePath;
-                for (size_t pi = 0; pi < m_roadPreviewPath.size(); ++pi) {
-                    Vector2i v;
-                    v.x = m_roadPreviewPath[pi].first;
-                    v.y = m_roadPreviewPath[pi].second;
-                    tilePath.push_back(v);
-                }
-                // Create the Road (registers with both flags)
-                World::Road* road = m_roadManager->CreateRoad(startFlag, endFlag, tilePath);
-                if (road) {
-                    char dbg[256];
-                    _snprintf(dbg, sizeof(dbg), "[GameScene] Road %u created: (%d,%d) <-> (%d,%d) tiles=%u\n",
-                        road->id, m_roadStartX, m_roadStartY, endX, endY, (unsigned)road->tileCount);
-                    OutputDebugStringA(dbg);
-                }
-
-                SyncCarriersForFlag(startFlag);
-                SyncCarriersForFlag(endFlag);
-            }
-        }
-
-        // Post Event_RoadBuilt (dispatched by Simulation::Flush)
-        if (m_eventBus) {
-            Core::RoadBuiltData rd;
-            rd.startX = m_roadStartX;
-            rd.startY = m_roadStartY;
-            rd.endX = m_roadPreviewPath.empty() ? -1 : m_roadPreviewPath.back().first;
-            rd.endY = m_roadPreviewPath.empty() ? -1 : m_roadPreviewPath.back().second;
-            rd.tileCount = (int)m_roadPreviewPath.size();
-            m_eventBus->Post(Core::Event_RoadBuilt, rd);
-        }
-
-        m_statusText = "Road built!";
-        m_statusTextTimer = 2.0f;
-        CancelRoad();
-    }
-
-void GameScene::CancelRoad()
-{
-    m_buildState = BUILDSTATE_NONE;
-    m_roadStartX = -1;
-    m_roadStartY = -1;
-    m_roadPreviewPath.clear();
-    m_roadValidNeighbors.clear();
-    m_roadAutoPath.clear();
-}
-
-    static std::vector<Vector2i> FindRoadTilePath(
-        World::Map* map,
-        int startX, int startY, int endX, int endY)
-    {
-        std::vector<Vector2i> result;
-        if (!map) return result;
-        World::TileLayer* roadsLayer = map->GetLayer(World::Roads);
-        if (!roadsLayer) return result;
-
-        int rw = roadsLayer->GetWidth();
-        int rh = roadsLayer->GetHeight();
-        if (startX < 0 || startX >= rw || startY < 0 || startY >= rh) return result;
-        if (endX < 0 || endX >= rw || endY < 0 || endY >= rh) return result;
-
-        std::vector<int> parent(rw * rh, -1);
-        std::queue<std::pair<int,int>> q;
-        q.push(std::make_pair(startX, startY));
-        parent[startY * rw + startX] = -2; // mark visited
-
-        while (!q.empty()) {
-            int cx = q.front().first;
-            int cy = q.front().second;
-            q.pop();
-
-            if (cx == endX && cy == endY) {
-                // Reconstruct path
-                int px = endX, py = endY;
-                while (px != startX || py != startY) {
-                    Vector2i v; v.x = px; v.y = py;
-                    result.push_back(v);
-                    int p = parent[py * rw + px];
-                    px = p & 0xFFFF;
-                    py = (p >> 16) & 0xFFFF;
-                    if (px == startX && py == startY) break;
-                }
-                Vector2i sv; sv.x = startX; sv.y = startY;
-                result.push_back(sv);
-                std::reverse(result.begin(), result.end());
-                return result;
-            }
-
-            bool evenRow = (cy % 2 == 0);
-            int nx[6], ny[6];
-            if (evenRow) {
-                int eNX[] = {cx-1, cx+1, cx-1, cx, cx-1, cx};
-                int eNY[] = {cy, cy, cy-1, cy-1, cy+1, cy+1};
-                memcpy(nx, eNX, sizeof(nx)); memcpy(ny, eNY, sizeof(ny));
-            } else {
-                int oNX[] = {cx-1, cx+1, cx, cx+1, cx, cx+1};
-                int oNY[] = {cy, cy, cy-1, cy-1, cy+1, cy+1};
-                memcpy(nx, oNX, sizeof(nx)); memcpy(ny, oNY, sizeof(ny));
-            }
-            for (int di = 0; di < 6; ++di) {
-                int tx = nx[di], ty = ny[di];
-                if (tx < 0 || tx >= rw || ty < 0 || ty >= rh) continue;
-                if (parent[ty * rw + tx] != -1) continue;
-                const World::Tile& rt = roadsLayer->GetTile(tx, ty);
-                if (rt.atlasName != "streets") continue;
-                parent[ty * rw + tx] = cx | (cy << 16);
-                q.push(std::make_pair(tx, ty));
-            }
-        }
-        return result; // path not found
-    }
-
-    void GameScene::SplitRoadAtFlag(World::Flag* flag)
-    {
-        if (!flag || !m_roadManager || !m_carrierManager) return;
-
-        for (size_t i = 0; i < m_roadManager->GetCount(); ++i) {
-            World::Road* road = m_roadManager->GetRoad(i);
-            if (!road) continue;
-
-            // Check if flag sits on this road (but NOT at either endpoint)
-            int splitIdx = -1;
-            for (uint32_t t = 1; t + 1 < road->tileCount; ++t) {
-                if (road->tiles[t].x == flag->pos.x && road->tiles[t].y == flag->pos.y) {
-                    splitIdx = (int)t;
-                    break;
-                }
-            }
-            if (splitIdx < 0) continue;
-
-            World::Flag* ra = m_flagManager ? m_flagManager->ResolveFlag(road->a) : NULL;
-            World::Flag* rb = m_flagManager ? m_flagManager->ResolveFlag(road->b) : NULL;
-            char dbg[256];
-            _snprintf(dbg, sizeof(dbg),
-                "[RoadSplit] Flag %u(%d,%d) splits road %u: A(%d,%d) -> X -> B(%d,%d) at tile[%d]\n",
-                flag->id, flag->pos.x, flag->pos.y,
-                road->id,
-                ra ? ra->pos.x : -1, ra ? ra->pos.y : -1,
-                rb ? rb->pos.x : -1, rb ? rb->pos.y : -1,
-                splitIdx);
-            OutputDebugStringA(dbg);
-
-            // Save endpoints
-            World::Flag* a = ra;
-            World::Flag* b = rb;
-
-            if (!a || !b) {
-                _snprintf(dbg, sizeof(dbg),
-                    "[RoadSplit] Road %u has unresolvable endpoint, skipping split\n", road->id);
-                OutputDebugStringA(dbg);
-                continue;
-            }
-
-            // Split is not deletion — force-remove the old road (carrier+job cleaned up)
-            // and recreate as two segments; carriers sync onto the new roads.
-            // Build two tile paths: A->X and X->B
-            std::vector<Vector2i> pathAX, pathXB;
-            for (uint32_t t = 0; t <= (uint32_t)splitIdx; ++t)
-                pathAX.push_back(road->tiles[t]);
-            for (uint32_t t = (uint32_t)splitIdx; t < road->tileCount; ++t)
-                pathXB.push_back(road->tiles[t]);
-
-            // Remove old road and its carrier via lifecycle manager
-            m_objectLifecycleManager->ForceDeleteRoad(road);
-
-            // Create two new roads (guarded by GetRoadBetween — safe if already exist)
-            World::Road* ax = m_roadManager->CreateRoad(a, flag, pathAX);
-            World::Road* xb = m_roadManager->CreateRoad(flag, b, pathXB);
-
-            // Sync carriers for new segments only
-            if (ax) m_carrierManager->SyncCarriersForRoad(ax);
-            if (xb) m_carrierManager->SyncCarriersForRoad(xb);
-
-            _snprintf(dbg, sizeof(dbg),
-                "[RoadSplit] Done: road %u (%d,%d)<->(%d,%d) and %u (%d,%d)<->(%d,%d)\n",
-                ax ? ax->id : 0, a->pos.x, a->pos.y, flag->pos.x, flag->pos.y,
-                xb ? xb->id : 0, flag->pos.x, flag->pos.y, b->pos.x, b->pos.y);
-            OutputDebugStringA(dbg);
-
-            return; // only one road can pass through a given position
-        }
-    }
+    // --- BFS road linking used during Load/RestoreBuildingsFromLayer (kept here for init) ----
 
     void GameScene::SyncCarriersForFlag(World::Flag* flag)
     {
@@ -5113,7 +4138,6 @@ void GameScene::CancelRoad()
 
         int rw = roadsLayer->GetWidth();
         int rh = roadsLayer->GetHeight();
-
         // BFS on EXISTING road tiles to find reachable flags and create Road objects
         int roadsCreated = 0;
         {
@@ -5187,115 +4211,13 @@ void GameScene::CancelRoad()
 
         if (flag->roads.empty()) {
             char dbg[256];
-            _snprintf(dbg, sizeof(dbg), "[Graph] LinkFlagToRoadNetwork: flag %u at (%d,%d) isolated — build a road to connect it\n",
+            _snprintf(dbg, sizeof(dbg), "[Graph] LinkFlagToRoadNetwork: flag %u at (%d,%d) isolated - build a road to connect it\n",
                 flag->id, flag->pos.x, flag->pos.y);
             OutputDebugStringA(dbg);
         }
     }
 
-    void GameScene::RebuildRoadSprite(int x, int y)
-    {
-        TextureRegistry& reg = TextureRegistry::instance();
-        std::tr1::shared_ptr<SpriteAtlas> roadsAtlas = reg.getAtlas("streets");
-        if (!roadsAtlas) return;
-        World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
-        if (!roadsLayer) return;
-        CoordinateSystem& coords = CoordinateSystem::GetInstance();
-        int nodesW = coords.GetNodesWidth();
-        int nodesH = coords.GetNodesHeight();
-        if (x < 0 || x >= nodesW || y < 0 || y >= nodesH) return;
-
-        World::Tile& tile = roadsLayer->GetTile(x, y);
-        bool hasRoad = (tile.regionIndex >= 0);
-        if (!hasRoad) return;
-
-        int pattern = CalcPatternAt(x, y, roadsLayer, m_roadPreviewPath);
-
-        int connectionCount = 0;
-        int temp = pattern;
-        while (temp) {
-            connectionCount += temp & 1;
-            temp >>= 1;
-        }
-
-        const char* groupName = NULL;
-        if (connectionCount == 1) {
-            switch (pattern) {
-                case 1:  groupName = "street_end_s"; break;
-                case 2:  groupName = "street_end_w"; break;
-                case 4:  groupName = "street_end_n"; break;
-                case 8:  groupName = "street_end_e"; break;
-                default: groupName = "street_1"; break;
-            }
-        } else {
-            switch (pattern) {
-                case 0:  groupName = "street_1"; break;
-                case 1:  groupName = "street_1"; break;
-                case 2:  groupName = "street_2"; break;
-                case 3:  groupName = "street_3"; break;
-                case 4:  groupName = "street_1"; break;
-                case 5:  groupName = "street_5"; break;
-                case 6:  groupName = "street_6"; break;
-                case 7:  groupName = "street_7"; break;
-                case 8:  groupName = "street_2"; break;
-                case 9:  groupName = "street_9"; break;
-                case 10: groupName = "street_2"; break;
-                case 11: groupName = "street_11"; break;
-                case 12: groupName = "street_12"; break;
-                case 13: groupName = "street_13"; break;
-                case 14: groupName = "street_14"; break;
-                case 15: groupName = "street_15"; break;
-                default: groupName = "street_1"; break;
-            }
-        }
-
-        if (!groupName) {
-            if (pattern == 2 || pattern == 8 || pattern == 10) {
-                groupName = "street_2";
-            } else {
-                groupName = "street_1";
-            }
-        }
-
-        const std::vector<uint32_t>* group = roadsAtlas->GetGroup(groupName);
-        if (!group || group->empty()) {
-            group = roadsAtlas->GetGroup("street_1");
-            if (!group || group->empty()) return;
-        }
-
-        uint32_t regionIdx = (*group)[rand() % group->size()];
-        const SpriteRegion* region = roadsAtlas->GetRegion(regionIdx);
-        if (!region) return;
-
-        tile.u0 = region->u0;
-        tile.v0 = region->v0;
-        tile.u1 = region->u1;
-        tile.v1 = region->v1;
-        tile.regionIndex = (int)regionIdx;
-        tile.atlasName = "streets";
-        tile.walkable = true;
-        tile.buildable = false;
-    }
-
-    void GameScene::UpdateRoadNeighbors(int x, int y)
-    {
-        World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
-        if (!roadsLayer) return;
-        CoordinateSystem& coords = CoordinateSystem::GetInstance();
-        int nodesH = coords.GetNodesHeight();
-        bool evenRow = (y % 2 == 0);
-
-        if (y - 1 >= 0) {
-            RebuildRoadSprite(evenRow ? x : (x - 1), y - 1);
-            RebuildRoadSprite(evenRow ? (x + 1) : x, y - 1);
-        }
-        if (y + 1 < nodesH) {
-            RebuildRoadSprite(evenRow ? x : (x - 1), y + 1);
-            RebuildRoadSprite(evenRow ? (x + 1) : x, y + 1);
-        }
-    }
-
-    // ─── Geologist system ───────────────────────────────────────────────────
+    // --- Geologist system
     void GameScene::ShowGeologistConfirm(int tx, int ty)
     {
         m_geologistState = GEOLOGIST_CONFIRM;
@@ -5723,19 +4645,6 @@ void GameScene::CancelRoad()
         }
 
         // NOTE: geologist popup was removed — results now show in banner
-    }
-
-    // ─── Job function implementations ───────────────────────────────────────
-    static void AIChunkJobFunc(void* data)
-    {
-        AIChunkData* d = (AIChunkData*)data;
-        for (int i = 0; i < d->numTypes; ++i)
-        {
-            if (d->numRequests >= MAX_REQUESTS_PER_CHUNK) break;
-            Logic::BuildRequest req;
-            if (d->ai->PlanBuild(d->types[i], req))
-                d->requests[d->numRequests++] = req;
-        }
     }
 
 } // namespace Scene

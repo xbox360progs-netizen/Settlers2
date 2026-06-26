@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Scene.h"
-#include "../Core/JobManager.h"
 #include "../Core/EventBus.h"
 #include "../Graphics/RenderQueue.h"
 #include "../Graphics/SpriteRenderer.h"
@@ -40,6 +39,9 @@
 #include <string.h>
 #include "../World/UiDefs.h"
 #include "BuildingPlacement.h"
+#include "ConstructionVisualizer.h"
+#include "PlacementController.h"
+#include "RoadController.h"
 
 namespace Scene {
 
@@ -49,18 +51,7 @@ struct EconomyJobData
     World::CarrierManager* carriers;
 };
 
-static const int MAX_REQUESTS_PER_CHUNK = 8;
-
-struct AIChunkData
-{
-    Logic::AISystem* ai;
-    World::BuildingType types[4];
-    int numTypes;
-    Logic::BuildRequest requests[MAX_REQUESTS_PER_CHUNK];
-    int numRequests;
-};
-
-class GameScene : public Scene
+class GameScene : public Scene, public Core::EventListener
 {
 public:
     GameScene();
@@ -72,14 +63,14 @@ public:
     virtual void Update(float deltaTime);
     virtual void Render(Graphics::RenderQueue* renderQueue);
     
+    virtual void OnEvent(Core::EventType type, void* data);
+
     // Setter for renderer (should be called after Initialize)
     void SetRenderer(Renderer* renderer) { m_renderer = renderer; }
     void SetInputManager(Input::InputManager* inputManager) { m_inputManager = inputManager; }
     void SetTextManager(TextManager* textManager) { m_textManager = textManager; }
 
 private:
-    JobManager* m_jobManager;
-
     // ─── Simulation system (owns game logic subsystems) ──────
     World::SimulationSystem m_simulation;
     Core::EventBus* m_eventBus;
@@ -144,28 +135,9 @@ private:
     std::string m_statusText;
     float m_statusTextTimer;
 
-    // Build state machine
-    enum BuildState {
-        BUILDSTATE_NONE,
-        BUILDSTATE_PLACE_FLAG,     // selected building > place flag first
-        BUILDSTATE_PLACE_ROAD,     // building road between flags
-        BUILDSTATE_CONFIRM,        // A on ground/flag > confirm action
-    };
-    enum ConfirmAction {
-        CONFIRM_NONE,
-        CONFIRM_PLACE_FLAG,
-        CONFIRM_START_ROAD,
-        CONFIRM_DELETE_FLAG,    // confirmation before deleting a flag with building
-    };
-    BuildState m_buildState;
-    ConfirmAction m_confirmAction;
-    int m_confirmTargetX;
-    int m_confirmTargetY;
-    World::BuildingType m_selectedBuilding;
-    int m_placementIconIdx;    // UI atlas sprite index for preview at cursor
-    int m_placementConstrIdx;  // Buildings atlas sprite index for construction site
-    std::string m_selectedIconName;
-    BuildingPlacementManager* m_placementManager;
+    // Placement state machine
+    PlacementController m_placement;
+    class BuildingPlacementManager* m_placementManager;
 
     // Flags & Roads
     World::FlagManager* m_flagManager;
@@ -178,6 +150,7 @@ private:
 
     // Construction sites
     World::ConstructionManager* m_constructionManager;
+    ConstructionVisualizer* m_constructionVisualizer;
 
     // Lifecycle
     World::ObjectLifecycleManager* m_objectLifecycleManager;
@@ -186,10 +159,7 @@ private:
     World::WorkerManager* m_workerManager;
 
     // Road building state
-    int m_roadStartX, m_roadStartY;
-    std::vector<std::pair<int,int>> m_roadPreviewPath;
-    std::vector<std::pair<int,int>> m_roadValidNeighbors;
-    std::vector<std::pair<int,int>> m_roadAutoPath;
+    RoadController m_roadController;
 
     // Town hall panel data
     int m_townHallPanelBgIdx;
@@ -238,9 +208,6 @@ private:
         SLOT_FLAG_RESOURCES = 30,
     };
 
-    static bool IsNodeRoad(int nx, int ny, World::TileLayer* roadsLayer, const std::vector<std::pair<int,int>>& previewPath);
-    static int CalcPatternAt(int x, int y, World::TileLayer* roadsLayer, const std::vector<std::pair<int,int>>& previewPath);
-
     void UpdateCursor();
     void RenderCursor(Graphics::RenderQueue* renderQueue);
     void InitBuildMenu();
@@ -248,19 +215,15 @@ private:
     void InitFlagMenu();
     void InitGeologistMenu();
 
+    void HandlePlaceAtCursor();
+    void HandleConfirmFreeFlag();
     bool CanPlaceBuilding(World::BuildingType type, int buildX, int buildY);
-    void PlaceFlag(int tileX, int tileY);
-    void PlaceFreeFlag(int tileX, int tileY);
-    void CreateConstructionSite(World::Flag* flag, int siteX, int siteY);
     void ConfirmConstruction(World::Flag* flag);
     void ConfirmDeleteFlag(int tileX, int tileY);
-    void ClearBuildingFootprint(int startX, int startY, int width, int height);
     void ClearRoadTilesForFlag(World::Flag* flag);
-    const char* GetBuildingName(World::BuildingType type) const;
-    const char* GetBuildingSpriteName(World::BuildingType type) const;
+    void LinkFlagToRoadNetwork(World::Flag* flag);
+    void SyncCarriersForFlag(World::Flag* flag);
     World::BuildingType GetBuildingTypeFromSpriteName(const std::string& name) const;
-    World::ResourceType GetResourceTypeForMine(World::BuildingType buildingType) const;
-    bool IsMineType(World::BuildingType type) const;
 
     void RestoreBuildingsFromLayer();
     void AssignOreDepositsToMountains();
@@ -271,6 +234,16 @@ private:
     void CancelGeologistMenu();
     void RenderGeologistOverlay(Graphics::RenderQueue* renderQueue);
 
+    // Update phase methods (extracted from the monolithic Update())
+    void UpdateCamera(float dt);
+    void UpdateBanner(float dt);
+    void UpdateStatusText(float dt);
+    void UpdateGeologist(float dt);
+    void HandleInput();
+    void UpdateWildlife(float dt);
+    void CollectGroundResources();
+    void CheckConstructionSites();
+
     // Gamepad input & console UI
     void HandleGamepadInput();
     void OnGamepadButton(uint32_t buttons);
@@ -278,29 +251,7 @@ private:
     void UpdateGamepadUI(float dt);
     void PushUiToQueue();
 
-    void StartRoad(int x, int y);
-    void UpdateRoadPreview(int cursorX, int cursorY);
-    void TryAddRoadTile(int x, int y);
-    void CommitRoad();
-    void CancelRoad();
-    void LinkFlagToRoadNetwork(World::Flag* flag);
-    void SplitRoadAtFlag(World::Flag* flag);
-    void SyncCarriersForFlag(World::Flag* flag);
-    void RebuildRoadSprite(int x, int y);
-    void UpdateRoadNeighbors(int x, int y);
     void GetEntranceOffset(const std::string& buildingName, int& outX, int& outY);
-
-    // Construction sprite known-good UV (pixel rect 1022,1883,196,139 in 2048x2048 atlas)
-    static const float CONSTRUCTION_U0;
-    static const float CONSTRUCTION_V0;
-    static const float CONSTRUCTION_U1;
-    static const float CONSTRUCTION_V1;
-    static const uint32_t CONSTRUCTION_ATLAS_W;
-    static const uint32_t CONSTRUCTION_ATLAS_H;
-    static const uint32_t CONSTRUCTION_PIXEL_X;
-    static const uint32_t CONSTRUCTION_PIXEL_Y;
-    static const uint32_t CONSTRUCTION_PIXEL_W;
-    static const uint32_t CONSTRUCTION_PIXEL_H;
 
     // Wildlife regeneration timer
     float m_wildlifeRegenTimer;
@@ -309,7 +260,6 @@ private:
 
     // Job data (reused each frame)
     EconomyJobData m_economyJobData;
-    AIChunkData m_aiChunks[4];
 };
 
 } // namespace Scene

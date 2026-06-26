@@ -2,7 +2,7 @@
 #include "SimulationSystem.h"
 #include "../ConstructionManager.h"
 #include "../CarrierManager.h"
-#include "../CarrierSystem.h"
+#include "CarrierSystem.h"
 #include "../WorkerManager.h"
 #include "../TransportJobManager.h"
 #include "../CargoManager.h"
@@ -14,9 +14,32 @@
 #include "../FlagManager.h"
 #include "../RoadManager.h"
 #include "../../Logic/EconomyManager.h"
+#include "../../Logic/AISystem.h"
 #include "../../Core/EventBus.h"
+#include "../../Core/JobManager.h"
 
 namespace World {
+
+struct AIChunkData
+{
+    Logic::AISystem* ai;
+    BuildingType types[4];
+    int numTypes;
+    Logic::BuildRequest requests[MAX_AI_REQUESTS_PER_CHUNK];
+    int numRequests;
+};
+
+static void AIChunkJobFunc(void* data)
+{
+    AIChunkData* d = static_cast<AIChunkData*>(data);
+    for (int i = 0; i < d->numTypes; ++i)
+    {
+        if (d->numRequests >= MAX_AI_REQUESTS_PER_CHUNK) break;
+        Logic::BuildRequest req;
+        if (d->ai->PlanBuild(d->types[i], req))
+            d->requests[d->numRequests++] = req;
+    }
+}
 
 SimulationSystem::SimulationSystem()
     : m_eventBus(NULL)
@@ -31,11 +54,18 @@ SimulationSystem::SimulationSystem()
     , m_extCargo(NULL)
     , m_extDemand(NULL)
     , m_extStorehouse(NULL)
+    , m_jobManager(NULL)
+    , m_extAi(NULL)
 {
 }
 
 SimulationSystem::~SimulationSystem()
 {
+    if (m_jobManager) {
+        m_jobManager->Shutdown();
+        delete m_jobManager;
+        m_jobManager = NULL;
+    }
 }
 
 void SimulationSystem::SetExternalManagers(
@@ -98,7 +128,7 @@ void SimulationSystem::Initialize(
         m_buildings.Initialize(map, flagManager, m_eventBus);
 
         {
-            BuildContext ctx(flagManager, roadManager, m_extDemand, m_extCargo, warehouseFlag);
+            BuildContext ctx(flagManager, roadManager, m_extDemand, m_extCargo, m_extCarriers, map, warehouseFlag);
             m_construction.Initialize(ctx, m_eventBus);
         }
 
@@ -148,6 +178,44 @@ void SimulationSystem::Update(float dt)
         // Phase 5: Warehouse collection
         if (m_extEconomy) {
             m_extEconomy->CollectWarehouse();
+        }
+
+        // Phase 5B: AI planning (parallel via JobManager when available)
+        if (m_extAi && m_jobManager) {
+            m_extAi->ClearReservations();
+
+            AIChunkData chunks[4];
+            for (int c = 0; c < 4; ++c) {
+                chunks[c].ai = m_extAi;
+                chunks[c].numRequests = 0;
+            }
+            chunks[0].types[0] = Woodcutter;
+            chunks[0].types[1] = Sawmill;
+            chunks[0].types[2] = CoalMine;
+            chunks[0].numTypes = 3;
+
+            chunks[1].types[0] = IronMine;
+            chunks[1].types[1] = IronSmelter;
+            chunks[1].types[2] = ToolWorkshop;
+            chunks[1].numTypes = 3;
+
+            chunks[2].types[0] = Farm;
+            chunks[2].types[1] = Mill;
+            chunks[2].types[2] = Bakery;
+            chunks[2].numTypes = 3;
+
+            chunks[3].types[0] = Hunter;
+            chunks[3].types[1] = Fisher;
+            chunks[3].types[2] = GoldMine;
+            chunks[3].types[3] = GoldSmelter;
+            chunks[3].numTypes = 4;
+
+            for (int c = 0; c < 4; ++c)
+                m_jobManager->Submit(AIChunkJobFunc, &chunks[c]);
+            m_jobManager->WaitAll();
+
+            for (int c = 0; c < 4; ++c)
+                m_extAi->ApplyBuildRequests(chunks[c].requests, chunks[c].numRequests);
         }
 
         // Phase 6: Construction post-update — collect completed sites

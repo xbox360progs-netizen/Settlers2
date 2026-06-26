@@ -19,10 +19,11 @@ namespace World {
     ObjectLifecycleManager::ObjectLifecycleManager(
         FlagManager* fm, RoadManager* rm, CarrierManager* cm,
         CargoManager* cargoMgr, TransportJobManager* jm,
-        ConstructionManager* con, Logic::EconomyManager* em)
+        ConstructionManager* con, Logic::EconomyManager* em,
+        Map* map)
         : m_flagManager(fm), m_roadManager(rm), m_carrierManager(cm),
           m_cargoManager(cargoMgr), m_jobManager(jm),
-          m_constructionManager(con), m_economyManager(em)
+          m_constructionManager(con), m_economyManager(em), m_map(map)
     {}
 
     bool ObjectLifecycleManager::SafeDeleteFlag(Flag* flag) {
@@ -102,5 +103,26 @@ namespace World {
             m_constructionManager->RemoveSiteAt(building->pos.x, building->pos.y);
         }
         delete building;
+    }
+
+    void ObjectLifecycleManager::OnEvent(Core::EventType type, void* data)
+    {
+        if (type == Core::Event_DeleteFlag) {
+            Core::DeleteFlagData* cmd = static_cast<Core::DeleteFlagData*>(data);
+            if (m_flagManager) {
+                Flag* flag = m_flagManager->GetFlagById(cmd->flagId);
+                if (flag) {
+                    ForceDeleteFlag(flag);
+                }
+            }
+        } else if (type == Core::Event_DeleteBuilding) {
+            Core::DeleteBuildingData* cmd = static_cast<Core::DeleteBuildingData*>(data);
+            if (m_flagManager) {
+                Flag* flag = m_flagManager->GetFlagById(cmd->flagId);
+                if (flag && flag->building) {
+                    ForceDeleteBuilding(flag->building, m_map);
+                }
+            }
+        }
     }
 }

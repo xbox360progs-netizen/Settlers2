@@ -6,9 +6,11 @@
 #include "BuildingSystem.h"
 #include "WorldSystem.h"
 #include "../../Core/EventBus.h"
+#include "../../Core/JobManager.h" // JobManager is in global namespace
 
 namespace Logic {
     class EconomyManager;
+    class AISystem;
 }
 
 namespace World {
@@ -75,6 +77,9 @@ public:
 
     Core::EventBus* GetEventBus() { return m_eventBus; }
 
+    void SetJobManager(JobManager* jm) { m_jobManager = jm; }
+    void SetAISystem(Logic::AISystem* ai) { m_extAi = ai; }
+
     bool IsInitialized() const { return m_initialized; }
 
 private:
@@ -99,6 +104,13 @@ private:
     CargoManager* m_extCargo;
     DemandManager* m_extDemand;
     StorehouseManager* m_extStorehouse;
+
+    // Job system (optional, used for parallel AI planning)
+    JobManager* m_jobManager;
+    Logic::AISystem* m_extAi;
 };
+
+/// Maximum number of build requests per AI chunk
+static const int MAX_AI_REQUESTS_PER_CHUNK = 8;
 
 } // namespace World
