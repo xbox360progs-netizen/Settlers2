@@ -7,6 +7,7 @@ namespace Core {
 
 EventBus::EventBus()
     : m_frameEventCount(0)
+    , m_dispatchingCount(0)
 {
     for (int t = 0; t < Event_MAX; ++t) {
         for (int i = 0; i < MAX_LISTENERS_PER_EVENT; ++i) {
@@ -60,11 +61,13 @@ void EventBus::UnregisterAll(EventListener* listener)
 void EventBus::Broadcast(EventType type, void* data)
 {
     if (type < 0 || type >= Event_MAX) return;
+    ++m_dispatchingCount;
     for (int i = 0; i < MAX_LISTENERS_PER_EVENT; ++i) {
         if (m_listeners[type][i].active && m_listeners[type][i].listener) {
             m_listeners[type][i].listener->OnEvent(type, data);
         }
     }
+    --m_dispatchingCount;
 }
 
 bool EventBus::Flush()

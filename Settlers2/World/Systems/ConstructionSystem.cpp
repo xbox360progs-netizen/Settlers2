@@ -9,16 +9,15 @@
 #include "../Map.h"
 #include "../Road.h"
 #include "../../Logic/EconomyManager.h"
-#include "../../Logic/CoordinateSystem.h"
 #include "../../Core/EventBus.h"
-#include <queue>
-#include <algorithm>
+#include "../../Core/CommandBus.h"
 
 namespace World {
 
 ConstructionSystem::ConstructionSystem()
     : m_factory(NULL)
     , m_eventBus(NULL)
+    , m_commandBus(NULL)
     , m_carriers(NULL)
     , m_map(NULL)
     , m_initialized(false)
@@ -31,9 +30,12 @@ ConstructionSystem::~ConstructionSystem()
     if (m_eventBus) {
         m_eventBus->UnregisterAll(this);
     }
+    if (m_commandBus) {
+        m_commandBus->UnregisterAll(this);
+    }
 }
 
-void ConstructionSystem::Initialize(const BuildContext& ctx, Core::EventBus* eventBus)
+void ConstructionSystem::Initialize(const BuildContext& ctx, Core::EventBus* eventBus, Core::CommandBus* commandBus)
 {
     m_factory.SetFlagManager(ctx.flags);
     m_manager.SetFlagManager(ctx.flags);
@@ -41,14 +43,17 @@ void ConstructionSystem::Initialize(const BuildContext& ctx, Core::EventBus* eve
     m_manager.SetDemandManager(ctx.demand);
     m_manager.SetWarehouseFlag(ctx.warehouse);
     m_eventBus = eventBus;
+    m_commandBus = commandBus;
     m_carriers = ctx.carriers;
     m_map = ctx.map;
+    m_relinker.SetManagers(ctx.map, ctx.flags, ctx.roads, ctx.carriers);
 
     if (m_eventBus) {
-        m_eventBus->Register(Core::Event_FlagDeleted, this);
-        m_eventBus->Register(Core::Event_RemoveConstructionSite, this);
         m_eventBus->Register(Core::Event_FlagTopologyChanged, this);
-        m_eventBus->Register(Core::Event_PlaceFlag, this);
+    }
+    if (m_commandBus) {
+        m_commandBus->Register(Core::Cmd_PlaceFlag, this);
+        m_commandBus->Register(Core::Cmd_RemoveConstructionSite, this);
     }
 
     m_initialized = true;
@@ -160,7 +165,7 @@ void ConstructionSystem::PostUpdate()
     }
 }
 
-void ConstructionSystem::HandlePlaceFlag(const Core::PlaceFlagData& cmd)
+void ConstructionSystem::HandlePlaceFlag(const Core::PlaceFlagCmd& cmd)
 {
     FlagManager* flagManager = m_manager.GetFlagManager();
     RoadManager* roadManager = m_manager.GetRoadManager();
@@ -181,8 +186,8 @@ void ConstructionSystem::HandlePlaceFlag(const Core::PlaceFlagData& cmd)
     // Split any road that passes through this flag position
     SplitRoadAtFlag(flag);
 
-    LinkFlagToRoadNetwork(flag);
-    SyncCarriersForFlag(flag);
+    m_relinker.RebuildFromFlag(flag);
+    m_relinker.SyncCarriers(flag, m_manager.GetWarehouseFlag());
 
     // For non-free flags, enqueue construction
     if (!cmd.isFreeFlag && cmd.buildingType != World::Building_None) {
@@ -256,116 +261,20 @@ void ConstructionSystem::SplitRoadAtFlag(Flag* flag)
     }
 }
 
-void ConstructionSystem::LinkFlagToRoadNetwork(Flag* flag)
-{
-    FlagManager* flagManager = m_manager.GetFlagManager();
-    RoadManager* roadManager = m_manager.GetRoadManager();
-    if (!flag || !m_map || !flagManager || !roadManager) return;
-
-    TileLayer* roadsLayer = m_map->GetLayer(LayerType::Roads);
-    if (!roadsLayer) return;
-
-    int rw = roadsLayer->GetWidth();
-    int rh = roadsLayer->GetHeight();
-
-    int roadsCreated = 0;
-    {
-        std::vector<bool> visited(rw * rh, false);
-        std::queue<std::pair<int,int>> q;
-        std::vector<int> parent(rw * rh, -1);
-        q.push(std::make_pair(flag->pos.x, flag->pos.y));
-        visited[flag->pos.y * rw + flag->pos.x] = true;
-        parent[flag->pos.y * rw + flag->pos.x] = -2;
-
-        while (!q.empty()) {
-            int cx = q.front().first;
-            int cy = q.front().second;
-            q.pop();
-
-            Flag* other = (cx == flag->pos.x && cy == flag->pos.y) ? NULL : flagManager->GetFlagAt(cx, cy);
-            if (other) {
-                if (!roadManager->GetRoadBetween(flag, other)) {
-                    std::vector<Vector2i> tilePath;
-                    int px = cx, py = cy;
-                    while (px != flag->pos.x || py != flag->pos.y) {
-                        Vector2i v; v.x = px; v.y = py;
-                        tilePath.push_back(v);
-                        int p = parent[py * rw + px];
-                        px = p & 0xFFFF;
-                        py = (p >> 16) & 0xFFFF;
-                    }
-                    Vector2i sv; sv.x = flag->pos.x; sv.y = flag->pos.y;
-                    tilePath.push_back(sv);
-                    std::reverse(tilePath.begin(), tilePath.end());
-                    roadManager->CreateRoad(flag, other, tilePath);
-                    roadsCreated++;
-                }
-                continue;
-            }
-
-            bool evenRow = (cy % 2 == 0);
-            int nx[6], ny[6];
-            if (evenRow) {
-                int eNX[] = {cx-1, cx+1, cx-1, cx, cx-1, cx};
-                int eNY[] = {cy, cy, cy-1, cy-1, cy+1, cy+1};
-                memcpy(nx, eNX, sizeof(nx));
-                memcpy(ny, eNY, sizeof(ny));
-            } else {
-                int oNX[] = {cx-1, cx+1, cx, cx+1, cx, cx+1};
-                int oNY[] = {cy, cy, cy-1, cy-1, cy+1, cy+1};
-                memcpy(nx, oNX, sizeof(nx));
-                memcpy(ny, oNY, sizeof(ny));
-            }
-            for (int di = 0; di < 6; ++di) {
-                int tx = nx[di];
-                int ty = ny[di];
-                if (tx < 0 || tx >= rw || ty < 0 || ty >= rh) continue;
-                if (visited[ty * rw + tx]) continue;
-                const Tile& rt = roadsLayer->GetTile(tx, ty);
-                if (rt.atlasName != "streets") continue;
-                visited[ty * rw + tx] = true;
-                parent[ty * rw + tx] = cx | (cy << 16);
-                q.push(std::make_pair(tx, ty));
-            }
-        }
-    }
-}
-
-void ConstructionSystem::SyncCarriersForFlag(Flag* flag)
-{
-    RoadManager* roadManager = m_manager.GetRoadManager();
-    FlagManager* flagManager = m_manager.GetFlagManager();
-    if (!flag || !m_carriers || !roadManager) return;
-
-    Flag* wh = m_manager.GetWarehouseFlag();
-    bool connected = false;
-    if (wh && flag == wh) {
-        connected = true;
-    } else if (wh) {
-        connected = (roadManager->FindFlagPath(wh, flag).size() >= 2);
-    }
-    if (!connected) return;
-
-    for (size_t i = 0; i < flag->roads.size(); ++i) {
-        Road* road = flag->roads[i];
-        if (!road) continue;
-        if (road->tileCount < 2) continue;
-        if (m_carriers->GetCarrierForRoad(road)) continue;
-        m_carriers->CreateCarrier(road);
-        if (!m_carriers->GetCarrierForRoad(road)) continue;
-        Flag* rra = flagManager ? flagManager->ResolveFlag(road->a) : NULL;
-        Flag* rrb = flagManager ? flagManager->ResolveFlag(road->b) : NULL;
-        Flag* other = (rra == flag) ? rrb : rra;
-        if (other) {
-            SyncCarriersForFlag(other);
-        }
-    }
-}
-
 void ConstructionSystem::OnEvent(Core::EventType type, void* data)
 {
-    if (type == Core::Event_RemoveConstructionSite) {
-        Core::RemoveConstructionSiteData* cmd = static_cast<Core::RemoveConstructionSiteData*>(data);
+    if (type == Core::Event_FlagTopologyChanged) {
+        m_manager.MarkBuilderRoutesDirty();
+    }
+}
+
+void ConstructionSystem::OnCommand(Core::CommandType type, void* data)
+{
+    if (type == Core::Cmd_PlaceFlag) {
+        Core::PlaceFlagCmd* cmd = static_cast<Core::PlaceFlagCmd*>(data);
+        HandlePlaceFlag(*cmd);
+    } else if (type == Core::Cmd_RemoveConstructionSite) {
+        Core::RemoveConstructionSiteCmd* cmd = static_cast<Core::RemoveConstructionSiteCmd*>(data);
         const std::vector<ConstructionSite*>& sites = m_manager.GetAllSites();
         for (size_t i = 0; i < sites.size(); ++i) {
             if (sites[i]->id == cmd->siteId) {
@@ -373,11 +282,6 @@ void ConstructionSystem::OnEvent(Core::EventType type, void* data)
                 break;
             }
         }
-    } else if (type == Core::Event_FlagTopologyChanged) {
-        m_manager.MarkBuilderRoutesDirty();
-    } else if (type == Core::Event_PlaceFlag) {
-        Core::PlaceFlagData* cmd = static_cast<Core::PlaceFlagData*>(data);
-        HandlePlaceFlag(*cmd);
     }
 }
 

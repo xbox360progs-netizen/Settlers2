@@ -98,13 +98,19 @@ void SimulationSystem::Initialize(
     RoadManager* roadManager,
     Flag* warehouseFlag,
     Warehouse* warehouse,
-    Core::EventBus* eventBus)
+    Core::EventBus* eventBus,
+    Core::CommandBus* commandBus)
 {
     m_eventBus = eventBus;
+    m_commandBus = commandBus;
 
     if (!m_eventBus) {
         m_eventBus = new Core::EventBus();
     }
+    if (!m_commandBus) {
+        m_commandBus = new Core::CommandBus();
+    }
+    m_commandBus->SetEventBus(m_eventBus);
 
     if (m_externalMode) {
         // Wire external EconomyManager into the EconomySystem wrapper
@@ -129,7 +135,7 @@ void SimulationSystem::Initialize(
 
         {
             BuildContext ctx(flagManager, roadManager, m_extDemand, m_extCargo, m_extCarriers, map, warehouseFlag);
-            m_construction.Initialize(ctx, m_eventBus);
+            m_construction.Initialize(ctx, m_eventBus, m_commandBus);
         }
 
         // Initialize WorldSystem
@@ -218,10 +224,17 @@ void SimulationSystem::Update(float dt)
                 m_extAi->ApplyBuildRequests(chunks[c].requests, chunks[c].numRequests);
         }
 
-        // Phase 6: Construction post-update — collect completed sites
+        // Phase 6: Command dispatch — drain all pending commands first.
+        // Commands represent intent (PlaceFlag, DeleteFlag) and mutate world state.
+        // They must be consumed before events are dispatched.
+        if (m_commandBus) {
+            while (m_commandBus->Flush()) { }
+        }
+
+        // Phase 7: Construction post-update — collect completed sites
         m_construction.PostUpdate();
 
-        // Phase 7: Event dispatch — drain all pending events
+        // Phase 8: Event dispatch — drain all pending events
         // Loop ensures cascading events from listeners are delivered within
         // the same frame.  Flush returns false when the queue is empty.
         // Depth guard inside Flush() prevents runaway recursion when a
@@ -230,7 +243,7 @@ void SimulationSystem::Update(float dt)
             while (m_eventBus->Flush()) { }
         }
 
-        // Phase 8: World — tree growth, wildlife regeneration
+        // Phase 9: World — tree growth, wildlife regeneration
         m_world.Update(dt);
     } else {
         // Owned mode (future: SimulationSystem owns managers directly)
@@ -240,6 +253,11 @@ void SimulationSystem::Update(float dt)
         m_workforce.Update(dt);
         m_transport.Update(dt);
         m_economy.CollectWarehouse();
+
+        // Command dispatch
+        if (m_commandBus) {
+            while (m_commandBus->Flush()) { }
+        }
 
         // Event dispatch
         if (m_eventBus) {

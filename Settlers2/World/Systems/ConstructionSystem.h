@@ -1,8 +1,10 @@
 #pragma once
 #include "ConstructionFactory.h"
+#include "RoadNetworkRelinker.h"
 #include "BuildContext.h"
 #include "../ConstructionManager.h"
 #include "../../Core/EventBus.h"
+#include "../../Core/CommandBus.h"
 
 namespace Logic { class EconomyManager; }
 class CarrierManager;
@@ -10,12 +12,12 @@ class Map;
 
 namespace World {
 
-class ConstructionSystem : public Core::EventListener {
+class ConstructionSystem : public Core::EventListener, public Core::CommandListener {
 public:
     ConstructionSystem();
     ~ConstructionSystem();
 
-    void Initialize(const BuildContext& ctx, Core::EventBus* eventBus);
+    void Initialize(const BuildContext& ctx, Core::EventBus* eventBus, Core::CommandBus* commandBus);
 
     void Enqueue(const BuildCommand& cmd);
 
@@ -38,17 +40,20 @@ public:
 
     ConstructionManager* GetManager() { return &m_manager; }
 
+    RoadNetworkRelinker* GetRelinker() { return &m_relinker; }
+
     virtual void OnEvent(Core::EventType type, void* data);
+    virtual void OnCommand(Core::CommandType type, void* data);
 
 private:
-    void HandlePlaceFlag(const Core::PlaceFlagData& cmd);
+    void HandlePlaceFlag(const Core::PlaceFlagCmd& cmd);
     void SplitRoadAtFlag(Flag* flag);
-    void LinkFlagToRoadNetwork(Flag* flag);
-    void SyncCarriersForFlag(Flag* flag);
 
     ConstructionManager m_manager;
     ConstructionFactory m_factory;
+    RoadNetworkRelinker m_relinker;
     Core::EventBus* m_eventBus;
+    Core::CommandBus* m_commandBus;
     CarrierManager* m_carriers;
     Map* m_map;
     bool m_initialized;

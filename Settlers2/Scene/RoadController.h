@@ -11,6 +11,7 @@ namespace World {
     class CarrierManager;
     class Flag;
     class TileLayer;
+    class RoadNetworkRelinker;
 }
 
 namespace Core {
@@ -35,6 +36,7 @@ public:
         class World::ConstructionManager* constructionMgr
     );
     void SetPlacementController(PlacementController* pc);
+    void SetRelinker(World::RoadNetworkRelinker* relinker);
 
     bool IsActive() const;
 
@@ -82,9 +84,11 @@ private:
     Core::EventBus* m_eventBus;
     class World::ObjectLifecycleManager* m_lifecycleMgr;
     class World::ConstructionManager* m_constructionMgr;
+    class World::RoadNetworkRelinker* m_relinker;
     PlacementController* m_placementCtrl;
 
     // Internal helpers
+    void SplitAtFlag(World::Flag* flag);
     bool IsNodeRoad(int nx, int ny, World::TileLayer* roadsLayer) const;
     int CalcPatternAt(int x, int y, World::TileLayer* roadsLayer) const;
 

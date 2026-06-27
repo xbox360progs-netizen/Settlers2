@@ -30,6 +30,7 @@ namespace Scene {
         , m_eventBus(NULL)
         , m_lifecycleMgr(NULL)
         , m_constructionMgr(NULL)
+        , m_relinker(NULL)
         , m_placementCtrl(NULL)
     {
     }
@@ -55,6 +56,11 @@ namespace Scene {
     void RoadController::SetPlacementController(PlacementController* pc)
     {
         m_placementCtrl = pc;
+    }
+
+    void RoadController::SetRelinker(World::RoadNetworkRelinker* relinker)
+    {
+        m_relinker = relinker;
     }
 
     bool RoadController::IsActive() const { return m_active; }
@@ -517,8 +523,11 @@ namespace Scene {
                         road->id, m_startX, m_startY, endX, endY);
                     OutputDebugStringA(dbg);
                 }
-                SyncCarriers(startFlag);
-                SyncCarriers(endFlag);
+                if (m_relinker) {
+                    World::Flag* wh = m_constructionMgr ? m_constructionMgr->GetWarehouseFlag() : NULL;
+                    m_relinker->SyncCarriers(startFlag, wh);
+                    m_relinker->SyncCarriers(endFlag, wh);
+                }
             }
         }
 
@@ -702,87 +711,6 @@ namespace Scene {
             if (xb) m_carrierManager->SyncCarriersForRoad(xb);
 
             return;
-        }
-    }
-
-    void RoadController::SyncCarriers(World::Flag* flag)
-    {
-        if (!flag || !m_carrierManager || !m_roadManager) return;
-
-        World::Flag* wh = m_constructionMgr ? m_constructionMgr->GetWarehouseFlag() : NULL;
-        bool connected = false;
-        if (wh && flag == wh) {
-            connected = true;
-        } else if (wh) {
-            connected = (m_roadManager->FindFlagPath(wh, flag).size() >= 2);
-        }
-
-        if (!connected) return;
-
-        for (size_t i = 0; i < flag->roads.size(); ++i) {
-            World::Road* road = flag->roads[i];
-            if (!road) continue;
-            if (road->tileCount < 2) continue;
-            if (m_carrierManager->GetCarrierForRoad(road)) continue;
-            m_carrierManager->CreateCarrier(road);
-            if (!m_carrierManager->GetCarrierForRoad(road)) continue;
-            World::Flag* rra = m_flagManager ? m_flagManager->ResolveFlag(road->a) : NULL;
-            World::Flag* rrb = m_flagManager ? m_flagManager->ResolveFlag(road->b) : NULL;
-            World::Flag* other = (rra == flag) ? rrb : rra;
-            if (other) {
-                SyncCarriers(other);
-            }
-        }
-    }
-
-    void RoadController::LinkToNetwork(World::Flag* flag)
-    {
-        if (!flag || !m_flagManager || !m_roadManager) return;
-
-        CoordinateSystem& coords = CoordinateSystem::GetInstance();
-        int nodesW = coords.GetNodesWidth();
-        bool evenRow = (flag->pos.y % 2 == 0);
-        for (int dir = 0; dir < 6; ++dir) {
-            int nx, ny;
-            if (evenRow) {
-                int eNX[] = {flag->pos.x-1, flag->pos.x+1, flag->pos.x-1, flag->pos.x, flag->pos.x-1, flag->pos.x};
-                int eNY[] = {flag->pos.y, flag->pos.y, flag->pos.y-1, flag->pos.y-1, flag->pos.y+1, flag->pos.y+1};
-                nx = eNX[dir]; ny = eNY[dir];
-            } else {
-                int oNX[] = {flag->pos.x-1, flag->pos.x+1, flag->pos.x, flag->pos.x+1, flag->pos.x, flag->pos.x+1};
-                int oNY[] = {flag->pos.y, flag->pos.y, flag->pos.y-1, flag->pos.y-1, flag->pos.y+1, flag->pos.y+1};
-                nx = oNX[dir]; ny = oNY[dir];
-            }
-            if (nx < 0 || nx >= nodesW) continue;
-            if (ny < 0 || ny >= nodesH) continue;
-
-            int destWeight = m_map->GetNodeWeight(nx, ny);
-            if (destWeight == 0 || destWeight == 3) continue;
-
-            std::vector<Vector2i> path = FindTilePath(m_map, flag->pos.x, flag->pos.y, nx, ny);
-            if (path.empty() || path.size() > 3) continue;
-
-            World::Flag* destFlag = m_flagManager ? m_flagManager->GetFlagAt(nx, ny) : NULL;
-            if (!destFlag) continue;
-
-            World::Road* existing = m_roadManager->GetRoadBetween(flag, destFlag);
-            if (existing) continue;
-
-            // Check that the road doesn't pass through other flags
-            bool passesThroughFlag = false;
-            for (size_t ti = 0; ti < path.size(); ++ti) {
-                if (path[ti].x == flag->pos.x && path[ti].y == flag->pos.y) continue;
-                if (path[ti].x == destFlag->pos.x && path[ti].y == destFlag->pos.y) continue;
-                if (m_flagManager->GetFlagAt(path[ti].x, path[ti].y)) {
-                    passesThroughFlag = true; break;
-                }
-            }
-            if (passesThroughFlag) continue;
-
-            World::Road* road = m_roadManager->CreateRoad(flag, destFlag, path);
-            if (road) {
-                m_carrierManager->SyncCarriersForRoad(road);
-            }
         }
     }
 

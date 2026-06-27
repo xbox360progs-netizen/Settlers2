@@ -29,6 +29,7 @@ namespace Scene {
     GameScene::GameScene()
         : Scene("Game")
         , m_eventBus(NULL)
+        , m_commandBus(NULL)
         , m_transportJobManager(NULL)
         , m_map(NULL)
         , m_entityManager(NULL)
@@ -281,7 +282,9 @@ namespace Scene {
         // Set up EventBus (foundation for decoupled communication)
         OutputDebugStringA("[GameScene::Load] Creating EventBus\n");
         m_eventBus = new Core::EventBus();
-        OutputDebugStringA("[GameScene::Load] EventBus ready\n");
+        m_commandBus = new Core::CommandBus();
+        m_commandBus->SetEventBus(m_eventBus);
+        OutputDebugStringA("[GameScene::Load] EventBus + CommandBus ready\n");
 
         // Set up ECS + wildlife system
         OutputDebugStringA("[GameScene::Load] Creating ECS wildlife\n");
@@ -541,7 +544,20 @@ namespace Scene {
                 m_roadManager,
                 whFlag,
                 m_economyManager ? m_economyManager->GetWarehouse() : NULL,
-                m_eventBus);
+                m_eventBus,
+                m_commandBus);
+
+            // Initialize RoadController and RoadNetworkRelinker
+            m_relinker.SetManagers(m_map, m_flagManager, m_roadManager, m_carrierManager);
+            m_roadController.SetExternalManagers(
+                m_map,
+                m_flagManager,
+                m_roadManager,
+                m_carrierManager,
+                m_eventBus,
+                m_objectLifecycleManager,
+                m_constructionManager);
+            m_roadController.SetRelinker(&m_relinker);
 
             // Set up JobManager for parallel AI planning
             {
@@ -572,9 +588,10 @@ namespace Scene {
         m_objectLifecycleManager = new World::ObjectLifecycleManager(
             m_flagManager, m_roadManager, m_carrierManager, m_cargoManager,
             m_transportJobManager, m_constructionManager, m_economyManager, m_map);
-        if (m_eventBus && m_objectLifecycleManager) {
-            m_eventBus->Register(Core::Event_DeleteFlag, m_objectLifecycleManager);
-            m_eventBus->Register(Core::Event_DeleteBuilding, m_objectLifecycleManager);
+        if (m_objectLifecycleManager) {
+            m_objectLifecycleManager->SetEventBus(m_eventBus);
+            m_commandBus->Register(Core::Cmd_DeleteFlag, m_objectLifecycleManager);
+            m_commandBus->Register(Core::Cmd_DeleteBuilding, m_objectLifecycleManager);
         }
         OutputDebugStringA("[GameScene::Load] ObjectLifecycleManager ready\n");
 
@@ -876,7 +893,7 @@ namespace Scene {
             }
 
             // Connect HQ flag to any existing road network
-            LinkFlagToRoadNetwork(hqFlag);
+            m_relinker.RebuildFromFlag(hqFlag);
 
             // Seed warehouse with starting resources
             warehouse->AddResource(World::ResourceType_Wood, 500);
@@ -923,7 +940,7 @@ namespace Scene {
             }
 
             // Sync carriers for HQ flag (Settlers 2: per-segment walking)
-            SyncCarriersForFlag(hqFlag);
+            m_relinker.SyncCarriers(hqFlag);
 
             // ─── Startup diagnostics ───────────────────────────────────
             {
@@ -1014,7 +1031,7 @@ void GameScene::Unload()
             m_constructionVisualizer = NULL;
         }
         if (m_objectLifecycleManager) {
-        if (m_eventBus) m_eventBus->UnregisterAll(m_objectLifecycleManager);
+        if (m_commandBus) m_commandBus->UnregisterAll(m_objectLifecycleManager);
         delete m_objectLifecycleManager;
         m_objectLifecycleManager = NULL;
     }
@@ -1031,6 +1048,10 @@ void GameScene::Unload()
     if (m_eventBus) {
         delete m_eventBus;
         m_eventBus = NULL;
+    }
+    if (m_commandBus) {
+        delete m_commandBus;
+        m_commandBus = NULL;
     }
 
     if (m_buildMenu) {
@@ -1399,9 +1420,9 @@ void GameScene::HandleInput()
                                 } else {
                                     ClearRoadTilesForFlag(f);
                                     if (m_eventBus) {
-                                        Core::DeleteFlagData dfd;
+                                        Core::DeleteFlagCmd dfd;
                                         dfd.flagId = f->id;
-                                        m_eventBus->Post(Core::Event_DeleteFlag, dfd);
+                                        m_commandBus->Post(Core::Cmd_DeleteFlag, dfd);
                                     }
                                     m_statusText = "Flag removed!";
                                     m_statusTextTimer = 2.0f;
@@ -1583,10 +1604,10 @@ void GameScene::CheckConstructionSites()
         if (!s->flag->hasBuilding) {
             ConfirmConstruction(s->flag);
         }
-        if (s->builderState == World::Builder_None && m_eventBus) {
-            Core::RemoveConstructionSiteData cmd;
+        if (s->builderState == World::Builder_None && m_commandBus) {
+            Core::RemoveConstructionSiteCmd cmd;
             cmd.siteId = s->id;
-            m_eventBus->Post(Core::Event_RemoveConstructionSite, cmd);
+            m_commandBus->Post(Core::Cmd_RemoveConstructionSite, cmd);
         }
     }
 }
@@ -3395,8 +3416,8 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
             return;
         }
 
-        if (m_eventBus) {
-            Core::PlaceFlagData pfd;
+        if (m_commandBus) {
+            Core::PlaceFlagCmd pfd;
             pfd.tileX = req.flagX;
             pfd.tileY = req.flagY;
             pfd.buildingType = req.type;
@@ -3404,7 +3425,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
             pfd.buildX = req.buildX;
             pfd.buildY = req.buildY;
             pfd.autoConnectRoad = true;
-            m_eventBus->Post(Core::Event_PlaceFlag, pfd);
+            m_commandBus->Post(Core::Cmd_PlaceFlag, pfd);
         }
 
         m_placement.Cancel();
@@ -3435,8 +3456,8 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
 
         if (m_flagManager->GetFlagAt(tileX, tileY)) return;
 
-        if (m_eventBus) {
-            Core::PlaceFlagData pfd;
+        if (m_commandBus) {
+            Core::PlaceFlagCmd pfd;
             pfd.tileX = tileX;
             pfd.tileY = tileY;
             pfd.buildingType = World::Building_None;
@@ -3444,7 +3465,9 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
             pfd.buildX = 0;
             pfd.buildY = 0;
             pfd.autoConnectRoad = false;
-            m_eventBus->Post(Core::Event_PlaceFlag, pfd);
+            m_commandBus->Post(Core::Cmd_PlaceFlag, pfd);
+        }
+        if (m_eventBus) {
             m_eventBus->Post(Core::Event_FlagTopologyChanged);
         }
 
@@ -3767,8 +3790,8 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                 }
 
                 m_economyManager->AddBuilding(building);
-                LinkFlagToRoadNetwork(flag);
-                SyncCarriersForFlag(flag);
+                m_relinker.RebuildFromFlag(flag);
+                m_relinker.SyncCarriers(flag);
 
                 char dbg[256];
                 _snprintf(dbg, sizeof(dbg), "[Restore] %s at (%d,%d) flag=(%d,%d)%s\n",
@@ -4042,24 +4065,24 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
                 }
             }
 
-            // Post events for building/site deletion (actual logic handled by listeners)
+            // Post commands for building/site deletion (actual logic handled by listeners)
             if (flag->building) {
-                if (m_eventBus) {
-                    Core::DeleteBuildingData bd;
+                if (m_commandBus) {
+                    Core::DeleteBuildingCmd bd;
                     bd.flagId = flag->id;
-                    m_eventBus->Post(Core::Event_DeleteBuilding, bd);
+                    m_commandBus->Post(Core::Cmd_DeleteBuilding, bd);
                 }
                 flag->building = NULL;
                 flag->hasBuilding = false;
             }
 
             if (flag->pendingBuilding != World::Building_None) {
-                if (m_eventBus && m_constructionManager) {
+                if (m_commandBus && m_constructionManager) {
                     World::ConstructionSite* site = m_constructionManager->GetSiteAt(buildX, buildY);
                     if (site) {
-                        Core::RemoveConstructionSiteData rd;
+                        Core::RemoveConstructionSiteCmd rd;
                         rd.siteId = site->id;
-                        m_eventBus->Post(Core::Event_RemoveConstructionSite, rd);
+                        m_commandBus->Post(Core::Cmd_RemoveConstructionSite, rd);
                     }
                 }
                 flag->pendingBuilding = World::Building_None;
@@ -4068,10 +4091,10 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
 
         // Remove visual road tiles, then post delete flag command
         ClearRoadTilesForFlag(flag);
-        if (m_eventBus) {
-            Core::DeleteFlagData dfd;
+        if (m_commandBus) {
+            Core::DeleteFlagCmd dfd;
             dfd.flagId = flag->id;
-            m_eventBus->Post(Core::Event_DeleteFlag, dfd);
+            m_commandBus->Post(Core::Cmd_DeleteFlag, dfd);
         }
 
         m_statusText = "Building and flag deleted!";
@@ -4083,139 +4106,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
 
     // ─── Road building delegated to m_roadController
 
-    // --- BFS road linking used during Load/RestoreBuildingsFromLayer (kept here for init) ----
-
-    void GameScene::SyncCarriersForFlag(World::Flag* flag)
-    {
-        if (!flag || !m_carrierManager || !m_roadManager) return;
-
-        // Carriers only spawn on roads connected to the warehouse/town hall
-        World::Flag* wh = m_constructionManager ? m_constructionManager->GetWarehouseFlag() : NULL;
-        bool connected = false;
-        if (wh && flag == wh) {
-            connected = true;
-        } else if (wh) {
-            connected = (m_roadManager->FindFlagPath(wh, flag).size() >= 2);
-        }
-        // If no warehouse exists yet, no carriers are created (safe — early in init)
-
-        char dbg[256];
-        _snprintf(dbg, sizeof(dbg), "[SyncCarriers] Flag %u (%d,%d) roads=%u %s\n",
-            flag->id, flag->pos.x, flag->pos.y, (unsigned)flag->roads.size(),
-            connected ? "(connected)" : "(isolated — no carriers)");
-        OutputDebugStringA(dbg);
-        if (!connected) return;
-
-        for (size_t i = 0; i < flag->roads.size(); ++i) {
-            World::Road* road = flag->roads[i];
-            if (!road) continue;
-            if (road->tileCount < 2) continue;
-            if (m_carrierManager->GetCarrierForRoad(road)) continue;
-            m_carrierManager->CreateCarrier(road);
-            // Only proceed if carrier was actually created
-            if (!m_carrierManager->GetCarrierForRoad(road)) continue;
-            World::Flag* rra = m_flagManager ? m_flagManager->ResolveFlag(road->a) : NULL;
-            World::Flag* rrb = m_flagManager ? m_flagManager->ResolveFlag(road->b) : NULL;
-            World::Flag* other = (rra == flag) ? rrb : rra;
-            _snprintf(dbg, sizeof(dbg), "[Carrier] Created: road %u flag %u (%d,%d) <-> %u (%d,%d) tiles=%u\n",
-                road->id, flag->id, flag->pos.x, flag->pos.y,
-                other ? other->id : 0, other ? other->pos.x : -1, other ? other->pos.y : -1,
-                (unsigned)road->tileCount);
-            OutputDebugStringA(dbg);
-            // Propagate to the other endpoint to cover chains of newly connected roads
-            if (other) {
-                SyncCarriersForFlag(other);
-            }
-        }
-    }
-
-    void GameScene::LinkFlagToRoadNetwork(World::Flag* flag)
-    {
-        if (!flag || !m_map || !m_flagManager || !m_roadManager) return;
-
-        World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
-        if (!roadsLayer) return;
-
-        int rw = roadsLayer->GetWidth();
-        int rh = roadsLayer->GetHeight();
-        // BFS on EXISTING road tiles to find reachable flags and create Road objects
-        int roadsCreated = 0;
-        {
-            std::vector<bool> visited(rw * rh, false);
-            std::queue<std::pair<int,int>> q;
-            std::vector<int> parent(rw * rh, -1);
-            q.push(std::make_pair(flag->pos.x, flag->pos.y));
-            visited[flag->pos.y * rw + flag->pos.x] = true;
-            parent[flag->pos.y * rw + flag->pos.x] = -2;
-
-            while (!q.empty()) {
-                int cx = q.front().first;
-                int cy = q.front().second;
-                q.pop();
-
-                World::Flag* other = (cx == flag->pos.x && cy == flag->pos.y) ? NULL : m_flagManager->GetFlagAt(cx, cy);
-                if (other) {
-                    if (!m_roadManager->GetRoadBetween(flag, other)) {
-                        // Reconstruct tile path from BFS parent chain
-                        std::vector<Vector2i> tilePath;
-                        int px = cx, py = cy;
-                        while (px != flag->pos.x || py != flag->pos.y) {
-                            Vector2i v; v.x = px; v.y = py;
-                            tilePath.push_back(v);
-                            int p = parent[py * rw + px];
-                            px = p & 0xFFFF;
-                            py = (p >> 16) & 0xFFFF;
-                        }
-                        Vector2i sv; sv.x = flag->pos.x; sv.y = flag->pos.y;
-                        tilePath.push_back(sv);
-                        std::reverse(tilePath.begin(), tilePath.end());
-                        m_roadManager->CreateRoad(flag, other, tilePath);
-                        roadsCreated++;
-                    }
-                    continue;
-                }
-
-                bool evenRow = (cy % 2 == 0);
-                int nx[6], ny[6];
-                if (evenRow) {
-                    int eNX[] = {cx-1, cx+1, cx-1, cx, cx-1, cx};
-                    int eNY[] = {cy, cy, cy-1, cy-1, cy+1, cy+1};
-                    memcpy(nx, eNX, sizeof(nx));
-                    memcpy(ny, eNY, sizeof(ny));
-                } else {
-                    int oNX[] = {cx-1, cx+1, cx, cx+1, cx, cx+1};
-                    int oNY[] = {cy, cy, cy-1, cy-1, cy+1, cy+1};
-                    memcpy(nx, oNX, sizeof(nx));
-                    memcpy(ny, oNY, sizeof(ny));
-                }
-                for (int di = 0; di < 6; ++di) {
-                    int tx = nx[di];
-                    int ty = ny[di];
-                    if (tx < 0 || tx >= rw || ty < 0 || ty >= rh) continue;
-                    if (visited[ty * rw + tx]) continue;
-                    const World::Tile& rt = roadsLayer->GetTile(tx, ty);
-                    if (rt.atlasName != "streets") continue;
-                    visited[ty * rw + tx] = true;
-                    parent[ty * rw + tx] = cx | (cy << 16);
-                    q.push(std::make_pair(tx, ty));
-                }
-            }
-
-            if (roadsCreated > 0) {
-                char dbg[256];
-                _snprintf(dbg, sizeof(dbg), "[Graph] LinkFlagToRoadNetwork: flag %u at (%d,%d) linked via roads to %d flag(s)\n",
-                    flag->id, flag->pos.x, flag->pos.y, roadsCreated);
-                OutputDebugStringA(dbg);
-            }
-        }
-
-        if (flag->roads.empty()) {
-            char dbg[256];
-            _snprintf(dbg, sizeof(dbg), "[Graph] LinkFlagToRoadNetwork: flag %u at (%d,%d) isolated - build a road to connect it\n",
-                flag->id, flag->pos.x, flag->pos.y);
-            OutputDebugStringA(dbg);
-        }
-    }
+    // --- BFS road linking delegated to m_relinker (initialized in Load)
 
     // --- Geologist system
     void GameScene::ShowGeologistConfirm(int tx, int ty)

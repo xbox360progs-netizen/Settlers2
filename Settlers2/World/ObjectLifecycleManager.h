@@ -1,4 +1,5 @@
 #pragma once
+#include "../Core/CommandBus.h"
 #include "../Core/EventBus.h"
 
 namespace Logic {
@@ -17,15 +18,17 @@ namespace World {
     class RoadManager;
     class TransportJobManager;
 
-    class ObjectLifecycleManager : public Core::EventListener {
+    class ObjectLifecycleManager : public Core::CommandListener {
     public:
         ObjectLifecycleManager(FlagManager* fm, RoadManager* rm, CarrierManager* cm,
                                CargoManager* cargoMgr, TransportJobManager* jm,
                                ConstructionManager* con, Logic::EconomyManager* em,
                                Map* map);
 
+        void SetEventBus(Core::EventBus* bus) { m_eventBus = bus; }
+
         // Safe delete — returns false if the object cannot be safely destroyed
-        virtual void OnEvent(Core::EventType type, void* data);
+        virtual void OnCommand(Core::CommandType type, void* data);
 
         bool SafeDeleteFlag(Flag* flag);
         bool SafeDeleteRoad(Road* road);
@@ -47,5 +50,6 @@ namespace World {
         ConstructionManager* m_constructionManager;
         Logic::EconomyManager* m_economyManager;
         Map* m_map;
+        Core::EventBus* m_eventBus;
     };
 }

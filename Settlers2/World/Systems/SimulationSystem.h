@@ -6,6 +6,7 @@
 #include "BuildingSystem.h"
 #include "WorldSystem.h"
 #include "../../Core/EventBus.h"
+#include "../../Core/CommandBus.h"
 #include "../../Core/JobManager.h" // JobManager is in global namespace
 
 namespace Logic {
@@ -57,7 +58,8 @@ public:
         RoadManager* roadManager,
         Flag* warehouseFlag,
         Warehouse* warehouse,
-        Core::EventBus* eventBus);
+        Core::EventBus* eventBus,
+        Core::CommandBus* commandBus);
 
     void Update(float dt);
 
@@ -91,6 +93,7 @@ private:
     WorldSystem m_world;
 
     Core::EventBus* m_eventBus;
+    Core::CommandBus* m_commandBus;
     bool m_initialized;
     bool m_externalMode;
 

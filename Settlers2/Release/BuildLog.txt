@@ -1,141 +1,25 @@
-﻿Построение начато 26.06.2026 3:10:07.
+﻿Построение начато 27.06.2026 3:36:04.
      1>Проект "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" в узле 2 (целевые объекты build).
      1>InitializeBuildStatus:
          Обращение к "Release\Settlers2.unsuccessfulbuild".
        ClCompile:
          Для всех выходных данных обновления не требуется.
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Core\GameEngine.cpp Scene\GameScene.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Core\GameEngine.cpp Core\EventBus.cpp Scene\GameScene.cpp World\ObjectLifecycleManager.cpp World\Systems\EconomySystem.cpp World\Systems\ConstructionSystem.cpp World\Systems\TransportSystem.cpp World\Systems\WorkforceSystem.cpp World\Systems\BuildingSystem.cpp World\Systems\SimulationSystem.cpp World\Systems\WorldSystem.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
          GameEngine.cpp
+         EventBus.cpp
          GameScene.cpp
+         ObjectLifecycleManager.cpp
+         EconomySystem.cpp
+         ConstructionSystem.cpp
+         TransportSystem.cpp
+         WorkforceSystem.cpp
+         BuildingSystem.cpp
+         SimulationSystem.cpp
+     1>World\Systems\SimulationSystem.cpp(138): error C2660: 'World::ConstructionSystem::Initialize' : function does not take 2 arguments
+         WorldSystem.cpp
          Generating Code...
-       Link:
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\link.exe /ERRORREPORT:PROMPT /OUT:"D:\development\Settlers2\Settlers2\Release\Settlers2.exe" /INCREMENTAL:NO /NOLOGO xapilib.lib d3d9.lib d3dx9.lib xgraphics.lib xboxkrnl.lib xnet.lib xaudio2.lib xact3.lib x3daudio.lib xmcore.lib vcomp.lib /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"D:\development\Settlers2\Settlers2\Release\Settlers2.pdb" /STACK:"262144","262144" /OPT:REF /OPT:ICF /TLBID:1 /RELEASE /IMPLIB:"D:\development\Settlers2\Settlers2\Release\Settlers2.lib" Release\GameEngine.obj
-         Release\LanguageManager.obj
-         Release\JobManager.obj
-         Release\EventBus.obj
-         Release\ThreadSync.obj
-         Release\BatchBuilder.obj
-         Release\BinFileManager.obj
-         Release\BitmapFont.obj
-         Release\BitmapText.obj
-         Release\Camera.obj
-         Release\FallbackResources.obj
-         Release\Light.obj
-         Release\LightOptimizer.obj
-         Release\OverlayFPS.obj
-         Release\GPUTimer.obj
-         Release\PostFX.obj
-         Release\PostProcessing.obj
-         Release\Quad.obj
-         Release\RenderDebugOverlay.obj
-         Release\RenderFrame.obj
-         Release\Renderer.obj
-         Release\DebugOverlay.obj
-         Release\RenderCommandBuilder.obj
-         Release\RenderQueue.obj
-         Release\RenderStateValidator.obj
-         Release\RenderTargetManager.obj
-         Release\ShaderManager.obj
-         Release\SpriteAtlas.obj
-         Release\SpriteRenderer.obj
-         Release\SpriteShadow.obj
-         Release\TextManager.obj
-         Release\TextureLoader.obj
-         Release\TextureRegistry.obj
-         Release\TileRenderer.obj
-         Release\Xbox360EDRAM.obj
-         Release\Gamepad.obj
-         Release\InputContext.obj
-         Release\InputController.obj
-         Release\InputManager.obj
-         Release\ScreenKeyboard.obj
-         Release\AISystem.obj
-         Release\EconomyManager.obj
-         Release\ResourceRegistry.obj
-         Release\IsoGrid.obj
-         Release\WeightMap.obj
-         Release\BuildingPlacement.obj
-         Release\ConstructionVisualizer.obj
-         Release\PlacementController.obj
-         Release\EditorScene.obj
-         Release\GameScene.obj
-         Release\LoadingScene.obj
-         Release\MenuScene.obj
-         Release\Scene.obj
-         Release\SceneManager.obj
-         Release\Settlers2.obj
-         Release\stdafx.obj
-         Release\BuildMenu.obj
-         Release\Button.obj
-         Release\EditorUI.obj
-         Release\GridMenu.obj
-         Release\UIMenu.obj
-         Release\Minimap.obj
-         Release\Panel.obj
-         Release\RadialMenu.obj
-         Release\ResourceBar.obj
-         Release\UIManager.obj
-         Release\Widget.obj
-         Release\WeightMenu.obj
-         Release\Building.obj
-         Release\BuildingFactory.obj
-         Release\Collider.obj
-         Release\Model.obj
-         Release\Resource.obj
-         Release\Transform.obj
-         Release\Unit.obj
-         Release\CarrierManager.obj
-         Release\CargoManager.obj
-         Release\DemandManager.obj
-         Release\FlagManager.obj
-         Release\HabitatRegistry.obj
-         Release\RoadManager.obj
-         Release\StorehouseManager.obj
-         Release\TransportJobManager.obj
-         Release\ObjectDeletionRules.obj
-         Release\ObjectLifecycleManager.obj
-         Release\ConstructionSite.obj
-         Release\ConstructionManager.obj
-         Release\Entity.obj
-         Release\EntityManager.obj
-         Release\Map.obj
-         Release\MapSerializer.obj
-         Release\AnimalManager.obj
-         Release\WorkerManager.obj
-         Release\WildlifeSystem.obj
-         Release\EconomySystem.obj
-         Release\PathfindingSystem.obj
-         Release\PhysicsSystem.obj
-         Release\AnimalSystem.obj
-         Release\CarrierSystem.obj
-         Release\ConstructionSystem.obj
-         Release\ConstructionFactory.obj
-         Release\TransportSystem.obj
-         Release\WorkforceSystem.obj
-         Release\BuildingSystem.obj
-         Release\SimulationSystem.obj
-         Release\WorldSystem.obj
-         Release\RenderSystem.obj
-         Release\TileLayer.obj
-         Release\MapEditor.obj
-         Release\UnitManager.obj
-         Release\TilePalette.obj /XEX:NO
-     1>GameScene.obj : error LNK2019: unresolved external symbol "public: __cdecl Scene::RoadController::RoadController(void)" (??0RoadController@Scene@@QAA@XZ) referenced in function "public: __cdecl Scene::GameScene::GameScene(void)" (??0GameScene@Scene@@QAA@XZ)
-     1>GameScene.obj : error LNK2019: unresolved external symbol "public: class std::vector<struct std::pair<int,int>,class std::allocator<struct std::pair<int,int> > > const & __cdecl Scene::RoadController::GetPreviewPath(void)const " (?GetPreviewPath@RoadController@Scene@@QBAABV?$vector@U?$pair@HH@std@@V?$allocator@U?$pair@HH@std@@@2@@std@@XZ) referenced in function "private: void __cdecl Scene::GameScene::UpdateStatusText(float)" (?UpdateStatusText@GameScene@Scene@@AAAXM@Z)
-     1>GameScene.obj : error LNK2019: unresolved external symbol "public: class std::vector<struct std::pair<int,int>,class std::allocator<struct std::pair<int,int> > > const & __cdecl Scene::RoadController::GetAutoPath(void)const " (?GetAutoPath@RoadController@Scene@@QBAABV?$vector@U?$pair@HH@std@@V?$allocator@U?$pair@HH@std@@@2@@std@@XZ) referenced in function "private: void __cdecl Scene::GameScene::UpdateStatusText(float)" (?UpdateStatusText@GameScene@Scene@@AAAXM@Z)
-     1>GameScene.obj : error LNK2019: unresolved external symbol "public: void __cdecl Scene::RoadController::Start(int,int)" (?Start@RoadController@Scene@@QAAXHH@Z) referenced in function "private: void __cdecl Scene::GameScene::HandleInput(void)" (?HandleInput@GameScene@Scene@@AAAXXZ)
-     1>GameScene.obj : error LNK2019: unresolved external symbol "public: void __cdecl Scene::RoadController::Cancel(void)" (?Cancel@RoadController@Scene@@QAAXXZ) referenced in function "private: void __cdecl Scene::GameScene::HandleInput(void)" (?HandleInput@GameScene@Scene@@AAAXXZ)
-     1>GameScene.obj : error LNK2019: unresolved external symbol "public: void __cdecl Scene::RoadController::ClearStatus(void)" (?ClearStatus@RoadController@Scene@@QAAXXZ) referenced in function "private: void __cdecl Scene::GameScene::HandleInput(void)" (?HandleInput@GameScene@Scene@@AAAXXZ)
-     1>GameScene.obj : error LNK2019: unresolved external symbol "public: float __cdecl Scene::RoadController::GetStatusTimer(void)const " (?GetStatusTimer@RoadController@Scene@@QBAMXZ) referenced in function "private: void __cdecl Scene::GameScene::HandleInput(void)" (?HandleInput@GameScene@Scene@@AAAXXZ)
-     1>GameScene.obj : error LNK2019: unresolved external symbol "public: char const * __cdecl Scene::RoadController::GetStatusText(void)const " (?GetStatusText@RoadController@Scene@@QBAPBDXZ) referenced in function "private: void __cdecl Scene::GameScene::HandleInput(void)" (?HandleInput@GameScene@Scene@@AAAXXZ)
-     1>GameScene.obj : error LNK2019: unresolved external symbol "public: bool __cdecl Scene::RoadController::TryAddTile(int,int)" (?TryAddTile@RoadController@Scene@@QAA_NHH@Z) referenced in function "private: void __cdecl Scene::GameScene::HandleInput(void)" (?HandleInput@GameScene@Scene@@AAAXXZ)
-     1>GameScene.obj : error LNK2019: unresolved external symbol "public: class std::vector<struct std::pair<int,int>,class std::allocator<struct std::pair<int,int> > > const & __cdecl Scene::RoadController::GetValidNeighbors(void)const " (?GetValidNeighbors@RoadController@Scene@@QBAABV?$vector@U?$pair@HH@std@@V?$allocator@U?$pair@HH@std@@@2@@std@@XZ) referenced in function "public: virtual void __cdecl Scene::GameScene::Render(class Graphics::RenderQueue *)" (?Render@GameScene@Scene@@UAAXPAVRenderQueue@Graphics@@@Z)
-     1>GameScene.obj : error LNK2019: unresolved external symbol "public: static int __cdecl Scene::RoadController::CalcPatternAt(int,int,class World::TileLayer *,class std::vector<struct std::pair<int,int>,class std::allocator<struct std::pair<int,int> > > const &)" (?CalcPatternAt@RoadController@Scene@@SAHHHPAVTileLayer@World@@ABV?$vector@U?$pair@HH@std@@V?$allocator@U?$pair@HH@std@@@2@@std@@@Z) referenced in function "public: virtual void __cdecl Scene::GameScene::Render(class Graphics::RenderQueue *)" (?Render@GameScene@Scene@@UAAXPAVRenderQueue@Graphics@@@Z)
-     1>GameScene.obj : error LNK2019: unresolved external symbol "public: void __cdecl Scene::RoadController::UpdatePreview(int,int)" (?UpdatePreview@RoadController@Scene@@QAAXHH@Z) referenced in function "private: void __cdecl Scene::GameScene::UpdateCursor(void)" (?UpdateCursor@GameScene@Scene@@AAAXXZ)
-     1>GameScene.obj : error LNK2019: unresolved external symbol "public: void __cdecl Scene::RoadController::UpdateNeighbors(int,int)" (?UpdateNeighbors@RoadController@Scene@@QAAXHH@Z) referenced in function "private: void __cdecl Scene::GameScene::ClearRoadTilesForFlag(class World::Flag *)" (?ClearRoadTilesForFlag@GameScene@Scene@@AAAXPAVFlag@World@@@Z)
-     1>D:\development\Settlers2\Settlers2\Release\Settlers2.exe : fatal error LNK1120: 13 unresolved externals
      1>Построение проекта "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" завершено (целевые объекты build) с ошибкой.
 
 СБОЙ построения.
 
-Затраченное время: 00:00:10.33
+Затраченное время: 00:00:10.20

@@ -23,7 +23,8 @@ namespace World {
         Map* map)
         : m_flagManager(fm), m_roadManager(rm), m_carrierManager(cm),
           m_cargoManager(cargoMgr), m_jobManager(jm),
-          m_constructionManager(con), m_economyManager(em), m_map(map)
+          m_constructionManager(con), m_economyManager(em), m_map(map),
+          m_eventBus(NULL)
     {}
 
     bool ObjectLifecycleManager::SafeDeleteFlag(Flag* flag) {
@@ -57,6 +58,12 @@ namespace World {
         }
         if (m_carrierManager) m_carrierManager->RemoveCarriersForFlag(flag);
         if (m_flagManager) m_flagManager->RemoveFlag(flag);
+        // Post event as consequence of deletion (not trigger).
+        // Systems that react to flag removal (e.g. EconomySystem, TransportSystem)
+        // receive this after the flag is gone, preserving causal order.
+        if (m_eventBus) {
+            m_eventBus->Post(Core::Event_FlagDeleted);
+        }
     }
 
     void ObjectLifecycleManager::ForceDeleteRoad(Road* road) {
@@ -105,18 +112,18 @@ namespace World {
         delete building;
     }
 
-    void ObjectLifecycleManager::OnEvent(Core::EventType type, void* data)
+    void ObjectLifecycleManager::OnCommand(Core::CommandType type, void* data)
     {
-        if (type == Core::Event_DeleteFlag) {
-            Core::DeleteFlagData* cmd = static_cast<Core::DeleteFlagData*>(data);
+        if (type == Core::Cmd_DeleteFlag) {
+            Core::DeleteFlagCmd* cmd = static_cast<Core::DeleteFlagCmd*>(data);
             if (m_flagManager) {
                 Flag* flag = m_flagManager->GetFlagById(cmd->flagId);
                 if (flag) {
                     ForceDeleteFlag(flag);
                 }
             }
-        } else if (type == Core::Event_DeleteBuilding) {
-            Core::DeleteBuildingData* cmd = static_cast<Core::DeleteBuildingData*>(data);
+        } else if (type == Core::Cmd_DeleteBuilding) {
+            Core::DeleteBuildingCmd* cmd = static_cast<Core::DeleteBuildingCmd*>(data);
             if (m_flagManager) {
                 Flag* flag = m_flagManager->GetFlagById(cmd->flagId);
                 if (flag && flag->building) {

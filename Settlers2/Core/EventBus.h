@@ -12,11 +12,7 @@ enum EventType {
     Event_BuildingProduction,
     Event_WorkerArrived,
     Event_WarehouseTransfer,
-    Event_RemoveConstructionSite,
-    Event_DeleteFlag,
-    Event_DeleteBuilding,
     Event_FlagTopologyChanged,
-    Event_PlaceFlag,
     Event_MAX
 };
 
@@ -35,8 +31,8 @@ struct BuildingPlacedData {
 struct FlagPlacedData {
     uint32_t flagId;
     int posX, posY;
-    int buildingType;     // Building_None for free flags
-    int buildX, buildY;   // construction site position (meaningful when buildingType != Building_None)
+    int buildingType;
+    int buildX, buildY;
 };
 
 struct RoadBuiltData {
@@ -69,26 +65,6 @@ struct WarehouseTransferData {
     int amount;
 };
 
-struct RemoveConstructionSiteData {
-    unsigned int siteId;
-};
-
-struct DeleteFlagData {
-    uint32_t flagId;
-};
-
-struct DeleteBuildingData {
-    uint32_t flagId; // flag whose building should be deleted
-};
-
-struct PlaceFlagData {
-    int tileX, tileY;
-    int buildingType; // World::BuildingType, or Building_None for free flag
-    bool isFreeFlag;  // true = no pending building, false = has pendingBuilding
-    int buildX, buildY; // construction site position (meaningful when !isFreeFlag)
-    bool autoConnectRoad;
-};
-
 class EventListener {
 public:
     virtual ~EventListener() {}
@@ -103,9 +79,6 @@ struct ListenerSlot {
     bool active;
 };
 
-// Type safety guard for Post<T>().  Only types explicitly registered via
-// DECLARE_EVENT_TYPE are allowed as event payloads.  This prevents accidental
-// Post of non-POD or non-event types that would silently memcpy incorrectly.
 template<typename T>
 struct EventTraits {
     enum { Allowed = false };
@@ -122,13 +95,7 @@ DECLARE_EVENT_TYPE(ResourceDeliveredData);
 DECLARE_EVENT_TYPE(BuildingProductionData);
 DECLARE_EVENT_TYPE(WorkerArrivedData);
 DECLARE_EVENT_TYPE(WarehouseTransferData);
-DECLARE_EVENT_TYPE(RemoveConstructionSiteData);
-DECLARE_EVENT_TYPE(DeleteFlagData);
-DECLARE_EVENT_TYPE(DeleteBuildingData);
-DECLARE_EVENT_TYPE(PlaceFlagData);
 
-// Union large enough to hold any event data struct by value.
-// Post() copies into this union so the caller's data can be stack-local.
 union EventData {
     ConstructionCompleteData constructionComplete;
     BuildingPlacedData buildingPlaced;
@@ -138,14 +105,8 @@ union EventData {
     BuildingProductionData buildingProduction;
     WorkerArrivedData workerArrived;
     WarehouseTransferData warehouseTransfer;
-    RemoveConstructionSiteData removeConstructionSite;
-    DeleteFlagData deleteFlag;
-    DeleteBuildingData deleteBuilding;
-    PlaceFlagData placeFlag;
 };
 
-// Compile-time checks: every event data struct must fit inside EventData.
-// C++03 static assert via negative-size array typedef.
 #define EVENT_STATIC_ASSERT(cond, msg) typedef char EVENT_ASSERT_##msg[(cond) ? 1 : -1]
 
 EVENT_STATIC_ASSERT(sizeof(ConstructionCompleteData) <= sizeof(EventData), ConstructionCompleteData_fits);
@@ -156,17 +117,12 @@ EVENT_STATIC_ASSERT(sizeof(ResourceDeliveredData) <= sizeof(EventData), Resource
 EVENT_STATIC_ASSERT(sizeof(BuildingProductionData) <= sizeof(EventData), BuildingProductionData_fits);
 EVENT_STATIC_ASSERT(sizeof(WorkerArrivedData) <= sizeof(EventData), WorkerArrivedData_fits);
 EVENT_STATIC_ASSERT(sizeof(WarehouseTransferData) <= sizeof(EventData), WarehouseTransferData_fits);
-EVENT_STATIC_ASSERT(sizeof(RemoveConstructionSiteData) <= sizeof(EventData), RemoveConstructionSiteData_fits);
-EVENT_STATIC_ASSERT(sizeof(DeleteFlagData) <= sizeof(EventData), DeleteFlagData_fits);
-EVENT_STATIC_ASSERT(sizeof(DeleteBuildingData) <= sizeof(EventData), DeleteBuildingData_fits);
-EVENT_STATIC_ASSERT(sizeof(PlaceFlagData) <= sizeof(EventData), PlaceFlagData_fits);
 
-// Calculate the value that sizeof(EventData) has at compile time
 enum { EVENT_DATA_SIZE = sizeof(EventData) };
 
 struct FrameEvent {
     EventType type;
-    EventData data; // stored by value — valid until Flush
+    EventData data;
 };
 
 class EventBus {
@@ -174,15 +130,17 @@ public:
     EventBus();
     ~EventBus();
 
+    // True when this EventBus is currently dispatching events.
+    // Checked by CommandBus::Post to enforce the Event→Command barrier
+    // (commands must not be posted during event dispatch).
+    bool IsDispatching() const { return m_dispatchingCount > 0; }
+
     void Register(EventType type, EventListener* listener);
     void Unregister(EventType type, EventListener* listener);
     void UnregisterAll(EventListener* listener);
 
     void Broadcast(EventType type, void* data);
 
-    // Post a typed event.  T must be a POD struct matching the event type.
-    // The data is copied by value into an internal buffer so the caller's
-    // stack frame is safe to leave.
     template<typename T>
     void Post(EventType type, const T& data)
     {
@@ -194,7 +152,6 @@ public:
         m_frameEventCount++;
     }
 
-    // Post a notification with no payload data.
     void Post(EventType type)
     {
         if (m_frameEventCount >= MAX_FRAME_EVENTS) return;
@@ -203,9 +160,6 @@ public:
         m_frameEventCount++;
     }
 
-    // Dispatch all pending events. Returns true if more events were posted
-    // during dispatch (caller should loop until false).
-    // Depth guard prevents runaway recursion when a listener calls Flush().
     bool Flush();
 
     static const int MAX_FLUSH_DEPTH = 8;
@@ -215,6 +169,7 @@ private:
     ListenerSlot m_listeners[Event_MAX][MAX_LISTENERS_PER_EVENT];
     FrameEvent m_frameEvents[MAX_FRAME_EVENTS];
     int m_frameEventCount;
+    int m_dispatchingCount;
 };
 
 } // namespace Core

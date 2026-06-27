@@ -2,6 +2,7 @@
 
 #include "Scene.h"
 #include "../Core/EventBus.h"
+#include "../Core/CommandBus.h"
 #include "../Graphics/RenderQueue.h"
 #include "../Graphics/SpriteRenderer.h"
 #include "../Graphics/Renderer.h"
@@ -42,6 +43,7 @@
 #include "ConstructionVisualizer.h"
 #include "PlacementController.h"
 #include "RoadController.h"
+#include "../World/Systems/RoadNetworkRelinker.h"
 
 namespace Scene {
 
@@ -74,6 +76,7 @@ private:
     // ─── Simulation system (owns game logic subsystems) ──────
     World::SimulationSystem m_simulation;
     Core::EventBus* m_eventBus;
+    Core::CommandBus* m_commandBus;
 
     // Systems (legacy pointers — gradually migrating into m_simulation)
     World::Map* m_map;
@@ -160,6 +163,7 @@ private:
 
     // Road building state
     RoadController m_roadController;
+    World::RoadNetworkRelinker m_relinker;
 
     // Town hall panel data
     int m_townHallPanelBgIdx;
@@ -221,8 +225,6 @@ private:
     void ConfirmConstruction(World::Flag* flag);
     void ConfirmDeleteFlag(int tileX, int tileY);
     void ClearRoadTilesForFlag(World::Flag* flag);
-    void LinkFlagToRoadNetwork(World::Flag* flag);
-    void SyncCarriersForFlag(World::Flag* flag);
     World::BuildingType GetBuildingTypeFromSpriteName(const std::string& name) const;
 
     void RestoreBuildingsFromLayer();
