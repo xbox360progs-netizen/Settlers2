@@ -14,7 +14,9 @@
 #include "../World/Road.h"
 #include "../Core/EventBus.h"
 #include "../Logic/AStar.h"
-#include "../Logic/IsoNeighbors.h"
+#include "../Logic/CoordinateSystem.h"
+#include "../World/Systems/RoadNetworkRelinker.h"
+#include <queue>
 
 namespace Scene {
 
@@ -104,7 +106,7 @@ namespace Scene {
         return pattern;
     }
 
-    std::vector<Vector2i> RoadController::FindTilePath(World::Map* map, int startX, int startY, int endX, int endY)
+    static std::vector<Vector2i> FindTilePath(World::Map* map, int startX, int startY, int endX, int endY)
     {
         std::vector<Vector2i> result;
         if (!map) return result;

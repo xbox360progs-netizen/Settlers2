@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../World/Components/Building.h"
 #include "BuildingPlacement.h"
 
 namespace Scene {

@@ -36,6 +36,7 @@ namespace World {
     Flag* FlagManager::GetFlagAt(int x, int y) const
     {
         for (size_t i = 0; i < m_flags.size(); ++i) {
+            if (m_flags[i]->state != Active) continue;
             if (m_flags[i]->pos.x == x && m_flags[i]->pos.y == y) {
                 return m_flags[i];
             }
@@ -62,6 +63,7 @@ namespace World {
     Flag* FlagManager::GetFlagById(uint32_t id) const
     {
         for (size_t i = 0; i < m_flags.size(); ++i) {
+            if (m_flags[i]->state != Active) continue;
             if (m_flags[i]->id == id) {
                 return m_flags[i];
             }
@@ -133,6 +135,7 @@ namespace World {
         std::vector<std::pair<int,int>> pairs;
         pairs.reserve(m_flags.size());
         for (size_t i = 0; i < m_flags.size(); ++i) {
+            if (m_flags[i]->state != Active) continue;
             pairs.push_back(std::make_pair(m_flags[i]->pos.x, m_flags[i]->pos.y));
         }
         return pairs;
@@ -144,6 +147,7 @@ namespace World {
         data.reserve(m_flags.size());
         for (size_t i = 0; i < m_flags.size(); ++i) {
             Flag* f = m_flags[i];
+            if (f->state != Active) continue;
             FlagData fd;
             fd.x = f->pos.x;
             fd.y = f->pos.y;

@@ -1,6 +1,7 @@
 #pragma once
 #include "../Core/CommandBus.h"
 #include "../Core/EventBus.h"
+#include <vector>
 
 namespace Logic {
     class EconomyManager;
@@ -41,6 +42,9 @@ namespace World {
         void ForceDeleteCarrier(Carrier* carrier);
         void ForceDeleteBuilding(class Building* building, class Map* map = NULL);
 
+        // Deferred deletion: mark as pending, then flush at end of frame
+        void FlushDeletions();
+
     private:
         FlagManager* m_flagManager;
         RoadManager* m_roadManager;
@@ -51,5 +55,7 @@ namespace World {
         Logic::EconomyManager* m_economyManager;
         Map* m_map;
         Core::EventBus* m_eventBus;
+
+        std::vector<Flag*> m_pendingFlags;
     };
 }

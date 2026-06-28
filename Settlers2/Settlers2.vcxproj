@@ -298,12 +298,19 @@
     <ClInclude Include="Scene\ConstructionVisualizer.h" />
     <ClInclude Include="Scene\PlacementController.h" />
     <ClInclude Include="Scene\EditorScene.h" />
+    <ClInclude Include="Scene\GameRenderer.h" />
     <ClInclude Include="Scene\GameScene.h" />
     <ClInclude Include="Scene\LoadingScene.h" />
     <ClInclude Include="Scene\MenuScene.h" />
     <ClInclude Include="Scene\Scene.h" />
     <ClInclude Include="Scene\SceneManager.h" />
+    <ClInclude Include="Scene\InputController.h" />
+    <ClInclude Include="Scene\MenuBootstrap.h" />
+    <ClInclude Include="Scene\RoadController.h" />
+    <ClInclude Include="Scene\WorldBootstrap.h" />
+    <ClInclude Include="Scene\WorldRestorer.h" />
     <ClInclude Include="Core\JobManager.h" />
+    <ClInclude Include="Core\CommandBus.h" />
     <ClInclude Include="Core\EventBus.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="UI\BuildMenu.h" />
@@ -391,6 +398,7 @@
     <ClInclude Include="World\Systems\AnimalSystem.h" />
     <ClInclude Include="World\Systems\CarrierSystem.h" />
     <ClInclude Include="World\Systems\ConstructionSystem.h" />
+    <ClInclude Include="World\Systems\RoadNetworkRelinker.h" />
     <ClInclude Include="World\Systems\ConstructionFactory.h" />
     <ClInclude Include="World\Systems\BuildContext.h" />
     <ClInclude Include="World\Systems\TransportSystem.h" />
@@ -411,6 +419,7 @@
     <ClCompile Include="Core\GameEngine.cpp" />
     <ClCompile Include="Core\LanguageManager.cpp" />
     <ClCompile Include="Core\JobManager.cpp" />
+    <ClCompile Include="Core\CommandBus.cpp" />
     <ClCompile Include="Core\EventBus.cpp" />
     <ClCompile Include="Core\ThreadSync.cpp" />
     <ClCompile Include="Graphics\BatchBuilder.cpp" />
@@ -457,11 +466,19 @@
     <ClCompile Include="Scene\ConstructionVisualizer.cpp" />
     <ClCompile Include="Scene\PlacementController.cpp" />
     <ClCompile Include="Scene\EditorScene.cpp" />
+    <ClCompile Include="Scene\GameRenderer.cpp" />
     <ClCompile Include="Scene\GameScene.cpp" />
     <ClCompile Include="Scene\LoadingScene.cpp" />
     <ClCompile Include="Scene\MenuScene.cpp" />
     <ClCompile Include="Scene\Scene.cpp" />
     <ClCompile Include="Scene\SceneManager.cpp" />
+    <ClCompile Include="Scene\InputController.cpp">
+      <ObjectFileName>$(IntDir)\SceneInputController.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="Scene\MenuBootstrap.cpp" />
+    <ClCompile Include="Scene\RoadController.cpp" />
+    <ClCompile Include="Scene\WorldBootstrap.cpp" />
+    <ClCompile Include="Scene\WorldRestorer.cpp" />
     <ClCompile Include="Settlers2.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">Create</PrecompiledHeader>
@@ -522,6 +539,7 @@
     <ClCompile Include="World\Systems\SimulationSystem.cpp" />
     <ClCompile Include="World\Systems\WorldSystem.cpp" />
     <ClCompile Include="World\Systems\RenderSystem.cpp" />
+    <ClCompile Include="World\Systems\RoadNetworkRelinker.cpp" />
     <ClCompile Include="World\TileLayer.cpp" />
     <ClCompile Include="Editor\MapEditor.cpp" />
     <ClCompile Include="Game\UnitManager.cpp" />

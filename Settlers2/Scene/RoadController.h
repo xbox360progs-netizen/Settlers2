@@ -12,6 +12,8 @@ namespace World {
     class Flag;
     class TileLayer;
     class RoadNetworkRelinker;
+    class ObjectLifecycleManager;
+    class ConstructionManager;
 }
 
 namespace Core {

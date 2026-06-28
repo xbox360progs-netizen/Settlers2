@@ -118,8 +118,9 @@ namespace World {
             Core::DeleteFlagCmd* cmd = static_cast<Core::DeleteFlagCmd*>(data);
             if (m_flagManager) {
                 Flag* flag = m_flagManager->GetFlagById(cmd->flagId);
-                if (flag) {
-                    ForceDeleteFlag(flag);
+                if (flag && flag->state == Active) {
+                    flag->state = PendingDelete;
+                    m_pendingFlags.push_back(flag);
                 }
             }
         } else if (type == Core::Cmd_DeleteBuilding) {
@@ -131,5 +132,37 @@ namespace World {
                 }
             }
         }
+    }
+
+    void ObjectLifecycleManager::FlushDeletions()
+    {
+        if (m_pendingFlags.empty()) return;
+
+        for (size_t i = 0; i < m_pendingFlags.size(); ++i) {
+            Flag* flag = m_pendingFlags[i];
+            if (!flag) continue;
+
+            // Release all cargo on this flag before destroying it
+            if (m_cargoManager) {
+                m_cargoManager->ReleaseAllForFlag(flag->handle);
+            }
+
+            // Remove all roads connected to this flag entirely
+            std::vector<Road*> roadsCopy = flag->roads;
+            for (size_t j = 0; j < roadsCopy.size(); ++j) {
+                if (roadsCopy[j]) {
+                    ForceDeleteRoad(roadsCopy[j]);
+                }
+            }
+
+            if (m_carrierManager) m_carrierManager->RemoveCarriersForFlag(flag);
+            if (m_flagManager) m_flagManager->RemoveFlag(flag);
+
+            if (m_eventBus) {
+                m_eventBus->Post(Core::Event_FlagDeleted);
+            }
+        }
+
+        m_pendingFlags.clear();
     }
 }
