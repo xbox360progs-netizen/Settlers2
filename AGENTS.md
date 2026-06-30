@@ -1,5 +1,9 @@
 # Architecture — Cycle 2 Complete ✅ (tag: `architecture-cycle-2`)
 
+## Domain First
+
+Domain types and entities are the only stable source of truth. Rendering, UI, localization, metadata and serialization are projections of the domain model and must never become the primary source of game state.
+
 ## Milestone: Unified Domain Model
 
 Two parallel migration lines converged:
