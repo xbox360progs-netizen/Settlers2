@@ -11,6 +11,7 @@ namespace UI {
         UI_CMD_SELECT,    // Accept/confirm with parameter
         UI_CMD_BACK,      // Navigate back one level
         UI_CMD_BUILD,     // Build a building (value = sprite index)
+        UI_CMD_SET_LAYER, // Editor: set active layer (value = LayerType)
     };
 
 } // namespace UI

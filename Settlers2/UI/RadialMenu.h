@@ -8,6 +8,9 @@
 #include "../Graphics/BinFileManager.h"
 #include "../Graphics/RenderQueue.h"
 #include "../Input/Gamepad.h"
+#include "UiMessageId.h"
+#include "UiAction.h"
+#include "MenuModel.h"
 
 using Graphics::ShaderManager;
 
@@ -17,12 +20,12 @@ class RadialMenu
 {
 public:
     struct MenuItem {
-        std::wstring name;
+        UiMessageId labelId;
+        UI::UiAction action;
         std::string spriteName;
-        int typeId;
 
-        MenuItem(const std::wstring& itemName, int type, const std::string& sprite)
-            : name(itemName), spriteName(sprite), typeId(type) {}
+        MenuItem(UiMessageId label, const UI::UiAction& act, const std::string& sprite)
+            : labelId(label), action(act), spriteName(sprite) {}
     };
 
     RadialMenu(LPDIRECT3DDEVICE9 device, ShaderManager* shaderManager, BinFileManager* binFileManager);
@@ -42,7 +45,7 @@ public:
     const MenuItem* GetSelectedItem() const;
     const MenuItem* GetConfirmedItem() const;
     const MenuItem* GetCenterItem() const;
-    int GetSelectedTypeId() const;
+    UI::UiAction GetSelectedAction() const;
 
     void ResetSelection();
     void ConfirmSelection();
@@ -96,4 +99,5 @@ private:
     WORD m_iconTextureSlot;
 
     std::vector<MenuItem> m_items;
+    UI::MenuModel m_menuModel;
 };

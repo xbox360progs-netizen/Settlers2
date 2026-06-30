@@ -259,13 +259,13 @@ void EditorScene::Load() {
 
 		// Add menu items for layers (name, typeId, spriteName from maptiles UI group)
 		std::vector<RadialMenu::MenuItem> items;
-		items.push_back(RadialMenu::MenuItem(std::wstring(L"Roads"), World::Roads, "build_way"));
-		items.push_back(RadialMenu::MenuItem(std::wstring(L"Nodes"), World::Nodes, "set_nodes"));
-		items.push_back(RadialMenu::MenuItem(std::wstring(L"Placement"), World::Placement, "set_placement"));
-		items.push_back(RadialMenu::MenuItem(std::wstring(L"Resources"), World::Resources, "set_resources"));
-		items.push_back(RadialMenu::MenuItem(std::wstring(L"Ground"), World::Ground, "set_bg"));
-		items.push_back(RadialMenu::MenuItem(std::wstring(L"Objects"), World::Objects, "set_landscape"));
-		items.push_back(RadialMenu::MenuItem(std::wstring(L"Buildings"), World::Buildings, "select_building"));
+		items.push_back(RadialMenu::MenuItem(MSG_NONE, UI::UiAction(UI::UI_CMD_SET_LAYER, World::Roads), "build_way"));
+		items.push_back(RadialMenu::MenuItem(MSG_NONE, UI::UiAction(UI::UI_CMD_SET_LAYER, World::Nodes), "set_nodes"));
+		items.push_back(RadialMenu::MenuItem(MSG_NONE, UI::UiAction(UI::UI_CMD_SET_LAYER, World::Placement), "set_placement"));
+		items.push_back(RadialMenu::MenuItem(MSG_NONE, UI::UiAction(UI::UI_CMD_SET_LAYER, World::Resources), "set_resources"));
+		items.push_back(RadialMenu::MenuItem(MSG_NONE, UI::UiAction(UI::UI_CMD_SET_LAYER, World::Ground), "set_bg"));
+		items.push_back(RadialMenu::MenuItem(MSG_NONE, UI::UiAction(UI::UI_CMD_SET_LAYER, World::Objects), "set_landscape"));
+		items.push_back(RadialMenu::MenuItem(MSG_NONE, UI::UiAction(UI::UI_CMD_SET_LAYER, World::Buildings), "select_building"));
 		m_radialMenu->SetItems(items);
 	}
 
@@ -930,8 +930,8 @@ void EditorScene::UpdateRadialMenu(Input::Gamepad* gamepad) {
 }
 
 void EditorScene::HandleRadialMenuSelection() {
-    int selectedType = m_radialMenu->GetSelectedTypeId();
-    m_currentLayer = static_cast<World::LayerType>(selectedType);
+    UI::UiAction action = m_radialMenu->GetSelectedAction();
+    m_currentLayer = static_cast<World::LayerType>(action.value);
 
     if (m_currentLayer != World::Objects) {
         m_yButtonWasPressed = false;

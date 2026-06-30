@@ -131,6 +131,15 @@ void RadialMenu::SetItems(const std::vector<MenuItem>& items)
     m_numSectors = (int)m_items.size();
     if (m_numSectors < 4) m_numSectors = 4;
     if (m_numSectors > 12) m_numSectors = 12;
+
+    int count = (int)items.size();
+    if (count > UI::MAX_MENU_ITEMS) count = UI::MAX_MENU_ITEMS;
+    UI::MenuItem modelItems[UI::MAX_MENU_ITEMS];
+    for (int i = 0; i < count; ++i) {
+        modelItems[i] = UI::MenuItem(items[i].labelId, items[i].action);
+    }
+    m_menuModel.SetItems(modelItems, count);
+    assert(m_items.size() == (size_t)m_menuModel.GetItemCount());
 }
 
 void RadialMenu::ClearItems()
@@ -140,6 +149,8 @@ void RadialMenu::ClearItems()
     m_selectionMade = false;
     m_confirmedIndex = -1;
     m_numSectors = 4;
+    m_menuModel.Clear();
+    assert(m_items.empty() && m_menuModel.GetItemCount() == 0);
 }
 
 const RadialMenu::MenuItem* RadialMenu::GetSelectedItem() const
@@ -170,10 +181,9 @@ const RadialMenu::MenuItem* RadialMenu::GetCenterItem() const
     return nullptr;
 }
 
-int RadialMenu::GetSelectedTypeId() const
+UI::UiAction RadialMenu::GetSelectedAction() const
 {
-    const MenuItem* confirmedItem = GetConfirmedItem();
-    return confirmedItem ? confirmedItem->typeId : -1;
+    return m_menuModel.GetSelectedAction();
 }
 
 void RadialMenu::ResetSelection()
@@ -190,6 +200,7 @@ void RadialMenu::ConfirmSelection()
 
     m_confirmedIndex = m_selectedIndex;
     m_selectionMade = true;
+    m_menuModel.SetSelected(m_selectedIndex);
     Hide();
 }
 
