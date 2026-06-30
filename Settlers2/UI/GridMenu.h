@@ -4,12 +4,14 @@
 #include <memory>
 #include "../Graphics/SpriteRenderer.h"
 #include "../Graphics/RenderQueue.h"
+#include "MenuModel.h"
 
 class Camera;
 class SpriteAtlas;
 class Renderer;
 class TextManager;
 namespace Input { class Gamepad; }
+namespace UI { class LocalizationService; }
 
 using Graphics::SpriteRenderer;
 
@@ -56,7 +58,6 @@ private:
     // keep existing resolution for window by 4-step as requested
     int m_windowStep;
 
-    int m_selectedSpriteIndex;
     int m_selectedIndex;
     int m_currentPage;
     int m_totalPages;
@@ -85,8 +86,16 @@ private:
     float m_cellVisualWidth;
     float m_cellVisualHeight;
 
+    // Menu model for item data (labelId, action, enabled, visible)
+    UI::MenuModel m_menuModel;
+    const UI::LocalizationService* m_locService;
+
+    // Backward compat: raw string labels for EditorScene (UI6 target)
     std::vector<std::string> m_cellLabels;
     TextManager* m_textManager;
+
+    // Resolve text for a cell at global index
+    const char* GetLabelText(int globalIndex) const;
 
 public:
     GridMenu();
@@ -123,21 +132,18 @@ public:
     // New paging controls for atlas window
     // Sets a full list of tile UVs for the atlas and resets window to start
 
+    // --- New MenuModel API (UI5b) ---
+    void SetLocalizationService(const UI::LocalizationService* svc) { m_locService = svc; }
+    void SetMenuItems(const UI::MenuItem* items, int count);
+    UI::UiAction GetSelectedAction() const;
+
     void Update(Input::Gamepad* input, float deltaTime);
     void Render(const Camera* camera);
     void Render();
     
     bool HasSelection() const { return m_selectionMade; }
-    int GetSelectedSpriteIndex() const {
-        int globalIndex = m_currentPage * kItemsPerPage + m_selectedIndex;
-        if (globalIndex >= 0 && globalIndex < (int)m_spriteIndices.size()) {
-            return m_spriteIndices[globalIndex];
-        }
-        if (m_selectedIndex >= 0 && m_selectedIndex < (int)m_tileUVs.size()) {
-            return m_atlasStart + m_selectedIndex;
-        }
-        return -1;
-    }
+    int GetSelectedSpriteIndex() const;
+
     // Directly set tile UVs and global sprite indices for group-based loading
     void SetTileData(const std::vector<TileUV>& uvs, const std::vector<int>& globalIndices);
     void ResetSelection();

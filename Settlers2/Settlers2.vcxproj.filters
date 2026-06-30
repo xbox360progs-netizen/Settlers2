@@ -100,6 +100,9 @@
     <ClInclude Include="Scene\LoadingScene.h">
       <Filter>Scene</Filter>
     </ClInclude>
+    <ClInclude Include="Scene\MenuCommandDispatcher.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
     <ClInclude Include="Scene\MenuScene.h">
       <Filter>Scene</Filter>
     </ClInclude>
@@ -209,6 +212,18 @@
       <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="UI\UiController.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\ICommandDispatcher.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\MenuModel.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\UiAction.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\UiCommand.h">
       <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\TextureLoader.h">
@@ -615,6 +630,9 @@
     <ClCompile Include="Scene\LoadingScene.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
+    <ClCompile Include="Scene\MenuCommandDispatcher.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
     <ClCompile Include="Scene\MenuScene.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
@@ -703,6 +721,9 @@
       <Filter>UI</Filter>
     </ClCompile>
     <ClCompile Include="UI\UiController.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\MenuModel.cpp">
       <Filter>UI</Filter>
     </ClCompile>
     <ClCompile Include="UI\Widget.cpp">

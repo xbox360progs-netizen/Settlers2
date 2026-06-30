@@ -46,9 +46,7 @@ void WorkforceSystem::Initialize(RoadManager* roadManager, Map* map, Core::Event
 
     m_workerManager->SetRoadManager(m_roadManager);
 
-    if (m_eventBus) {
-        m_eventBus->Register(Core::Event_ConstructionComplete, this);
-    }
+
 }
 
 void WorkforceSystem::Update(float dt)

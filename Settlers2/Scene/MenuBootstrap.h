@@ -3,6 +3,7 @@
 #include <string>
 #include "../UI/GridMenu.h"
 #include "../UI/UIMenu.h"
+#include "../UI/UiMessageId.h"
 #include "../World/Components/Building.h"
 
 class Renderer;
@@ -16,5 +17,8 @@ namespace MenuBootstrap {
 
     // Shared helper: map sprite/icon name to BuildingType
     World::BuildingType GetBuildingTypeFromSpriteName(const std::string& name);
+
+    // UI5b: map sprite/icon name to UiMessageId for menu labels
+    UI::UiMessageId GetBuildingMessageIdFromSpriteName(const std::string& name);
 
 } // namespace MenuBootstrap

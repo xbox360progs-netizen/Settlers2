@@ -86,8 +86,6 @@ namespace Logic {
         for (size_t i = 0; i < vec.size(); ++i) {
             World::Building* b = vec[i];
             if (b == exclude) continue;
-            if (b->state != World::State_Finished) continue;
-
             if (b->m_storage[type] <= 0) continue;
 
             int baseDist = abs(b->pos.x - requesterPos.x) + abs(b->pos.y - requesterPos.y);

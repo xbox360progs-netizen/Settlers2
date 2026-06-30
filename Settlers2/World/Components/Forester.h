@@ -108,7 +108,6 @@ public:
     }
 
     void Update(float dt) override {
-        if (state != State_Finished) return;
         if (m_population <= 0) return;
 
         if (m_wState == WState_Idle) {

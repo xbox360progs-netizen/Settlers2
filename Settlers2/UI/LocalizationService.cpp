@@ -123,6 +123,18 @@ namespace UI {
             /* MSG_BUILDING_WELL               */ "Well",
             /* MSG_BUILDING_BARRACKS           */ "Barracks",
             /* MSG_BUILDING_HQ                 */ "Headquarters",
+
+            // ── Menu labels ──────────────────────────────────────────
+            /* MSG_MENU_NEW_GAME              */ "New Game",
+            /* MSG_MENU_MAP_EDITOR            */ "Map Editor",
+            /* MSG_MENU_SETTINGS              */ "Settings",
+            /* MSG_MENU_EXIT                  */ "Exit",
+            /* MSG_MENU_SIZE_SELECT_TITLE     */ "Select Map Size",
+            /* MSG_MENU_HINT_BACK             */ "Back",
+            /* MSG_MENU_HINT_SELECT           */ "Select",
+            /* MSG_MENU_SET_FLAG              */ "Set Flag",
+            /* MSG_MENU_DELETE_FLAG           */ "Delete Flag",
+            /* MSG_MENU_BUILDINGS             */ "Buildings",
         },
         // ── Russian ────────────────────────────────────────────────────
         {
@@ -239,6 +251,18 @@ namespace UI {
             /* MSG_BUILDING_WELL               */ "Колодец",
             /* MSG_BUILDING_BARRACKS           */ "Казармы",
             /* MSG_BUILDING_HQ                 */ "Штаб",
+
+            // ── Menu labels ──────────────────────────────────────────
+            /* MSG_MENU_NEW_GAME              */ "Новая игра",
+            /* MSG_MENU_MAP_EDITOR            */ "Редактор карт",
+            /* MSG_MENU_SETTINGS              */ "Настройки",
+            /* MSG_MENU_EXIT                  */ "Выход",
+            /* MSG_MENU_SIZE_SELECT_TITLE     */ "Выберите размер карты",
+            /* MSG_MENU_HINT_BACK             */ "Назад",
+            /* MSG_MENU_HINT_SELECT           */ "Выбрать",
+            /* MSG_MENU_SET_FLAG              */ "Поставить флаг",
+            /* MSG_MENU_DELETE_FLAG           */ "Удалить флаг",
+            /* MSG_MENU_BUILDINGS             */ "Здания",
         },
     };
 

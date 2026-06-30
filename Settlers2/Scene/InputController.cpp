@@ -164,7 +164,7 @@ namespace Scene {
                 }
 
                 if (m_buildMenu->HasSelection()) {
-                    int selIdx = m_buildMenu->GetSelectedSpriteIndex();
+                    int selIdx = m_buildMenu->GetSelectedAction().value;
                     if (selIdx >= 0) {
                         std::tr1::shared_ptr<SpriteAtlas> iconAtlas = TextureRegistry::instance().getAtlas("Icon");
                         if (iconAtlas) {

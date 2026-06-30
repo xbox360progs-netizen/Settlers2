@@ -6,8 +6,6 @@ namespace World {
 
     void Building::Update(float dt)
     {
-        if (state != State_Finished) return;
-
         switch (m_fsmState) {
         case BuildingFSM_Idle:
             UpdateIdle(dt);

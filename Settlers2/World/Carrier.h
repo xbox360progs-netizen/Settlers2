@@ -177,25 +177,15 @@ namespace World {
                         }
                     }
                     // Check ResourceSlots (warehouse/production outputs)
+                    // Wake-up only: if there's any demand for this resource type, the Carrier
+                    // walks to the flag. The actual destination is assigned by DemandManager::Reserve()
+                    // at pickup time — Carrier never computes a route or chooses a target.
                     if (!hasWork && m_demandManager) {
                         for (int si = 0; si < 8 && !hasWork; ++si) {
                             ResourceSlot& slot = f->slots[si];
                             if (slot.type == ResourceType_None || slot.amount <= 0) continue;
                             if (slot.amount - slot.reserved <= 0) continue;
-                            // Only wake up if the resource is needed at a reachable flag via this road
-                            Handle<Flag> demandTarget = m_demandManager->GetDemandTarget(slot.type);
-                            if (!demandTarget.IsValid() || demandTarget == f->handle)
-                                continue;
-                            if (m_roadManager) {
-                                Flag* dest = m_roadManager->GetFlagManager()->ResolveFlag(demandTarget);
-                                if (dest) {
-                                    Flag* nextHop = m_roadManager->GetNextHop(f, dest);
-                                    if (nextHop) {
-                                        FlagHandle otherEnd = (road->a == f->handle) ? road->b : road->a;
-                                        hasWork = (otherEnd == nextHop->handle);
-                                    }
-                                }
-                            }
+                            hasWork = m_demandManager->HasDemand(slot.type);
                         }
                     }
                     if (hasWork) {

@@ -484,7 +484,6 @@ void WorldBootstrap::CreateStartingHQ(
 
     // Create warehouse and link it
     World::Warehouse* warehouse = new World::Warehouse(hqBuildX, hqBuildY, 0);
-    warehouse->state = World::State_Finished;
     warehouse->connectedFlag = hqFlag;
     hqFlag->building = warehouse;
     warehouse->map = map;

@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "GridMenu.h"
+#include "LocalizationService.h"
 #include "../Graphics/SpriteAtlas.h"
 #include "../Graphics/Camera.h"
 #include "../Input/Gamepad.h"
@@ -42,7 +43,6 @@ GridMenu::GridMenu()
     , m_spriteRenderer(nullptr)
     , m_renderer(nullptr)
     , m_cellBackgroundTexture(nullptr)
-    , m_selectedSpriteIndex(-1)
     , m_selectedIndex(0)
     , m_currentPage(0)
     , m_totalPages(1)
@@ -66,6 +66,7 @@ GridMenu::GridMenu()
     , m_cellPadding(0.0f)
     , m_cellVisualWidth(117.0f)
     , m_cellVisualHeight(72.0f)
+    , m_locService(NULL)
     , m_textManager(nullptr)
 {
     m_backgroundUV.u0 = 0.0f; m_backgroundUV.v0 = 0.0f; m_backgroundUV.u1 = 1.0f; m_backgroundUV.v1 = 1.0f;
@@ -116,7 +117,6 @@ void GridMenu::Show(float screenX, float screenY)
     m_selectedIndex = 0;
     m_currentPage = 0;
     m_selectionMade = false;
-    m_selectedSpriteIndex = -1;
 }
 
 void GridMenu::Hide()
@@ -128,7 +128,6 @@ void GridMenu::Hide()
 void GridMenu::ResetSelection()
 {
     m_selectionMade = false;
-    m_selectedSpriteIndex = -1;
     m_selectedIndex = 0;
 }
 
@@ -164,7 +163,6 @@ void GridMenu::SetSpriteIndices(const std::vector<int>& spriteIndices)
     
     m_selectedIndex = 0;
     m_currentPage = 0;
-    m_selectedSpriteIndex = -1;
 }
 
 void GridMenu::SetTileUVs(const std::vector<TileUV>& tileUVs)
@@ -362,12 +360,59 @@ void GridMenu::PrevPage()
 void GridMenu::ConfirmSelection()
 {
     if (!m_visible) return;
+    m_selectionMade = true;
+}
+
+void GridMenu::SetMenuItems(const UI::MenuItem* items, int count)
+{
+    m_menuModel.SetItems(items, count);
+    m_cellLabels.clear(); // clear raw fallback when using MenuModel
+}
+
+UI::UiAction GridMenu::GetSelectedAction() const
+{
+    if (!m_selectionMade)
+        return UI::UiAction();
 
     int globalIndex = m_currentPage * kItemsPerPage + m_selectedIndex;
-    if (globalIndex >= 0 && globalIndex < (int)m_spriteIndices.size()) {
-        m_selectedSpriteIndex = m_spriteIndices[globalIndex];
-        m_selectionMade = true;
+
+    if (m_menuModel.GetItemCount() > 0) {
+        const UI::MenuItem* item = m_menuModel.GetItem(globalIndex);
+        if (item) return item->action;
+        return UI::UiAction();
     }
+
+    // Fallback: compute sprite index for backward compat (EditorScene)
+    int spriteIdx = -1;
+    if (globalIndex >= 0 && globalIndex < (int)m_spriteIndices.size()) {
+        spriteIdx = m_spriteIndices[globalIndex];
+    } else if (m_selectedIndex >= 0 && m_selectedIndex < (int)m_tileUVs.size()) {
+        spriteIdx = m_atlasStart + m_selectedIndex;
+    }
+    return UI::UiAction(UI::UI_CMD_SELECT, spriteIdx);
+}
+
+int GridMenu::GetSelectedSpriteIndex() const
+{
+    return GetSelectedAction().value;
+}
+
+const char* GridMenu::GetLabelText(int globalIndex) const
+{
+    // Try MenuModel first
+    if (m_menuModel.GetItemCount() > 0) {
+        const UI::MenuItem* item = m_menuModel.GetItem(globalIndex);
+        if (item && item->labelId != UI::MSG_NONE && m_locService) {
+            return m_locService->Get(item->labelId);
+        }
+        return "";
+    }
+
+    // Fallback: raw string labels (EditorScene compat)
+    if (globalIndex >= 0 && globalIndex < (int)m_cellLabels.size()) {
+        return m_cellLabels[globalIndex].c_str();
+    }
+    return "";
 }
 
 void GridMenu::Update(Input::Gamepad* input, float deltaTime)
@@ -486,7 +531,9 @@ void GridMenu::Render()
         }
 
         // 3b. Cell labels below each cell
-        if (m_textManager && !m_cellLabels.empty()) {
+        bool hasModelLabels = (m_menuModel.GetItemCount() > 0 && m_locService);
+        bool hasRawLabels = !m_cellLabels.empty();
+        if (m_textManager && (hasModelLabels || hasRawLabels)) {
             for (int i = 0; i < totalSprites; i++) {
                 int row = i / kGridCols;
                 int col = i % kGridCols;
@@ -495,10 +542,11 @@ void GridMenu::Render()
                 float cellOffsetY = (cellSpacingY - m_cellVisualHeight) * 0.5f;
 
                 int globalIndex = m_currentPage * kItemsPerPage + i;
-                if (globalIndex < (int)m_cellLabels.size() && !m_cellLabels[globalIndex].empty()) {
+                const char* label = GetLabelText(globalIndex);
+                if (label && label[0] != '\0') {
                     float labelCenterX = cellX + cellSpacingX * 0.5f;
                     float labelY = cellY + cellOffsetY + m_cellVisualHeight + 2.0f;
-                    m_textManager->DrawTextCenteredToScreen(m_cellLabels[globalIndex], labelCenterX, labelY, 0xFFFFFFFF, 0.08f);
+                    m_textManager->DrawTextCenteredToScreen(label, labelCenterX, labelY, 0xFFFFFFFF, 0.08f);
                 }
             }
         }

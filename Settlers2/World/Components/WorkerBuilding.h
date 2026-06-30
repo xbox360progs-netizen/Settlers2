@@ -111,7 +111,6 @@ public:
     {}
 
     void Update(float dt) override {
-        if (state != State_Finished) return;
         if (m_population <= 0) return;
 
         // Clamp worker position to node-layer bounds (otherWidth × otherHeight)

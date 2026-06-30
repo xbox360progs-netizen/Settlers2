@@ -56,7 +56,6 @@ class Woodcutter : public WorkerBuilding {
     }
 
     void Update(float dt) override {
-        if (state != State_Finished) return;
         if (m_population <= 0) return;
 
         // Custom idle handler

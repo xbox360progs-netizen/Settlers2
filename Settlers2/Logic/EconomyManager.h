@@ -12,6 +12,7 @@
 namespace World {
     class Flag;
     class ConstructionSite;
+    class DemandManager;
 }
 
 namespace Logic {
@@ -51,6 +52,7 @@ namespace Logic {
         void SetRoadManager(World::RoadManager* rm) { m_roadManager = rm; }
         void SetCargoManager(World::CargoManager* cm) { m_cargoManager = cm; }
         void SetStorehouseManager(World::StorehouseManager* sm) { m_storehouseManager = sm; }
+        void SetDemandManager(World::DemandManager* dm) { m_demandManager = dm; }
         World::StorehouseManager* GetStorehouseManager() const { return m_storehouseManager; }
         bool HasBuilding(World::BuildingType type) const;
         int GetBuildingCount() const { return (int)m_buildings.size(); }
@@ -84,6 +86,7 @@ namespace Logic {
         World::RoadManager* m_roadManager;
         World::CargoManager* m_cargoManager;
         World::StorehouseManager* m_storehouseManager;
+        World::DemandManager* m_demandManager;
         EconomySettings m_settings;
         ResourceRequest m_requests[MAX_REQUESTS];
         ConstructionResourceRequest m_constructionRequests[MAX_CONSTRUCTION_REQUESTS];

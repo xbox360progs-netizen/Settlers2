@@ -22,8 +22,6 @@ public:
     }
 
     void Update(float dt) override {
-        if (state != State_Finished) return;
-
         m_productionTimer += dt;
 
         while (m_productionTimer >= m_productionInterval) {

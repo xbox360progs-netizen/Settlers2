@@ -45,7 +45,6 @@ struct RoadBuiltData {
 struct ResourceDeliveredData {
     int resourceType;
     int amount;
-    uint32_t destFlagId;
 };
 
 struct BuildingProductionData {

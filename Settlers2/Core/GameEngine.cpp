@@ -12,6 +12,7 @@
 #include "../Graphics/RenderQueue.h"
 #include "../Scene/SceneManager.h"
 #include "../Scene/MenuScene.h"
+#include "../Scene/MenuCommandDispatcher.h"
 #include "../Scene/LoadingScene.h"
 #include "../Scene/GameScene.h"
 #include "../Scene/EditorScene.h"
@@ -87,6 +88,13 @@ void GameEngine::CreateScenes()
     
     OutputDebugStringA("[GameEngine::CreateScenes] BEFORE AddScene(menuScene)\n");
     m_sceneManager->AddScene(menuScene);
+    // Wire MenuCommandDispatcher
+    {
+        Scene::MenuCommandDispatcher* dispatcher = new Scene::MenuCommandDispatcher(m_sceneManager);
+        menuScene->SetDispatcher(dispatcher);
+        OutputDebugStringA("[GameEngine::CreateScenes] MenuCommandDispatcher wired\n");
+    }
+
     OutputDebugStringA("[GameEngine::CreateScenes] AFTER AddScene(menuScene)\n");
     
     // Create GameScene (placeholder for now)

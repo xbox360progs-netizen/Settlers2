@@ -73,9 +73,11 @@ bool SetupBuildMenu(GridMenu* buildMenu, Renderer* renderer)
 
     std::vector<GridMenu::TileUV> tileUVs;
     std::vector<int> spriteIndices;
-    std::vector<std::string> cellLabels;
 
     const std::vector<uint32_t>* groupIndices = iconAtlas->GetGroup("icon_building");
+    int itemCount = 0;
+    static const int MAX_BUILD_ITEMS = 32;
+    UI::MenuItem items[MAX_BUILD_ITEMS];
     if (groupIndices && !groupIndices->empty()) {
         for (size_t gi = 0; gi < groupIndices->size(); ++gi) {
             uint32_t spriteIdx = (*groupIndices)[gi];
@@ -88,7 +90,10 @@ bool SetupBuildMenu(GridMenu* buildMenu, Renderer* renderer)
             spriteIndices.push_back((int)spriteIdx);
             std::string label = reg->name;
             if (label.compare(0, 3, "ib_") == 0) label = label.substr(3);
-            cellLabels.push_back(label);
+            if (itemCount < MAX_BUILD_ITEMS) {
+                UI::UiMessageId labelId = GetBuildingMessageIdFromSpriteName(label);
+                items[itemCount++] = UI::MenuItem(labelId, UI::UiAction(UI::UI_CMD_BUILD, (int)spriteIdx));
+            }
         }
     }
 
@@ -103,7 +108,7 @@ bool SetupBuildMenu(GridMenu* buildMenu, Renderer* renderer)
         return false;
     }
 
-    buildMenu->SetCellLabels(cellLabels);
+    buildMenu->SetMenuItems(items, itemCount);
     buildMenu->SetCellSpacing(80.0f, 80.0f);
     buildMenu->SetCellPadding(4.0f);
     buildMenu->SetCellVisualSize(64.0f, 64.0f);
@@ -166,11 +171,16 @@ bool SetupRoadMenu(GridMenu* roadMenu, Renderer* renderer)
     roadMenu->SetBackgroundUV(bgUV);
 
     const char* iconNames[] = { "icon_set_flag", "icon_delete_flag", "icon_Streets" };
-    const char* iconLabels[] = { "Set Flag", "Delete Flag", "Buildings" };
+    UI::UiMessageId roadLabelIds[] = {
+        UI::MSG_MENU_SET_FLAG,
+        UI::MSG_MENU_DELETE_FLAG,
+        UI::MSG_MENU_BUILDINGS
+    };
     std::vector<GridMenu::TileUV> tileUVs;
     std::vector<int> spriteIndices;
-    std::vector<std::string> cellLabels;
     int iconH = 32;
+    UI::MenuItem roadItems[3];
+    int roadItemCount = 0;
     for (int i = 0; i < 3; ++i) {
         uint32_t idx = uiAtlas->GetIndex(iconNames[i]);
         if (idx == 0xFFFFFFFF) {
@@ -186,11 +196,11 @@ bool SetupRoadMenu(GridMenu* roadMenu, Renderer* renderer)
         uv.u1 = r->u1; uv.v1 = r->v1;
         tileUVs.push_back(uv);
         spriteIndices.push_back((int)idx);
-        cellLabels.push_back(iconLabels[i]);
+        roadItems[roadItemCount++] = UI::MenuItem(roadLabelIds[i], UI::UiAction(UI::UI_CMD_SELECT, i));
         if ((int)r->height > iconH) iconH = (int)r->height;
     }
 
-    roadMenu->SetCellLabels(cellLabels);
+    roadMenu->SetMenuItems(roadItems, roadItemCount);
     roadMenu->SetCellSpacing(110.0f, 60.0f);
     roadMenu->SetCellPadding(4.0f);
     roadMenu->SetCellVisualSize((float)iconH, (float)iconH);
@@ -350,6 +360,44 @@ World::BuildingType GetBuildingTypeFromSpriteName(const std::string& name)
             return entries[i].type;
     }
     return World::Building_None;
+}
+
+UI::UiMessageId GetBuildingMessageIdFromSpriteName(const std::string& name)
+{
+    std::string key = name;
+    if (key.compare(0, 3, "ib_") == 0)
+        key = key.substr(3);
+
+    struct { const char* name; UI::UiMessageId msgId; } entries[] = {
+        { "woodcutter",    UI::MSG_BUILDING_WOODCUTTER },
+        { "forester",      UI::MSG_BUILDING_FORESTER },
+        { "sawmill",       UI::MSG_BUILDING_SAWMILL },
+        { "stonemason",    UI::MSG_BUILDING_STONEMASON },
+        { "coalmine",      UI::MSG_BUILDING_COALMINE },
+        { "ironmine",      UI::MSG_BUILDING_IRONMINE },
+        { "goldmine",      UI::MSG_BUILDING_GOLDMINE },
+        { "ironsmelter",   UI::MSG_BUILDING_IRONSMELTER },
+        { "goldsmelter",   UI::MSG_BUILDING_GOLDSMELTER },
+        { "bronzemine",    UI::MSG_BUILDING_BRONZEMINE },
+        { "bronzesmelter", UI::MSG_BUILDING_BRONZESMELTER },
+        { "farm",          UI::MSG_BUILDING_FARM },
+        { "mill",          UI::MSG_BUILDING_MILL },
+        { "bakery",        UI::MSG_BUILDING_BAKERY },
+        { "fisher",        UI::MSG_BUILDING_FISHER },
+        { "hunter",        UI::MSG_BUILDING_HUNTER },
+        { "toolworkshop",  UI::MSG_BUILDING_TOOLWORKSHOP },
+        { "warehouse",     UI::MSG_BUILDING_STOREHOUSE },
+        { "townhall",      UI::MSG_BUILDING_STOREHOUSE },
+        { "well",          UI::MSG_BUILDING_WELL },
+        { "barracks",      UI::MSG_BUILDING_BARRACKS },
+        { "hq",            UI::MSG_BUILDING_HQ },
+    };
+
+    for (int i = 0; i < sizeof(entries)/sizeof(entries[0]); ++i) {
+        if (key == entries[i].name)
+            return entries[i].msgId;
+    }
+    return UI::MSG_NONE;
 }
 
 } // namespace MenuBootstrap

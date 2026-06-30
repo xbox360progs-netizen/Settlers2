@@ -106,9 +106,6 @@ namespace World {
             building->connectedFlag->building = NULL;
             building->connectedFlag->hasBuilding = false;
         }
-        if (m_constructionManager && building->state != State_Finished) {
-            m_constructionManager->RemoveSiteAt(building->pos.x, building->pos.y);
-        }
         delete building;
     }
 

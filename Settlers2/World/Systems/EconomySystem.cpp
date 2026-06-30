@@ -45,8 +45,11 @@ void EconomySystem::Initialize(Core::EventBus* eventBus)
         m_ownsManager = true;
     }
 
+    if (m_demandManager && m_manager) {
+        m_manager->SetDemandManager(m_demandManager);
+    }
+
     if (m_eventBus) {
-        m_eventBus->Register(Core::Event_ConstructionComplete, this);
         m_eventBus->Register(Core::Event_FlagDeleted, this);
     }
 }
@@ -55,7 +58,10 @@ void EconomySystem::SetFlagManager(FlagManager* fm) { if (m_manager) m_manager->
 void EconomySystem::SetRoadManager(RoadManager* rm) { if (m_manager) m_manager->SetRoadManager(rm); }
 void EconomySystem::SetCargoManager(CargoManager* cm) { if (m_manager) m_manager->SetCargoManager(cm); }
 void EconomySystem::SetStorehouseManager(StorehouseManager* sm) { if (m_manager) m_manager->SetStorehouseManager(sm); }
-void EconomySystem::SetDemandManager(DemandManager* dm) { m_demandManager = dm; }
+void EconomySystem::SetDemandManager(DemandManager* dm) {
+    m_demandManager = dm;
+    if (m_manager) m_manager->SetDemandManager(dm);
+}
 
 void EconomySystem::AddBuilding(Building* building) { if (m_manager) m_manager->AddBuilding(building); }
 void EconomySystem::RemoveBuilding(Building* building) { if (m_manager) m_manager->RemoveBuilding(building); }

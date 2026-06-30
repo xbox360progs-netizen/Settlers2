@@ -40,7 +40,10 @@ namespace World {
         ResourceType type;
         int amount;
         int reserved; // committed to pending TransportJobs, not available for new requests
-        uint32_t destFlagId; // ID of ultimate destination flag (0 = no routing, safe across flag deletion)
+        uint32_t destFlagId; // Ownership tag: who may claim this slot first (0=free, INVALID=unowned).
+                              // NOT a routing field — DemandTicket governs moving resources.
+                              // Prevents collisions: Warehouse, ConstructionManager, CollectWarehouse
+                              // check this before consuming a stationary resource.
 
         ResourceSlot() : type(ResourceType_None), amount(0), reserved(0), destFlagId(INVALID_FLAG_ID) {}
     };

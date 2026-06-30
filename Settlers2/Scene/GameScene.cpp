@@ -322,6 +322,7 @@ namespace Scene {
         if (!m_buildMenu) {
             m_buildMenu = new GridMenu();
             m_buildMenu->SetTextManager(m_textManager);
+            m_buildMenu->SetLocalizationService(&m_localization);
             m_buildMenu->SetSpriteRenderer(m_renderer ? m_renderer->GetSpriteRenderer() : NULL);
             m_buildMenu->SetRenderer(m_renderer);
             if (m_renderer) m_buildMenu->SetRenderQueue(m_renderer->GetRenderQueue());
@@ -334,6 +335,7 @@ namespace Scene {
         if (!m_roadMenu) {
             m_roadMenu = new GridMenu();
             m_roadMenu->SetTextManager(m_textManager);
+            m_roadMenu->SetLocalizationService(&m_localization);
             m_roadMenu->SetSpriteRenderer(m_renderer ? m_renderer->GetSpriteRenderer() : NULL);
             m_roadMenu->SetRenderer(m_renderer);
             if (m_renderer) m_roadMenu->SetRenderQueue(m_renderer->GetRenderQueue());

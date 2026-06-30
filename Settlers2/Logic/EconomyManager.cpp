@@ -9,7 +9,7 @@
 namespace Logic {
 
     EconomyManager::EconomyManager()
-        : m_warehouse(NULL), m_flagManager(NULL), m_roadManager(NULL), m_cargoManager(NULL), m_storehouseManager(NULL), m_validateCounter(0), m_phase6Initialized(false)
+        : m_warehouse(NULL), m_flagManager(NULL), m_roadManager(NULL), m_cargoManager(NULL), m_storehouseManager(NULL), m_demandManager(NULL), m_validateCounter(0), m_phase6Initialized(false)
     {
         for (int i = 0; i < MAX_REQUESTS; ++i)
             m_requests[i].active = false;
@@ -184,7 +184,6 @@ namespace Logic {
         // ─── Phase 2: Generate requests for buildings that need inputs ───
         for (size_t i = 0; i < m_buildings.size(); ++i) {
             World::Building* b = m_buildings[i];
-            if (b->state != World::State_Finished) continue;
 
             if (b->m_numRules > 0) {
                 for (int r = 0; r < b->m_numRules; ++r) {
@@ -194,6 +193,12 @@ namespace Logic {
                         if (have < b->m_rules[r].inputAmount[j]) {
                             RequestResource(b, needed, b->m_rules[r].inputAmount[j],
                                             m_settings.routeConfig[needed].transferPriority);
+                            if (m_demandManager && b->connectedFlag) {
+                                m_demandManager->SetDemand(needed,
+                                    b->m_rules[r].inputAmount[j],
+                                    b->connectedFlag->handle,
+                                    m_settings.routeConfig[needed].transferPriority);
+                            }
                         }
                     }
                 }
@@ -203,6 +208,11 @@ namespace Logic {
                     int have = b->m_storage[needed];
                     if (have < 1) {
                         RequestResource(b, needed, 1, m_settings.routeConfig[needed].transferPriority);
+                        if (m_demandManager && b->connectedFlag) {
+                            m_demandManager->SetDemand(needed, 1,
+                                b->connectedFlag->handle,
+                                m_settings.routeConfig[needed].transferPriority);
+                        }
                     }
                 }
             }
@@ -211,7 +221,6 @@ namespace Logic {
         // ─── Phase 3: Transfer flag → building inventory ──────────────────
         for (size_t i = 0; i < m_buildings.size(); ++i) {
             World::Building* b = m_buildings[i];
-            if (b->state != World::State_Finished) continue;
             if (!b->connectedFlag) continue;
 
             if (b->m_numRules > 0) {
@@ -240,14 +249,12 @@ namespace Logic {
         // ─── Phase 4: Building production ────────────────────────────────
         for (size_t i = 0; i < m_buildings.size(); ++i) {
             World::Building* b = m_buildings[i];
-            if (b->state != World::State_Finished) continue;
             b->Update(dt);
         }
 
         // ─── Phase 5: Depleted building sprite update ────────────────────
         for (size_t i = 0; i < m_buildings.size(); ++i) {
             World::Building* b = m_buildings[i];
-            if (b->state != World::State_Finished) continue;
             if (!b->IsDepleted() || b->m_depletedSpriteIdx < 0) continue;
 
             World::TileLayer* buildingsLayer = b->map ? b->map->GetLayer(World::Buildings) : NULL;
@@ -286,7 +293,6 @@ namespace Logic {
         }
         for (size_t i = 0; i < m_buildings.size(); ++i) {
             World::Building* b = m_buildings[i];
-            if (b->state != World::State_Finished) continue;
             if (!b->connectedFlag) continue;
 
             if (b->m_numRules > 0) {
@@ -363,7 +369,7 @@ namespace Logic {
             World::Flag* df = m_flagManager->GetFlagById(m_constructionRequests[r].destFlagId);
             if (!df) { m_constructionRequests[r].active = false; continue; }
             // If the flag now has a finished building, the construction request is stale
-            if (df->hasBuilding && df->building && df->building->state == World::State_Finished) {
+            if (df->hasBuilding && df->building != NULL) {
                 m_constructionRequests[r].active = false;
             }
         }
@@ -473,8 +479,7 @@ namespace Logic {
 
     void EconomyManager::AddBuilding(World::Building* building) {
         m_buildings.push_back(building);
-        if (building->state == World::State_Finished)
-            m_registry.Register(building);
+        m_registry.Register(building);
     }
 
     void EconomyManager::RemoveBuilding(World::Building* building) {

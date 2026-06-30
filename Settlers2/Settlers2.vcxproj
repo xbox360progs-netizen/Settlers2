@@ -301,6 +301,7 @@
     <ClInclude Include="Scene\Handlers\CommandHandlers.h" />
     <ClInclude Include="Scene\Handlers\ResourceCommandHandler.h" />
     <ClInclude Include="Scene\LoadingScene.h" />
+    <ClInclude Include="Scene\MenuCommandDispatcher.h" />
     <ClInclude Include="Scene\MenuScene.h" />
     <ClInclude Include="Scene\Scene.h" />
     <ClInclude Include="Scene\ConstructionVisualizer.h" />
@@ -333,6 +334,10 @@
     <ClInclude Include="UI\LocalizationService.h" />
     <ClInclude Include="UI\NotificationManager.h" />
     <ClInclude Include="UI\StatusManager.h" />
+    <ClInclude Include="UI\ICommandDispatcher.h" />
+    <ClInclude Include="UI\MenuModel.h" />
+    <ClInclude Include="UI\UiAction.h" />
+    <ClInclude Include="UI\UiCommand.h" />
     <ClInclude Include="UI\UiMessageId.h" />
     <ClInclude Include="UI\TilePalette.h" />
     <ClInclude Include="UI\WeightMenu.h" />
@@ -492,6 +497,7 @@
     <ClCompile Include="Scene\Handlers\BuildingCommandHandler.cpp" />
     <ClCompile Include="Scene\Handlers\ResourceCommandHandler.cpp" />
     <ClCompile Include="Scene\LoadingScene.cpp" />
+    <ClCompile Include="Scene\MenuCommandDispatcher.cpp" />
     <ClCompile Include="Scene\MenuScene.cpp" />
     <ClCompile Include="Scene\Scene.cpp" />
     <ClCompile Include="Scene\SceneManager.cpp" />
@@ -519,6 +525,7 @@
     <ClCompile Include="UI\LocalizationService.cpp" />
     <ClCompile Include="UI\NotificationManager.cpp" />
     <ClCompile Include="UI\StatusManager.cpp" />
+    <ClCompile Include="UI\MenuModel.cpp" />
     <ClCompile Include="UI\Widget.cpp" />
     <ClCompile Include="UI\WeightMenu.cpp" />
     <ClCompile Include="World\Components\Building.cpp" />

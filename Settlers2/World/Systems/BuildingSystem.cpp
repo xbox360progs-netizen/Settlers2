@@ -148,7 +148,6 @@ void BuildingSystem::HandleConstructionComplete(const Core::ConstructionComplete
         evt.siteX, evt.siteY, flag);
     if (!building) return;
 
-    building->state = State_Finished;
     flag->pendingBuilding = Building_None;
 
     // Basic tile setup

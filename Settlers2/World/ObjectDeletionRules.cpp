@@ -34,13 +34,7 @@ namespace World {
     bool CanDestroyBuilding(Building* building, Logic::EconomyManager* em) {
         if (!building) return true;
         if (building->IsWarehouse()) return false;
-        if (building->state == State_MaterialsNeeded ||
-            building->state == State_BuilderWorking ||
-            building->state == State_Construction) {
-            return false;
-        }
-        if (building->state == State_Finished &&
-            building->m_fsmState == BuildingFSM_Producing) {
+        if (building->m_fsmState == BuildingFSM_Producing) {
             return false;
         }
         if (em && em->HasWorkers(building)) {

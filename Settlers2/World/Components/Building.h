@@ -4,7 +4,6 @@
 #include "../ResourceNode.h"
 #include "../../Core/Vector2i.h"
 #include <vector>
-#include <map>
 
 namespace World {
 
@@ -17,10 +16,8 @@ enum BuildingType {
     Residence, Stronghold, Well, BronzeMine, ToolMaker, Barracks, BronzeSmelter
 };
 
-enum BuildingState {
-    State_Ghost, State_MaterialsNeeded, State_BuilderWorking, State_Construction, State_Finished
-};
-
+// Building instances always represent completed, functional buildings.
+// Construction lifecycle is managed by ConstructionSite.
 enum BuildingFSM {
     BuildingFSM_Idle,
     BuildingFSM_Producing,
@@ -65,7 +62,6 @@ struct ProductionRule {
 class Building {
 public:
     BuildingType type;
-    BuildingState state;
     Vector2i pos;
     uint8_t owner;
     Flag* connectedFlag;
@@ -115,12 +111,9 @@ public:
      // Refresh cached resource nodes. Override in production buildings for O(1) FindTarget.
      virtual void RefreshResourceCache() { m_cachedNodeCount = 0; }
 
-     // Construction tracking (used infrequently, keep as map for now)
-     std::map<ResourceType, int> constructionMaterials;
-     std::map<ResourceType, int> deliveredMaterials;
- 
-         Building(BuildingType t, int x, int y, uint8_t o, Map* m)
-              : type(t), state(State_Ghost), owner(o), connectedFlag(NULL), map(m), m_numRules(0), 
+     
+          Building(BuildingType t, int x, int y, uint8_t o, Map* m)
+               : type(t), owner(o), connectedFlag(NULL), map(m), m_numRules(0), 
                 m_hasTarget(false), m_fsmState(BuildingFSM_Idle), m_productionTimer(0.0f),
                 m_productionInterval(3.0f), m_population(0), m_maxPopulation(0),
                 m_cachedNodeCount(0), m_cacheTimer(0.0f),

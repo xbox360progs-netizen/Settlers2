@@ -236,7 +236,6 @@ void WorldRestorer::RestoreBuildingsFromLayer()
 
             if (isWarehouseType) {
                 World::Warehouse* wh = new World::Warehouse(x, y, 0);
-                wh->state = World::State_Finished;
                 wh->connectedFlag = flag;
                 wh->map = map;
                 flag->building = wh;
@@ -279,7 +278,6 @@ void WorldRestorer::RestoreBuildingsFromLayer()
             } else {
                 building = World::CreateBuilding(type, x, y, 0, map);
                 if (!building) { skipped++; continue; }
-                building->state = World::State_Finished;
                 building->connectedFlag = flag;
                 building->map = map;
                 flag->building = building;

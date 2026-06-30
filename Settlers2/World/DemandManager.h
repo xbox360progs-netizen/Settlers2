@@ -1,5 +1,4 @@
 #pragma once
-#include <vector>
 #include <list>
 #include <stdint.h>
 #include "Demand.h"
@@ -7,6 +6,8 @@
 namespace World {
     class DemandManager {
     public:
+        static const int MAX_TICKETS = 256;
+
         DemandManager();
 
         void SetDemand(ResourceType type, uint32_t amount, Handle<Flag> targetFlag, int priority);
@@ -21,13 +22,18 @@ namespace World {
         Demand* FindDemand(ResourceType type, Handle<Flag> targetFlag);
         bool HasDemand(ResourceType type);
         Demand* FindBestDemand(ResourceType type);
-        Handle<Flag> GetDemandTarget(ResourceType type);
 
         void Clear();
 
     private:
+        int AllocSlot();
+        void FreeSlot(int index);
+
         std::list<Demand> m_demands;
-        std::vector<DemandTicket*> m_tickets;
+        DemandTicket m_pool[MAX_TICKETS];
+        int m_freeSlots[MAX_TICKETS];
+        int m_freeCount;
+        bool m_inUse[MAX_TICKETS];
         uint32_t m_nextTicketId;
     };
 }
