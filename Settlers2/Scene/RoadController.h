@@ -2,7 +2,6 @@
 
 #include <vector>
 #include <utility>
-#include <string>
 
 namespace World {
     class Map;
@@ -18,6 +17,10 @@ namespace World {
 
 namespace Core {
     class EventBus;
+}
+
+namespace UI {
+    class StatusManager;
 }
 
 namespace Scene {
@@ -39,6 +42,7 @@ public:
     );
     void SetPlacementController(PlacementController* pc);
     void SetRelinker(World::RoadNetworkRelinker* relinker);
+    void SetStatusManager(UI::StatusManager* sm) { m_statusManager = sm; }
 
     bool IsActive() const;
 
@@ -55,11 +59,6 @@ public:
     int GetStartX() const;
     int GetStartY() const;
 
-    // Status info
-    const char* GetStatusText() const;
-    float GetStatusTimer() const;
-    void ClearStatus();
-
     // Static helpers for rendering
     static bool IsNodeRoad(int nx, int ny, World::TileLayer* roadsLayer, const std::vector<std::pair<int,int>>& previewPath);
     static int CalcPatternAt(int x, int y, World::TileLayer* roadsLayer, const std::vector<std::pair<int,int>>& previewPath);
@@ -75,9 +74,6 @@ private:
     std::vector<std::pair<int,int>> m_validNeighbors;
     std::vector<std::pair<int,int>> m_autoPath;
 
-    const char* m_statusText;
-    float m_statusTimer;
-
     // External dependencies
     World::Map* m_map;
     World::FlagManager* m_flagManager;
@@ -88,6 +84,7 @@ private:
     class World::ConstructionManager* m_constructionMgr;
     class World::RoadNetworkRelinker* m_relinker;
     PlacementController* m_placementCtrl;
+    UI::StatusManager* m_statusManager;
 
     // Internal helpers
     void SplitAtFlag(World::Flag* flag);

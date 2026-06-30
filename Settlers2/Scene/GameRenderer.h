@@ -2,7 +2,7 @@
 
 #include "../Graphics/RenderQueue.h"
 #include "../World/Components/Building.h"
-#include "../World/UiDefs.h"
+#include "FrameContext.h"
 
 // Forward declarations
 class Renderer;
@@ -23,48 +23,12 @@ namespace Logic {
 }
 namespace Scene {
     class PlacementController;
-    class InputController;
     class RoadController;
 }
 class GridMenu;
 class UIMenu;
 
 namespace Scene {
-
-// ─── Shared mutable state between GameScene and GameRenderer ────────────
-struct GameRendererState {
-    // Geologist overlay
-    int geologistState;
-    int geologistTileX;
-    int geologistTileY;
-
-    static const int GEOLOGIST_NONE    = 0;
-    static const int GEOLOGIST_CONFIRM = 1;
-    static const int GEOLOGIST_WORKING = 2;
-
-    // Town hall info panel
-    int   townHallPanelBgIdx;
-    float townHallPanelU0, townHallPanelV0, townHallPanelU1, townHallPanelV1;
-    float townHallPanelW, townHallPanelH;
-
-    // Notification banner
-    float bannerSlideX;
-    float bannerW, bannerH, bannerU0, bannerV0, bannerU1, bannerV1;
-    bool  bannerLoaded;
-
-    // Resource HUD
-    struct ResourceHudItem {
-        World::ResourceType type;
-        const char*         iconName;
-        int                 iconIdx;
-        int                 showOrder;
-    };
-    static const int RESOURCE_HUD_COUNT = 11;
-    ResourceHudItem resourceHud[RESOURCE_HUD_COUNT];
-    bool             resourceHudLoaded;
-
-    GameRendererState();
-};
 
 // ─── Render-only class (no game-logic knowledge) ───────────────────────
 class GameRenderer
@@ -83,21 +47,19 @@ public:
         World::WildlifeSystem*      wildlife,
         Logic::EconomyManager*      economyManager,
         PlacementController*        placement,
-        InputController*            inputController,
         RoadController*             roadController,
         GridMenu*                   buildMenu,
         UIMenu*                     flagMenu,
         UIMenu*                     geologistMenu,
-        TextManager*                textManager,
-        GameRendererState*          state
+        TextManager*                textManager
     );
 
-    void Render(Graphics::RenderQueue* renderQueue);
+    void Render(Graphics::RenderQueue* renderQueue, const FrameContext& frame);
 
 private:
-    void RenderCursor(Graphics::RenderQueue* renderQueue);
-    void RenderGeologistOverlay(Graphics::RenderQueue* renderQueue);
-    void PushUiToQueue(Graphics::RenderQueue* renderQueue);
+    void RenderCursor(Graphics::RenderQueue* renderQueue, const FrameContext& frame);
+    void RenderGeologistOverlay(Graphics::RenderQueue* renderQueue, const FrameContext& frame);
+    void PushUiToQueue(Graphics::RenderQueue* renderQueue, const FrameContext& frame);
 
     // Dependencies (non-owning pointers)
     TileRenderer*     m_tileRenderer;
@@ -112,13 +74,12 @@ private:
     World::WildlifeSystem*      m_wildlife;
     Logic::EconomyManager*      m_economyManager;
     PlacementController*        m_placement;
-    InputController*            m_inputController;
     RoadController*             m_roadController;
     GridMenu*                   m_buildMenu;
     UIMenu*                     m_flagMenu;
     UIMenu*                     m_geologistMenu;
     TextManager*                m_textManager;
-    GameRendererState*          m_state;
+
 
     // Self-contained render state (not shared with GameScene)
     int  m_groundWoodIconIdx;

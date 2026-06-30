@@ -35,7 +35,7 @@ const float GridMenu::kMenuScale = 1.2f;
 const int GridMenu::kGridCols = 4;
 const int GridMenu::kGridRows = 4;
 const int GridMenu::kItemsPerPage = 16;
-const float GridMenu::kInputDelayTime = 0.3f;
+const float GridMenu::kInputDelayTime = 0.15f;
 
 GridMenu::GridMenu()
     : m_atlasTexture(nullptr), m_backgroundTexture(nullptr)

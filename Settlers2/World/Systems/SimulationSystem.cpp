@@ -131,7 +131,9 @@ void SimulationSystem::Initialize(
         }
         m_workforce.Initialize(roadManager, map, m_eventBus);
 
-        m_buildings.Initialize(map, flagManager, m_eventBus);
+        m_buildings.Initialize(map, flagManager, m_eventBus, m_commandBus);
+        if (m_extEconomy) m_buildings.SetEconomyManager(m_extEconomy);
+        if (m_extWorkers) m_buildings.SetWorkerManager(m_extWorkers);
 
         {
             BuildContext ctx(flagManager, roadManager, m_extDemand, m_extCargo, m_extCarriers, map, warehouseFlag);

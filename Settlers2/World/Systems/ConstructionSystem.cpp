@@ -141,11 +141,12 @@ void ConstructionSystem::PostUpdate()
             data.siteY = s->y;
             data.buildingType = (int)s->buildingType;
             data.flagId = s->flag ? s->flag->id : 0;
+            data.siteId = s->id;
             m_eventBus->Post(Core::Event_ConstructionComplete, data);
         }
     }
 
-    // Phase 3: purge stale IDs from m_completedIds (sites removed by ConfirmConstruction)
+    // Phase 3: purge stale IDs from m_completedIds (sites removed by BuildingSystem)
     {
         size_t writeIdx = 0;
         for (size_t i = 0; i < m_completedIds.size(); ++i) {

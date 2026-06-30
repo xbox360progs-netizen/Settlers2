@@ -45,6 +45,9 @@
     <Filter Include="Graphics\Debug">
       <UniqueIdentifier>{90ae412e-2648-482e-80d4-bff043607545}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Scene\Handlers">
+      <UniqueIdentifier>{2a0a0cb3-8840-4e5b-b4a1-0650c866a073}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="ReadMe.txt" />
@@ -154,9 +157,6 @@
     <ClInclude Include="World\Components\Unit.h">
       <Filter>World\Components</Filter>
     </ClInclude>
-    <ClInclude Include="World\Systems\AISystem.h">
-      <Filter>World\Components\Systems</Filter>
-    </ClInclude>
     <ClInclude Include="World\Systems\EconomySystem.h">
       <Filter>World\Components\Systems</Filter>
     </ClInclude>
@@ -203,6 +203,12 @@
       <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="UI\UIManager.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\UiEventSystem.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\UiController.h">
       <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\TextureLoader.h">
@@ -502,38 +508,11 @@
     <ClInclude Include="HabitatRegistry.h">
       <Filter>World</Filter>
     </ClInclude>
-    <ClInclude Include="World\Component.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="World\Components\Resource.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="World\Cargo.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="World\CargoManager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="World\Demand.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="World\DemandManager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="World\Systems\AnimalSystem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="World\Systems\CarrierSystem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="World\WorkerManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\UIMenu.h">
       <Filter>UI</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\RenderCommandBuilder.h">
-      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="World\Components\Resource.h">
       <Filter>Header Files</Filter>
@@ -546,6 +525,48 @@
     </ClInclude>
     <ClInclude Include="World\Components\MineBuilding.h">
       <Filter>World\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Components\Resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\RenderCommandBuilder.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Systems\AnimalSystem.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\CargoManager.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Cargo.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Component.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Systems\CarrierSystem.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Demand.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\DemandManager.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\WorkerManager.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\Systems\AISystem.h">
+      <Filter>Logic</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Handlers\BuildingCommandHandler.h">
+      <Filter>Scene\Handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Handlers\CommandHandlers.h">
+      <Filter>Scene\Handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Handlers\ResourceCommandHandler.h">
+      <Filter>Scene\Handlers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -676,6 +697,12 @@
       <Filter>UI</Filter>
     </ClCompile>
     <ClCompile Include="UI\UIManager.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\UiEventSystem.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\UiController.cpp">
       <Filter>UI</Filter>
     </ClCompile>
     <ClCompile Include="UI\Widget.cpp">
@@ -828,29 +855,35 @@
     <ClCompile Include="World\HabitatRegistry.cpp">
       <Filter>World</Filter>
     </ClCompile>
-    <ClCompile Include="World\CargoManager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="World\DemandManager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="World\WorkerManager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="World\Systems\AnimalSystem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="World\Systems\CarrierSystem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="UI\UIMenu.cpp">
       <Filter>UI</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\RenderCommandBuilder.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Scene\BuildingPlacement.cpp">
       <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\RenderCommandBuilder.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="World\Systems\AnimalSystem.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="World\DemandManager.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="World\CargoManager.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="World\Systems\CarrierSystem.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="World\WorkerManager.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Handlers\BuildingCommandHandler.cpp">
+      <Filter>Scene\Handlers</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Handlers\ResourceCommandHandler.cpp">
+      <Filter>Scene\Handlers</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -50,6 +50,13 @@
 #include "../World/Systems/RoadNetworkRelinker.h"
 #include "InputController.h"
 #include "GameRenderer.h"
+#include "FrameContext.h"
+#include "GeologistController.h"
+#include "Handlers/BuildingCommandHandler.h"
+#include "Handlers/ResourceCommandHandler.h"
+#include "../UI/UiController.h"
+#include "../UI/LocalizationService.h"
+#include "../UI/StatusManager.h"
 
 namespace Scene {
 
@@ -59,7 +66,7 @@ struct EconomyJobData
     World::CarrierManager* carriers;
 };
 
-class GameScene : public Scene, public Core::EventListener, public IInputHost
+class GameScene : public Scene, public Core::EventListener, public IInputHost, public IGeologistHost
 {
 public:
     GameScene();
@@ -83,7 +90,14 @@ public:
     virtual void OnMountainTileAction(int tileX, int tileY);
     virtual void CancelGeologist();
 
+    // IGeologistHost
+    virtual void SetGeologistMenuActive(bool active);
+
 private:
+	 // Command Handlers
+      Handlers::BuildingCommandHandler* m_buildingCommandHandler;
+      Handlers::ResourceCommandHandler* m_resourceCommandHandler;
+
     // ─── Simulation system (owns game logic subsystems) ──────
     World::SimulationSystem m_simulation;
     Core::EventBus* m_eventBus;
@@ -106,7 +120,7 @@ private:
     Camera* m_camera;
 
     // Renderer (delegates rendering to GameRenderer)
-    GameRendererState m_renderState;
+    FrameContext m_frameContext;
     GameRenderer* m_gameRenderer;
 
     // Input (delegates to InputController)
@@ -121,14 +135,17 @@ private:
     int m_flagMenuItemCount;
     UIMenu* m_geologistMenu;
 
-    // Fixed-pool popup windows
-    World::PopupUiData m_popups[World::MAX_UI_POPUPS];
-    int m_popupCount;
+    // Geologist state machine
+    GeologistController* m_geologistController;
 
-    // Geologist state machine (state in m_renderState)
-    float m_geologistTimer;
+    // Localization (owned by GameScene)
+    UI::LocalizationService m_localization;
+
+    // Status text manager (resolves MSG IDs → localized text at frame-sync time)
+    UI::StatusManager m_statusManager;
 
     // UI
+    UI::UiController* m_uiController;
     TextManager* m_textManager;
 
     // Placement state machine
@@ -161,7 +178,7 @@ private:
     RoadController m_roadController;
     World::RoadNetworkRelinker m_relinker;
 
-    // Notification banner (bunner_info — slide target, state in m_renderState)
+    // Notification banner (bunner_info — slide target, state in m_frameContext.overlay)
     float m_bannerTargetX;
 
 
@@ -179,17 +196,11 @@ private:
     void InitGeologistMenu();
 
     bool CanPlaceBuilding(World::BuildingType type, int buildX, int buildY);
-    void ConfirmConstruction(World::Flag* flag);
     World::BuildingType GetBuildingTypeFromSpriteName(const std::string& name) const;
 
     // Update phase methods
     void UpdateCamera(float dt);
     void UpdateBanner(float dt);
-    void UpdateStatusText(float dt);
-    void UpdateGeologist(float dt);
-    void UpdateWildlife(float dt);
-    void CollectGroundResources();
-    void CheckConstructionSites();
 
     // Input wrappers (delegate to InputController)
     void HandleInput();
@@ -198,19 +209,11 @@ private:
     // Flag/building deletion
     void ConfirmDeleteFlag(World::Flag* flag);
 
-    // Geologist
-    void ShowGeologistConfirm(int tx, int ty);
-    void StartGeologistSurvey();
 
-    // Console UI
-    void SpawnGeologistPopup(int tx, int ty);
 
     void GetEntranceOffset(const std::string& buildingName, int& outX, int& outY);
 
-    // Wildlife regeneration timer
-    float m_wildlifeRegenTimer;
-    // Tree growth timer (Sapling > Young > Mature)
-    float m_treeGrowthTimer;
+
 
     // Job data (reused each frame)
     EconomyJobData m_economyJobData;

@@ -1,5 +1,4 @@
 #pragma once
-#include <string>
 #include "../Core/CommandBus.h"
 #include "../Core/EventBus.h"
 #include "../Core/Vector2i.h"
@@ -7,9 +6,14 @@
 #include "../World/FlagManager.h"
 #include "PlacementController.h"
 #include "RoadController.h"
+#include "FrameContext.h"
 
 namespace World {
     class Map;
+}
+
+namespace UI {
+    class StatusManager;
 }
 
 class GridMenu;
@@ -18,15 +22,12 @@ class UIMenu;
 namespace Scene {
 
     // GameScene implements this to receive actions that require
-    // complex game-state manipulation (deletion, geologist).
+    // complex game-state manipulation.
     class IInputHost {
     public:
         virtual ~IInputHost() {}
-        // User confirmed deletion of flag+building at (tx, ty)
         virtual void DeleteFlagAt(int tileX, int tileY) = 0;
-        // User pressed A on an un-surveyed mountain tile
         virtual void OnMountainTileAction(int tileX, int tileY) = 0;
-        // User pressed B while geologist confirm is showing
         virtual void CancelGeologist() = 0;
     };
 
@@ -43,16 +44,15 @@ namespace Scene {
                         UIMenu* flagMenu);
 
         void SetHost(IInputHost* host) { m_host = host; }
+        void SetStatusManager(UI::StatusManager* sm) { m_statusManager = sm; }
 
         // Called once per frame from GameScene::Update
         void Tick(float dt);
         void HandleGamepadInput();
         void HandleInput();
 
-        // Status text (read by GameScene for banner/render)
-        const std::string& GetStatusText() const { return m_statusText; }
-        float GetStatusTextTimer() const { return m_statusTextTimer; }
-        void SetStatusText(const char* text, float timer);
+        // Fill per-frame input snapshot for the renderer
+        void FillFrameContext(InputFrameState& out) const;
 
         // Cursor position (read/write by GameScene for camera → tile mapping)
         int GetCursorTileX() const { return m_cursorTileX; }
@@ -81,9 +81,6 @@ namespace Scene {
         void SetTownHallPanelOpen(bool v) { m_townHallPanelOpen = v; }
         void ToggleLogisticsDebug() { m_logisticsDebug = !m_logisticsDebug; }
 
-        // Called by GameScene when geologist survey completes
-        void OnGeologistComplete() { m_geologistMenuActive = false; }
-
     private:
         void HandlePlaceAtCursor();
         void HandleConfirmFreeFlag();
@@ -98,6 +95,7 @@ namespace Scene {
         GridMenu* m_buildMenu;
         UIMenu* m_flagMenu;
         IInputHost* m_host;
+        UI::StatusManager* m_statusManager;
 
         // Cursor
         int m_cursorTileX;
@@ -114,10 +112,6 @@ namespace Scene {
         bool m_geologistMenuActive;
         bool m_townHallPanelOpen;
         bool m_logisticsDebug;
-
-        // Status text
-        std::string m_statusText;
-        float m_statusTextTimer;
     };
 
 }

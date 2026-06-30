@@ -1,14 +1,19 @@
 #pragma once
 #include <vector>
 #include "../../Core/EventBus.h"
+#include "../../Core/CommandBus.h"
 #include "../Components/Building.h"
 
-namespace Logic { class AISystem; }
+namespace Logic {
+    class AISystem;
+    class EconomyManager;
+}
 
 namespace World {
     class Map;
     class FlagManager;
     class Flag;
+    class WorkerManager;
 }
 
 namespace World {
@@ -18,7 +23,10 @@ public:
     BuildingSystem();
     ~BuildingSystem();
 
-    void Initialize(Map* map, FlagManager* flagManager, Core::EventBus* eventBus);
+    void Initialize(Map* map, FlagManager* flagManager, Core::EventBus* eventBus, Core::CommandBus* commandBus);
+
+    void SetEconomyManager(Logic::EconomyManager* em) { m_economyManager = em; }
+    void SetWorkerManager(WorkerManager* wm) { m_workerManager = wm; }
 
     void RegisterBuilding(Building* building);
     void UnregisterBuilding(Building* building);
@@ -37,10 +45,15 @@ public:
     virtual void OnEvent(Core::EventType type, void* data);
 
 private:
+    void HandleConstructionComplete(const Core::ConstructionCompleteData& evt);
+
     std::vector<Building*> m_buildings;
     Map* m_map;
     FlagManager* m_flagManager;
     Core::EventBus* m_eventBus;
+    Core::CommandBus* m_commandBus;
+    Logic::EconomyManager* m_economyManager;
+    WorkerManager* m_workerManager;
 };
 
 } // namespace World

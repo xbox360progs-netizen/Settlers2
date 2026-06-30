@@ -2,6 +2,7 @@
 #include "InputController.h"
 #include "../UI/GridMenu.h"
 #include "../UI/UIMenu.h"
+#include "../UI/StatusManager.h"
 #include "../World/Map.h"
 #include "../Graphics/TextureRegistry.h"
 #include "../Graphics/SpriteAtlas.h"
@@ -31,6 +32,7 @@ namespace Scene {
         , m_buildMenu(buildMenu)
         , m_flagMenu(flagMenu)
         , m_host(NULL)
+        , m_statusManager(NULL)
         , m_cursorTileX(0)
         , m_cursorTileY(0)
         , m_gamepadCursorCooldown(0.0f)
@@ -42,7 +44,6 @@ namespace Scene {
         , m_geologistMenuActive(false)
         , m_townHallPanelOpen(false)
         , m_logisticsDebug(false)
-        , m_statusTextTimer(0.0f)
     {
     }
 
@@ -50,16 +51,6 @@ namespace Scene {
     {
         if (m_gamepadCursorCooldown > 0.0f)
             m_gamepadCursorCooldown -= dt;
-        if (m_statusTextTimer > 0.0f) {
-            m_statusTextTimer -= dt;
-            if (m_statusTextTimer < 0.0f) m_statusTextTimer = 0.0f;
-        }
-    }
-
-    void InputController::SetStatusText(const char* text, float timer)
-    {
-        m_statusText = text ? text : "";
-        m_statusTextTimer = timer;
     }
 
     void InputController::HandleGamepadInput()
@@ -122,7 +113,10 @@ namespace Scene {
             char dbg[64];
             _snprintf(dbg, sizeof(dbg), "[Input] Logistics debug %s\n", m_logisticsDebug ? "ON" : "OFF");
             OutputDebugStringA(dbg);
-            SetStatusText(m_logisticsDebug ? "LOGISTICS DEBUG ON" : "LOGISTICS DEBUG OFF", 2.0f);
+            if (m_statusManager) {
+                UI::UiMessageId msgId = m_logisticsDebug ? UI::MSG_LOGISTICS_DEBUG_ON : UI::MSG_LOGISTICS_DEBUG_OFF;
+                m_statusManager->SetStatus(msgId, UI::UiFormatArgs(), 2.0f);
+            }
         }
 
         // ── Placement states ──────────────────────────────────
@@ -131,18 +125,14 @@ namespace Scene {
                 HandlePlaceAtCursor();
             } else if (bPressed) {
                 m_placement->Cancel();
-                SetStatusText("Placement cancelled", 2.0f);
+                if (m_statusManager) m_statusManager->SetStatus(UI::MSG_PLACEMENT_CANCELLED, UI::UiFormatArgs(), 2.0f);
                 OutputDebugStringA("[Input] Flag placement cancelled\n");
             }
         } else if (m_placement->GetState() == PLACESTATE_PLACE_ROAD) {
             if (aPressed) {
                 m_roadController->TryAddTile(m_cursorTileX, m_cursorTileY);
-                if (m_roadController->GetStatusText()) {
-                    SetStatusText(m_roadController->GetStatusText(), m_roadController->GetStatusTimer());
-                    m_roadController->ClearStatus();
-                }
             } else if (bPressed) {
-                SetStatusText("Road cancelled", 2.0f);
+                if (m_statusManager) m_statusManager->SetStatus(UI::MSG_ROAD_CANCELLED, UI::UiFormatArgs(), 2.0f);
                 m_roadController->Cancel();
                 OutputDebugStringA("[Input] Road cancelled\n");
             }
@@ -152,10 +142,6 @@ namespace Scene {
                     HandleConfirmFreeFlag();
                 } else if (m_placement->GetConfirmAction() == PLACECONFIRM_START_ROAD) {
                     m_roadController->Start(m_placement->GetConfirmTargetX(), m_placement->GetConfirmTargetY());
-                    if (m_roadController->GetStatusText()) {
-                        SetStatusText(m_roadController->GetStatusText(), m_roadController->GetStatusTimer());
-                        m_roadController->ClearStatus();
-                    }
                 } else if (m_placement->GetConfirmAction() == PLACECONFIRM_DELETE_FLAG) {
                     if (m_host) {
                         m_host->DeleteFlagAt(m_placement->GetConfirmTargetX(), m_placement->GetConfirmTargetY());
@@ -163,7 +149,7 @@ namespace Scene {
                     m_placement->CancelConfirm();
                 }
             } else if (bPressed) {
-                SetStatusText("Cancelled", 2.0f);
+                if (m_statusManager) m_statusManager->SetStatus(UI::MSG_CANCELLED, UI::UiFormatArgs(), 2.0f);
                 m_placement->CancelConfirm();
             }
 
@@ -238,20 +224,20 @@ namespace Scene {
                             }
                             if (f) {
                                 if (f->type == World::FLAG_WAREHOUSE) {
-                                    SetStatusText("Cannot delete town hall flag!", 2.0f);
+                                    if (m_statusManager) m_statusManager->SetStatus(UI::MSG_CANNOT_DELETE_TOWN_HALL, UI::UiFormatArgs(), 2.0f);
                                 } else if (f->building || f->pendingBuilding != World::Building_None) {
                                     // Needs host confirmation — set up confirm state
                                     m_placement->SetConfirm(PLACECONFIRM_DELETE_FLAG, f->pos.x, f->pos.y);
-                                    SetStatusText("Delete building and flag? A=Yes B=No", 3.0f);
+                                    if (m_statusManager) m_statusManager->SetStatus(UI::MSG_DELETE_FLAG_PROMPT, UI::UiFormatArgs(), 3.0f);
                                 } else {
                                     // Simple flag deletion — pipeline handles road cleanup
                                     Core::DeleteFlagCmd dfd;
                                     dfd.flagId = f->id;
                                     m_commandBus.Post(Core::Cmd_DeleteFlag, dfd);
-                                    SetStatusText("Flag removed!", 2.0f);
+                                    if (m_statusManager) m_statusManager->SetStatus(UI::MSG_FLAG_REMOVED, UI::UiFormatArgs(), 2.0f);
                                 }
                             } else {
-                                SetStatusText("No flag found nearby", 2.0f);
+                                if (m_statusManager) m_statusManager->SetStatus(UI::MSG_NO_FLAG_NEARBY, UI::UiFormatArgs(), 2.0f);
                             }
                         } else if (selIdx == 2) {
                             // Start road (place free flag first if none exists)
@@ -261,10 +247,6 @@ namespace Scene {
                                 HandleConfirmFreeFlag();
                             }
                             m_roadController->Start(m_cursorTileX, m_cursorTileY);
-                            if (m_roadController->GetStatusText()) {
-                                SetStatusText(m_roadController->GetStatusText(), m_roadController->GetStatusTimer());
-                                m_roadController->ClearStatus();
-                            }
                         }
                     }
                     m_flagMenuActive = false;
@@ -276,7 +258,7 @@ namespace Scene {
         } else if (m_townHallPanelOpen) {
             if (bPressed) {
                 m_townHallPanelOpen = false;
-                SetStatusText("", 0.0f);
+                if (m_statusManager) m_statusManager->ClearStatus();
             }
 
         // ── Default mode ──────────────────────────────────────
@@ -367,7 +349,7 @@ namespace Scene {
         m_commandBus.Post(Core::Cmd_PlaceFlag, pfd);
 
         m_placement->Cancel();
-        SetStatusText("Building construction started!", 2.0f);
+        if (m_statusManager) m_statusManager->SetStatus(UI::MSG_BUILDING_STARTED, UI::UiFormatArgs(), 2.0f);
         {
             char dbg[256];
             _snprintf(dbg, sizeof(dbg), "[Input] PlaceFlag: placed type=%d at (%d,%d)\n",
@@ -382,13 +364,13 @@ namespace Scene {
 
         const World::Tile& objTile = m_map->GetTile(World::Objects, m_cursorTileX, m_cursorTileY);
         if (objTile.type != World::Tile_None) {
-            SetStatusText("Cannot place flag on object", 2.0f);
+            if (m_statusManager) m_statusManager->SetStatus(UI::MSG_CANNOT_PLACE_FLAG_OBJECT, UI::UiFormatArgs(), 2.0f);
             return;
         }
 
         BYTE weight = m_map->GetNodeWeight(m_cursorTileX, m_cursorTileY);
         if (weight != World::Weight_Deep && weight != World::Weight_Shallow) {
-            SetStatusText("Flag can only be placed on water (deep or shallow)", 2.0f);
+            if (m_statusManager) m_statusManager->SetStatus(UI::MSG_FLAG_WATER_ONLY, UI::UiFormatArgs(), 2.0f);
             return;
         }
 
@@ -408,10 +390,26 @@ namespace Scene {
             m_eventBus->Post(Core::Event_FlagTopologyChanged);
         }
 
-        SetStatusText("Flag placed!", 2.0f);
+        if (m_statusManager) m_statusManager->SetStatus(UI::MSG_FLAG_PLACED, UI::UiFormatArgs(), 2.0f);
         char dbg[256];
         _snprintf(dbg, sizeof(dbg), "[Input] Free flag placed at (%d,%d)\n", m_cursorTileX, m_cursorTileY);
         OutputDebugStringA(dbg);
+    }
+
+    void InputController::FillFrameContext(InputFrameState& out) const
+    {
+        out.cursorTileX        = m_cursorTileX;
+        out.cursorTileY        = m_cursorTileY;
+        out.gamepadActive      = m_gamepadActive;
+        out.gamepadCursorX     = m_gamepadCursor.x;
+        out.gamepadCursorY     = m_gamepadCursor.y;
+        out.menuActive         = m_menuActive;
+        out.roadMenuActive     = m_roadMenuActive;
+        out.flagMenuActive     = m_flagMenuActive;
+        out.geologistMenuActive = m_geologistMenuActive;
+        out.townHallPanelOpen  = m_townHallPanelOpen;
+        out.cursorOnTownHall   = m_cursorOnTownHall;
+        out.logisticsDebug     = m_logisticsDebug;
     }
 
 }

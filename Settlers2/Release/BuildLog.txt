@@ -1,22 +1,20 @@
-﻿Построение начато 28.06.2026 7:44:58.
+﻿Построение начато 30.06.2026 3:13:06.
      1>Проект "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" в узле 2 (целевые объекты build).
      1>InitializeBuildStatus:
          Обращение к "Release\Settlers2.unsuccessfulbuild".
        ClCompile:
          Для всех выходных данных обновления не требуется.
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Core\GameEngine.cpp Scene\GameRenderer.cpp Scene\GameScene.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
-         GameEngine.cpp
-         GameRenderer.cpp
-         GameScene.cpp
-         Generating Code...
          Для всех выходных данных обновления не требуется.
+         Для всех выходных данных обновления не требуется.
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\Scene\\" /Fd"Release\vc100.pdb" /TP Scene\InputController.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
+         InputController.cpp
        Link:
          C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\link.exe /ERRORREPORT:PROMPT /OUT:"D:\development\Settlers2\Settlers2\Release\Settlers2.exe" /INCREMENTAL:NO /NOLOGO xapilib.lib d3d9.lib d3dx9.lib xgraphics.lib xboxkrnl.lib xnet.lib xaudio2.lib xact3.lib x3daudio.lib xmcore.lib vcomp.lib /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"D:\development\Settlers2\Settlers2\Release\Settlers2.pdb" /STACK:"262144","262144" /OPT:REF /OPT:ICF /TLBID:1 /RELEASE /IMPLIB:"D:\development\Settlers2\Settlers2\Release\Settlers2.lib" Release\GameEngine.obj
          Release\LanguageManager.obj
          Release\JobManager.obj
+         Release\ThreadSync.obj
          Release\CommandBus.obj
          Release\EventBus.obj
-         Release\ThreadSync.obj
          Release\BatchBuilder.obj
          Release\BinFileManager.obj
          Release\BitmapFont.obj
@@ -49,7 +47,6 @@
          Release\Xbox360EDRAM.obj
          Release\Gamepad.obj
          Release\InputContext.obj
-         Release\InputController.obj
          Release\InputManager.obj
          Release\ScreenKeyboard.obj
          Release\AISystem.obj
@@ -58,19 +55,23 @@
          Release\IsoGrid.obj
          Release\WeightMap.obj
          Release\BuildingPlacement.obj
-         Release\ConstructionVisualizer.obj
-         Release\PlacementController.obj
          Release\EditorScene.obj
+         Release\ConstructionVisualizer.obj
          Release\GameRenderer.obj
+         Release\FrameContext.obj
+         Release\GeologistController.obj
+         Release\MenuBootstrap.obj
+         Release\PlacementController.obj
+         Release\RoadController.obj
+         Release\WorldBootstrap.obj
+         Release\WorldRestorer.obj
          Release\GameScene.obj
+         Release\BuildingCommandHandler.obj
+         Release\ResourceCommandHandler.obj
          Release\LoadingScene.obj
          Release\MenuScene.obj
          Release\Scene.obj
          Release\SceneManager.obj
-         Release\MenuBootstrap.obj
-         Release\RoadController.obj
-         Release\WorldBootstrap.obj
-         Release\WorldRestorer.obj
          Release\Settlers2.obj
          Release\stdafx.obj
          Release\BuildMenu.obj
@@ -83,6 +84,11 @@
          Release\RadialMenu.obj
          Release\ResourceBar.obj
          Release\UIManager.obj
+         Release\UiEventSystem.obj
+         Release\UiController.obj
+         Release\LocalizationService.obj
+         Release\NotificationManager.obj
+         Release\StatusManager.obj
          Release\Widget.obj
          Release\WeightMenu.obj
          Release\Building.obj
@@ -116,20 +122,21 @@
          Release\PhysicsSystem.obj
          Release\AnimalSystem.obj
          Release\CarrierSystem.obj
+         Release\RenderSystem.obj
+         Release\BuildingSystem.obj
          Release\ConstructionSystem.obj
-         Release\ConstructionFactory.obj
+         Release\RoadNetworkRelinker.obj
+         Release\SimulationSystem.obj
          Release\TransportSystem.obj
          Release\WorkforceSystem.obj
-         Release\BuildingSystem.obj
-         Release\SimulationSystem.obj
          Release\WorldSystem.obj
-         Release\RenderSystem.obj
-         Release\RoadNetworkRelinker.obj
+         Release\ConstructionFactory.obj
          Release\TileLayer.obj
          Release\MapEditor.obj
          Release\UnitManager.obj
          Release\TilePalette.obj
-         Release\\SceneInputController.obj /XEX:NO
+         Release\\Input\InputController.obj
+         Release\\Scene\InputController.obj /XEX:NO
        ImageXex:
          C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\imagexex.exe /out:"D:\development\Settlers2\Settlers2\Release\Settlers2.xex" "D:\development\Settlers2\Settlers2\Release\Settlers2.exe" 
          Microsoft(R) Xbox 360 Image File Builder Version 2.0.21256.0
@@ -142,4 +149,4 @@
 
 Построение успешно завершено.
 
-Затраченное время: 00:00:19.44
+Затраченное время: 00:00:17.34

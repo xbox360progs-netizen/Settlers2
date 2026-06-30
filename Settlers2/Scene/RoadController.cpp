@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "RoadController.h"
 #include "PlacementController.h"
+#include "../UI/StatusManager.h"
 #include "../Graphics/TextureRegistry.h"
 #include "../Graphics/SpriteAtlas.h"
 #include "../World/Map.h"
@@ -23,8 +24,6 @@ namespace Scene {
     RoadController::RoadController()
         : m_active(false)
         , m_startX(-1), m_startY(-1)
-        , m_statusText(NULL)
-        , m_statusTimer(0.0f)
         , m_map(NULL)
         , m_flagManager(NULL)
         , m_roadManager(NULL)
@@ -34,6 +33,7 @@ namespace Scene {
         , m_constructionMgr(NULL)
         , m_relinker(NULL)
         , m_placementCtrl(NULL)
+        , m_statusManager(NULL)
     {
     }
 
@@ -72,10 +72,6 @@ namespace Scene {
     const std::vector<std::pair<int,int>>& RoadController::GetAutoPath() const { return m_autoPath; }
     int RoadController::GetStartX() const { return m_startX; }
     int RoadController::GetStartY() const { return m_startY; }
-    const char* RoadController::GetStatusText() const { return m_statusText; }
-    float RoadController::GetStatusTimer() const { return m_statusTimer; }
-    void RoadController::ClearStatus() { m_statusText = NULL; m_statusTimer = 0.0f; }
-
     // ─── Static helpers ──────────────────────────────────────────────
 
     bool RoadController::IsNodeRoad(int nx, int ny, World::TileLayer* roadsLayer, const std::vector<std::pair<int,int>>& previewPath)
@@ -190,8 +186,7 @@ namespace Scene {
         m_previewPath.push_back(std::make_pair(x, y));
         m_validNeighbors.clear();
         m_autoPath.clear();
-        m_statusText = "ROAD: A=add tile  B=cancel";
-        m_statusTimer = 0.0f;
+        if (m_statusManager) m_statusManager->SetStatus(UI::MSG_ROAD_BUILD_HELP, UI::UiFormatArgs(), 0.0f);
         OutputDebugStringA("[RoadController] Road building started (tile-by-tile)\n");
     }
 
@@ -336,7 +331,7 @@ namespace Scene {
             for (size_t i = 0; i < m_autoPath.size(); ++i) {
                 m_previewPath.push_back(m_autoPath[i]);
             }
-            m_statusText = "ROAD: auto-path built!";
+            if (m_statusManager) m_statusManager->SetStatus(UI::MSG_ROAD_AUTO_PATH, UI::UiFormatArgs(), 2.0f);
             Commit();
             return true;
         }
@@ -349,8 +344,7 @@ namespace Scene {
             }
         }
         if (!isValid) {
-            m_statusText = "Cannot build here!";
-            m_statusTimer = 1.5f;
+            if (m_statusManager) m_statusManager->SetStatus(UI::MSG_CANNOT_BUILD_HERE, UI::UiFormatArgs(), 1.5f);
             return false;
         }
 
@@ -373,7 +367,7 @@ namespace Scene {
             }
         }
 
-        m_statusText = "ROAD: A=add tile  B=cancel";
+        if (m_statusManager) m_statusManager->SetStatus(UI::MSG_ROAD_BUILD_HELP, UI::UiFormatArgs(), 0.0f);
         return true;
     }
 
@@ -391,8 +385,7 @@ namespace Scene {
             int py = m_previewPath[i].second;
             const World::Tile& rt = roadsLayer->GetTile(px, py);
             if (rt.regionIndex >= 0) {
-                m_statusText = "Cannot build through existing road!";
-                m_statusTimer = 3.0f;
+                if (m_statusManager) m_statusManager->SetStatus(UI::MSG_CANNOT_BUILD_THROUGH_ROAD, UI::UiFormatArgs(), 3.0f);
                 Cancel();
                 return;
             }
@@ -543,8 +536,7 @@ namespace Scene {
             m_eventBus->Post(Core::Event_RoadBuilt, rd);
         }
 
-        m_statusText = "Road built!";
-        m_statusTimer = 2.0f;
+        if (m_statusManager) m_statusManager->SetStatus(UI::MSG_ROAD_BUILT, UI::UiFormatArgs(), 2.0f);
         Cancel();
     }
 

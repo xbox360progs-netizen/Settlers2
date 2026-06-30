@@ -20,6 +20,7 @@ struct ConstructionCompleteData {
     int siteX, siteY;
     int buildingType;
     uint32_t flagId;
+    unsigned int siteId;
 };
 
 struct BuildingPlacedData {

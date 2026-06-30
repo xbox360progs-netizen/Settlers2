@@ -149,13 +149,18 @@ namespace Scene {
         CoordinateSystem& coords = CoordinateSystem::GetInstance();
         int nodesW = coords.GetNodesWidth(), nodesH = coords.GetNodesHeight();
 
+        World::ResourceType requiredRes = GetResourceTypeForMine(m_selectedType);
+
         data.footprintTiles.clear();
         auto checkTile = [&](int tx, int ty) -> bool {
             if (tx < 0 || tx >= nodesW || ty < 0 || ty >= nodesH) return false;
             World::TileLayer* bl = m_map->GetLayer(World::Buildings);
             if (bl && bl->GetTile(tx, ty).type != World::Tile_None) return false;
-            World::TileLayer* ol = m_map->GetLayer(World::Objects);
-            if (ol) { const World::Tile& ot = ol->GetTile(tx, ty); if (ot.u1 > ot.u0 && ot.v1 > ot.v0) return false; }
+            // Mines replace resource mountain tiles — skip Objects layer check
+            if (requiredRes == World::ResourceType_None) {
+                World::TileLayer* ol = m_map->GetLayer(World::Objects);
+                if (ol) { const World::Tile& ot = ol->GetTile(tx, ty); if (ot.u1 > ot.u0 && ot.v1 > ot.v0) return false; }
+            }
             if (m_flagManager && m_flagManager->GetFlagAt(tx, ty)) return false;
             return true;
         };
@@ -175,7 +180,6 @@ namespace Scene {
                 }
         }
 
-        World::ResourceType requiredRes = GetResourceTypeForMine(m_selectedType);
         if (requiredRes != World::ResourceType_None) {
             if (anchorX < 0 || anchorX >= nodesW || anchorY < 0 || anchorY >= nodesH) { data.errorMsg = "out of bounds"; return data; }
             const World::ResourceNode& node = m_map->GetResourceNode(anchorX, anchorY);

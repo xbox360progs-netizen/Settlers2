@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "GameRenderer.h"
+#include "FrameContext.h"
 #include "../Graphics/RenderCommandBuilder.h"
 #include "../Graphics/Renderer.h"
 #include "../Graphics/SpriteAtlas.h"
@@ -21,34 +22,13 @@
 #include "../UI/GridMenu.h"
 #include "../UI/UIMenu.h"
 #include "BuildingPlacement.h"
-#include "InputController.h"
 #include "PlacementController.h"
 #include "RoadController.h"
 #include "TextureSlots.h"
 
 namespace Scene {
 
-// ─── GameRendererState constructor ─────────────────────────────────────
-GameRendererState::GameRendererState()
-    : geologistState(0)
-    , geologistTileX(-1)
-    , geologistTileY(-1)
-    , townHallPanelBgIdx(-1)
-    , townHallPanelU0(0.0f), townHallPanelV0(0.0f), townHallPanelU1(0.0f), townHallPanelV1(0.0f)
-    , townHallPanelW(0.0f), townHallPanelH(0.0f)
-    , bannerSlideX(1280.0f)
-    , bannerW(0.0f), bannerH(0.0f)
-    , bannerU0(0.0f), bannerV0(0.0f), bannerU1(0.0f), bannerV1(0.0f)
-    , bannerLoaded(false)
-    , resourceHudLoaded(false)
-{
-    for (int i = 0; i < RESOURCE_HUD_COUNT; ++i) {
-        resourceHud[i].type     = World::ResourceType_None;
-        resourceHud[i].iconName = NULL;
-        resourceHud[i].iconIdx  = -1;
-        resourceHud[i].showOrder = i;
-    }
-}
+
 
 // ─── GameRenderer constructor ──────────────────────────────────────────
 GameRenderer::GameRenderer(
@@ -64,13 +44,11 @@ GameRenderer::GameRenderer(
     World::WildlifeSystem*      wildlife,
     Logic::EconomyManager*      economyManager,
     PlacementController*        placement,
-    InputController*            inputController,
     RoadController*             roadController,
     GridMenu*                   buildMenu,
     UIMenu*                     flagMenu,
     UIMenu*                     geologistMenu,
-    TextManager*                textManager,
-    GameRendererState*          state
+    TextManager*                textManager
 )
     : m_tileRenderer(tileRenderer)
     , m_renderer(renderer)
@@ -84,20 +62,18 @@ GameRenderer::GameRenderer(
     , m_wildlife(wildlife)
     , m_economyManager(economyManager)
     , m_placement(placement)
-    , m_inputController(inputController)
     , m_roadController(roadController)
     , m_buildMenu(buildMenu)
     , m_flagMenu(flagMenu)
     , m_geologistMenu(geologistMenu)
     , m_textManager(textManager)
-    , m_state(state)
     , m_groundWoodIconIdx(-1)
     , m_groundWoodIconLoaded(false)
 {
 }
 
 // ─── Render ────────────────────────────────────────────────────────────
-void GameRenderer::Render(Graphics::RenderQueue* renderQueue)
+void GameRenderer::Render(Graphics::RenderQueue* renderQueue, const FrameContext& frame)
 {
     if (!m_tileRenderer || !m_map) {
         OutputDebugStringA("[GameRenderer::Render] Not ready, returning\n");
@@ -241,7 +217,7 @@ void GameRenderer::Render(Graphics::RenderQueue* renderQueue)
 
     // ─── Render cursor or placement preview ────────────────────────────
     if (m_placement->GetState() == PLACESTATE_PLACE_FLAG && !m_placement->IsIdle()) {
-        PlacementData pd = m_placement->GetPlacementData(m_inputController->GetCursorTileX(), m_inputController->GetCursorTileY());
+        PlacementData pd = m_placement->GetPlacementData(frame.input.cursorTileX, frame.input.cursorTileY);
 
         if (pd.spriteRegion) {
             float wx, wy;
@@ -263,8 +239,8 @@ void GameRenderer::Render(Graphics::RenderQueue* renderQueue)
                 .Layer(LAYER_FOREGROUND)
                 .Submit(renderQueue);
         }
-    } else if (!m_inputController->IsMenuActive() && !m_inputController->IsRoadMenuActive() && !m_inputController->IsFlagMenuActive() && !m_inputController->IsGeologistMenuActive()) {
-        RenderCursor(renderQueue);
+    } else if (!frame.input.menuActive && !frame.input.roadMenuActive && !frame.input.flagMenuActive && !frame.input.geologistMenuActive) {
+        RenderCursor(renderQueue, frame);
     }
 
     // ─── Render flags ──────────────────────────────────────────────────
@@ -831,17 +807,17 @@ void GameRenderer::Render(Graphics::RenderQueue* renderQueue)
     }
 
     // ─── Render build menu ─────────────────────────────────────────────
-    if (m_buildMenu && m_inputController->IsMenuActive()) {
+    if (m_buildMenu && frame.input.menuActive) {
         m_buildMenu->Render();
     }
 
     // ─── Render flag menu ──────────────────────────────────────────────
-    if (m_flagMenu && m_inputController->IsFlagMenuActive()) {
+    if (m_flagMenu && frame.input.flagMenuActive) {
         m_flagMenu->Render();
     }
 
     // ─── Hunting spots overlay ─────────────────────────────────────────
-    if (m_inputController->IsFlagMenuActive() && m_flagManager && m_map && m_textManager) {
+    if (frame.input.flagMenuActive && m_flagManager && m_map && m_textManager) {
         World::Flag* flag = m_flagManager->GetFlagAt(m_placement->GetConfirmTargetX(), m_placement->GetConfirmTargetY());
         if (flag && flag->building && flag->building->type == World::Hunter) {
             Logic::ResourceRegistry* registry = m_map->GetResourceRegistry();
@@ -916,9 +892,9 @@ void GameRenderer::Render(Graphics::RenderQueue* renderQueue)
         }
     }
 
-    if (!m_inputController->IsMenuActive() && !m_inputController->IsRoadMenuActive() && !m_inputController->IsFlagMenuActive() && !m_inputController->IsGeologistMenuActive() && !m_inputController->IsTownHallPanelOpen()) {
+    if (!frame.input.menuActive && !frame.input.roadMenuActive && !frame.input.flagMenuActive && !frame.input.geologistMenuActive && !frame.input.townHallPanelOpen) {
         // ─── Town hall highlight ───────────────────────────────────────
-        if (m_inputController->GetCursorOnTownHall()) {
+        if (frame.input.cursorOnTownHall) {
             std::tr1::shared_ptr<SpriteAtlas> buildingsAtlas = reg.getAtlas("Buildings");
             if (buildingsAtlas) {
                 uint32_t thIdx = buildingsAtlas->GetIndex("b_townhall");
@@ -942,21 +918,21 @@ void GameRenderer::Render(Graphics::RenderQueue* renderQueue)
     }
 
     // ─── Town hall info panel ──────────────────────────────────────────
-    if (m_inputController->IsTownHallPanelOpen() && m_state->townHallPanelBgIdx >= 0) {
+    if (frame.input.townHallPanelOpen && frame.overlay.townHallPanelBgIdx >= 0) {
         LPDIRECT3DTEXTURE9 uiTex = NULL;
         std::tr1::shared_ptr<SpriteAtlas> uiAtlas = reg.getAtlas("ui");
         if (uiAtlas) uiTex = uiAtlas->GetTexture();
         if (spriteRenderer && uiTex) {
             float screenW = 1280.0f;
             float screenH = 720.0f;
-            float panelLeft = (screenW - m_state->townHallPanelW) * 0.5f;
-            float panelTop = (screenH - m_state->townHallPanelH) * 0.5f;
+            float panelLeft = (screenW - frame.overlay.townHallPanelW) * 0.5f;
+            float panelTop = (screenH - frame.overlay.townHallPanelH) * 0.5f;
 
             Graphics::RenderCommandBuilder()
                 .UIElement(panelLeft, panelTop,
-                    m_state->townHallPanelW, m_state->townHallPanelH,
-                    m_state->townHallPanelU0, m_state->townHallPanelV0,
-                    m_state->townHallPanelU1, m_state->townHallPanelV1,
+                    frame.overlay.townHallPanelW, frame.overlay.townHallPanelH,
+                    frame.overlay.townHallPanelU0, frame.overlay.townHallPanelV0,
+                    frame.overlay.townHallPanelU1, frame.overlay.townHallPanelV1,
                     SLOT_UI_TOWNHALL_PANEL, 10)
                 .Submit(renderQueue);
 
@@ -983,7 +959,7 @@ void GameRenderer::Render(Graphics::RenderQueue* renderQueue)
     }
 
     // ─── Highlight all buildings when town hall panel is open ──────────
-    if (m_inputController->IsTownHallPanelOpen() && m_flagManager) {
+    if (frame.input.townHallPanelOpen && m_flagManager) {
         CoordinateSystem& coords = CoordinateSystem::GetInstance();
         std::tr1::shared_ptr<SpriteAtlas> buildingsAtlas = reg.getAtlas("Buildings");
         if (buildingsAtlas) {
@@ -1056,7 +1032,7 @@ void GameRenderer::Render(Graphics::RenderQueue* renderQueue)
     }
 
     // ─── Resource HUD bar ──────────────────────────────────────────────
-    if (m_state->resourceHudLoaded) {
+    if (frame.overlay.resourceHudLoaded) {
         TextureRegistry& reg2 = TextureRegistry::instance();
         std::tr1::shared_ptr<SpriteAtlas> resIconAtlas = reg2.getAtlas("Icon");
         if (resIconAtlas) {
@@ -1065,10 +1041,10 @@ void GameRenderer::Render(Graphics::RenderQueue* renderQueue)
             float iconSize = 28.0f;
             float spacing = 60.0f;
 
-            for (int i = 0; i < GameRendererState::RESOURCE_HUD_COUNT; ++i) {
-                if (m_state->resourceHud[i].iconIdx < 0) continue;
+            for (int i = 0; i < OverlayFrameState::RESOURCE_HUD_COUNT; ++i) {
+                if (frame.overlay.resourceHud[i].iconIdx < 0) continue;
 
-                const SpriteRegion* r = resIconAtlas->GetRegion(m_state->resourceHud[i].iconIdx);
+                const SpriteRegion* r = resIconAtlas->GetRegion(frame.overlay.resourceHud[i].iconIdx);
                 if (!r) continue;
 
                 Graphics::RenderCommandBuilder()
@@ -1081,7 +1057,7 @@ void GameRenderer::Render(Graphics::RenderQueue* renderQueue)
 
                 if (m_economyManager) {
                     char buf[32];
-                    _snprintf(buf, sizeof(buf), "%d", m_economyManager->GetTotalStock(m_state->resourceHud[i].type));
+                    _snprintf(buf, sizeof(buf), "%d", m_economyManager->GetTotalStock(frame.overlay.resourceHud[i].type));
                     float textX = barX + iconSize + 4.0f;
                     float textY = barY + (iconSize - 14.0f) * 0.5f;
                     m_textManager->DrawString(buf, textX, textY, 0xFFFFFFFF, 0.07f);
@@ -1093,38 +1069,38 @@ void GameRenderer::Render(Graphics::RenderQueue* renderQueue)
     }
 
     // ─── Geologist overlay ─────────────────────────────────────────────
-    RenderGeologistOverlay(renderQueue);
+    RenderGeologistOverlay(renderQueue, frame);
 
     // ─── Gamepad UI ────────────────────────────────────────────────────
-    PushUiToQueue(renderQueue);
+    PushUiToQueue(renderQueue, frame);
 
     // ─── Notification banner + status text ─────────────────────────────
-    if (m_textManager && !m_inputController->GetStatusText().empty()) {
+    if (m_textManager && frame.input.statusText[0] != '\0') {
         float screenW = 1280.0f;
         float screenH = 720.0f;
         float textY = screenH - 40.0f;
-        if (m_state->bannerLoaded && spriteRenderer) {
+        if (frame.overlay.bannerLoaded && spriteRenderer) {
             TextureRegistry& regB = TextureRegistry::instance();
             std::tr1::shared_ptr<SpriteAtlas> uiAtlasB = regB.getAtlas("ui");
             if (uiAtlasB && uiAtlasB->GetTexture()) {
                 spriteRenderer->SetTextureSlot(SLOT_UI_MENU_BG, uiAtlasB->GetTexture());
             }
         }
-        if (m_state->bannerLoaded && m_state->bannerSlideX < 1280.0f) {
+        if (frame.overlay.bannerLoaded && frame.overlay.bannerSlideX < 1280.0f) {
             Graphics::RenderCommandBuilder()
-                .UIElement(m_state->bannerSlideX, textY - m_state->bannerH,
-                    m_state->bannerW, m_state->bannerH,
-                    m_state->bannerU0, m_state->bannerV0, m_state->bannerU1, m_state->bannerV1,
+                .UIElement(frame.overlay.bannerSlideX, textY - frame.overlay.bannerH,
+                    frame.overlay.bannerW, frame.overlay.bannerH,
+                    frame.overlay.bannerU0, frame.overlay.bannerV0, frame.overlay.bannerU1, frame.overlay.bannerV1,
                     SLOT_UI_MENU_BG, 0)
                 .Layer(LAYER_EFFECTS)
                 .Submit(renderQueue);
         }
-        float textX = m_state->bannerSlideX + 40.0f;
-        m_textManager->DrawString(m_inputController->GetStatusText(), textX, textY - m_state->bannerH + 4.0f + 25.0f, 0xFFFFFFFF, 0.096f);
+        float textX = frame.overlay.bannerSlideX + 40.0f;
+        m_textManager->DrawString(frame.input.statusText, textX, textY - frame.overlay.bannerH + 4.0f + 25.0f, 0xFFFFFFFF, 0.096f);
     }
 
     // ─── Logistics debug overlay ───────────────────────────────────────
-    if (m_inputController->IsLogisticsDebug() && m_textManager) {
+    if (frame.input.logisticsDebug && m_textManager) {
         CoordinateSystem& coords = CoordinateSystem::GetInstance();
 
         if (m_flagManager) {
@@ -1224,7 +1200,7 @@ void GameRenderer::Render(Graphics::RenderQueue* renderQueue)
 }
 
 // ─── RenderCursor ──────────────────────────────────────────────────────
-void GameRenderer::RenderCursor(Graphics::RenderQueue* renderQueue)
+void GameRenderer::RenderCursor(Graphics::RenderQueue* renderQueue, const FrameContext& frame)
 {
     TextureRegistry& reg = TextureRegistry::instance();
     std::tr1::shared_ptr<SpriteAtlas> uiAtlas = reg.getAtlas("ui");
@@ -1243,7 +1219,7 @@ void GameRenderer::RenderCursor(Graphics::RenderQueue* renderQueue)
     }
 
     float worldX, worldY;
-    CoordinateSystem::GetInstance().NodeTileToWorld(m_inputController->GetCursorTileX(), m_inputController->GetCursorTileY(), worldX, worldY);
+    CoordinateSystem::GetInstance().NodeTileToWorld(frame.input.cursorTileX, frame.input.cursorTileY, worldX, worldY);
 
     Graphics::RenderCommandBuilder()
         .WorldSprite(worldX - cursorRegion->pivotX, worldY - cursorRegion->pivotY,
@@ -1255,7 +1231,7 @@ void GameRenderer::RenderCursor(Graphics::RenderQueue* renderQueue)
 }
 
 // ─── RenderGeologistOverlay ────────────────────────────────────────────
-void GameRenderer::RenderGeologistOverlay(Graphics::RenderQueue* renderQueue)
+void GameRenderer::RenderGeologistOverlay(Graphics::RenderQueue* renderQueue, const FrameContext& frame)
 {
     if (!m_map || !renderQueue) return;
     CoordinateSystem& coords = CoordinateSystem::GetInstance();
@@ -1265,8 +1241,8 @@ void GameRenderer::RenderGeologistOverlay(Graphics::RenderQueue* renderQueue)
 
     // 1. Mountain highlight
     if (m_map) {
-        int cursorX = m_inputController->GetCursorTileX();
-        int cursorY = m_inputController->GetCursorTileY();
+        int cursorX = frame.input.cursorTileX;
+        int cursorY = frame.input.cursorTileY;
         const World::Tile& objTile = m_map->GetTile(World::Objects, cursorX, cursorY);
         if (objTile.type == World::Mountain || objTile.type == World::MountainOnWater || objTile.type == World::Rock) {
             SpriteRenderer* sr = m_renderer ? m_renderer->GetSpriteRenderer() : NULL;
@@ -1300,13 +1276,9 @@ void GameRenderer::RenderGeologistOverlay(Graphics::RenderQueue* renderQueue)
         }
     }
 
-    // 2. Geologist confirm menu
-    if (m_geologistMenu && (m_inputController->IsGeologistMenuActive() || m_state->geologistState == GameRendererState::GEOLOGIST_CONFIRM)) {
-        if (!m_inputController->IsGeologistMenuActive() && m_state->geologistState == GameRendererState::GEOLOGIST_CONFIRM) {
-            m_inputController->SetGeologistMenuActive(true);
-            m_geologistMenu->Show();
-        }
-        m_geologistMenu->Render();
+        // 2. Geologist confirmation overlay
+        if (m_geologistMenu && m_geologistMenu->IsVisible()) {
+            m_geologistMenu->Render();
         if (m_textManager && m_geologistMenu->IsVisible()) {
             std::tr1::shared_ptr<SpriteAtlas> uiAtl = reg.getAtlas("ui");
             std::tr1::shared_ptr<SpriteAtlas> iconAtl = reg.getAtlas("Icon");
@@ -1425,9 +1397,9 @@ void GameRenderer::RenderGeologistOverlay(Graphics::RenderQueue* renderQueue)
     }
 
     // 4. Geologist working indicator
-    if (m_state->geologistState == GameRendererState::GEOLOGIST_WORKING && m_state->geologistTileX >= 0 && m_state->geologistTileY >= 0) {
+    if (frame.overlay.geologistState == OverlayFrameState::GEOLOGIST_WORKING && frame.overlay.geologistTileX >= 0 && frame.overlay.geologistTileY >= 0) {
         float wx, wy;
-        coords.NodeTileToWorld(m_state->geologistTileX, m_state->geologistTileY, wx, wy);
+        coords.NodeTileToWorld(frame.overlay.geologistTileX, frame.overlay.geologistTileY, wx, wy);
         bool iconRendered = false;
         if (iconAtlas && sr) {
             LPDIRECT3DTEXTURE9 iconTex = iconAtlas->GetTexture();
@@ -1462,14 +1434,15 @@ void GameRenderer::RenderGeologistOverlay(Graphics::RenderQueue* renderQueue)
     }
 }
 
-// ─── PushUiToQueue (gamepad cursor) ────────────────────────────────────
-void GameRenderer::PushUiToQueue(Graphics::RenderQueue* renderQueue)
+// ─── PushUiToQueue (gamepad cursor + notifications) ────────────────────
+void GameRenderer::PushUiToQueue(Graphics::RenderQueue* renderQueue, const FrameContext& frame)
 {
     if (!m_textManager) return;
 
     TextureRegistry& reg = TextureRegistry::instance();
 
-    if (m_inputController->IsGamepadActive()) {
+    // ── Gamepad cursor ────────────────────────────────────────────────
+    if (frame.input.gamepadActive) {
         std::tr1::shared_ptr<SpriteAtlas> uiAtlas = reg.getAtlas("ui");
         if (uiAtlas) {
             uint32_t cursorIdx = uiAtlas->GetIndex("cursor");
@@ -1480,7 +1453,7 @@ void GameRenderer::PushUiToQueue(Graphics::RenderQueue* renderQueue)
                     if (rq) {
                         float wx, wy;
                         CoordinateSystem::GetInstance().NodeTileToWorld(
-                            m_inputController->GetGamepadCursor().x, m_inputController->GetGamepadCursor().y, wx, wy);
+                            frame.input.gamepadCursorX, frame.input.gamepadCursorY, wx, wy);
 
                         SpriteRenderer* sr = m_renderer->GetSpriteRenderer();
                         if (sr) {
@@ -1501,6 +1474,54 @@ void GameRenderer::PushUiToQueue(Graphics::RenderQueue* renderQueue)
             }
         }
     }
+
+    // Ensure UI atlas texture is bound for notification backgrounds
+    {
+        std::tr1::shared_ptr<SpriteAtlas> uiAtlas = reg.getAtlas("ui");
+        if (uiAtlas) {
+            SpriteRenderer* sr = m_renderer ? m_renderer->GetSpriteRenderer() : NULL;
+            if (sr) {
+                LPDIRECT3DTEXTURE9 uiTex = uiAtlas->GetTexture();
+                if (uiTex) sr->SetTextureSlot(SLOT_UI_MENU_BG, uiTex);
+            }
+        }
+    }
+
+    // ── Notifications ─────────────────────────────────────────────────
+    if (frame.ui.notificationCount > 0) {
+        float startX = 1280.0f - 280.0f;
+        float startY = 20.0f;
+        float boxW = 260.0f;
+        float boxH = 60.0f;
+        float pad = 10.0f;
+
+        for (int i = 0; i < frame.ui.notificationCount; ++i) {
+            const UiFrameState::UiNotification& n = frame.ui.notifications[i];
+            if (!n.isActive) continue;
+
+            float yPos = startY + (float)i * (boxH + 6.0f);
+
+            // Background box
+            Graphics::RenderCommandBuilder()
+                .UIElement(startX, yPos, boxW, boxH,
+                    0.0f, 0.0f, 1.0f, 1.0f,
+                    SLOT_UI_MENU_BG, static_cast<WORD>(0.95f * 65535.0f))
+                .Color(D3DCOLOR_ARGB(200, 20, 20, 40))
+                .Submit(renderQueue);
+
+            // Title
+            m_textManager->DrawString(n.title, startX + pad, yPos + 4.0f, D3DCOLOR_ARGB(255, 255, 200, 80), 0.07f);
+
+            // Line1
+            m_textManager->DrawString(n.line1, startX + pad, yPos + 22.0f, D3DCOLOR_ARGB(255, 220, 220, 220), 0.06f);
+
+            // Line2
+            if (n.line2[0] != '\0') {
+                m_textManager->DrawString(n.line2, startX + pad, yPos + 38.0f, D3DCOLOR_ARGB(255, 180, 180, 180), 0.055f);
+            }
+        }
+    }
+
 }
 
 } // namespace Scene
