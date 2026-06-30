@@ -1,10 +1,11 @@
-﻿Построение начато 30.06.2026 3:13:06.
+﻿Построение начато 30.06.2026 6:25:25.
      1>Проект "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" в узле 2 (целевые объекты build).
      1>InitializeBuildStatus:
          Обращение к "Release\Settlers2.unsuccessfulbuild".
        ClCompile:
          Для всех выходных данных обновления не требуется.
-         Для всех выходных данных обновления не требуется.
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP World\DemandManager.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
+         DemandManager.cpp
          Для всех выходных данных обновления не требуется.
          C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\Scene\\" /Fd"Release\vc100.pdb" /TP Scene\InputController.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
          InputController.cpp
@@ -69,6 +70,7 @@
          Release\BuildingCommandHandler.obj
          Release\ResourceCommandHandler.obj
          Release\LoadingScene.obj
+         Release\MenuCommandDispatcher.obj
          Release\MenuScene.obj
          Release\Scene.obj
          Release\SceneManager.obj
@@ -89,6 +91,7 @@
          Release\LocalizationService.obj
          Release\NotificationManager.obj
          Release\StatusManager.obj
+         Release\MenuModel.obj
          Release\Widget.obj
          Release\WeightMenu.obj
          Release\Building.obj
@@ -149,4 +152,4 @@
 
 Построение успешно завершено.
 
-Затраченное время: 00:00:17.34
+Затраченное время: 00:00:19.17
