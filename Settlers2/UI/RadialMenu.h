@@ -20,11 +20,11 @@ class RadialMenu
 {
 public:
     struct MenuItem {
-        UiMessageId labelId;
+        UI::UiMessageId labelId;
         UI::UiAction action;
         std::string spriteName;
 
-        MenuItem(UiMessageId label, const UI::UiAction& act, const std::string& sprite)
+        MenuItem(UI::UiMessageId label, const UI::UiAction& act, const std::string& sprite)
             : labelId(label), action(act), spriteName(sprite) {}
     };
 

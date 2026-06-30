@@ -5,6 +5,7 @@
 #include "../Graphics/RenderCommandBuilder.h"
 #include "../Graphics/RenderLayers.h"
 #include <map>
+#include <assert.h>
 
 namespace
 {

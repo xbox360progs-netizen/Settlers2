@@ -259,13 +259,13 @@ void EditorScene::Load() {
 
 		// Add menu items for layers (name, typeId, spriteName from maptiles UI group)
 		std::vector<RadialMenu::MenuItem> items;
-		items.push_back(RadialMenu::MenuItem(MSG_NONE, UI::UiAction(UI::UI_CMD_SET_LAYER, World::Roads), "build_way"));
-		items.push_back(RadialMenu::MenuItem(MSG_NONE, UI::UiAction(UI::UI_CMD_SET_LAYER, World::Nodes), "set_nodes"));
-		items.push_back(RadialMenu::MenuItem(MSG_NONE, UI::UiAction(UI::UI_CMD_SET_LAYER, World::Placement), "set_placement"));
-		items.push_back(RadialMenu::MenuItem(MSG_NONE, UI::UiAction(UI::UI_CMD_SET_LAYER, World::Resources), "set_resources"));
-		items.push_back(RadialMenu::MenuItem(MSG_NONE, UI::UiAction(UI::UI_CMD_SET_LAYER, World::Ground), "set_bg"));
-		items.push_back(RadialMenu::MenuItem(MSG_NONE, UI::UiAction(UI::UI_CMD_SET_LAYER, World::Objects), "set_landscape"));
-		items.push_back(RadialMenu::MenuItem(MSG_NONE, UI::UiAction(UI::UI_CMD_SET_LAYER, World::Buildings), "select_building"));
+		items.push_back(RadialMenu::MenuItem(UI::MSG_NONE, UI::UiAction(UI::UI_CMD_SET_LAYER, World::Roads), "build_way"));
+		items.push_back(RadialMenu::MenuItem(UI::MSG_NONE, UI::UiAction(UI::UI_CMD_SET_LAYER, World::Nodes), "set_nodes"));
+		items.push_back(RadialMenu::MenuItem(UI::MSG_NONE, UI::UiAction(UI::UI_CMD_SET_LAYER, World::Placement), "set_placement"));
+		items.push_back(RadialMenu::MenuItem(UI::MSG_NONE, UI::UiAction(UI::UI_CMD_SET_LAYER, World::Resources), "set_resources"));
+		items.push_back(RadialMenu::MenuItem(UI::MSG_NONE, UI::UiAction(UI::UI_CMD_SET_LAYER, World::Ground), "set_bg"));
+		items.push_back(RadialMenu::MenuItem(UI::MSG_NONE, UI::UiAction(UI::UI_CMD_SET_LAYER, World::Objects), "set_landscape"));
+		items.push_back(RadialMenu::MenuItem(UI::MSG_NONE, UI::UiAction(UI::UI_CMD_SET_LAYER, World::Buildings), "select_building"));
 		m_radialMenu->SetItems(items);
 	}
 
