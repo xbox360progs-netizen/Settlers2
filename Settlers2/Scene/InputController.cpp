@@ -122,6 +122,7 @@ namespace Scene {
         // ── Placement states ──────────────────────────────────
         if (m_placement->GetState() == PLACESTATE_PLACE_FLAG) {
             if (aPressed) {
+                OutputDebugStringA("[Input] A pressed in PLACESTATE_PLACE_FLAG — calling HandlePlaceAtCursor\n");
                 HandlePlaceAtCursor();
             } else if (bPressed) {
                 m_placement->Cancel();
@@ -181,7 +182,16 @@ namespace Scene {
 
                                     World::BuildingType bt = MenuBootstrap::GetBuildingTypeFromSpriteName(iconName);
                                     if (bt != World::Building_None) {
+                                        {
+                                            char dbg[256];
+                                            _snprintf(dbg, sizeof(dbg), "[Input] Build menu: selected building type=%d icon=%s\n", (int)bt, iconName.c_str());
+                                            OutputDebugStringA(dbg);
+                                        }
                                         m_placement->EnterBuildMode(bt, selIdx, constrIdx, iconName);
+                                    } else {
+                                        char dbg[256];
+                                        _snprintf(dbg, sizeof(dbg), "[Input] Build menu: GetBuildingTypeFromSpriteName failed for icon=%s\n", iconName.c_str());
+                                        OutputDebugStringA(dbg);
                                     }
                                 }
                             }
@@ -329,6 +339,7 @@ namespace Scene {
 
     void InputController::HandlePlaceAtCursor()
     {
+        OutputDebugStringA("[Input] HandlePlaceAtCursor — calling TryPlaceFlag\n");
         PlacementRequest req = m_placement->TryPlaceFlag(m_cursorTileX, m_cursorTileY);
         if (!req.valid) {
             char dbg[256];

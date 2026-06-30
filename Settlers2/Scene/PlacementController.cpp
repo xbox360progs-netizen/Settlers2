@@ -40,6 +40,11 @@ namespace Scene {
         m_iconName = iconName;
         m_state = PLACESTATE_PLACE_FLAG;
         m_confirmAction = PLACECONFIRM_NONE;
+        {
+            char dbg[128];
+            _snprintf(dbg, sizeof(dbg), "[Placement] EnterBuildMode: type=%d state=PLACESTATE_PLACE_FLAG\n", (int)type);
+            OutputDebugStringA(dbg);
+        }
     }
 
     void PlacementController::Cancel()
