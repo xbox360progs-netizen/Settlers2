@@ -157,7 +157,34 @@ Run through the game to verify no regressions after the architecture cycle.
 
 1. **Stabilization** — run checklist above
 2. **UI6** — EditorScene migration to MenuModel / UiMessageId pattern (~268 string literals in EditorScene.cpp + TilePalette.cpp)
-3. **Stage I** — SimulationSystem extraction (only after UI cycle fully closed)
+3. **Cycle 3: Definition Pattern** — `BuildingDefinition` table keyed by `BuildingType`, eliminating `GetBuildingTypeFromSpriteName` / `GetBuildingSpriteName` reverse lookups
+
+## Definition Pattern (Architectural Invariant for Cycle 3)
+
+Domain types are the only stable identifiers. UI assets, render assets, metadata and gameplay properties must be obtained from definition tables/services keyed by the domain type. Systems must not derive domain types from resource names (sprite names, icon names, localized strings).
+
+**Permitted:**
+```
+BuildingType → sprite name
+BuildingType → icon name
+BuildingType → cost
+BuildingType → metadata
+```
+
+**Forbidden:**
+```
+sprite name → BuildingType
+icon name   → BuildingType
+```
+
+### Precedent in current architecture
+
+| Domain Type | Definition Source |
+|-------------|------------------|
+| `UiMessageId` | `LocalizationService` (2D enum→string table) |
+| `BuildingType` | `BuildingDefinition` (planned: sprite, icon, cost, size, class) |
+| `ResourceType` | `ResourceDefinition` (future) |
+| `WorkerType` | `WorkerDefinition` (future) |
 
 ## Boundary Rules for Future PRs
 - Carrier never decides cargo destination — routing decision centralised in DemandManager
