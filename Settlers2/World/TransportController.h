@@ -17,6 +17,18 @@ namespace World {
     class DemandManager;
     struct TransportTask;
 
+    // Phase 8.3B — reason tag for delta telemetry
+    enum DeltaReason {
+        DR_None,
+        DR_TaskCreated,
+        DR_Pickup,
+        DR_AdvanceHop,
+        DR_Delivered,
+        DR_Cancelled,
+        DR_RetryBlocked,
+        DR_FlagRemoved
+    };
+
     static const int kMaxTasks = 256;
 
     class TransportController {
@@ -24,10 +36,34 @@ namespace World {
         TransportController();
         ~TransportController();
 
-        // Dependency injection (must be called before CreateTask)
+        // Phase 8.3B — lightweight economic snapshot for validation
+        struct EconomySnapshot {
+            uint32_t totalResources;    // flag slots + task cargo
+            uint16_t flagInvHash;       // FNV-1a rolling hash of (type, amount) per slot
+            uint16_t taskCargoHash;     // FNV-1a rolling hash of (type, amount) per task
+            uint32_t ownershipHash;     // FNV-1a of owner category per resource (1=Flag, 2=Task, 4=Ground, 8=Building)
+            uint16_t ownershipMask;     // bitmask of categories present (diagnostic)
+            uint16_t blockedCount;
+            uint16_t flagCount;
+
+            bool operator==(const EconomySnapshot& o) const {
+                return totalResources == o.totalResources &&
+                       flagInvHash == o.flagInvHash &&
+                       taskCargoHash == o.taskCargoHash &&
+                       ownershipHash == o.ownershipHash &&
+                       ownershipMask == o.ownershipMask &&
+                       blockedCount == o.blockedCount &&
+                       flagCount == o.flagCount;
+            }
+            bool operator!=(const EconomySnapshot& o) const { return !(*this == o); }
+        const char* m_deltaReason;  // reason tag for next telemetry delta
+    };
+
         void SetRoadManager(RoadManager* rm) { m_roadManager = rm; }
         void SetFlagManager(FlagManager* fm) { m_flagManager = fm; }
         void SetCarrierManager(CarrierManager* cm) { m_carrierManager = cm; }
+        void SetCargoManager(CargoManager* cm) { m_cargoManager = cm; }
+        void SetDemandManager(DemandManager* dm) { m_demandManager = dm; }
 
         // ── Lifecycle ─────────────────────────────────────────────────
 
@@ -38,6 +74,15 @@ namespace World {
             TransportTaskReason reason);
 
         void CancelTask(TransportTaskId taskId);
+
+        // Phase 8.2 — resolve task by ID (O(kMaxTasks), used during Cargo wiring)
+        TransportTask* FindTask(TransportTaskId taskId) {
+            for (int i = 0; i < kMaxTasks; ++i) {
+                if (m_pool[i].id == taskId)
+                    return &m_pool[i];
+            }
+            return NULL;
+        }
 
         // ── Event callbacks (from Carrier / world) ─────────────────────
         // Carrier never modifies TransportTask state. It only notifies.
@@ -115,6 +160,9 @@ namespace World {
         static const int kTelemetryInterval = 600; // ticks between logs
         void LogTelemetry();
 
+        // Phase 8.3B — economic snapshot
+        EconomySnapshot TakeSnapshot() const;
+
         // ── Data ───────────────────────────────────────────────────────
         TransportTask m_pool[kMaxTasks];
         uint32_t m_nextTaskId;
@@ -129,6 +177,16 @@ namespace World {
         RoadManager* m_roadManager;
         FlagManager* m_flagManager;
         CarrierManager* m_carrierManager;
+        CargoManager* m_cargoManager;
+        DemandManager* m_demandManager;
+
+        // Phase 8.3B — previous snapshot for delta detection
+        EconomySnapshot m_prevSnapshot;
+        bool m_snapshotInitialized;
+        DeltaReason m_deltaReason;  // reason tag for next telemetry delta
     };
+
+    // Phase 8.3B — enum → string for telemetry output
+    const char* GetDeltaReasonName(DeltaReason reason);
 
 } // namespace World

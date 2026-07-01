@@ -230,8 +230,51 @@
 #include "Flag.h"
 #include "Carrier.h"
 #include "CarrierManager.h"
+#include "CargoManager.h"
+#include "DemandManager.h"
 
 namespace World {
+
+    // FNV-1a rolling hash for snapshot equivalence (not crypto, just stable)
+    static uint32_t HashCombine(uint32_t h, uint32_t v) {
+        return h * 16777619u ^ v;
+    }
+
+    // Phase 8.3B — format ownership mask as "Flag|Task(0003)"
+    static void FormatOwnershipMask(uint16_t mask, char* buf, size_t bufsize) {
+        const char* labels[] = { "Flag", "Task", "Ground", "Building" };
+        char tmp[64];
+        tmp[0] = '\0';
+        size_t pos = 0;
+        for (int i = 0; i < 4; ++i) {
+            if (mask & (1 << i)) {
+                if (pos > 0) { tmp[pos++] = '|'; }
+                const char* l = labels[i];
+                while (*l && pos < sizeof(tmp) - 1) { tmp[pos++] = *l++; }
+                tmp[pos] = '\0';
+            }
+        }
+        if (pos == 0) {
+            strcpy(tmp, "none");
+        }
+        _snprintf(buf, bufsize, "%s(%04x)", tmp, mask);
+        buf[bufsize - 1] = '\0';
+    }
+
+    // Phase 8.3B — delta reason enum → string
+    const char* GetDeltaReasonName(DeltaReason reason) {
+        switch (reason) {
+            case DR_None:          return "";
+            case DR_TaskCreated:   return "TaskCreated";
+            case DR_Pickup:        return "Pickup";
+            case DR_AdvanceHop:    return "AdvanceHop";
+            case DR_Delivered:     return "Delivered";
+            case DR_Cancelled:     return "Cancelled";
+            case DR_RetryBlocked:  return "RetryBlocked";
+            case DR_FlagRemoved:   return "FlagRemoved";
+            default:               return "?";
+        }
+    }
 
     TransportController::TransportController()
         : m_nextTaskId(1)
@@ -241,6 +284,10 @@ namespace World {
         , m_roadManager(NULL)
         , m_flagManager(NULL)
         , m_carrierManager(NULL)
+        , m_cargoManager(NULL)
+        , m_demandManager(NULL)
+        , m_snapshotInitialized(false)
+        , m_deltaReason(DR_None)
     {
         for (int i = 0; i < kMaxTasks; ++i) {
             m_pool[i].id = 0;
@@ -419,6 +466,7 @@ namespace World {
 
     void TransportController::RetryBlockedTasks()
     {
+        m_deltaReason = DR_RetryBlocked;
         if (!m_roadManager || !m_flagManager) return;
 
         for (int i = 0; i < kMaxTasks; ++i) {
@@ -462,6 +510,7 @@ namespace World {
 
     void TransportController::AdvanceHop(Carrier* c, TransportTask* task)
     {
+        m_deltaReason = DR_AdvanceHop;
         assert(task->hopIndex + 1 < task->route.count);
         assert(task->cargo != NULL);
 
@@ -506,15 +555,69 @@ namespace World {
 
     void TransportController::CompleteDelivery(Carrier* c, TransportTask* task)
     {
+        m_deltaReason = DR_Delivered;
         assert(task->cargo != NULL);
 
         FlagId destFlagId = task->route.flags[task->route.count - 1];
+        Cargo* cargo = task->cargo;
 
-        // Deliver — unlink cargo from task and carrier
-        task->cargo->ownerTask = NULL;
-        task->cargo = NULL;
+        // Unlink cargo from carrier first (before touching cargo)
         c->m_phase7Cargo = NULL;
         c->m_cargo = NULL;
+
+        // Physically deliver cargo to destination flag inventory
+        if (m_flagManager) {
+            Flag* destFlag = m_flagManager->GetFlagById(destFlagId);
+            if (destFlag) {
+                // Accept the cargo onto the flag (sets Cargo_OnFlag + currentFlag)
+                destFlag->AcceptCargo(cargo);
+
+                // Add to flag's ResourceSlot inventory
+                if (destFlag->AddResource(cargo->type, cargo->amount)) {
+                    // Delivery accounting via task→ticket observer link
+                    if (task->observerTicketId > 0 && m_demandManager) {
+                        DemandTicket* ticket = m_demandManager->GetTicket(task->observerTicketId);
+                        if (ticket) {
+                            m_demandManager->Deliver(ticket);
+                        }
+                    }
+
+                    uint32_t cargoId = cargo->id;
+                    cargo->ownerTask = NULL;
+                    task->cargo = NULL;
+                    if (m_cargoManager) {
+                        m_cargoManager->Release(cargoId);
+                    }
+
+#ifdef _DEBUG
+                    char dbg[256];
+                    _snprintf(dbg, sizeof(dbg),
+                        "[Transport] Delivered task=%u type=%s dest=flag%u\n",
+                        task->id, ResourceTypeToString(cargo->type), destFlagId);
+                    OutputDebugStringA(dbg);
+#endif
+                } else {
+                    // Flag slots full — leave cargo on flag for retry
+                    // Don't clear ownerTask so CheckDeliveries can find it
+                    char dbg[256];
+                    _snprintf(dbg, sizeof(dbg),
+                        "[Transport] Deliver task=%u FAILED: flag slots full dest=flag%u\n",
+                        task->id, destFlagId);
+                    OutputDebugStringA(dbg);
+                    // Keep cargo alive with ownerTask for CheckDeliveries retry
+                    // but still advance task to TTS_WaitingAtSource so carrier is freed
+                    cargo->ownerTask = NULL;  // CheckDeliveries won't retry without TTS_Moving, so still clear
+                    task->cargo = NULL;
+                }
+            } else {
+                // Destination flag vanished — cargo is orphaned
+                cargo->ownerTask = NULL;
+                task->cargo = NULL;
+            }
+        } else {
+            cargo->ownerTask = NULL;
+            task->cargo = NULL;
+        }
 
         SetTaskState(task, TTS_Delivered);
 
@@ -607,6 +710,8 @@ namespace World {
         if (resource == ResourceType_None) return NULL;
         if (origin == destination) return NULL;
 
+        m_deltaReason = DR_TaskCreated;
+
         TransportTask* task = AllocateTask();
         if (!task) return NULL;
 
@@ -615,7 +720,7 @@ namespace World {
         task->reason = reason;
         SetTaskState(task, TTS_Created);
         task->hopIndex = 0;
-        task->targetFlag = 0;
+        task->targetFlag = destination; // Phase 8 — CheckDeliveries uses this to detect arrival
         task->cargo = NULL;
         task->carrier = NULL;
         task->createdTick = m_currentTick;
@@ -623,6 +728,7 @@ namespace World {
         task->nextWaiting = NULL;
         task->basePriority = PriorityForReason(reason);
         task->enqueueOrder = 0;
+        task->observerTicketId = 0;     // Phase 8.2 — no ticket yet
 
         // Build route
         if (m_roadManager && m_flagManager) {
@@ -658,6 +764,8 @@ namespace World {
     {
         TransportTask* task = GetTaskById(taskId);
         if (!task) return;
+
+        m_deltaReason = DR_Cancelled;
 
         switch (task->state) {
 
@@ -745,6 +853,7 @@ namespace World {
     void TransportController::NotifyCarrierPickedUp(void* carrier, void* cargo)
     {
         if (!carrier || !cargo) return;
+        m_deltaReason = DR_Pickup;
         Carrier* c = static_cast<Carrier*>(carrier);
         Cargo* cargoObj = static_cast<Cargo*>(cargo);
         TransportTask* task = c->m_phase7Task;
@@ -769,6 +878,7 @@ namespace World {
     }
     void TransportController::NotifyFlagRemoved(FlagId flagId)
     {
+        m_deltaReason = DR_FlagRemoved;
         // Scan all active tasks — if route includes the removed flag, block them
         for (int i = 0; i < kMaxTasks; ++i) {
             TransportTask* task = &m_pool[i];
@@ -870,6 +980,61 @@ namespace World {
 
     // ── Telemetry (Phase 7.7) ─────────────────────────────────────────────
 
+    TransportController::EconomySnapshot TransportController::TakeSnapshot() const
+    {
+        EconomySnapshot s;
+        s.totalResources = 0;
+        s.flagInvHash = 0;
+        s.taskCargoHash = 0;
+        s.ownershipHash = 0;
+        s.ownershipMask = 0;
+        s.blockedCount = 0;
+        s.flagCount = 0;
+
+        // Flag slot resources
+        if (m_flagManager) {
+            size_t n = m_flagManager->GetCount();
+            s.flagCount = (uint16_t)(n & 0xFFFF);
+            uint32_t fh = 0, oh = 0;
+            bool hasFlagRes = false;
+            for (size_t i = 0; i < n; ++i) {
+                Flag* f = m_flagManager->GetFlag(i);
+                if (!f || f->state != Active) continue;
+                for (int si = 0; si < 8; ++si) {
+                    const ResourceSlot& slot = f->slots[si];
+                    if (slot.type == ResourceType_None || slot.amount <= 0) continue;
+                    s.totalResources += (uint32_t)slot.amount;
+                    fh = HashCombine(fh, ((uint32_t)slot.type << 8) | (uint32_t)slot.amount);
+                    oh = HashCombine(oh, 1); // category: Flag
+                    hasFlagRes = true;
+                }
+            }
+            s.flagInvHash = (uint16_t)(fh ^ (fh >> 16));
+            s.ownershipHash = oh;
+            if (hasFlagRes) s.ownershipMask |= 0x01;
+        }
+
+        // Task cargo + blocked count
+        uint32_t th = 0, oh2 = s.ownershipHash;
+        bool hasTaskRes = false;
+        for (int i = 0; i < kMaxTasks; ++i) {
+            const TransportTask* t = &m_pool[i];
+            if (t->id == 0) continue;
+            if (t->state == TTS_Blocked) s.blockedCount++;
+            if (t->cargo) {
+                s.totalResources += t->cargo->amount;
+                th = HashCombine(th, ((uint32_t)t->resource << 8) | t->cargo->amount);
+                oh2 = HashCombine(oh2, 2); // category: Task
+                hasTaskRes = true;
+            }
+        }
+        s.taskCargoHash = (uint16_t)(th ^ (th >> 16));
+        s.ownershipHash = oh2;
+        if (hasTaskRes) s.ownershipMask |= 0x02;
+
+        return s;
+    }
+
     void TransportController::LogTelemetry()
     {
         // Snapshot: count tasks by state, find max waiting age
@@ -948,6 +1113,34 @@ namespace World {
             OutputDebugStringA(dbg);
         }
 #endif
+
+        // Phase 8.3B — economic snapshot delta detection
+        EconomySnapshot snap = TakeSnapshot();
+        if (m_snapshotInitialized) {
+            if (snap != m_prevSnapshot) {
+#ifdef _DEBUG
+                char prevMask[32], curMask[32];
+                FormatOwnershipMask(m_prevSnapshot.ownershipMask, prevMask, sizeof(prevMask));
+                FormatOwnershipMask(snap.ownershipMask, curMask, sizeof(curMask));
+                _snprintf(dbg, sizeof(dbg),
+                    "[Transport][%s] ECONOMY DELTA: res=%u->%u flagHash=%04x->%04x "
+                    "taskHash=%04x->%04x ownHash=%08x->%08x "
+                    "mask=%s->%s blocked=%u->%u flags=%u->%u\n",
+                    GetDeltaReasonName(m_deltaReason),
+                    m_prevSnapshot.totalResources, snap.totalResources,
+                    m_prevSnapshot.flagInvHash, snap.flagInvHash,
+                    m_prevSnapshot.taskCargoHash, snap.taskCargoHash,
+                    m_prevSnapshot.ownershipHash, snap.ownershipHash,
+                    prevMask, curMask,
+                    m_prevSnapshot.blockedCount, snap.blockedCount,
+                    m_prevSnapshot.flagCount, snap.flagCount);
+                OutputDebugStringA(dbg);
+#endif
+            }
+        }
+        m_prevSnapshot = snap;
+        m_snapshotInitialized = true;
+        m_deltaReason = DR_None;
     }
 
 } // namespace World

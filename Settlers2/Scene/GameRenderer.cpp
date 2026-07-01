@@ -543,9 +543,9 @@ void GameRenderer::Render(Graphics::RenderQueue* renderQueue, const FrameContext
                             }
                         }
                     } else if (site->builderState == World::Builder_Building) {
-                        coords.NodeTileToWorld(site->flag->pos.x, site->flag->pos.y, wx, wy);
+                        coords.NodeTileToWorld(site->x, site->y, wx, wy);
                     } else {
-                        coords.NodeTileToWorld(site->flag->pos.x, site->flag->pos.y, wx, wy);
+                        coords.NodeTileToWorld(site->x, site->y, wx, wy);
                     }
 
                     const SpriteRegion* r = unitsAtlas->GetRegion(spriteIdx);

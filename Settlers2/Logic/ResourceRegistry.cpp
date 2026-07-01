@@ -81,24 +81,13 @@ namespace Logic {
         World::Building* best = NULL;
         int bestScore = 999999;
 
-        static const int CONGESTION_FACTOR = 4;
-
         for (size_t i = 0; i < vec.size(); ++i) {
             World::Building* b = vec[i];
             if (b == exclude) continue;
             if (b->m_storage[type] <= 0) continue;
 
             int baseDist = abs(b->pos.x - requesterPos.x) + abs(b->pos.y - requesterPos.y);
-            int congestion = 0;
-            if (b->connectedFlag) {
-                for (int s = 0; s < 8; ++s) {
-                    if (b->connectedFlag->slots[s].type == type) {
-                        congestion += b->connectedFlag->slots[s].reserved;
-                    }
-                }
-            }
-            congestion = congestion / CONGESTION_FACTOR;
-            int score = baseDist + congestion;
+            int score = baseDist;
 
             if (!best || score < bestScore) {
                 best = b;

@@ -50,8 +50,9 @@ SimulationSystem::SimulationSystem()
     , m_extCarriers(NULL)
     , m_extCarrierSystem(NULL)
     , m_extWorkers(NULL)
-    , m_extTransportJobs(NULL)
-    , m_extCargo(NULL)
+        , m_extTransportJobs(NULL)
+        , m_extTransportCtrl(NULL)
+        , m_extCargo(NULL)
     , m_extDemand(NULL)
     , m_extStorehouse(NULL)
     , m_jobManager(NULL)
@@ -77,7 +78,8 @@ void SimulationSystem::SetExternalManagers(
     TransportJobManager* transportJobs,
     CargoManager* cargo,
     DemandManager* demand,
-    StorehouseManager* storehouse)
+    StorehouseManager* storehouse,
+    TransportController* transportCtrl)
 {
     m_extConstruction = construction;
     m_extEconomy = economy;
@@ -88,6 +90,7 @@ void SimulationSystem::SetExternalManagers(
     m_extCargo = cargo;
     m_extDemand = demand;
     m_extStorehouse = storehouse;
+    m_extTransportCtrl = transportCtrl;
     m_externalMode = true;
 }
 
@@ -138,6 +141,13 @@ void SimulationSystem::Initialize(
         {
             BuildContext ctx(flagManager, roadManager, m_extDemand, m_extCargo, m_extCarriers, map, warehouseFlag);
             m_construction.Initialize(ctx, m_eventBus, m_commandBus);
+
+            // CRITICAL: Redirect external pointer to the internal ConstructionManager
+            // so Phase 1/2 (m_extConstruction->Update/GenerateRequests) read from the
+            // same instance where the command handler adds sites.
+            // Without this, HandlePlaceFlag→Enqueue→AddSite adds to the internal
+            // m_construction.m_manager, but Phase 1/2 read from the empty external cm.
+            m_extConstruction = m_construction.GetManager();
         }
 
         // Initialize WorldSystem
@@ -181,6 +191,11 @@ void SimulationSystem::Update(float dt)
         // Phase 4: Transport — carrier walking (CarrierSystem is synced internally by CarrierManager)
         if (m_extCarriers) {
             m_extCarriers->Update(dt);
+        }
+
+        // Phase 4B: TransportController — lifecycle, dispatch, telemetry
+        if (m_extTransportCtrl) {
+            m_extTransportCtrl->Update(dt);
         }
 
         // Phase 5: Warehouse collection

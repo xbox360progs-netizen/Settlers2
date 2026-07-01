@@ -26,6 +26,7 @@ namespace World {
     class CargoManager;
     class DemandManager;
     class TransportJobManager;
+    class TransportController;
     class StorehouseManager;
     class Flag;
     class Warehouse;
@@ -49,7 +50,8 @@ public:
         TransportJobManager* transportJobs,
         CargoManager* cargo,
         DemandManager* demand,
-        StorehouseManager* storehouse);
+        StorehouseManager* storehouse,
+        TransportController* transportCtrl);
 
     void Initialize(
         Map* map,
@@ -104,6 +106,7 @@ private:
     CarrierSystem* m_extCarrierSystem;
     WorkerManager* m_extWorkers;
     TransportJobManager* m_extTransportJobs;
+    TransportController* m_extTransportCtrl;
     CargoManager* m_extCargo;
     DemandManager* m_extDemand;
     StorehouseManager* m_extStorehouse;

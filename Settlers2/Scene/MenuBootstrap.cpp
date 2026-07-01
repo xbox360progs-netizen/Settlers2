@@ -334,6 +334,8 @@ World::BuildingType GetBuildingTypeFromSpriteName(const std::string& name)
     std::string key = name;
     if (key.compare(0, 2, "b_") == 0)
         key = key.substr(2);
+    if (key.compare(0, 3, "ib_") == 0)
+        key = key.substr(3);
 
     struct { const char* name; World::BuildingType type; } entries[] = {
         { "woodcutter",     World::Woodcutter },
@@ -352,6 +354,10 @@ World::BuildingType GetBuildingTypeFromSpriteName(const std::string& name)
         { "warehouse",      World::Storehouse },
         { "townhall",       World::Storehouse },
         { "bronzemine",     World::BronzeMine },
+        { "forester",       World::Forester },
+        { "stonemason",     World::Stonemason },
+        { "well",           World::Well },
+        { "barracks",       World::Barracks },
         { "bronzesmelter",  World::BronzeSmelter },
     };
 

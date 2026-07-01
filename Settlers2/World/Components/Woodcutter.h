@@ -131,7 +131,6 @@ class Woodcutter : public WorkerBuilding {
                     if (cm) {
                         m_carriedCargo = cm->Allocate(ResourceType_Wood, 1, connectedFlag ? connectedFlag->handle : FlagHandle());
                         if (m_carriedCargo) {
-                            m_carriedCargo->ticket = NULL;
                             m_carriedCargo->state = Cargo_Carried;
                         }
                     }

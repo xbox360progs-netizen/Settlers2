@@ -35,6 +35,9 @@ namespace World {
         uint32_t createdTick;           // tick at creation (age bonus: computed on selection)
         uint8_t transitionCount;        // total state transitions (safety: assert < 64)
 
+        // Phase 8.2 — bidirectional link to DemandTicket (observer only)
+        uint32_t observerTicketId;      // 0 = no ticket; set by DemandManager::Reserve
+
         // Queue linkage (used by Controller for per-flag waiting lists)
         TransportTask* nextWaiting;     // next task in same waiting queue (NULL if tail)
 

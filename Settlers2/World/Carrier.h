@@ -213,10 +213,12 @@ namespace World {
                             Cargo* c = m_cargoManager->GetCargoByActiveIdx(ci);
                             if (c->state != Cargo_OnFlag) continue;
                             if (c->currentFlag.index != f->handle.index || c->currentFlag.generation != f->handle.generation) continue;
-                            if (!c->ticket || c->ticket->state != Ticket_Active || !c->ticket->demand) continue;
-                            if (c->ticket->demand->targetFlag == f->handle) continue;
-                            if (m_roadManager) {
-                                Flag* dest = m_roadManager->GetFlagManager()->ResolveFlag(c->ticket->demand->targetFlag);
+                            if (!c->ownerTask) continue;            // Carrier never creates assignment
+                            if (c->ownerTask->state == TTS_Delivered || c->ownerTask->state == TTS_Cancelled) continue;
+                            if (c->ownerTask->targetFlag == f->id) continue;
+                            if (m_roadManager && c->ownerTask->route.count > 0) {
+                                FlagId destId = c->ownerTask->route.flags[c->ownerTask->route.count - 1];
+                                Flag* dest = m_roadManager->GetFlagManager()->GetFlagById(destId);
                                 if (dest) {
                                     Flag* nextHop = m_roadManager->GetNextHop(f, dest);
                                     if (nextHop) {
@@ -227,16 +229,16 @@ namespace World {
                             }
                         }
                     }
-                    // Check ticketless cargo (producer placed without demand knowledge)
-                    if (!hasWork && m_demandManager && m_cargoManager) {
-                        for (int ci = 0; ci < m_cargoManager->GetActiveCount() && !hasWork; ++ci) {
-                            Cargo* c = m_cargoManager->GetCargoByActiveIdx(ci);
-                            if (c->state != Cargo_OnFlag) continue;
-                            if (c->currentFlag.index != f->handle.index || c->currentFlag.generation != f->handle.generation) continue;
-                            if (c->ticket) continue;
-                            hasWork = m_demandManager->HasDemand(c->type);
-                        }
-                    }
+                            // Check cargo without ownerTask (producer placed without demand knowledge)
+                            if (!hasWork && m_demandManager && m_cargoManager) {
+                                for (int ci = 0; ci < m_cargoManager->GetActiveCount() && !hasWork; ++ci) {
+                                    Cargo* c = m_cargoManager->GetCargoByActiveIdx(ci);
+                                    if (c->state != Cargo_OnFlag) continue;
+                                    if (c->currentFlag.index != f->handle.index || c->currentFlag.generation != f->handle.generation) continue;
+                                    if (c->ownerTask) continue;
+                                    hasWork = m_demandManager->HasDemand(c->type);
+                                }
+                            }
                     // Check ResourceSlots (warehouse/production outputs)
                     // Wake-up only: if there's any demand for this resource type, the Carrier
                     // walks to the flag. The actual destination is assigned by DemandManager::Reserve()
@@ -245,8 +247,9 @@ namespace World {
                         for (int si = 0; si < 8 && !hasWork; ++si) {
                             ResourceSlot& slot = f->slots[si];
                             if (slot.type == ResourceType_None || slot.amount <= 0) continue;
-                            if (slot.amount - slot.reserved <= 0) continue;
-                            hasWork = m_demandManager->HasDemand(slot.type);
+                            bool hasDemand = m_demandManager->HasDemandFromOtherFlag(slot.type, f->handle);
+                            { char dbg[256]; _snprintf(dbg, sizeof(dbg), "[CARRIER IDLE] flag=%u slot[%d] type=%s amt=%d hasOtherDemand=%d hasWork=%d\n", f->id, si, ResourceTypeToString(slot.type), slot.amount, (int)hasDemand, (int)(hasWork || hasDemand)); OutputDebugStringA(dbg); }
+                            hasWork = hasDemand;
                         }
                     }
                     if (hasWork) {
@@ -273,6 +276,7 @@ namespace World {
                     // Drop cargo if carrying (check per-flag capacity via pool)
                     if (m_cargo) {
                         if (m_cargoManager && m_cargoManager->CountCargoOnFlag(atFlag->handle) < FLAG_MAX_CARGO) {
+                            { char dbg[256]; _snprintf(dbg, sizeof(dbg), "[Carrier] Drop cargo id=%u type=%s flag=%u ownerTask=%p taskState=%u\n", m_cargo->id, ResourceTypeToString(m_cargo->type), atFlag->id, m_cargo->ownerTask, m_cargo->ownerTask ? m_cargo->ownerTask->state : 0); OutputDebugStringA(dbg); }
                             atFlag->AcceptCargo(m_cargo);
                             m_cargo = NULL;
                         }
@@ -287,31 +291,27 @@ namespace World {
                                 Cargo* c = m_cargoManager->GetCargoByActiveIdx(ci);
                                 if (c->state != Cargo_OnFlag) continue;
                                 if (c->currentFlag.index != atFlag->handle.index || c->currentFlag.generation != atFlag->handle.generation) continue;
-                                // Assign ticket to ticketless cargo (producer doesn't know demand)
-                                if (!c->ticket && m_demandManager) {
-                                    c->ticket = m_demandManager->Reserve(c->type);
-                                }
-                                if (!c->ticket || c->ticket->state != Ticket_Active || !c->ticket->demand) continue;
-                                if (c->ticket->demand->targetFlag == atFlag->handle) continue;
-                                // Check if this road is the next hop toward destination
+                                if (!c->ownerTask) continue;            // Carrier never creates assignment
+                                if (c->ownerTask->state == TTS_Delivered || c->ownerTask->state == TTS_Cancelled) continue;
+                                if (c->ownerTask->targetFlag == atFlag->id) continue;
+                                // Route check using task's route
                                 bool routeOk = false;
-                                uint32_t destIdx = c->ticket->demand->targetFlag.index;
-                                if (m_roadManager) {
-                                    Flag* dest = m_roadManager->GetFlagManager()->ResolveFlag(c->ticket->demand->targetFlag);
+                                if (m_roadManager && c->ownerTask->route.count > 0) {
+                                    FlagId destId = c->ownerTask->route.flags[c->ownerTask->route.count - 1];
+                                    Flag* dest = m_roadManager->GetFlagManager()->GetFlagById(destId);
                                     if (dest) {
                                         Flag* nextHop = m_roadManager->GetNextHop(atFlag, dest);
                                         if (nextHop) {
                                             FlagHandle otherEnd = (road->a == atFlag->handle) ? road->b : road->a;
-                                            if (otherEnd == nextHop->handle)
-                                                routeOk = true;
+                                            routeOk = (otherEnd == nextHop->handle);
                                         }
                                     }
                                 }
                                 {
                                     char dbg[256];
-                                    _snprintf(dbg, sizeof(dbg), "[ROUTE %s] road=%u atFlag=%u cargo=%u targetIdx=%u\n",
+                                    _snprintf(dbg, sizeof(dbg), "[ROUTE %s] road=%u atFlag=%u cargo=%u\n",
                                         routeOk ? "PICKUP" : "SKIP",
-                                        road->id, atFlag->id, c->id, destIdx);
+                                        road->id, atFlag->id, c->id);
                                     OutputDebugStringA(dbg);
                                 }
                                 if (!routeOk)
@@ -322,23 +322,41 @@ namespace World {
                         }
                         // Second pass: convert ResourceSlot only (with route check)
                         if (!available) {
-                            available = atFlag->TakeCargoForRoad(road, m_demandManager, m_cargoManager);
-                            if (available && m_roadManager && available->ticket && available->ticket->demand) {
-                                Flag* dest = m_roadManager->GetFlagManager()->ResolveFlag(available->ticket->demand->targetFlag);
-                                bool routeValid = false;
-                                if (dest) {
-                                    Flag* nextHop = m_roadManager->GetNextHop(atFlag, dest);
-                                    if (nextHop) {
-                                        FlagHandle otherEnd = (road->a == atFlag->handle) ? road->b : road->a;
-                                        routeValid = (otherEnd == nextHop->handle);
+                            available = atFlag->TakeCargoForRoad(road, m_demandManager, m_cargoManager, m_phase7Controller);
+                            if (available) {
+                                if (available->ownerTask) {
+                                    // Phase 8.2 — route validity check via task route
+                                    bool routeValid = false;
+                                    if (m_roadManager && available->ownerTask->route.count > 0) {
+                                        FlagId destId = available->ownerTask->route.flags[available->ownerTask->route.count - 1];
+                                        Flag* dest = m_roadManager->GetFlagManager()->GetFlagById(destId);
+                                        if (dest) {
+                                            Flag* nextHop = m_roadManager->GetNextHop(atFlag, dest);
+                                            if (nextHop) {
+                                                FlagHandle otherEnd = (road->a == atFlag->handle) ? road->b : road->a;
+                                                routeValid = (otherEnd == nextHop->handle);
+                                            }
+                                        }
                                     }
-                                }
-                                if (!routeValid) {
+                                    if (!routeValid) {
+                                        ResourceType rejectedType = available->type;
+                                        { char dbg[256]; _snprintf(dbg, sizeof(dbg), "[Carrier] Reject slot road=%u atFlag=%u type=%s (no route) controller=%p\n", road->id, atFlag->id, ResourceTypeToString(rejectedType), m_phase7Controller); OutputDebugStringA(dbg); }
+                                        if (m_phase7Controller) {
+                                            m_phase7Controller->CancelTask(available->ownerTask->id);
+                                        }
+                                        available->ownerTask = NULL;
+                                        if (!atFlag->AddResource(rejectedType, 1)) {
+                                            available->state = Cargo_OnFlag;
+                                            available->currentFlag = atFlag->handle;
+                                        } else {
+                                            m_cargoManager->Release(available->id);
+                                        }
+                                        available = NULL;
+                                    }
+                                } else {
+                                    // No task — reject cargo (legacy ticket path removed in Phase 8.2)
                                     ResourceType rejectedType = available->type;
-                                    { char dbg[256]; _snprintf(dbg, sizeof(dbg), "[Carrier] Reject slot road=%u atFlag=%u type=%s (no route)\n", road->id, atFlag->id, ResourceTypeToString(rejectedType)); OutputDebugStringA(dbg); }
-                                    m_demandManager->ReleaseTicket(available->ticket);
-                                    available->ticket = NULL;
-                                    // Put resource back: prefer ResourceSlot, fallback to Cargo on flag
+                                    { char dbg[256]; _snprintf(dbg, sizeof(dbg), "[Carrier] Reject slot road=%u atFlag=%u type=%s (no task)\n", road->id, atFlag->id, ResourceTypeToString(rejectedType)); OutputDebugStringA(dbg); }
                                     if (!atFlag->AddResource(rejectedType, 1)) {
                                         available->state = Cargo_OnFlag;
                                         available->currentFlag = atFlag->handle;

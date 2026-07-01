@@ -98,6 +98,17 @@ namespace Logic {
         m_registry.ClearPlanningReservations();
 
         // ─── Phase 1a: Process pending construction resource requests ─────
+        {
+            int activeCount = 0;
+            for (int r = 0; r < MAX_CONSTRUCTION_REQUESTS; ++r)
+                if (m_constructionRequests[r].active) activeCount++;
+            char dbg[256];
+            _snprintf(dbg, sizeof(dbg),
+                "[ECON PHASE1a] activeRequests=%d warehouse=%p whFlag=%p storedWood=%d\n",
+                activeCount, m_warehouse, m_warehouse ? m_warehouse->connectedFlag : NULL,
+                m_storehouseManager ? (int)m_storehouseManager->GetStoredCount(World::ResourceType_Wood) : -1);
+            OutputDebugStringA(dbg);
+        }
         for (int r = 0; r < MAX_CONSTRUCTION_REQUESTS; ++r) {
             if (!m_constructionRequests[r].active) continue;
 

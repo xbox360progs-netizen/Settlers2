@@ -27,17 +27,18 @@ namespace World {
         ResourceType type;
         Demand* demand;
         TicketState state;
+        uint32_t transportTaskId;       // Phase 8.1 — bridge to TransportController (0 = no task)
 
-        DemandTicket() : id(0), type(ResourceType_None), demand(NULL), state(Ticket_Active) {}
+        DemandTicket() : id(0), type(ResourceType_None), demand(NULL), state(Ticket_Active), transportTaskId(0) {}
     };
 }
 
 #if 0
-// Example usage:
+// Example usage (Phase 8.2 — DemandTicket is internal to DemandManager):
 // DemandManager dm;
 // dm.SetDemand(ResourceType_Wood, 3, constructionFlag->GetHandle(), 100);
 // DemandTicket* ticket = dm.Reserve(ResourceType_Wood);
-// if (ticket) { cargo->ticket = ticket; }
+//   → creates TransportTask, ticket stays in DemandManager pool
 // ...
 // dm.Deliver(ticket);  // when cargo arrives at target
 // dm.ReleaseTicket(ticket);  // if cargo is lost

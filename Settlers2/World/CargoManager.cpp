@@ -3,6 +3,7 @@
 #include "StorehouseManager.h"
 #include "FlagManager.h"
 #include "DemandManager.h"
+#include "TransportTask.h"
 
 namespace World {
 
@@ -24,7 +25,7 @@ namespace World {
                 c->amount = amount;
                 c->state = Cargo_OnFlag;
                 c->currentFlag = onFlag;
-                c->ticket = NULL;
+                c->ownerTask = NULL;                // Phase 8.2 — clear before wiring
                 ++m_poolCount;
                 m_activeIndices[m_activeCount++] = i;
 
@@ -86,6 +87,7 @@ namespace World {
                 m_pool[poolIdx].id = 0;
                 m_pool[poolIdx].type = ResourceType_None;
                 m_pool[poolIdx].state = Cargo_Delivered;
+                m_pool[poolIdx].ownerTask = NULL;
                 m_activeIndices[i] = m_activeIndices[--m_activeCount];
                 --m_poolCount;
             } else {
@@ -134,47 +136,71 @@ namespace World {
     {
         if (!dm || !fm) return;
 
+        static int s_unassignedCount = 0;   // Phase 8.3A — throttle unassigned cargo log
+        s_unassignedCount = 0;
+
         for (int i = 0; i < MAX_WORLD_CARGO; ++i) {
             Cargo* c = &m_pool[i];
             if (c->id == 0) continue;
             if (c->state != Cargo_OnFlag) continue;
-            if (!c->ticket) continue;
 
-            // Reassign cancelled tickets
-            if (c->ticket->state == Ticket_Cancelled || !c->ticket->demand) {
+            // Phase 8.3A — log unassigned cargo (without ownerTask)
+            if (!c->ownerTask && s_unassignedCount < 3) {
+                char un[256];
+                _snprintf(un, sizeof(un),
+                    "[Transport] Unassigned cargo id=%u type=%s flag=%u\n",
+                    c->id, ResourceTypeToString(c->type), c->currentFlag.index);
+                OutputDebugStringA(un);
+                s_unassignedCount++;
+            }
+
+            if (!c->ownerTask) continue;                        // Phase 8.2 — task, not ticket
+
+            // Phase 8.2 — check task state; discard cancelled/delivered tasks
+            if (c->ownerTask->state == TTS_Cancelled || c->ownerTask->state == TTS_Delivered) {
                 char buf[256];
                 _snprintf(buf, sizeof(buf),
-                    "[Cargo] Reassign id=%u type=%s oldTicket=%u\n",
-                    c->id, ResourceTypeToString(c->type), c->ticket->id);
+                    "[Cargo] Detach cancelled/delivered task id=%u type=%s\n",
+                    c->id, ResourceTypeToString(c->type));
                 OutputDebugStringA(buf);
-                dm->ReleaseTicket(c->ticket);
-                c->ticket = NULL;
-                DemandTicket* newTicket = dm->Reserve(c->type);
-                if (newTicket) {
-                    c->ticket = newTicket;
-                    _snprintf(buf, sizeof(buf),
-                        "[Cargo] Reassigned id=%u type=%s ticket=%u\n",
-                        c->id, ResourceTypeToString(c->type), newTicket->id);
-                    OutputDebugStringA(buf);
-                }
+                c->ownerTask = NULL;
                 continue;
             }
 
             // Deliver if cargo has reached its destination flag
-            if (c->ticket->state == Ticket_Active && c->ticket->demand &&
-                c->ticket->demand->targetFlag.index == c->currentFlag.index &&
-                c->ticket->demand->targetFlag.generation == c->currentFlag.generation)
+            Flag* flag = fm->ResolveFlag(c->currentFlag);
+            bool atDest = (flag && (c->ownerTask->state == TTS_Moving || c->ownerTask->state == TTS_WaitingAtSource) &&
+                           flag->id == c->ownerTask->targetFlag);
             {
-                Flag* flag = fm->ResolveFlag(c->currentFlag);
-                if (flag) {
-                    if (!flag->AddResource(c->type, c->amount)) {
-                        continue; // all 8 slots full — retry next frame
+                char dbg[256]; _snprintf(dbg, sizeof(dbg), "[CheckDeliveries] cargo=%u type=%s flag=%u task=%u taskState=%u targetFlag=%u atDest=%d\n", c->id, ResourceTypeToString(c->type), flag ? flag->id : 0, c->ownerTask->id, c->ownerTask->state, c->ownerTask->targetFlag, atDest ? 1 : 0); OutputDebugStringA(dbg);
+            }
+            if (atDest)
+            {
+                if (!flag->AddResource(c->type, c->amount)) {
+                    continue; // all 8 slots full — retry next frame
+                }
+
+                // Phase 8.3A — shadow completion: compare expected vs actual destination
+                FlagId expectedDest = c->ownerTask->route.flags[c->ownerTask->route.count - 1];
+                FlagId actualDest = c->ownerTask->targetFlag;
+                char mig[256];
+                _snprintf(mig, sizeof(mig),
+                    "[MIGRATION] task=%u ticket=%u type=%s expected=flag%u actual=flag%u %s\n",
+                    c->ownerTask->id, c->ownerTask->observerTicketId,
+                    ResourceTypeToString(c->type), expectedDest, actualDest,
+                    (expectedDest == actualDest) ? "OK" : "MISMATCH");
+                OutputDebugStringA(mig);
+
+                // Phase 8.2 — delivery accounting via task→ticket observer link
+                if (c->ownerTask->observerTicketId > 0) {
+                    DemandTicket* ticket = dm->GetTicket(c->ownerTask->observerTicketId);
+                    if (ticket) {
+                        dm->Deliver(ticket);
                     }
                 }
 
-                DemandTicket* ticket = c->ticket;
                 uint32_t id = c->id;
-                dm->Deliver(ticket);
+                c->ownerTask = NULL;
                 Release(id);
             }
         }

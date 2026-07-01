@@ -143,10 +143,10 @@ namespace World {
                     if (take <= 0) continue;
                     slot.amount -= take;
                     site->woodDelivered += take;
+                    { char dbg[256]; _snprintf(dbg, sizeof(dbg), "[Construction] Wood delivered flag=%u take=%d current=%d/%d\n", site->flag->id, take, site->woodDelivered, site->woodNeeded); OutputDebugStringA(dbg); }
                     if (slot.amount <= 0) {
                         slot.type = ResourceType_None;
                         slot.amount = 0;
-                        slot.reserved = 0;
                         slot.destFlagId = 0;
                     }
                     break;
@@ -165,7 +165,6 @@ namespace World {
                     if (slot.amount <= 0) {
                         slot.type = ResourceType_None;
                         slot.amount = 0;
-                        slot.reserved = 0;
                         slot.destFlagId = 0;
                     }
                     break;
@@ -174,6 +173,18 @@ namespace World {
 
             // ── Builder dispatch ──
             if (site->builderState == Builder_None && !site->IsComplete()) {
+                if (site->CanBuild()) {
+                    char _dbuf[256];
+                    size_t _dpos = _snprintf(_dbuf, sizeof(_dbuf),
+                        "[Construction] Dispatch site=%p whF=%p sF=%p rM=%d",
+                        (void*)site, (void*)m_warehouseFlag,
+                        (void*)site->flag, m_roadManager ? 1 : 0);
+                    if (!m_warehouseFlag) _dpos += _snprintf(_dbuf+_dpos, sizeof(_dbuf)-_dpos, " NO_WH");
+                    if (!site->flag)      _dpos += _snprintf(_dbuf+_dpos, sizeof(_dbuf)-_dpos, " NO_FLAG");
+                    if (!m_roadManager)   _dpos += _snprintf(_dbuf+_dpos, sizeof(_dbuf)-_dpos, " NO_RM");
+                    _snprintf(_dbuf+_dpos, sizeof(_dbuf)-_dpos, "\n");
+                    OutputDebugStringA(_dbuf);
+                }
                 if (m_roadManager && m_warehouseFlag && site->flag) {
                     {
                         std::vector<Flag*> _path = m_roadManager->FindFlagPath(m_warehouseFlag, site->flag);
@@ -395,6 +406,13 @@ namespace World {
 
     void ConstructionManager::GenerateRequests(Logic::EconomyManager* economy)
     {
+        {
+            char dbg[256];
+            _snprintf(dbg, sizeof(dbg),
+                "[CONSTR_GR] sites=%u economy=%p\n",
+                (unsigned)m_sites.size(), economy);
+            OutputDebugStringA(dbg);
+        }
         if (!economy) return;
 
         for (size_t i = 0; i < m_sites.size(); ++i) {

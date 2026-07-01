@@ -1,171 +1,16 @@
-﻿Построение начато 01.07.2026 10:22:21.
+﻿Построение начато 02.07.2026 0:35:21.
      1>Проект "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" в узле 2 (целевые объекты build).
      1>InitializeBuildStatus:
-         Обращение к "Release\Settlers2.unsuccessfulbuild".
+         Создание "Release\Settlers2.unsuccessfulbuild", так как было задано "AlwaysCreate".
        ClCompile:
          Для всех выходных данных обновления не требуется.
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Core\GameEngine.cpp Scene\GameRenderer.cpp Scene\RoadController.cpp Scene\WorldBootstrap.cpp Scene\WorldRestorer.cpp Scene\GameScene.cpp World\CarrierManager.cpp World\FlagManager.cpp World\RoadManager.cpp World\TransportController.cpp World\TransportTask.cpp World\ObjectDeletionRules.cpp World\ObjectLifecycleManager.cpp World\Systems\CarrierSystem.cpp World\Systems\ConstructionSystem.cpp World\Systems\RoadNetworkRelinker.cpp World\Systems\SimulationSystem.cpp World\Systems\TransportSystem.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
-         GameEngine.cpp
-         GameRenderer.cpp
-         RoadController.cpp
-         WorldBootstrap.cpp
-         WorldRestorer.cpp
-         GameScene.cpp
-         CarrierManager.cpp
-         FlagManager.cpp
-         RoadManager.cpp
-         TransportController.cpp
-         TransportTask.cpp
-         ObjectDeletionRules.cpp
-         ObjectLifecycleManager.cpp
-         CarrierSystem.cpp
-         ConstructionSystem.cpp
-         RoadNetworkRelinker.cpp
-         SimulationSystem.cpp
-         TransportSystem.cpp
-         Generating Code...
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\Input\\" /Fd"Release\vc100.pdb" /TP Input\InputController.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
-         InputController.cpp
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\Scene\\" /Fd"Release\vc100.pdb" /TP Scene\InputController.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
-         InputController.cpp
+         Для всех выходных данных обновления не требуется.
+         Для всех выходных данных обновления не требуется.
+         Для всех выходных данных обновления не требуется.
        Link:
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\link.exe /ERRORREPORT:PROMPT /OUT:"D:\development\Settlers2\Settlers2\Release\Settlers2.exe" /INCREMENTAL:NO /NOLOGO xapilib.lib d3d9.lib d3dx9.lib xgraphics.lib xboxkrnl.lib xnet.lib xaudio2.lib xact3.lib x3daudio.lib xmcore.lib vcomp.lib /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"D:\development\Settlers2\Settlers2\Release\Settlers2.pdb" /STACK:"262144","262144" /OPT:REF /OPT:ICF /TLBID:1 /RELEASE /IMPLIB:"D:\development\Settlers2\Settlers2\Release\Settlers2.lib" Release\GameEngine.obj
-         Release\LanguageManager.obj
-         Release\JobManager.obj
-         Release\ThreadSync.obj
-         Release\CommandBus.obj
-         Release\EventBus.obj
-         Release\BatchBuilder.obj
-         Release\BinFileManager.obj
-         Release\BitmapFont.obj
-         Release\BitmapText.obj
-         Release\Camera.obj
-         Release\FallbackResources.obj
-         Release\Light.obj
-         Release\LightOptimizer.obj
-         Release\OverlayFPS.obj
-         Release\GPUTimer.obj
-         Release\PostFX.obj
-         Release\PostProcessing.obj
-         Release\Quad.obj
-         Release\RenderDebugOverlay.obj
-         Release\RenderFrame.obj
-         Release\Renderer.obj
-         Release\DebugOverlay.obj
-         Release\RenderCommandBuilder.obj
-         Release\RenderQueue.obj
-         Release\RenderStateValidator.obj
-         Release\RenderTargetManager.obj
-         Release\ShaderManager.obj
-         Release\SpriteAtlas.obj
-         Release\SpriteRenderer.obj
-         Release\SpriteShadow.obj
-         Release\TextManager.obj
-         Release\TextureLoader.obj
-         Release\TextureRegistry.obj
-         Release\TileRenderer.obj
-         Release\Xbox360EDRAM.obj
-         Release\Gamepad.obj
-         Release\InputContext.obj
-         Release\InputManager.obj
-         Release\ScreenKeyboard.obj
-         Release\AISystem.obj
-         Release\EconomyManager.obj
-         Release\ResourceRegistry.obj
-         Release\IsoGrid.obj
-         Release\WeightMap.obj
-         Release\BuildingPlacement.obj
-         Release\EditorScene.obj
-         Release\ConstructionVisualizer.obj
-         Release\GameRenderer.obj
-         Release\FrameContext.obj
-         Release\GeologistController.obj
-         Release\MenuBootstrap.obj
-         Release\PlacementController.obj
-         Release\RoadController.obj
-         Release\WorldBootstrap.obj
-         Release\WorldRestorer.obj
-         Release\GameScene.obj
-         Release\BuildingCommandHandler.obj
-         Release\ResourceCommandHandler.obj
-         Release\LoadingScene.obj
-         Release\MenuCommandDispatcher.obj
-         Release\MenuScene.obj
-         Release\Scene.obj
-         Release\SceneManager.obj
-         Release\Settlers2.obj
-         Release\stdafx.obj
-         Release\BuildMenu.obj
-         Release\Button.obj
-         Release\EditorUI.obj
-         Release\GridMenu.obj
-         Release\UIMenu.obj
-         Release\Minimap.obj
-         Release\Panel.obj
-         Release\RadialMenu.obj
-         Release\ResourceBar.obj
-         Release\UIManager.obj
-         Release\UiEventSystem.obj
-         Release\UiController.obj
-         Release\LocalizationService.obj
-         Release\NotificationManager.obj
-         Release\StatusManager.obj
-         Release\MenuModel.obj
-         Release\Widget.obj
-         Release\WeightMenu.obj
-         Release\Building.obj
-         Release\BuildingFactory.obj
-         Release\Collider.obj
-         Release\Model.obj
-         Release\Resource.obj
-         Release\Transform.obj
-         Release\Unit.obj
-         Release\CarrierManager.obj
-         Release\CargoManager.obj
-         Release\DemandManager.obj
-         Release\FlagManager.obj
-         Release\HabitatRegistry.obj
-         Release\RoadManager.obj
-         Release\StorehouseManager.obj
-         Release\TransportJobManager.obj
-         Release\TransportController.obj
-         Release\TransportTask.obj
-         Release\ObjectDeletionRules.obj
-         Release\ObjectLifecycleManager.obj
-         Release\ConstructionSite.obj
-         Release\ConstructionManager.obj
-         Release\Entity.obj
-         Release\EntityManager.obj
-         Release\Map.obj
-         Release\MapSerializer.obj
-         Release\AnimalManager.obj
-         Release\WorkerManager.obj
-         Release\WildlifeSystem.obj
-         Release\EconomySystem.obj
-         Release\PathfindingSystem.obj
-         Release\PhysicsSystem.obj
-         Release\AnimalSystem.obj
-         Release\CarrierSystem.obj
-         Release\RenderSystem.obj
-         Release\BuildingSystem.obj
-         Release\ConstructionSystem.obj
-         Release\RoadNetworkRelinker.obj
-         Release\SimulationSystem.obj
-         Release\TransportSystem.obj
-         Release\WorkforceSystem.obj
-         Release\WorldSystem.obj
-         Release\ConstructionFactory.obj
-         Release\TileLayer.obj
-         Release\MapEditor.obj
-         Release\UnitManager.obj
-         Release\TilePalette.obj
-         Release\\Input\InputController.obj
-         Release\\Scene\InputController.obj /XEX:NO
+         Для всех выходных данных обновления не требуется.
        ImageXex:
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\imagexex.exe /out:"D:\development\Settlers2\Settlers2\Release\Settlers2.xex" "D:\development\Settlers2\Settlers2\Release\Settlers2.exe" 
-         Microsoft(R) Xbox 360 Image File Builder Version 2.0.21256.0
-         (c)2012 Microsoft Corporation. All rights reserved.
-         
+       Целевой объект "ImageXex" пропускается, так как все выходные файлы актуальны по отношению к входным.
        FinalizeBuildStatus:
          Файл "Release\Settlers2.unsuccessfulbuild" удаляется.
          Обращение к "Release\Settlers2.lastbuildstate".
@@ -173,4 +18,4 @@
 
 Построение успешно завершено.
 
-Затраченное время: 00:00:36.69
+Затраченное время: 00:00:00.80

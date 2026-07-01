@@ -14,6 +14,7 @@
 #include "../World/WorkerManager.h"
 #include "../World/FlagManager.h"
 #include "../World/RoadManager.h"
+#include "../World/TransportController.h"
 #include "../World/TransportJobManager.h"
 #include "../World/CargoManager.h"
 #include "../World/DemandManager.h"
@@ -259,7 +260,23 @@ void SetupSystems(World::Map* map,
     ctx.cargo = new World::CargoManager();
     OutputDebugStringA("[WorldBootstrap] CargoManager ready\n");
     ctx.demand = new World::DemandManager();
+    ctx.demand->SetFlagManager(flagMgr);
     OutputDebugStringA("[WorldBootstrap] DemandManager ready\n");
+
+    // TransportController (Phase 7)
+    {
+        OutputDebugStringA("[WorldBootstrap] Creating TransportController\n");
+        World::TransportController* tc = new World::TransportController();
+        tc->SetRoadManager(roadMgr);
+        tc->SetFlagManager(flagMgr);
+        tc->SetCarrierManager(ctx.carrierManager);
+        tc->SetCargoManager(ctx.cargo);
+        tc->SetDemandManager(ctx.demand);
+        ctx.demand->SetTransportController(tc);
+        ctx.transportController = tc;
+        OutputDebugStringA("[WorldBootstrap] TransportController ready\n");
+    }
+
     if (map) {
         map->SetCargoManager(ctx.cargo);
         map->SetDemandManager(ctx.demand);
@@ -320,7 +337,8 @@ void SetupSystems(World::Map* map,
             ctx.transportJobs,
             ctx.cargo,
             ctx.demand,
-            ctx.storehouse);
+            ctx.storehouse,
+            ctx.transportController);
 
         World::Flag* whFlag = NULL;
         if (ctx.economy && ctx.economy->GetWarehouse()) {

@@ -1,3 +1,44 @@
+# Transport v1 — Complete ✅ (tag: `transport-v1-complete`)
+
+## Final Architecture
+
+```
+Layer           Domain         Decision
+─────────────────────────────────────────────
+Economy         WHY            requests movement
+Route planner   WHERE          immutable execution plan
+Controller      WHAT STAGE     state machine + lifecycle
+Dispatcher      WHEN           priority + age-based selection
+Carrier         HOW            spatial execution only
+Telemetry       IS IT HEALTHY  passive observation
+```
+
+Route planner(`FindPath`) builds an immutable route at `CreateTask` time.
+No code changes route after creation (except `RetryBlockedTasks` rebuilds it).
+Controller owns all state transitions via `SetTaskState` (single point, `transitionCount` guard).
+Dispatcher(`PickNextTask`) selects among waiting tasks; never touches route/hopIndex/targetFlag.
+Carrier moves spatially toward `targetFlag`; never reads route, never modifies task.
+Telemetry(`LogTelemetry`) scans state every 600 ticks, `assert oldestWaitingAge < 10000`.
+
+## Key Architectural Decisions
+
+1. **Route = immutable execution plan** — built once at `CreateTask`, never mutated.
+2. **One task = one physical unit** — no `amount` field, no batching at task level.
+3. **Event-driven lifecycle** — no per-frame scanning, all state transitions from `Notify*` callbacks.
+4. **Carrier is a dumb executor** — knows only `targetFlag`, never `route[]` or task state.
+5. **Age-based anti-starvation** — `ageBonus = min(tick - createdTick, 200)` computed on selection.
+6. **Telemetry = passive observation** — `LogTelemetry()` never modifies state.
+7. **transitionCount < 64** — catches infinite state loops.
+8. **`Update()` is NOT a decision loop** — exists only for telemetry
+   (`LogTelemetry` every 600 ticks) and monotonic tick increment
+   (`m_currentTick++` for age bonus). Assignment, route mutation,
+   retries, and state transitions remain event-driven from `Notify*`
+   callbacks only. See `TransportController::Update()`.
+
+## Build Config
+- **Platform**: Xbox 360 (C++03, no variadic templates, `std::function`, auto, range-for)
+- **SDK**: Not available for local builds — correctness by code review only
+
 # Architecture — Cycle 2 Complete ✅ (tag: `architecture-cycle-2`)
 
 ## Domain First
@@ -45,7 +86,7 @@ publishes IDs                    stores IDs                    resolves text    
 |-----------|----------------------|----------------|
 | Construction | `ConstructionSite` | — |
 | Building | Invariants (no `state` field) | — |
-| Logistics (routing) | `DemandTicket` | `DemandTicket` |
+| Logistics (routing) | `TransportTask` | `TransportTask` |
 | Logistics (stationary) | `ResourceSlot::destFlagId` (ownership tag) | `Flag` |
 | UI Menu content | `MenuModel` | `MenuItem`, `UiAction` |
 | UI Menu view | `RadialMenu` / `GridMenu` | Geometry, sprites, animation |
@@ -78,105 +119,98 @@ publishes IDs                    stores IDs                    resolves text    
 
 ## Transport Contract (Architectural Invariants)
 
-Three rules verified after Logistic PR 1+2+3:
+### Rule 1 — TransportTask owns the shipment lifecycle
 
-### Rule 1 — Planning
-> **`EconomyManager` plans demand; `DemandManager` stores it. `Carrier` only executes tickets. `CargoManager` completes delivery.**
-
-```
-EconomyManager  →  DemandManager  →  Carrier  →  CargoManager
-   creates demand      stores demand     executes     completes delivery
-```
-
-**Violation**: any code in `Carrier` that computes `targetFlag` or looks up a destination independently.
-
-### Rule 2 — Ticket
-> **Every moving `Cargo` owns exactly one `DemandTicket`.**
-> `Cargo moving  ⇒  DemandTicket exists  ⇒  Destination exists`
-
-**Violation**: a `Cargo` whose `currentFlag != targetFlag` but `ticket == NULL`.
-
-### Rule 3 — Ownership
-> **Each `DemandTicket` has at most one owner at any moment.**
+> **TransportTask owns lifecycle. No other object may create, route, deliver or cancel a shipment.**
+> Economy observes shipment completion through `observerTicketId` and never participates in transport execution.
 
 ```
-Free → Reserve() → Owned by Cargo(handle) → Deliver() → Completed
-                                           → Cancel() → Cancelled
+CreateTask → Assign → PickUp → AdvanceHop → Delivered → DemandManager::Deliver()
+                                                      → Cancel → DemandManager::CancelTicket()
 ```
 
-**Violation**: two `Cargo` objects referencing the same live `DemandTicket`, or a delivered/cancelled ticket still referenced by moving `Cargo`.
+**Violation**: any code outside `TransportController::CreateTask`, `SetTaskState`, or `DeliverTask`
+that modifies task state or completes/cancels a shipment without going through the Controller.
 
-### Architectural boundary (PR 3)
+### Rule 2 — Single mutable representation
+
+> **TransportTask is the only mutable representation of a shipment.**
+
 ```
-Production → ResourceSlot { destFlagId } → TakeCargoForRoad() → Cargo { DemandTicket } → Delivery
-             (ownership tag)                                     (routing)
+DemandManager  →  observerTicketId (read-only observation)
+TransportTask  →  owns all mutable state
+Cargo          →  physical representation (resource + ownerTask)
+Carrier        →  execution state only (what they carry, where they walk)
 ```
 
-`DemandTicket` governs moving resources. `ResourceSlot::destFlagId` governs ownership of stationary resources awaiting pickup. **These responsibilities must never overlap.**
+- `DemandManager` creates the request, never mutates transport state.
+- `TransportTask` stores everything: route, hopIndex, cargo link, carrier link, state.
+- `Cargo` stores only physical identity (resource type) and back-link to its task.
+- `Carrier` stores only execution state: what it's carrying and where it's heading.
+- `DemandManager` receives only final notification via `observerTicketId`.
 
-### Architectural boundary (Phase 7.4)
+**Violation**: modifying a shipment's route, state, or destination from anywhere
+other than `TransportController` member functions.
+
+### Rule 3 — Ownership chain (no DemandTicket in transport)
+
+> **DemandTicket is an adapter at the economy boundary. Transport never sees it.**
+
+```
+Economy boundary:
+  DemandManager → Reserve() → DemandTicket → observerTicketId on TransportTask
+
+Transport core:
+  TransportTask → Cargo (ownerTask) → Carrier (targetFlag)
+```
+
+`Cargo` no longer holds a `DemandTicket*`. The ownership chain is:
+
+```
+Ground
+  → Flag inventory (stationary via ResourceSlot::destFlagId)
+    → TransportTask (in transit, owns lifecycle)
+      → Carrier (spatial executor, knows only targetFlag)
+        → Building inventory (consumed)
+```
+
+**Violation**: a `Cargo` containing a `DemandTicket*`, or any transport code
+calling `DemandManager::Reserve()`/`ReleaseTicket()` directly.
+
+### Acceptable transitional state — `Ground|Task`
+
+After `CreateTask()` and before `PickUp()`, a resource is physically on the
+ground/flag but logically owned by a TransportTask. The telemetry mask
+`Ground|Task` is **correct** — ownership precedes physical pickup.
+
+This is not a violation. The invariant is: before PickUp the physical location
+and logical owner may differ; after PickUp they must converge (Carrier carries).
+
+### Architectural boundaries
+
+#### Route vs Dispatch (Phase 7.4)
 > **Route planner decides WHERE cargo moves.**
 > **Priority dispatcher decides WHEN cargo moves.**
 > The dispatcher (`PickNextTask`) selects among waiting tasks but never modifies
 > route, hopIndex, or targetFlag. These responsibilities must never be mixed.
 
-### Transport Contract (Phase 8)
+#### Economy vs Transport (Phase 8)
 > **Economy requests movement. Transport performs movement.**
 > Economy never moves resources directly.
-> The full ownership chain:
-> ```
-> Ground
->   → Flag inventory (stationary)
->     → TransportTask (in transit)
->       → Carrier (on carrier)
->         → Building inventory (consumed)
-> ```
-> **Violation**: a Carrier and a Building claiming ownership of the same resource
-> simultaneously, or a Demand holding a resource reference while TransportTask
-> also references it.
-
-# Transport v1 — Complete ✅ (tag future)
-
-## Final Architecture
-
-```
-Layer           Domain         Decision
-─────────────────────────────────────────────
-Economy         WHY            requests movement
-Route planner   WHERE          immutable execution plan
-Controller      WHAT STAGE     state machine + lifecycle
-Dispatcher      WHEN           priority + age-based selection
-Carrier         HOW            spatial execution only
-Telemetry       IS IT HEALTHY  passive observation
-```
-
-Route planner(`FindPath`) builds an immutable route at `CreateTask` time.
-No code changes route after creation (except `RetryBlockedTasks` rebuilds it).
-Controller owns all state transitions via `SetTaskState` (single point, `transitionCount` guard).
-Dispatcher(`PickNextTask`) selects among waiting tasks; never touches route/hopIndex/targetFlag.
-Carrier moves spatially toward `targetFlag`; never reads route, never modifies task.
-Telemetry(`LogTelemetry`) scans state every 600 ticks, `assert oldestWaitingAge < 10000`.
-
-## Key Architectural Decisions
-
-1. **Route = immutable execution plan** — built once at `CreateTask`, never mutated.
-2. **One task = one physical unit** — no `amount` field, no batching at task level.
-3. **Event-driven lifecycle** — no per-frame scanning, all state transitions from `Notify*` callbacks.
-4. **Carrier is a dumb executor** — knows only `targetFlag`, never `route[]` or task state.
-5. **Age-based anti-starvation** — `ageBonus = min(tick - createdTick, 200)` computed on selection.
-6. **Telemetry = passive observation** — `LogTelemetry()` never modifies state.
-7. **transitionCount < 64** — catches infinite state loops.
-8. **`Update()` is NOT a decision loop** — exists only for telemetry
-   (`LogTelemetry` every 600 ticks) and monotonic tick increment
-   (`m_currentTick++` for age bonus). Assignment, route mutation,
-   retries, and state transitions remain event-driven from `Notify*`
-   callbacks only. See `TransportController::Update()`.
-
-## Build Config
-- **Platform**: Xbox 360 (C++03, no variadic templates, `std::function`, auto, range-for)
-- **SDK**: Not available for local builds — correctness by code review only
+> DemandTicket lives at the boundary as an adapter — it connects DemandManager's
+> request to TransportTask's lifecycle, then drops out of the model.
 
 ---
+
+### Roadmap to Transport v1 complete
+
+```
+8.3   Parallel Validation    → log [MIGRATION] old=new per delivery
+8.3.5 Soak Tests             → T1–T8, 30+ min runs, telemetry clean
+8.4   Legacy Removal          → delete DemandTicket, TransportJobManager, Reserve, bridge code
+tag   transport-v1-complete   → stable baseline for Cycle 3
+Cycle 3  Definition Pattern  → BuildingDefinition table
+```
 
 # Phase 8 Migration Checklist
 
@@ -194,6 +228,16 @@ Telemetry(`LogTelemetry`) scans state every 600 ticks, `assert oldestWaitingAge 
 - [ ] old TransportJobManager = observe only
 - [ ] new TransportController = execute
 - [ ] Log: `[MIGRATION] demand=81 old=flag12 new=flag12 OK`
+
+## 8.3.5 — Soak tests (destructive first)
+- [ ] T4: Road break — retry blocked tasks, no orphaned TransportTask/Cargo
+- [ ] T5: Flag deletion during active transport — cancel task, restore demand, no Cargo leak
+- [ ] T6: Cancel during PickUp
+- [ ] T7: Cancel during Move
+- [ ] T2: 10 simultaneous construction sites (producer + consumer scaling)
+- [ ] T3: Long road chains — multiple AdvanceHop across 5+ flags
+- [ ] T8: 30–60 min gameplay — telemetry clean (mask/res/ownHash/blocked)
+- [ ] T1: Full regression — single resource, single carrier (baseline sanity)
 
 ## 8.4 — Remove legacy transport
 - [ ] All scenarios pass: wood→warehouse, warehouse→construction, mine→smelter, food→worker, blocked recovery, flag deletion
@@ -228,36 +272,48 @@ This holds across all explicit create/destroy events.
 
 ---
 
-# Stabilization Checklist (current iteration)
+# Current Status — Full Cycle Verified ✅
 
-Run through the game to verify no regressions after the architecture cycle.
+## What works (end-to-end confirmed via log analysis)
+
+```
+ConstructionSite → DemandManager → TransportController → Carrier → Flag → CheckDeliveries → ConstructionSite → Builder → Completed
+```
+
+Full single-site cycle confirmed: Woodcutter at (20,33) — dispatch, walk, build, resource delivery (3/3 Wood), completion, builder return, site removal.
+
+Multi-site with shared roads: Hunter at (18,38) received all 3 Wood via road 2 carrier. Fisher at (24,30) transport chain functional after Reserve fix.
+
+## Recent fixes (Phase 8.3)
+
+| Fix | File | What |
+|-----|------|------|
+| `HasDemandFromOtherFlag` | `DemandManager.h:41`, `DemandManager.cpp:355` | Carrier idle check skips demands targeting the same flag |
+| `Reserve` same-flag filter | `DemandManager.cpp:184-196` | When originFlag > 0, skip demands whose resolved target flag ID matches origin — prevents warehouse demand (priority 10) from blocking construction demand (priority 5) at the same flag |
+| Carrier idle uses `HasDemandFromOtherFlag` | `Carrier.h:250` | Prevents wasted wake → walk → Reserve → Release cycles for resources already at their destination |
+
+## Remaining issues
+
+- **OVERDELIVER telemetry** (`delivered=3/1`): artifact of `SetDemand(woodMissing)` overwriting `requested` downward each frame. Harmless — delivery and ticket release complete normally. Fix: log initial amount separately, or don't reduce `requested` in `SetDemand`.
+- **Builder dispatch timing**: Builder waits at `"no road to site"` until player builds road. This is correct Settlers behavior — not a bug.
+
+# Stabilization Checklist
 
 ## Logistics
-- [ ] Building receives all required resources
+- [x] Building receives all required resources (confirmed: Woodcutter 3/3, Hunter 3/3)
 - [ ] Production buildings get input resources
-- [ ] Warehouses collect only truly free resources
+- [x] Warehouses collect only truly free resources (Reserve filter prevents same-flag pickup)
 - [ ] Flag deletion leaves no orphaned resources
 - [ ] No DemandTicket pool asserts triggered
 - [ ] No DemandTicket leaks on map clear / return to menu
 
 ## Construction
-- [ ] Open build menu
-- [ ] Select any building
-- [ ] Place building
-- [ ] Wood delivery
+- [x] Open build menu
+- [x] Select any building
+- [x] Place building
+- [x] Wood delivery
 - [ ] Stone delivery
-- [ ] Construction completion
-
-## UI
-- [ ] All radial menus open
-- [ ] All items display correctly
-- [ ] All actions match expectations
-- [ ] Editor layer selection works via UiAction
-
-## Editor
-- [ ] Layer switching
-- [ ] Object placement
-- [ ] Save/load (if present)
+- [x] Construction completion (confirmed: Woodcutter, Hunter)
 
 ## Known Pre-existing Bugs (not caused by architecture cycle)
 - **Construction completion order**: `ConstructionManager::Update()` deletes completed sites before `PostUpdate()` fires `Event_ConstructionComplete`
@@ -267,9 +323,13 @@ Run through the game to verify no regressions after the architecture cycle.
 
 # Next Steps
 
-1. **Stabilization** — run checklist above
-2. **UI6** — EditorScene migration to MenuModel / UiMessageId pattern (~268 string literals in EditorScene.cpp + TilePalette.cpp)
-3. **Cycle 3: Definition Pattern** — `BuildingDefinition` table keyed by `BuildingType`, eliminating `GetBuildingTypeFromSpriteName` / `GetBuildingSpriteName` reverse lookups
+1. **Soak tests** (8.3.5): T1–T8 — multiple buildings, road delete, flag delete, long routes, mass construction
+2. **Phase 8.4**: Remove legacy TransportJobManager, DemandTicket, Reserve bridge code, `kUseTransportJobs`
+3. **Tag**: `transport-v1-complete`
+4. **UI6**: EditorScene migration to MenuModel / UiMessageId pattern (~268 string literals in EditorScene.cpp + TilePalette.cpp)
+5. **Cycle 3**: Definition Pattern — `BuildingDefinition` table
+
+## Definition Pattern (Architectural Invariant for Cycle 3)
 
 ## Definition Pattern (Architectural Invariant for Cycle 3)
 

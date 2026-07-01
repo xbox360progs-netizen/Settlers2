@@ -1,12 +1,17 @@
 #include "stdafx.h"
 #include <assert.h>
 #include "DemandManager.h"
+#include "FlagManager.h"
+#include "Flag.h"
+#include "TransportController.h"
 
 namespace World {
 
     DemandManager::DemandManager()
         : m_freeCount(MAX_TICKETS)
         , m_nextTicketId(1)
+        , m_controller(NULL)
+        , m_flagManager(NULL)
     {
         for (int i = 0; i < MAX_TICKETS; ++i) {
             m_freeSlots[i] = i;
@@ -136,9 +141,62 @@ namespace World {
         }
     }
 
-    DemandTicket* DemandManager::Reserve(ResourceType type)
+    // Phase 8.1 — map resource type to transport task reason
+    TransportTaskReason DemandManager::ReasonForResource(ResourceType type) const
     {
-        Demand* best = FindBestDemand(type);
+        switch (type) {
+            case ResourceType_Fish:
+            case ResourceType_Meat:
+            case ResourceType_Wheat:
+            case ResourceType_Flour:
+            case ResourceType_Bread:
+            case ResourceType_Water:
+                return TTR_Food;
+            case ResourceType_Wood:
+            case ResourceType_RealWood:
+            case ResourceType_ExoticWood:
+            case ResourceType_Planks:
+            case ResourceType_Stone:
+            case ResourceType_Marble:
+            case ResourceType_Granite:
+                return TTR_Construction;
+            case ResourceType_Tools:
+                return TTR_Military;
+            case ResourceType_Coal:
+            case ResourceType_IronOre:
+            case ResourceType_IronBar:
+            case ResourceType_GoldOre:
+            case ResourceType_GoldBar:
+            case ResourceType_BronzeOre:
+            case ResourceType_BronzeBar:
+            case ResourceType_Titanium:
+            case ResourceType_Salpeter:
+                return TTR_Production;
+            default:
+                return TTR_WarehouseBalance;
+        }
+    }
+
+    DemandTicket* DemandManager::Reserve(ResourceType type, FlagId originFlag)
+    {
+        Demand* best = NULL;
+        // Phase 8.2 — if origin is known, skip demands targeting the same flag (no-op)
+        if (originFlag > 0) {
+            for (std::list<Demand>::iterator it = m_demands.begin(); it != m_demands.end(); ++it) {
+                if (it->type != type) continue;
+                if (it->reserved >= it->requested) continue;
+                FlagId targetId = 0;
+                if (m_flagManager) {
+                    Flag* f = m_flagManager->ResolveFlag(it->targetFlag);
+                    if (f) targetId = f->id;
+                }
+                if (targetId == originFlag) continue;
+                if (!best || it->priority > best->priority)
+                    best = &*it;
+            }
+        } else {
+            best = FindBestDemand(type);
+        }
         if (!best) {
             char buf[256];
             _snprintf(buf, sizeof(buf),
@@ -166,6 +224,36 @@ namespace World {
             t->id, ResourceTypeToString(type),
             best->targetFlag.index, best->reserved, best->requested);
         OutputDebugStringA(buf);
+
+        // Phase 8.1 — bridge: create TransportTask alongside DemandTicket
+        if (m_controller && originFlag > 0) {
+            // Resolve the handle to a flag ID (handle.index ≠ flagId!)
+            FlagId destFlagId = 0;
+            if (m_flagManager) {
+                Flag* f = m_flagManager->ResolveFlag(best->targetFlag);
+                if (f) destFlagId = f->id;
+            }
+            if (destFlagId > 0) {
+                TransportTaskReason reason = ReasonForResource(type);
+                TransportTask* task = m_controller->CreateTask(type, originFlag, destFlagId, reason);
+                if (task) {
+                    t->transportTaskId = task->id;
+                    task->observerTicketId = t->id;         // Phase 8.2 — bidirectional link
+                    char dbg[256];
+                    _snprintf(dbg, sizeof(dbg),
+                        "[Adapter] demand=%u ticket=%u type=%s flag=%u destFlagId=%u -> task=%u\n",
+                        best->targetFlag.index, t->id,
+                        ResourceTypeToString(type), originFlag, destFlagId, task->id);
+                    OutputDebugStringA(dbg);
+                }
+            } else {
+                char dbg[256];
+                _snprintf(dbg, sizeof(dbg),
+                    "[Adapter] FAILED: cannot resolve flag for demand=%u\n",
+                    best->targetFlag.index);
+                OutputDebugStringA(dbg);
+            }
+        }
 
         return t;
     }
@@ -260,6 +348,17 @@ namespace World {
         for (std::list<Demand>::iterator it = m_demands.begin(); it != m_demands.end(); ++it) {
             if (it->type == type && it->reserved < it->requested)
                 return true;
+        }
+        return false;
+    }
+
+    bool DemandManager::HasDemandFromOtherFlag(ResourceType type, Handle<Flag> currentFlag)
+    {
+        for (std::list<Demand>::iterator it = m_demands.begin(); it != m_demands.end(); ++it) {
+            if (it->type != type) continue;
+            if (it->reserved >= it->requested) continue;
+            if (it->targetFlag.index == currentFlag.index) continue;
+            return true;
         }
         return false;
     }

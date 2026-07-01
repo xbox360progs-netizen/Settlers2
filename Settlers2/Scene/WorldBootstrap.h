@@ -23,6 +23,7 @@ namespace World {
     class RoadManager;
     class SimulationSystem;
     class StorehouseManager;
+    class TransportController;
     class TransportJobManager;
     class WildlifeSystem;
     class WorkerManager;
@@ -54,6 +55,7 @@ struct WorldBootstrapCtx {
     World::FlagManager*& flagManager;
     World::RoadManager*& roadManager;
     World::TransportJobManager*& transportJobs;
+    World::TransportController*& transportController;
     World::CargoManager*& cargo;
     World::DemandManager*& demand;
     World::StorehouseManager*& storehouse;

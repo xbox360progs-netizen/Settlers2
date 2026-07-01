@@ -360,6 +360,10 @@ namespace Scene {
         m_commandBus.Post(Core::Cmd_PlaceFlag, pfd);
 
         m_placement->Cancel();
+        // Auto-start road building so player can connect the new flag
+        if (req.type != World::Building_None && m_roadController) {
+            m_roadController->Start(req.flagX, req.flagY);
+        }
         if (m_statusManager) m_statusManager->SetStatus(UI::MSG_BUILDING_STARTED, UI::UiFormatArgs(), 2.0f);
         {
             char dbg[256];

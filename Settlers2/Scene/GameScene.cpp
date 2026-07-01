@@ -32,6 +32,7 @@ namespace Scene {
         , m_eventBus(NULL)
         , m_commandBus(NULL)
         , m_transportJobManager(NULL)
+        , m_transportController(NULL)
         , m_map(NULL)
         , m_entityManager(NULL)
         , m_animalSystem(NULL)
@@ -276,7 +277,8 @@ namespace Scene {
                 m_animalSystem, m_animalManager, m_wildlife,
                 m_economyManager, m_carrierSystem, m_carrierManager,
                 m_workerManager, m_aiSystem, m_flagManager,
-                m_roadManager, m_transportJobManager, m_cargoManager,
+                m_roadManager, m_transportJobManager, m_transportController,
+                m_cargoManager,
                 m_demandManager, m_storehouseManager, m_constructionManager,
                 m_objectLifecycleManager, m_placementManager, m_constructionVisualizer,
                 &m_roadController, &m_relinker
@@ -382,6 +384,7 @@ namespace Scene {
             );
             m_inputController->SetHost(this);
             m_inputController->SetStatusManager(&m_statusManager);
+            m_roadController.SetPlacementController(&m_placement);
             m_roadController.SetStatusManager(&m_statusManager);
             char dbg[256];
             _snprintf(dbg, sizeof(dbg), "[GameScene::Load] InputController created\n");
@@ -531,6 +534,19 @@ namespace Scene {
                 m_transportJobManager->SetWarehouse(wh);
             }
             // WorkerManager no longer needs warehouse reference
+
+            // Propagate warehouse flag to internal ConstructionManager
+            // (SetupSystems → SimulationSystem::Initialize runs before
+            //  RestoreBuildingsFromLayer, so the internal CM got NULL)
+            World::Flag* whFlag = wh->connectedFlag;
+            if (whFlag) {
+                m_simulation.GetConstruction().GetManager()->SetWarehouseFlag(whFlag);
+                char _wdbg[128];
+                _snprintf(_wdbg, sizeof(_wdbg),
+                    "[GameScene] Internal CM warehouseFlag set: flagId=%u\n",
+                    whFlag->id);
+                OutputDebugStringA(_wdbg);
+            }
         }
 
         // ─── Create starting warehouse + carriers (only if none restored) ──
@@ -540,6 +556,17 @@ namespace Scene {
                 m_carrierManager, m_storehouseManager,
                 m_transportJobManager, m_constructionManager,
                 m_demandManager, m_relinker);
+
+            // Also set warehouse flag on the internal ConstructionManager used by
+            // SimulationSystem phases (m_extConstruction was redirected to the
+            // ConstructionSystem's internal manager in Initialize).
+            World::Flag* hq = m_economyManager->GetWarehouse()
+                ? m_economyManager->GetWarehouse()->connectedFlag
+                : NULL;
+            if (hq) {
+                m_simulation.GetConstruction().GetManager()->SetWarehouseFlag(hq);
+            }
+
             OutputDebugStringA("[GameScene::Load] Warehouse + carriers created\n");
         }
 
@@ -1096,6 +1123,8 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         std::string key = name;
         if (key.compare(0, 2, "b_") == 0)
             key = key.substr(2);
+        if (key.compare(0, 3, "ib_") == 0)
+            key = key.substr(3);
 
         struct { const char* name; World::BuildingType type; } entries[] = {
             { "woodcutter",   World::Woodcutter },
@@ -1111,6 +1140,10 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
             { "fisher",       World::Fisher },
             { "hunter",       World::Hunter },
             { "toolworkshop", World::ToolWorkshop },
+            { "forester",     World::Forester },
+            { "stonemason",   World::Stonemason },
+            { "well",         World::Well },
+            { "barracks",     World::Barracks },
             { "warehouse",    World::Storehouse },
             { "townhall",     World::Storehouse },
             { "bronzemine",   World::BronzeMine },
