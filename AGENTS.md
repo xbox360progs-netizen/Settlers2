@@ -196,6 +196,28 @@ Telemetry(`LogTelemetry`) scans state every 600 ticks, `assert oldestWaitingAge 
 - [ ] Remove TransportJobManager, DemandTicket, `kUseTransportJobs`, old Carrier routing
 - [ ] Transport tests green
 
+### Equivalence criteria for 8.4
+
+**Must be identical:**
+- Final resource counts at each building/flag
+- Destination inventories (what arrived where)
+- Construction completion (same buildings finish)
+- Blocked recovery result (same resources reachable)
+
+**Allowed differences:**
+- Delivery timestamps (timing shifts are fine)
+- Carrier identity (who carried is irrelevant)
+- Hop count (new route may differ)
+- Queue order (priority dispatching reorders fairly)
+
+**No ghost ownership** — invariant for all of Phase 8:
+```
+Σ(resource count) before migration
+==
+Σ(resource count) after migration
+```
+No resource may disappear, duplicate, or simultaneously belong to two layers.
+
 ---
 
 # Stabilization Checklist (current iteration)
