@@ -681,6 +681,7 @@ A `Cancelled` task in `Moving` state always completes its current hop. Cargo is 
 | Q7 | Warehouse as origin? | **Not special.** All nodes are `FlagId`. Storehouse is just a Cargo source. Controller never checks building type. |
 | Q8 | Priority affect route? | **No.** Route planner decides WHERE cargo moves. Priority dispatcher decides WHEN cargo moves. `PickNextTask` never modifies route/hopIndex/targetFlag. |
 | Q9 | Who owns a resource? | **Ownership chain**: Ground → Flag inventory (stationary) → TransportTask (in transit) → Carrier (on carrier) → Building inventory (consumed). Never Carrier+Building or Demand+Task simultaneously. |
+| Q10 | Is `Update()` a decision loop? | **No.** `Update()` exists only for telemetry (`LogTelemetry` every 600 ticks) and monotonic tick increment (`m_currentTick++` for age bonus). Assignment, route mutation, retries, and state transitions are event-driven from `Notify*` callbacks only. |
 
 ## 12. Transport Contract (Phase 8)
 

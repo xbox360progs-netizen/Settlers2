@@ -161,6 +161,9 @@
 - [x] SetCarrierManager() dependency injection
 - [x] LogTelemetry() called periodically from Update()
 - [x] 3 test scenarios documented (34–36)
+- [x] **Note**: `Update()` is NOT a transport decision loop. It exists only for
+  telemetry and tick increment. All lifecycle transitions remain event-driven
+  from `Notify*` callbacks. See AGENTS.md §8.
 
 ## Phase 8 — Economy integration
 

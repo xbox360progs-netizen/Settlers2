@@ -166,6 +166,11 @@ Telemetry(`LogTelemetry`) scans state every 600 ticks, `assert oldestWaitingAge 
 5. **Age-based anti-starvation** — `ageBonus = min(tick - createdTick, 200)` computed on selection.
 6. **Telemetry = passive observation** — `LogTelemetry()` never modifies state.
 7. **transitionCount < 64** — catches infinite state loops.
+8. **`Update()` is NOT a decision loop** — exists only for telemetry
+   (`LogTelemetry` every 600 ticks) and monotonic tick increment
+   (`m_currentTick++` for age bonus). Assignment, route mutation,
+   retries, and state transitions remain event-driven from `Notify*`
+   callbacks only. See `TransportController::Update()`.
 
 ## Build Config
 - **Platform**: Xbox 360 (C++03, no variadic templates, `std::function`, auto, range-for)
