@@ -198,25 +198,28 @@ Telemetry(`LogTelemetry`) scans state every 600 ticks, `assert oldestWaitingAge 
 
 ### Equivalence criteria for 8.4
 
-**Must be identical:**
+**Strong invariants** (must be identical):
 - Final resource counts at each building/flag
 - Destination inventories (what arrived where)
 - Construction completion (same buildings finish)
 - Blocked recovery result (same resources reachable)
 
-**Allowed differences:**
+**Weak invariants** (allowed to differ):
 - Delivery timestamps (timing shifts are fine)
 - Carrier identity (who carried is irrelevant)
 - Hop count (new route may differ)
 - Queue order (priority dispatching reorders fairly)
 
-**No ghost ownership** — invariant for all of Phase 8:
+**Conservation invariant** (global — applies to whole economy):
 ```
-Σ(resource count) before migration
+Σ(world resources) before migration
 ==
-Σ(resource count) after migration
+Σ(world resources) after migration
 ```
 No resource may disappear, duplicate, or simultaneously belong to two layers.
+This holds across all explicit create/destroy events.
+
+**Migration complete** ⇔ new transport produces economically equivalent world state without ownership violations.
 
 ---
 
