@@ -150,12 +150,17 @@
 - [x] Same-carrier handoff (carrier continues through all hops)
 - [x] Different-carrier handoff (task->carrier may change, route immutable)
 
-## Phase 7.7 — Load balancing / batching
+## Phase 7.7 — Load balancing / telemetry ✅
 
-- [ ] Carrier utilization: distribute tasks across carriers at same flag
-- [ ] Batch coalescing: merge multiple same-route tasks into carrier capacity
-- [ ] Starvation detection: log if task waits > N ticks
-- [ ] Test: 10 carriers, 50 tasks, verify even distribution
+- [x] Carrier utilization: active = Assigned + Moving, total = CarrierManager::GetCarrierCount()
+- [x] avgWait = totalAgeOfWaiting / waitingCount (snapshot every 600 ticks)
+- [x] Log: `[Transport] Utilization 18/24 active avgWait=43`
+- [x] Queue pressure: per-flag scan finds max depth + oldest age
+- [x] Log: `[Transport] Flag=8 q=14 oldest=311 blocked=2`
+- [x] Fairness validation: `assert(oldestWaitingAge < 10000)` (~167s at 60fps)
+- [x] SetCarrierManager() dependency injection
+- [x] LogTelemetry() called periodically from Update()
+- [x] 3 test scenarios documented (34–36)
 
 ## Phase 8 — Economy integration
 

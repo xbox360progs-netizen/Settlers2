@@ -200,6 +200,25 @@
 //  33. Instrumentation:
 //      [Transport] Dispatch task=17 pri=300 age=12
 //      [Transport] Queue f=8 cnt=5 best=17
+//
+// Phase 7.7 — Load balancing / telemetry:
+//
+//  34. Carrier utilization:
+//      Every 600 ticks, LogTelemetry scans all tasks:
+//        active = TTS_Assigned + TTS_Moving
+//        totalCarriers = CarrierManager::GetCarrierCount()
+//        avgWait = totalAgeOfWaiting / waitingCount
+//      Log: [Transport] Utilization 18/24 active avgWait=43
+//
+//  35. Queue pressure:
+//      Per-flag scan finds max queue depth, oldest task age.
+//      Log: [Transport] Flag=8 q=14 oldest=311 blocked=2
+//
+//  36. Fairness validation:
+//      assert(oldestWaitingAge < 10000).
+//      10 000 ticks ~ 167 seconds at 60 fps.
+//      Any task waiting longer hits the assert.
+//      Warehouse tasks (pri=0) must be dispatched within this window.
 
 #include "stdafx.h"
 #include <vector>
@@ -210,6 +229,7 @@
 #include "FlagManager.h"
 #include "Flag.h"
 #include "Carrier.h"
+#include "CarrierManager.h"
 
 namespace World {
 
@@ -220,6 +240,7 @@ namespace World {
         , m_enqueueCounter(1)
         , m_roadManager(NULL)
         , m_flagManager(NULL)
+        , m_carrierManager(NULL)
     {
         for (int i = 0; i < kMaxTasks; ++i) {
             m_pool[i].id = 0;
@@ -845,6 +866,88 @@ namespace World {
             if (m_pool[i].state == TTS_Blocked) count++;
         }
         return count;
+    }
+
+    // ── Telemetry (Phase 7.7) ─────────────────────────────────────────────
+
+    void TransportController::LogTelemetry()
+    {
+        // Snapshot: count tasks by state, find max waiting age
+        int waiting = 0, assigned = 0, moving = 0, blocked = 0;
+        uint32_t totalWaitAge = 0;
+        uint32_t oldestWaitingAge = 0;
+
+        for (int i = 0; i < kMaxTasks; ++i) {
+            TransportTask* t = &m_pool[i];
+            if (t->id == 0) continue;
+            switch (t->state) {
+                case TTS_WaitingAtSource:
+                    waiting++;
+                    {
+                        uint32_t age = m_currentTick - t->createdTick;
+                        totalWaitAge += age;
+                        if (age > oldestWaitingAge) oldestWaitingAge = age;
+                    }
+                    break;
+                case TTS_Assigned: assigned++; break;
+                case TTS_Moving:    moving++; break;
+                case TTS_Blocked:   blocked++; break;
+                default: break;
+            }
+        }
+
+        int active = assigned + moving;
+        int totalCarriers = m_carrierManager ? m_carrierManager->GetCarrierCount() : 0;
+        uint32_t avgWait = (waiting > 0) ? (totalWaitAge / (uint32_t)waiting) : 0;
+
+        // Fairness validation: no task should wait forever
+        assert(oldestWaitingAge < 10000);
+
+#ifdef _DEBUG
+        char dbg[256];
+        if (totalCarriers > 0) {
+            _snprintf(dbg, sizeof(dbg),
+                "[Transport] Utilization %d/%d active avgWait=%u\n",
+                active, totalCarriers, avgWait);
+        } else {
+            _snprintf(dbg, sizeof(dbg),
+                "[Transport] Utilization %d active avgWait=%u\n",
+                active, avgWait);
+        }
+        OutputDebugStringA(dbg);
+#endif
+
+        // Per-flag queue pressure scan
+        uint32_t maxQueueDepth = 0;
+        uint32_t maxQueueAge = 0;
+        FlagId pressureFlag = 0;
+
+        for (uint32_t f = 0; f < kMaxFlags; ++f) {
+            uint16_t depth = GetWaitingCount(f);
+            if (depth == 0) continue;
+
+            if (depth > maxQueueDepth) {
+                maxQueueDepth = depth;
+                pressureFlag = f;
+                // Find oldest in this queue
+                TransportTask* cur = m_waitingHead[f];
+                while (cur) {
+                    uint32_t age = m_currentTick - cur->createdTick;
+                    if (age > maxQueueAge) maxQueueAge = age;
+                    cur = cur->nextWaiting;
+                }
+            }
+        }
+
+#ifdef _DEBUG
+        if (maxQueueDepth > 0) {
+            _snprintf(dbg, sizeof(dbg),
+                "[Transport] Flag=%u q=%u oldest=%u blocked=%d\n",
+                pressureFlag, (unsigned)maxQueueDepth,
+                (unsigned)maxQueueAge, blocked);
+            OutputDebugStringA(dbg);
+        }
+#endif
     }
 
 } // namespace World

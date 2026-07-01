@@ -1,12 +1,31 @@
-﻿Построение начато 30.06.2026 6:25:25.
+﻿Построение начато 01.07.2026 10:22:21.
      1>Проект "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" в узле 2 (целевые объекты build).
      1>InitializeBuildStatus:
          Обращение к "Release\Settlers2.unsuccessfulbuild".
        ClCompile:
          Для всех выходных данных обновления не требуется.
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP World\DemandManager.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
-         DemandManager.cpp
-         Для всех выходных данных обновления не требуется.
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Core\GameEngine.cpp Scene\GameRenderer.cpp Scene\RoadController.cpp Scene\WorldBootstrap.cpp Scene\WorldRestorer.cpp Scene\GameScene.cpp World\CarrierManager.cpp World\FlagManager.cpp World\RoadManager.cpp World\TransportController.cpp World\TransportTask.cpp World\ObjectDeletionRules.cpp World\ObjectLifecycleManager.cpp World\Systems\CarrierSystem.cpp World\Systems\ConstructionSystem.cpp World\Systems\RoadNetworkRelinker.cpp World\Systems\SimulationSystem.cpp World\Systems\TransportSystem.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
+         GameEngine.cpp
+         GameRenderer.cpp
+         RoadController.cpp
+         WorldBootstrap.cpp
+         WorldRestorer.cpp
+         GameScene.cpp
+         CarrierManager.cpp
+         FlagManager.cpp
+         RoadManager.cpp
+         TransportController.cpp
+         TransportTask.cpp
+         ObjectDeletionRules.cpp
+         ObjectLifecycleManager.cpp
+         CarrierSystem.cpp
+         ConstructionSystem.cpp
+         RoadNetworkRelinker.cpp
+         SimulationSystem.cpp
+         TransportSystem.cpp
+         Generating Code...
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\Input\\" /Fd"Release\vc100.pdb" /TP Input\InputController.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
+         InputController.cpp
          C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\Scene\\" /Fd"Release\vc100.pdb" /TP Scene\InputController.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
          InputController.cpp
        Link:
@@ -109,6 +128,8 @@
          Release\RoadManager.obj
          Release\StorehouseManager.obj
          Release\TransportJobManager.obj
+         Release\TransportController.obj
+         Release\TransportTask.obj
          Release\ObjectDeletionRules.obj
          Release\ObjectLifecycleManager.obj
          Release\ConstructionSite.obj
@@ -152,4 +173,4 @@
 
 Построение успешно завершено.
 
-Затраченное время: 00:00:19.17
+Затраченное время: 00:00:36.69

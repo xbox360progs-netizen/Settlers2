@@ -27,6 +27,7 @@ namespace World {
         // Dependency injection (must be called before CreateTask)
         void SetRoadManager(RoadManager* rm) { m_roadManager = rm; }
         void SetFlagManager(FlagManager* fm) { m_flagManager = fm; }
+        void SetCarrierManager(CarrierManager* cm) { m_carrierManager = cm; }
 
         // ── Lifecycle ─────────────────────────────────────────────────
 
@@ -59,7 +60,13 @@ namespace World {
         uint16_t GetBlockedCount() const;
 
         // Phase 7.4 — per-frame tick counter for age bonus
-        void Update(float /*deltaTime*/) { m_currentTick++; }
+        // Phase 7.7 — telemetry every kTelemetryInterval ticks
+        void Update(float /*deltaTime*/) {
+            m_currentTick++;
+            if ((m_currentTick % kTelemetryInterval) == 0) {
+                LogTelemetry();
+            }
+        }
 
     private:
         TransportController(const TransportController&);
@@ -104,6 +111,10 @@ namespace World {
         void AdvanceHop(Carrier* c, TransportTask* task);
         void CompleteDelivery(Carrier* c, TransportTask* task);
 
+        // ── Telemetry (Phase 7.7) ──────────────────────────────────────
+        static const int kTelemetryInterval = 600; // ticks between logs
+        void LogTelemetry();
+
         // ── Data ───────────────────────────────────────────────────────
         TransportTask m_pool[kMaxTasks];
         uint32_t m_nextTaskId;
@@ -117,6 +128,7 @@ namespace World {
 
         RoadManager* m_roadManager;
         FlagManager* m_flagManager;
+        CarrierManager* m_carrierManager;
     };
 
 } // namespace World
