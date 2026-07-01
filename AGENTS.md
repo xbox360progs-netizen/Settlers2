@@ -135,9 +135,66 @@ Production → ResourceSlot { destFlagId } → TakeCargoForRoad() → Cargo { De
 > simultaneously, or a Demand holding a resource reference while TransportTask
 > also references it.
 
+# Transport v1 — Complete ✅ (tag future)
+
+## Final Architecture
+
+```
+Layer           Domain         Decision
+─────────────────────────────────────────────
+Economy         WHY            requests movement
+Route planner   WHERE          immutable execution plan
+Controller      WHAT STAGE     state machine + lifecycle
+Dispatcher      WHEN           priority + age-based selection
+Carrier         HOW            spatial execution only
+Telemetry       IS IT HEALTHY  passive observation
+```
+
+Route planner(`FindPath`) builds an immutable route at `CreateTask` time.
+No code changes route after creation (except `RetryBlockedTasks` rebuilds it).
+Controller owns all state transitions via `SetTaskState` (single point, `transitionCount` guard).
+Dispatcher(`PickNextTask`) selects among waiting tasks; never touches route/hopIndex/targetFlag.
+Carrier moves spatially toward `targetFlag`; never reads route, never modifies task.
+Telemetry(`LogTelemetry`) scans state every 600 ticks, `assert oldestWaitingAge < 10000`.
+
+## Key Architectural Decisions
+
+1. **Route = immutable execution plan** — built once at `CreateTask`, never mutated.
+2. **One task = one physical unit** — no `amount` field, no batching at task level.
+3. **Event-driven lifecycle** — no per-frame scanning, all state transitions from `Notify*` callbacks.
+4. **Carrier is a dumb executor** — knows only `targetFlag`, never `route[]` or task state.
+5. **Age-based anti-starvation** — `ageBonus = min(tick - createdTick, 200)` computed on selection.
+6. **Telemetry = passive observation** — `LogTelemetry()` never modifies state.
+7. **transitionCount < 64** — catches infinite state loops.
+
 ## Build Config
 - **Platform**: Xbox 360 (C++03, no variadic templates, `std::function`, auto, range-for)
 - **SDK**: Not available for local builds — correctness by code review only
+
+---
+
+# Phase 8 Migration Checklist
+
+## 8.1 — Demand → TransportTask adapter (bridge)
+- [ ] DemandManager creates TransportTasks (old pipeline still alive)
+- [ ] Invariant: one Demand = at most one active TransportTask
+- [ ] CargoManager reports delivery completion to DemandManager
+
+## 8.2 — Resource ownership migration
+- [ ] Ownership chain enforced: Ground → Flag → Task → Carrier → Building
+- [ ] Runtime audit: `[Resource] id=712 owner=TransportTask(17)` (debug)
+- [ ] Remove old ownership paths (Reserve/Allocate)
+
+## 8.3 — Parallel validation mode
+- [ ] old TransportJobManager = observe only
+- [ ] new TransportController = execute
+- [ ] Log: `[MIGRATION] demand=81 old=flag12 new=flag12 OK`
+
+## 8.4 — Remove legacy transport
+- [ ] All scenarios pass: wood→warehouse, warehouse→construction, mine→smelter, food→worker, blocked recovery, flag deletion
+- [ ] Same save → old and new produce equivalent resource distribution (± delivery timing)
+- [ ] Remove TransportJobManager, DemandTicket, `kUseTransportJobs`, old Carrier routing
+- [ ] Transport tests green
 
 ---
 
