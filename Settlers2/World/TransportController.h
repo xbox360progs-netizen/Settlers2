@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include "ResourceNode.h"
 #include "TransportTypes.h"
+#include "TransportTask.h"
 
 // Phase 7 — Controller owns all logistics decisions.
 // Everything else (Carrier, Cargo, Flag) reports events or executes commands.

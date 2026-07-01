@@ -201,6 +201,7 @@
 //      [Transport] Dispatch task=17 pri=300 age=12
 //      [Transport] Queue f=8 cnt=5 best=17
 
+#include "stdafx.h"
 #include <vector>
 #include <cassert>
 #include "TransportController.h"
@@ -815,13 +816,6 @@ namespace World {
             if (m_pool[i].id == taskId) return &m_pool[i];
         }
         return NULL;
-    }
-
-    void TransportController::Update(float /*deltaTime*/)
-    {
-        m_currentTick++;
-        // Phase 7.4 — no per-task mutation needed.
-        // Age bonus is computed on selection (PickNextTask) from createdTick delta.
     }
 
     // ── Debug / test API ─────────────────────────────────────────────────

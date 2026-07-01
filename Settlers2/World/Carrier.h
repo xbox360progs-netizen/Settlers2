@@ -8,6 +8,8 @@
 #include "Entity.h"
 #include "../Core/Vector2i.h"
 #include "TransportTypes.h"
+#include "TransportTask.h"
+#include "TransportController.h"
 
 #define MAX_TRANSIT_TILES 4096
 

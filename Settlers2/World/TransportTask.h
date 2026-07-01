@@ -11,7 +11,7 @@
 
 namespace World {
 
-    class Cargo;
+    struct Cargo;
     class Carrier;
 
     struct TransportTask {
