@@ -7,12 +7,14 @@
 #include "RoadManager.h"
 #include "Entity.h"
 #include "../Core/Vector2i.h"
+#include "TransportTypes.h"
 
 #define MAX_TRANSIT_TILES 4096
 
 namespace World {
     class DemandManager;
     class CargoManager;
+    struct TransportTask;
 
     enum MovementAuthority {
         Legacy,
@@ -57,12 +59,17 @@ namespace World {
         float m_idleCheckTimer;
         bool m_returningToCenter;
 
+        // Phase 7 — task assignment (Controller owns all routing)
+        TransportTask* m_phase7Task;
+        FlagId m_phase7TargetFlag;
+
         Carrier(Road* r)
             : road(r), ep(0.0f), walkDir(1.0f), m_cargo(NULL),
               state(Working), transitCount(0), transitProgress(0.0f), readyToRemove(false), ecsEntity(INVALID_ENTITY), m_authority(Legacy), pathVersion(0),
               m_demandManager(NULL), m_cargoManager(NULL), m_roadManager(NULL),
               m_roadEndpointA(NULL), m_roadEndpointB(NULL), m_idleCheckTimer(0.0f),
-              m_returningToCenter(false)
+              m_returningToCenter(false),
+              m_phase7Task(NULL), m_phase7TargetFlag(0)
         {
         }
 
@@ -109,6 +116,15 @@ namespace World {
             outEp = this->ep;
             outWalkDir = this->walkDir;
             outState = this->state;
+        }
+
+        // Phase 7 — Controller sets the task and immediate next flag.
+        // Carrier does NOT interpret the route. It only walks toward targetFlag.
+        void AssignPhase7Task(TransportTask* task, FlagId targetFlag) {
+            m_phase7Task = task;
+            m_phase7TargetFlag = targetFlag;
+            assert(m_phase7Task != NULL);
+            assert(m_phase7TargetFlag != 0);
         }
 
         bool IsCarrying() const { return m_cargo != NULL; }
