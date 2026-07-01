@@ -62,33 +62,42 @@
 
 ## Phase 7.3 — Carrier integration (staged)
 
-### 7.3.1 — Assignment (no movement)
+### 7.3.1 — Assignment (no movement) ✅
 - Controller: `NotifyCarrierIdle(carrier, atFlag)` → `TryAssignTask()`
-- Pop task from `m_waitingHead[atFlag]`, set `carrier`, `targetFlag`, `state = TTS_Assigned`
-- Carrier receives `AssignTask(task, targetFlag)`
+- `AcquireWaitingTask()` extracts head from queue
+- `AssignTask()` — single IPC point: set `carrier`, `targetFlag`, `state = TTS_Assigned`
+- Carrier receives `AssignPhase7Task(task, targetFlag)` — stores only, no routing
+- `ValidateAssignment(task, carrier)` — bidirectional assert
+- 5 scenarios documented (6–10 in file header)
 - No movement, no cargo
 
-### 7.3.2 — PickUp
+### 7.3.2 — PickUp (state only, no Cargo) ✅
 - Carrier at source flag → `NotifyCarrierPickedUp(carrier)`
-- Controller: `state = TTS_Moving`, allocate Cargo (stub OK)
-- Cargo linked to task (`task->cargo = c`, `c->task = task`)
+- Controller: `ValidateAssignment(task, c)`, `state = TTS_Moving`
+- No Cargo object created yet (logical PickUp only)
+- Post-condition: `task->state == Moving && task->carrier == c`
 
-### 7.3.3 — Walk
+### 7.3.3 — Walk & Cargo integration
 - Carrier walks toward `targetFlag`
 - Controller not involved (pure Carrier movement)
+- On PickUp: create Cargo, link `task->cargo = cargo`
+- On Drop: release Cargo
 
-### 7.3.4 — Drop
+### 7.3.4 — Drop & AdvanceHop
 - Carrier arrives at `targetFlag` → `NotifyCarrierArrived(carrier, flagId)`
 - Controller: `NotifyCarrierDropped(carrier, flagId)` → `AdvanceHop(task)`
 - `AdvanceHop`: hopIndex++ → if last: `TTS_Delivered`; else: re-enqueue at next flag's queue, `state = TTS_WaitingAtSource`
 - Carrier becomes idle → `NotifyCarrierIdle(carrier, atFlag)`
 
 **Checklist:**
-- [ ] Controller: `TryAssignTask()` — pop from waitingHead, assign to carrier
-- [ ] `NotifyCarrierIdle` → `TryAssignTask()`
-- [ ] `NotifyCarrierPickedUp` → state→Moving, Cargo stub
+- [x] Controller: `TryAssignTask()` — peek, acquire, assign
+- [x] `NotifyCarrierIdle` → `TryAssignTask()`
+- [x] `NotifyCarrierPickedUp` → state→Moving
+- [x] `ValidateAssignment()` — bidirectional ownership check
+- [x] 5 assignment test scenarios documented
 - [ ] `NotifyCarrierArrived` → `AdvanceHop()`
 - [ ] `AdvanceHop()` — hopIndex++, requeue or deliver
+- [ ] Cargo: create on PickUp, link to task, release on Drop
 - [ ] Test: single hop warehouse→flag, full lifecycle
 - [ ] Task invariants maintained (carrier/cargo NULL checks)
 

@@ -10,6 +10,7 @@ namespace World {
 
     class CargoManager;
     class CarrierManager;
+    class Carrier;
     class RoadManager;
     class FlagManager;
     class DemandManager;
@@ -78,6 +79,10 @@ namespace World {
         // AssignTask is the single point where Carrier ↔ Task linkage is created.
         // All invariants are checked here.
         void AssignTask(void* carrier, TransportTask* task);
+
+        // ── Ownership validation ────────────────────────────────────────
+        // Asserts bidirectional link between task and carrier.
+        void ValidateAssignment(const TransportTask* task, const Carrier* c) const;
 
         // ── Data ───────────────────────────────────────────────────────
         TransportTask m_pool[kMaxTasks];
