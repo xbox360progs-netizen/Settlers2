@@ -14,6 +14,7 @@
 namespace World {
     class DemandManager;
     class CargoManager;
+    class TransportController;
     struct TransportTask;
 
     enum MovementAuthority {
@@ -63,6 +64,7 @@ namespace World {
         TransportTask* m_phase7Task;
         FlagId m_phase7TargetFlag;
         Cargo* m_phase7Cargo;
+        TransportController* m_phase7Controller;
 
         Carrier(Road* r)
             : road(r), ep(0.0f), walkDir(1.0f), m_cargo(NULL),
@@ -70,7 +72,7 @@ namespace World {
               m_demandManager(NULL), m_cargoManager(NULL), m_roadManager(NULL),
               m_roadEndpointA(NULL), m_roadEndpointB(NULL), m_idleCheckTimer(0.0f),
               m_returningToCenter(false),
-              m_phase7Task(NULL), m_phase7TargetFlag(0), m_phase7Cargo(NULL)
+              m_phase7Task(NULL), m_phase7TargetFlag(0), m_phase7Cargo(NULL), m_phase7Controller(NULL)
         {
         }
 
@@ -139,6 +141,46 @@ namespace World {
             if (state == ReturningHome) {
                 if (m_authority == Legacy)
                     UpdateReturningHome(deltaTime);
+                return;
+            }
+
+            // Phase 7 movement — walk toward targetFlag without touching TransportTask
+            if (m_phase7Task && m_phase7Task->state == TTS_Moving) {
+                if (!road || road->tileCount < 2) return;
+                float pathLen = GetPathLen();
+                if (pathLen <= 0.0f) return;
+
+                // Determine target endpoint
+                bool targetIsA = (m_roadEndpointA && m_roadEndpointA->id == m_phase7TargetFlag);
+                bool targetIsB = (m_roadEndpointB && m_roadEndpointB->id == m_phase7TargetFlag);
+                if (!targetIsA && !targetIsB) return;
+
+                float targetEp = targetIsB ? pathLen : 0.0f;
+                walkDir = (targetEp > ep) ? 1.0f : -1.0f;
+
+                float step = 3.0f * deltaTime;
+                if (step > 1.5f) step = 1.5f;
+                float newEp = ep + walkDir * step;
+
+                if ((walkDir > 0.0f && newEp >= targetEp) || (walkDir < 0.0f && newEp <= targetEp)) {
+                    newEp = targetEp;
+                    ep = newEp;
+
+                    // Pre-arrival asserts: Carrier verifies its own state
+                    assert(m_phase7Task != NULL);
+                    assert(m_phase7Cargo != NULL);
+                    assert(m_phase7TargetFlag == (targetIsB ? m_roadEndpointB->id : m_roadEndpointA->id));
+
+                    // Notify controller — only Controller may transition task state
+                    if (m_phase7Controller) {
+                        m_phase7Controller->NotifyCarrierArrived(
+                            this, m_phase7TargetFlag);
+                    }
+                } else {
+                    ep = newEp;
+                }
+
+                // Carrier does NOT touch any TransportTask fields — spatial movement only
                 return;
             }
 

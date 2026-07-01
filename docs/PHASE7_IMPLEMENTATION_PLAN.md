@@ -85,12 +85,14 @@
 - `ValidateOwnership(task)` checks: `task→carrier`, `task→cargo`, `carrier→cargo`, `cargo→ownerTask`
 - No movement, no Drop, no AdvanceHop
 
-### 7.3.3b — Walk (pure movement)
-- Carrier walks toward `targetFlag`
-- Carrier knows only `targetFlag` — no `route`, `hopIndex`, or `destination`
-- Controller not involved during movement
-- Upon arrival: `NotifyCarrierArrived(carrier, targetFlag)` → Controller decides next step
-- Carrier NEVER touches TransportTask state or Cargo.link
+### 7.3.3b — Walk (pure movement) ✅
+- Carrier walks toward `targetFlag` — knows only targetFlag, no route/hopIndex/destination
+- Movement is spatial only: `ep` + `walkDir`, no TransportTask fields touched
+- On arrival: 3 internal asserts, then `NotifyCarrierArrived(this, targetFlag)`
+- Controller `NotifyCarrierArrived` validates: `ValidateAssignment`, `ValidateOwnership`, `ValidateMovement`
+- `ValidateMovement` checks: `state == TTS_Moving`, `task->targetFlag == carrier->targetFlag`
+- Carrier does NOT call any Controller method during movement
+- Controller pointer set once on Assignment (`c->m_phase7Controller = this;`)
 
 ### 7.3.4 — Drop & AdvanceHop
 - Carrier arrives at `targetFlag` → `NotifyCarrierArrived(carrier, flagId)`
@@ -105,7 +107,7 @@
 - [x] `ValidateAssignment()` — bidirectional ownership check
 - [x] `ValidateOwnership()` — task↔carrier↔cargo triangle check
 - [x] 5 assignment test scenarios documented
-- [ ] Phase 7.3.3b: Carrier walks to targetFlag, NotifyCarrierArrived
+- [x] Phase 7.3.3b: Carrier walks to targetFlag, NotifyCarrierArrived
 - [ ] Phase 7.3.4: NotifyCarrierArrived → AdvanceHop()
 - [ ] AdvanceHop() — hopIndex++, requeue or deliver
 - [ ] Cargo: release on Drop

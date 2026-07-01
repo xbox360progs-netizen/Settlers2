@@ -81,10 +81,9 @@ namespace World {
         void AssignTask(void* carrier, TransportTask* task);
 
         // ── Ownership validation ────────────────────────────────────────
-        // Asserts bidirectional link between task and carrier.
         void ValidateAssignment(const TransportTask* task, const Carrier* c) const;
-        // Asserts task↔carrier↔cargo ownership triangle.
         void ValidateOwnership(const TransportTask* task) const;
+        void ValidateMovement(const TransportTask* task) const;
 
         // ── Data ───────────────────────────────────────────────────────
         TransportTask m_pool[kMaxTasks];

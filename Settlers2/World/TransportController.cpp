@@ -65,6 +65,19 @@
 //        c1.m_phase7Cargo == cargo1
 //        Task1.state == TTS_Moving
 //      ValidateOwnership(Task1) passes.
+//
+// Phase 7.3.3b — Walk:
+//
+//  13. Walk toward targetFlag:
+//      Carrier c1: state == TTS_Moving, targetFlag == route.flags[1].
+//      c1.Update(dt) → ep moves toward targetFlag.
+//      On arrival: asserts fire, NotifyCarrierArrived(c1, targetFlag).
+//      Controller validates: ValidateAssignment, ValidateOwnership,
+//        ValidateMovement (state==Moving, targetFlag matches).
+//
+//  14. Carrier never touches TransportTask:
+//      During c1.Update(), no task->state, hopIndex, or route changes.
+//      Carrier moves ep/walkDir only (spatial movement).
 
 #include <vector>
 #include <cassert>
@@ -174,6 +187,15 @@ namespace World {
         assert(task->cargo->ownerTask == task);
     }
 
+    void TransportController::ValidateMovement(const TransportTask* task) const
+    {
+        assert(task != NULL);
+        assert(task->state == TTS_Moving);
+        Carrier* c = static_cast<Carrier*>(task->carrier);
+        assert(c != NULL);
+        assert(task->targetFlag == c->m_phase7TargetFlag);
+    }
+
     // ── Assignment (Phase 7.3.1) ─────────────────────────────────────────
 
     // TryAssignTask is the assignment policy:
@@ -211,6 +233,7 @@ namespace World {
         task->targetFlag = task->route.flags[task->hopIndex + 1];
 
         c->AssignPhase7Task(task, task->targetFlag);
+        c->m_phase7Controller = this;
 
         // Post-conditions
         assert(task->state == TTS_Assigned);
@@ -285,7 +308,18 @@ namespace World {
         // Carrier became idle at a flag. Try to assign the next waiting task.
         TryAssignTask(carrier, atFlag);
     }
-    void TransportController::NotifyCarrierArrived(void* /*carrier*/, FlagId /*flagId*/) {}
+    void TransportController::NotifyCarrierArrived(void* carrier, FlagId flagId)
+    {
+        if (!carrier) return;
+        Carrier* c = static_cast<Carrier*>(carrier);
+        TransportTask* task = c->m_phase7Task;
+        if (!task) return;
+        ValidateAssignment(task, c);
+        ValidateOwnership(task);
+        ValidateMovement(task);
+        assert(flagId == c->m_phase7TargetFlag);
+        // Phase 7.3.4 will add AdvanceHop here
+    }
     void TransportController::NotifyCarrierPickedUp(void* carrier, void* cargo)
     {
         if (!carrier || !cargo) return;
