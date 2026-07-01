@@ -33,6 +33,9 @@ namespace World {
 
         uint32_t createdTick;           // tick at creation (anti-starvation)
 
+        // Queue linkage (used by Controller for per-flag waiting lists)
+        TransportTask* nextWaiting;     // next task in same waiting queue (NULL if tail)
+
         // Invariants:
         //  - route immutable after creation
         //  - hopIndex < route.count
