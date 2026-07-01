@@ -190,9 +190,25 @@ icon name   → BuildingType
 | `ResourceType` | `ResourceDefinition` (future) |
 | `WorkerType` | `WorkerDefinition` (future) |
 
+## Phase 6b — ARCHIVED (Research Prototype)
+
+Phase 6b (`kUseTransportJobs` experiment) successfully identified a fundamental architectural flaw:
+> A logistics system needs **one TransportTask per shipment**, not one TransportJob per hop.
+> Split responsibility between Job/Cargo/Carrier caused sourceFlag mismatch on intermediate hops.
+
+All lessons and the new architecture are in `docs/LOGISTICS_ARCHITECTURE.md` (FROZEN v1.0).
+
+## Phase 7 — Clean-slate Logistics
+
+**Principle:** TransportController is the sole decision-maker. Carrier only executes PickUp/Walk/Drop.
+One `TransportTask` = one physical item, one lifecycle, one id.
+
+See `docs/PHASE7_IMPLEMENTATION_PLAN.md` for detailed phase order.
+
 ## Boundary Rules for Future PRs
-- Carrier never decides cargo destination — routing decision centralised in DemandManager
+- Carrier never decides cargo destination — routing decision centralised in TransportController (Phase 7)
 - PRs change one architectural aspect each; never combine cleanup with behavioural change
 - GameRenderer remains read-only (no mutation of world state)
 - UI widgets speak `UiAction`; `ICommandDispatcher` is single execution point
 - Dead code removal is consequence, not goal; API surfaces unchanged in architectural PRs
+- **Rule during Phase 7**: No features outside `docs/LOGISTICS_ARCHITECTURE.md`. Extensions after stable baseline.
