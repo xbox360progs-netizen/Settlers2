@@ -164,10 +164,34 @@
 
 ## Phase 8 — Economy integration
 
-- [ ] DemandManager creates TransportTasks (instead of DemandTickets)
+### Phase 8.1 — Demand → TransportTask adapter (bridge)
+
+- [ ] DemandManager creates TransportTasks via bridge (old pipeline still alive)
+- [ ] Invariant: one Demand = at most one active TransportTask
+- [ ] Add `CreateTransportTask()` that maps Demand → TransportTask
 - [ ] CargoManager reports delivery completion to DemandManager
+
+### Phase 8.2 — Resource ownership migration
+
+- [ ] Define ownership chain: Ground → Flag → TransportTask → Carrier → Building
+- [ ] Never Carrier+Building or Demand+Task simultaneously
+- [ ] Runtime audit: `[Resource] id=712 owner=TransportTask(17)` (debug)
+- [ ] Remove old ownership paths (Reserve/Allocate)
+
+### Phase 8.3 — Parallel validation mode
+
+- [ ] old TransportJobManager = observe only
+- [ ] new TransportController = execute
+- [ ] Log: `[MIGRATION] demand=81 old=flag12 new=flag12 OK`
+- [ ] Run all scenarios with both systems active
+
+### Phase 8.4 — Remove legacy transport
+
+- [ ] All scenarios pass: wood→warehouse, warehouse→construction, mine→smelter, food→worker, blocked road recovery, flag deletion
 - [ ] Remove `TransportJobManager`, `DemandTicket`, old Demand pipeline
 - [ ] Remove `kUseTransportJobs` flag
 - [ ] Remove `Reserve()`, `FindBestDemand()`, `Allocate()`
 - [ ] Remove old Carrier routing code
+- [ ] Remove old ownership code
+- [ ] Transport tests green
 - [ ] Run full soak: T1 (single hop), T2 (multi-hop), T3 (cancellation), T4 (road change), T5 (30-min)

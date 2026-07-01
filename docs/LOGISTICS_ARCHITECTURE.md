@@ -647,6 +647,25 @@ A `Cancelled` task in `Moving` state always completes its current hop. Cargo is 
 - [ ] Remove kUseTransportJobs flag
 - [ ] Run full T1–T5 soak
 
+### Phase 8 — Economy integration (migration, not rewrite)
+
+**8.1 — Demand → TransportTask adapter (bridge)**
+- [ ] DemandManager creates TransportTasks via bridge; old pipeline still alive
+- [ ] Invariant: one Demand = at most one active TransportTask
+
+**8.2 — Resource ownership migration**
+- [ ] Define ownership chain: Ground → Flag → TransportTask → Carrier → Building
+- [ ] Runtime audit `[Resource] id=712 owner=TransportTask(17)` (debug)
+- [ ] Remove old ownership paths
+
+**8.3 — Parallel validation mode**
+- [ ] old TransportJobManager = observe only, new TransportController = execute
+- [ ] Log: `[MIGRATION] demand=81 old=flag12 new=flag12 OK`
+
+**8.4 — Remove legacy transport**
+- [ ] All scenarios pass before deleting old code
+- [ ] Remove TransportJobManager, DemandTicket, `kUseTransportJobs`, old routing
+
 ---
 
 ## 11. Resolved Decisions
@@ -661,3 +680,26 @@ A `Cancelled` task in `Moving` state always completes its current hop. Cargo is 
 | Q6 | Blocked retry? | **Event-driven only**. `OnRoadNetworkChanged()` → `RetryBlockedTasks()`. No timers, no polling. |
 | Q7 | Warehouse as origin? | **Not special.** All nodes are `FlagId`. Storehouse is just a Cargo source. Controller never checks building type. |
 | Q8 | Priority affect route? | **No.** Route planner decides WHERE cargo moves. Priority dispatcher decides WHEN cargo moves. `PickNextTask` never modifies route/hopIndex/targetFlag. |
+| Q9 | Who owns a resource? | **Ownership chain**: Ground → Flag inventory (stationary) → TransportTask (in transit) → Carrier (on carrier) → Building inventory (consumed). Never Carrier+Building or Demand+Task simultaneously. |
+
+## 12. Transport Contract (Phase 8)
+
+> **Economy requests movement. Transport performs movement.**
+> Economy never moves resources directly. Transport is a domain service;
+> it receives requests, executes routing, and reports completion.
+> The economy system never touches a Carrier, never walks a path,
+> and never decides which physical flag a resource sits at.
+
+### Ownership chain
+```
+Ground
+  → Flag inventory (stationary)
+    → TransportTask (in transit)
+      → Carrier (on carrier)
+        → Building inventory (consumed)
+```
+
+**Violations**:
+- A `Carrier` and a `Building` claiming ownership of the same resource simultaneously.
+- A `Demand`/`DemandTicket` holding a resource reference while `TransportTask` also references it.
+- Economy code calling `Carrier::AssignPhase7Task()` or directly modifying `Flag` inventory.

@@ -120,6 +120,21 @@ Production → ResourceSlot { destFlagId } → TakeCargoForRoad() → Cargo { De
 > The dispatcher (`PickNextTask`) selects among waiting tasks but never modifies
 > route, hopIndex, or targetFlag. These responsibilities must never be mixed.
 
+### Transport Contract (Phase 8)
+> **Economy requests movement. Transport performs movement.**
+> Economy never moves resources directly.
+> The full ownership chain:
+> ```
+> Ground
+>   → Flag inventory (stationary)
+>     → TransportTask (in transit)
+>       → Carrier (on carrier)
+>         → Building inventory (consumed)
+> ```
+> **Violation**: a Carrier and a Building claiming ownership of the same resource
+> simultaneously, or a Demand holding a resource reference while TransportTask
+> also references it.
+
 ## Build Config
 - **Platform**: Xbox 360 (C++03, no variadic templates, `std::function`, auto, range-for)
 - **SDK**: Not available for local builds — correctness by code review only
