@@ -54,6 +54,17 @@
 //      NotifyCarrierIdle(c1, A) → Assign Task1.
 //      NotifyCarrierPickedUp(c1) → Task1 state == TTS_Moving.
 //      Carrier unchanged (no Cargo created).
+//
+// Phase 7.3.3a — PickUp with Cargo ownership:
+//
+//  12. Full ownership triangle:
+//      NotifyCarrierIdle(c1, A) → Assign Task1.
+//      NotifyCarrierPickedUp(c1, cargo1) →
+//        Task1.cargo == cargo1
+//        cargo1.ownerTask == Task1
+//        c1.m_phase7Cargo == cargo1
+//        Task1.state == TTS_Moving
+//      ValidateOwnership(Task1) passes.
 
 #include <vector>
 #include <cassert>
@@ -151,6 +162,16 @@ namespace World {
         assert(c != NULL);
         assert(task->carrier == c);
         assert(c->m_phase7Task == task);
+    }
+
+    void TransportController::ValidateOwnership(const TransportTask* task) const
+    {
+        assert(task != NULL);
+        assert(task->carrier != NULL);
+        assert(task->cargo != NULL);
+        Carrier* c = static_cast<Carrier*>(task->carrier);
+        assert(c->m_phase7Cargo == task->cargo);
+        assert(task->cargo->ownerTask == task);
     }
 
     // ── Assignment (Phase 7.3.1) ─────────────────────────────────────────
@@ -265,17 +286,25 @@ namespace World {
         TryAssignTask(carrier, atFlag);
     }
     void TransportController::NotifyCarrierArrived(void* /*carrier*/, FlagId /*flagId*/) {}
-    void TransportController::NotifyCarrierPickedUp(void* carrier)
+    void TransportController::NotifyCarrierPickedUp(void* carrier, void* cargo)
     {
-        if (!carrier) return;
+        if (!carrier || !cargo) return;
         Carrier* c = static_cast<Carrier*>(carrier);
+        Cargo* cargoObj = static_cast<Cargo*>(cargo);
         TransportTask* task = c->m_phase7Task;
         if (!task) return;
         ValidateAssignment(task, c);
         assert(task->state == TTS_Assigned);
+
+        // Ownership triangle: link Task ↔ Cargo ↔ Carrier
+        task->cargo = cargoObj;
+        cargoObj->ownerTask = task;
+        c->m_phase7Cargo = cargoObj;
+
         task->state = TTS_Moving;
+
         assert(task->state == TTS_Moving);
-        assert(task->carrier == c);
+        ValidateOwnership(task);
     }
     void TransportController::NotifyCarrierDropped(void* /*carrier*/, FlagId /*flagId*/) {}
     void TransportController::NotifyRoadNetworkChanged() {}

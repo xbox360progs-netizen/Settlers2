@@ -42,7 +42,7 @@ namespace World {
         // Controller decides all state transitions as a response.
         void NotifyCarrierIdle(void* carrier, FlagId atFlag);
         void NotifyCarrierArrived(void* carrier, FlagId flagId);
-        void NotifyCarrierPickedUp(void* carrier);
+        void NotifyCarrierPickedUp(void* carrier, void* cargo);
         void NotifyCarrierDropped(void* carrier, FlagId flagId);
         void NotifyRoadNetworkChanged();
         void NotifyFlagRemoved(FlagId flagId);
@@ -83,6 +83,8 @@ namespace World {
         // ── Ownership validation ────────────────────────────────────────
         // Asserts bidirectional link between task and carrier.
         void ValidateAssignment(const TransportTask* task, const Carrier* c) const;
+        // Asserts task↔carrier↔cargo ownership triangle.
+        void ValidateOwnership(const TransportTask* task) const;
 
         // ── Data ───────────────────────────────────────────────────────
         TransportTask m_pool[kMaxTasks];

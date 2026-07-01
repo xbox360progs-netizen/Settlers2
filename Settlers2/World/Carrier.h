@@ -62,6 +62,7 @@ namespace World {
         // Phase 7 — task assignment (Controller owns all routing)
         TransportTask* m_phase7Task;
         FlagId m_phase7TargetFlag;
+        Cargo* m_phase7Cargo;
 
         Carrier(Road* r)
             : road(r), ep(0.0f), walkDir(1.0f), m_cargo(NULL),
@@ -69,7 +70,7 @@ namespace World {
               m_demandManager(NULL), m_cargoManager(NULL), m_roadManager(NULL),
               m_roadEndpointA(NULL), m_roadEndpointB(NULL), m_idleCheckTimer(0.0f),
               m_returningToCenter(false),
-              m_phase7Task(NULL), m_phase7TargetFlag(0)
+              m_phase7Task(NULL), m_phase7TargetFlag(0), m_phase7Cargo(NULL)
         {
         }
 

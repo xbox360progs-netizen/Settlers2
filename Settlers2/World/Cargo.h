@@ -6,6 +6,7 @@
 namespace World {
     class Flag;
     struct DemandTicket;
+    struct TransportTask;
 
     enum CargoState {
         Cargo_OnFlag,
@@ -21,8 +22,12 @@ namespace World {
         Handle<Flag> currentFlag;
         DemandTicket* ticket;
 
+        // Phase 7 — ownership link back to the task that owns this cargo.
+        // Set by Controller::NotifyCarrierPickedUp, cleared on delivery.
+        TransportTask* ownerTask;
+
         Cargo()
             : id(0), type(ResourceType_None), amount(0),
-              state(Cargo_OnFlag), ticket(NULL) {}
+              state(Cargo_OnFlag), ticket(NULL), ownerTask(NULL) {}
     };
 }

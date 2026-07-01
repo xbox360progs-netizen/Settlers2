@@ -77,11 +77,20 @@
 - No Cargo object created yet (logical PickUp only)
 - Post-condition: `task->state == Moving && task->carrier == c`
 
-### 7.3.3 — Walk & Cargo integration
+### 7.3.3a — PickUp with Cargo ownership (no movement) ✅
+- `NotifyCarrierPickedUp(carrier, cargo)` — Controller links:
+  - `task->cargo = cargo; cargo->ownerTask = task; carrier->m_phase7Cargo = cargo`
+  - `task->state = TTS_Moving`
+- Carrier stores only a pointer to Cargo — no routing, no state changes
+- `ValidateOwnership(task)` checks: `task→carrier`, `task→cargo`, `carrier→cargo`, `cargo→ownerTask`
+- No movement, no Drop, no AdvanceHop
+
+### 7.3.3b — Walk (pure movement)
 - Carrier walks toward `targetFlag`
-- Controller not involved (pure Carrier movement)
-- On PickUp: create Cargo, link `task->cargo = cargo`
-- On Drop: release Cargo
+- Carrier knows only `targetFlag` — no `route`, `hopIndex`, or `destination`
+- Controller not involved during movement
+- Upon arrival: `NotifyCarrierArrived(carrier, targetFlag)` → Controller decides next step
+- Carrier NEVER touches TransportTask state or Cargo.link
 
 ### 7.3.4 — Drop & AdvanceHop
 - Carrier arrives at `targetFlag` → `NotifyCarrierArrived(carrier, flagId)`
@@ -94,10 +103,12 @@
 - [x] `NotifyCarrierIdle` → `TryAssignTask()`
 - [x] `NotifyCarrierPickedUp` → state→Moving
 - [x] `ValidateAssignment()` — bidirectional ownership check
+- [x] `ValidateOwnership()` — task↔carrier↔cargo triangle check
 - [x] 5 assignment test scenarios documented
-- [ ] `NotifyCarrierArrived` → `AdvanceHop()`
-- [ ] `AdvanceHop()` — hopIndex++, requeue or deliver
-- [ ] Cargo: create on PickUp, link to task, release on Drop
+- [ ] Phase 7.3.3b: Carrier walks to targetFlag, NotifyCarrierArrived
+- [ ] Phase 7.3.4: NotifyCarrierArrived → AdvanceHop()
+- [ ] AdvanceHop() — hopIndex++, requeue or deliver
+- [ ] Cargo: release on Drop
 - [ ] Test: single hop warehouse→flag, full lifecycle
 - [ ] Task invariants maintained (carrier/cargo NULL checks)
 
