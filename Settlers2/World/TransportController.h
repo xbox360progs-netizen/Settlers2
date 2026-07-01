@@ -85,6 +85,11 @@ namespace World {
         void ValidateOwnership(const TransportTask* task) const;
         void ValidateMovement(const TransportTask* task) const;
 
+        // ── Hop management (Phase 7.3.4) ────────────────────────────────
+        bool IsLastHop(const TransportTask* task) const;
+        void AdvanceHop(Carrier* c, TransportTask* task);
+        void CompleteDelivery(Carrier* c, TransportTask* task);
+
         // ── Data ───────────────────────────────────────────────────────
         TransportTask m_pool[kMaxTasks];
         uint32_t m_nextTaskId;

@@ -78,6 +78,29 @@
 //  14. Carrier never touches TransportTask:
 //      During c1.Update(), no task->state, hopIndex, or route changes.
 //      Carrier moves ep/walkDir only (spatial movement).
+//
+// Phase 7.3.4 — AdvanceHop / CompleteDelivery:
+//
+//  15. Single hop delivery:
+//      Carrier c1 arrives at targetFlag B (destination, last hop).
+//      NotifyCarrierArrived → IsLastHop==true → CompleteDelivery.
+//      task->state == TTS_Delivered.
+//      task->cargo == NULL, task->carrier == NULL.
+//      carrier->m_phase7Task == NULL (freed).
+//
+//  16. Intermediate hop (not last):
+//      Route A→B→C, carrier arrives at B (not destination).
+//      AdvanceHop: hopIndex 0→1, targetFlag B→C.
+//      state == TTS_WaitingAtSource.
+//      Task re-enqueued at B.
+//      carrier released, NotifyCarrierIdle(c, B).
+//      TryAssignTask re-assigns same task (next hop to C).
+//
+//  17. Ownership preserved across hop:
+//      After AdvanceHop + re-assign + NotifyCarrierPickedUp:
+//      task->cargo unchanged (same cargo object).
+//      ValidateOwnership passes.
+//      Carrier walks to C.
 
 #include <vector>
 #include <cassert>
@@ -194,6 +217,98 @@ namespace World {
         Carrier* c = static_cast<Carrier*>(task->carrier);
         assert(c != NULL);
         assert(task->targetFlag == c->m_phase7TargetFlag);
+    }
+
+    // ── Hop management (Phase 7.3.4) ──────────────────────────────────────
+
+    bool TransportController::IsLastHop(const TransportTask* task) const
+    {
+        assert(task != NULL);
+        // The destination is at route.count - 1. We just arrived at
+        // route[hopIndex + 1]. If that equals route.count - 1, it's the
+        // final destination.
+        return (task->hopIndex + 1 >= task->route.count - 1);
+    }
+
+    void TransportController::AdvanceHop(Carrier* c, TransportTask* task)
+    {
+        assert(task->hopIndex + 1 < task->route.count);
+        assert(task->cargo != NULL);
+
+        FlagId oldTargetFlag = task->targetFlag;
+        FlagId arrivedFlagId = task->route.flags[task->hopIndex + 1];
+
+        // Advance hop index — we are now at the arrived flag
+        task->hopIndex++;
+        task->targetFlag = task->route.flags[task->hopIndex + 1];
+        task->state = TTS_WaitingAtSource;
+
+        // Release carrier — cargo stays at the flag with the task
+        task->carrier = NULL;
+        c->m_phase7Task = NULL;
+        c->m_phase7TargetFlag = 0;
+        c->m_phase7Cargo = NULL;
+        c->m_cargo = NULL;
+
+        // Re-enqueue at current flag for pickup to next hop
+        EnqueueWaiting(task, arrivedFlagId);
+
+        // Post-conditions
+        assert(task->state == TTS_WaitingAtSource);
+        assert(task->targetFlag != oldTargetFlag);
+        assert(task->carrier == NULL);
+        assert(task->cargo != NULL);
+        assert(c->m_phase7Task == NULL);
+
+#ifdef _DEBUG
+        // Runtime trace for debugging
+        char dbg[256];
+        _snprintf(dbg, sizeof(dbg),
+            "[Transport] AdvanceHop task=%u hop=%u/%u flag=%u next=%u\n",
+            task->id, task->hopIndex, task->route.count - 1,
+            arrivedFlagId, task->targetFlag);
+        OutputDebugStringA(dbg);
+#endif
+
+        // Carrier becomes idle — check for next hop
+        NotifyCarrierIdle(c, arrivedFlagId);
+    }
+
+    void TransportController::CompleteDelivery(Carrier* c, TransportTask* task)
+    {
+        assert(task->cargo != NULL);
+
+        FlagId destFlagId = task->route.flags[task->route.count - 1];
+
+        // Deliver — unlink cargo from task and carrier
+        task->cargo->ownerTask = NULL;
+        task->cargo = NULL;
+        c->m_phase7Cargo = NULL;
+        c->m_cargo = NULL;
+
+        task->state = TTS_Delivered;
+
+        // Release carrier — full disconnection
+        task->carrier = NULL;
+        c->m_phase7Task = NULL;
+        c->m_phase7TargetFlag = 0;
+
+        // Post-conditions
+        assert(task->state == TTS_Delivered);
+        assert(task->cargo == NULL);
+        assert(task->carrier == NULL);
+        assert(c->m_phase7Task == NULL);
+
+#ifdef _DEBUG
+        char dbg[256];
+        _snprintf(dbg, sizeof(dbg),
+            "[Transport] Delivered task=%u dest=%u\n",
+            task->id, destFlagId);
+        OutputDebugStringA(dbg);
+#endif
+
+        // Carrier becomes idle at destination
+        NotifyCarrierIdle(c, destFlagId);
     }
 
     // ── Assignment (Phase 7.3.1) ─────────────────────────────────────────
@@ -318,7 +433,13 @@ namespace World {
         ValidateOwnership(task);
         ValidateMovement(task);
         assert(flagId == c->m_phase7TargetFlag);
-        // Phase 7.3.4 will add AdvanceHop here
+        assert(task->state == TTS_Moving);
+
+        if (IsLastHop(task)) {
+            CompleteDelivery(c, task);
+        } else {
+            AdvanceHop(c, task);
+        }
     }
     void TransportController::NotifyCarrierPickedUp(void* carrier, void* cargo)
     {

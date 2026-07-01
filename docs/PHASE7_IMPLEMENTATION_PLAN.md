@@ -94,25 +94,21 @@
 - Carrier does NOT call any Controller method during movement
 - Controller pointer set once on Assignment (`c->m_phase7Controller = this;`)
 
-### 7.3.4 — Drop & AdvanceHop
-- Carrier arrives at `targetFlag` → `NotifyCarrierArrived(carrier, flagId)`
-- Controller: `NotifyCarrierDropped(carrier, flagId)` → `AdvanceHop(task)`
-- `AdvanceHop`: hopIndex++ → if last: `TTS_Delivered`; else: re-enqueue at next flag's queue, `state = TTS_WaitingAtSource`
-- Carrier becomes idle → `NotifyCarrierIdle(carrier, atFlag)`
+### 7.3.4 — Drop & AdvanceHop ✅
+- `NotifyCarrierArrived` dispatches: `IsLastHop` → `CompleteDelivery` or `AdvanceHop`
+- `AdvanceHop`: hopIndex++, new targetFlag, `state = TTS_WaitingAtSource`, release carrier, re-enqueue, `NotifyCarrierIdle`
+- `CompleteDelivery`: unlink cargo, `state = TTS_Delivered`, release carrier, `NotifyCarrierIdle`
+- Post-condition asserts on both paths
+- Debug trace: `[Transport] AdvanceHop` / `[Transport] Delivered`
+- Carrier changes only spatial state; Controller changes only task state
 
 **Checklist:**
-- [x] Controller: `TryAssignTask()` — peek, acquire, assign
-- [x] `NotifyCarrierIdle` → `TryAssignTask()`
-- [x] `NotifyCarrierPickedUp` → state→Moving
-- [x] `ValidateAssignment()` — bidirectional ownership check
-- [x] `ValidateOwnership()` — task↔carrier↔cargo triangle check
-- [x] 5 assignment test scenarios documented
-- [x] Phase 7.3.3b: Carrier walks to targetFlag, NotifyCarrierArrived
-- [ ] Phase 7.3.4: NotifyCarrierArrived → AdvanceHop()
-- [ ] AdvanceHop() — hopIndex++, requeue or deliver
-- [ ] Cargo: release on Drop
-- [ ] Test: single hop warehouse→flag, full lifecycle
-- [ ] Task invariants maintained (carrier/cargo NULL checks)
+- [x] NotifyCarrierArrived → IsLastHop → dispatch
+- [x] AdvanceHop — hopIndex++, new targetFlag, WaitingAtSource, release, re-enqueue
+- [x] CompleteDelivery — unlink cargo, Delivered, release carrier
+- [x] Ownership triangle preserved across hops (task↔cargo persists)
+- [x] Debug runtime trace on both paths
+- [ ] Phase 7.6: full multi-hop lifecycle test (A→B→C→D)
 
 ## Phase 7.4 — Priority dispatching
 
@@ -132,10 +128,11 @@
 
 ## Phase 7.6 — Multi-hop
 
-- [ ] `AdvanceHop()` with hopIndex check (moved from 7.3.4)
-- [ ] Re-enqueue at next flag's waiting queue
-- [ ] Test: warehouse → flag A → flag B, verify handoff
-- [ ] Test: 3+ hop chain
+- [ ] `AdvanceHop()` already implemented in 7.3.4 — verify re-assignment cycle
+- [ ] Test: warehouse → flag A → flag B, verify handoff (2 hops)
+- [ ] Test: 3+ hop chain (warehouse → A → B → C)
+- [ ] Verify cargo persists through all hops (same Cargo object)
+- [ ] Verify carrier released and re-acquired at each intermediate flag
 
 ## Phase 7.7 — Legacy removal
 
