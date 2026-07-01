@@ -117,6 +117,9 @@ void ConstructionSystem::PostUpdate()
         ConstructionSite* s = sites[i];
         if (!s->IsComplete()) continue;
 
+        // Wait for builder to return to HQ before completing
+        if (s->builderState != World::Builder_None) continue;
+
         // Skip already-reported sites (double-fire guard using stable ID)
         bool alreadyReported = false;
         for (size_t j = 0; j < m_completedIds.size(); ++j) {
@@ -132,7 +135,7 @@ void ConstructionSystem::PostUpdate()
     }
 
     // Phase 2: post events for all newly completed sites
-    // (dispatched by Simulation::Flush in phase 7)
+    // (dispatched by Simulation::Flush in phase 8)
     for (size_t i = 0; i < newlyCompleted.size(); ++i) {
         ConstructionSite* s = newlyCompleted[i];
         if (m_eventBus) {
@@ -146,7 +149,15 @@ void ConstructionSystem::PostUpdate()
         }
     }
 
-    // Phase 3: purge stale IDs from m_completedIds (sites removed by BuildingSystem)
+    // Phase 2B: remove completed sites from the manager
+    // All event data was copied by value into ConstructionCompleteData above.
+    // Listeners (BuildingSystem, UiEventSystem) never access the site object.
+    // Removal here avoids the async CommandBus path which fails during event dispatch.
+    for (size_t i = 0; i < newlyCompleted.size(); ++i) {
+        m_manager.RemoveSite(newlyCompleted[i]);
+    }
+
+    // Phase 3: purge stale IDs from m_completedIds (sites already removed in Phase 2B)
     {
         size_t writeIdx = 0;
         for (size_t i = 0; i < m_completedIds.size(); ++i) {

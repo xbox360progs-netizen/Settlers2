@@ -13,7 +13,7 @@ namespace World {
 
         void SetRoadManager(RoadManager* rm) { m_roadManager = rm; }
 
-        int SpawnWorker(Building* home, float startX, float startY);
+        int SpawnWorker(Building* home, class Flag* startFlag);
         void FreeWorker(int index);
 
         void Update(float dt);

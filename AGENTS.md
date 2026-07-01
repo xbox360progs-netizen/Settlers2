@@ -380,3 +380,99 @@ See `docs/PHASE7_IMPLEMENTATION_PLAN.md` for detailed phase order.
 - UI widgets speak `UiAction`; `ICommandDispatcher` is single execution point
 - Dead code removal is consequence, not goal; API surfaces unchanged in architectural PRs
 - **Rule during Phase 7**: No features outside `docs/LOGISTICS_ARCHITECTURE.md`. Extensions after stable baseline.
+
+---
+
+# Phase 8 Post-Merge Debugging Session (2026-07-02)
+
+## Problem
+
+After merging `phase-7` into `main` (fast-forward, commit `436b0cd`), a dump.txt log showed:
+
+1. **Builder doesn't visually come out** — builder walking logic worked (logs showed walking, building, returning), but...
+2. **Building itself doesn't construct** — construction site scaffolding appeared but final building sprite never replaced it
+3. **Worker doesn't go to work** — no Woodcutter worker spawned after building completed
+4. **No tree cutting** — no Woodcutter activity after build complete
+5. **`activeRequests=1` hangs forever** — EconomyManager's construction request count stuck at 1
+
+## Root Cause — Two Bugs
+
+### Bug 1: Premature site deletion in `ConstructionManager::Update()`
+
+`ConstructionManager::Update()` (`ConstructionManager.cpp:333`) called `RemoveSite(site)` **immediately** when `IsComplete() && builderState == Builder_None`. This deleted the completed construction site in Phase 1 of the frame update. But `ConstructionSystem::PostUpdate()` (Phase 7) was designed to detect completed sites and fire `Event_ConstructionComplete`. Since the site was already deleted, the event **never fired**.
+
+**Fix**: `ConstructionManager.cpp:333-337` — removed the `RemoveSite(site)` call. Now the completed site stays in the vector. `PostUpdate()` detects it, fires `Event_ConstructionComplete`, and the normal event→command chain (`BuildingSystem` → `Cmd_RemoveConstructionSite`) handles cleanup.
+
+### Bug 2: Wrong guard in `BuildingSystem::HandleConstructionComplete()`
+
+`BuildingSystem::HandleConstructionComplete()` (`BuildingSystem.cpp:143`) guarded against double-creation with:
+```cpp
+if (flag->hasBuilding) return;
+```
+
+But `flag->hasBuilding` is already set to `true` at flag creation time (`ConstructionSystem::HandlePlaceFlag` sets it for non-free flags, `ConstructionFactory::Create` does the same). So the guard **always triggered** for newly-built construction sites, preventing building creation, worker spawning, and tile layer setup.
+
+**Fix**: Changed guard to `if (flag->building != NULL) return;`. This correctly distinguishes:
+- Flag with a planned building (`hasBuilding=true, building=NULL`) → guard passes, building is created
+- Flag with an existing building (`hasBuilding=true, building=non-null`) → guard blocks, prevents double-creation
+
+## What Each Fix Unlocks
+
+| Fix | Effect |
+|-----|--------|
+| Bug 1 fix | `PostUpdate` fires `Event_ConstructionComplete` |
+| Bug 2 fix + Bug 1 fix | `BuildingSystem` creates `Building`, calls `AddToLayer` (sprite appears), `SpawnWorker` (worker walks to building), `AddBuilding` (registers with economy) |
+| Both | EconomyManager Phase 8 cleanup sees `flag->building != NULL` and clears stale construction requests → `activeRequests` returns to 0 |
+| Worker spawned | Woodcutter starts tree harvesting cycle |
+
+## Remaining pre-existing issues (not caused by merge)
+- **OVERDELIVER telemetry** (`delivered=3/1`): harmless artifact of `SetDemand(woodMissing)` overwriting `requested` downward each frame
+- **Carrier `sprite=0` when idle**: computed from road slope direction when `walkDir=0.0` — not a bug, correct idle facing
+
+## Files Changed
+- `Settlers2/World/ConstructionManager.cpp:333-337` — deferred site removal for completed sites
+- `Settlers2/World/Systems/BuildingSystem.cpp:143` — fixed guard from `flag->hasBuilding` to `flag->building != NULL`
+
+### Critical Invariant (from Bug 2)
+
+```
+Flag::hasBuilding  == reservation / planned building
+Flag::building != NULL == instantiated building object
+```
+
+**Never use `hasBuilding` as a check for object existence.** A flag with a planned construction site has `hasBuilding=true` but `building=NULL`. Use `flag->building != NULL` when you need to know whether a `Building` object actually exists.
+
+### Debugging Maturity Signal
+
+The bug pattern across the last few days follows a natural hierarchy:
+
+| Layer | Examples | Status |
+|-------|----------|--------|
+| **Architecture** | double ownership, DemandTicket vs TransportTask, carrier routing | ✅ Resolved (Phase 7) |
+| **Initialization** | Handle vs FlagId mismatch, two ConstructionManager instances, warehouseFlag wiring | ✅ Resolved |
+| **Lifecycle** | object deleted before event consumer runs, state flag used for wrong semantic | ✅ Fixed (this session) |
+
+This progression is a strong signal of project maturity — during large refactors, bugs disappear in exactly this order.
+
+## Next: Verify Full Game Loop
+
+Before adding new features, verify the complete cycle for multiple building types:
+
+```
+ConstructionSite → Resources delivered → Builder → ConstructionComplete
+→ Building created (AddToLayer) → Worker spawned (SpawnWorker)
+→ Building starts working (production cycle)
+```
+
+### Test checklist
+
+| Building | Resources | Worker type | Production |
+|----------|-----------|-------------|------------|
+| Woodcutter | 3 Wood | Woodcutter | Chooses tree → Wood |
+| Forester | ? | Forester | Plants trees |
+| Fisher | 3 Wood | Fisher | Fish from pond |
+| Hunter | 3 Wood | Hunter | Meat from wildlife |
+| Sawmill | 6 Wood | Sawmill worker | Wood → Planks |
+| Warehouse | ? | — | Stores resources |
+
+For each: verify the full chain logs cleanly, the building sprite appears, the worker walks to post, and production begins.

@@ -9,6 +9,9 @@
 #include "../TileLayer.h"
 #include "../../Core/EventBus.h"
 #include "../../Logic/EconomyManager.h"
+#include "../../Graphics/TextureRegistry.h"
+#include "../../Graphics/SpriteAtlas.h"
+#include "../../Scene/BuildingPlacement.h"
 
 namespace World {
 
@@ -107,6 +110,26 @@ void BuildingSystem::AddToLayer(Building* building)
     tile.type = Tile_Building;
     tile.atlasName = "Buildings";
     tile.walkable = false;
+
+    // Restore correct UV coordinates from Buildings atlas (overwrites construction scaffolding UVs)
+    const char* spriteName = Scene::BuildingPlacementManager::GetBuildingSpriteName(building->type);
+    if (spriteName && spriteName[0]) {
+        TextureRegistry& reg = TextureRegistry::instance();
+        std::tr1::shared_ptr<SpriteAtlas> atlas = reg.getAtlas("Buildings");
+        if (atlas) {
+            uint32_t idx = atlas->GetIndex(spriteName);
+            if (idx != 0xFFFFFFFF) {
+                const SpriteRegion* region = atlas->GetRegion(idx);
+                if (region) {
+                    tile.regionIndex = (int)idx;
+                    tile.u0 = region->u0;
+                    tile.v0 = region->v0;
+                    tile.u1 = region->u1;
+                    tile.v1 = region->v1;
+                }
+            }
+        }
+    }
 }
 
 void BuildingSystem::Update(float dt)
@@ -140,7 +163,7 @@ void BuildingSystem::HandleConstructionComplete(const Core::ConstructionComplete
     if (!flag) return;
 
     // Guard: if flag already has a building, it was already completed
-    if (flag->hasBuilding) return;
+    if (flag->building != NULL) return;
 
     // Create the building
     Building* building = CreateBuilding(
@@ -162,10 +185,7 @@ void BuildingSystem::HandleConstructionComplete(const Core::ConstructionComplete
     if (m_workerManager && m_economyManager) {
         Warehouse* wh = m_economyManager->GetWarehouse();
         if (wh && wh->connectedFlag && building->m_maxPopulation > 0) {
-            m_workerManager->SpawnWorker(
-                building,
-                static_cast<float>(wh->connectedFlag->pos.x),
-                static_cast<float>(wh->connectedFlag->pos.y));
+            m_workerManager->SpawnWorker(building, wh->connectedFlag);
         }
     }
 
@@ -177,13 +197,6 @@ void BuildingSystem::HandleConstructionComplete(const Core::ConstructionComplete
         bd.posY = evt.siteY;
         bd.flagId = evt.flagId;
         m_eventBus->Post(Core::Event_BuildingPlaced, bd);
-    }
-
-    // Remove the construction site
-    if (m_commandBus) {
-        Core::RemoveConstructionSiteCmd rm;
-        rm.siteId = evt.siteId;
-        m_commandBus->Post(Core::Cmd_RemoveConstructionSite, rm);
     }
 }
 

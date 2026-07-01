@@ -331,7 +331,10 @@ namespace World {
             }
 
             if (site->IsComplete() && site->builderState == Builder_None) {
-                RemoveSite(site);
+                // Defer removal — ConstructionSystem::PostUpdate detects completed sites
+                // and fires Event_ConstructionComplete. BuildingSystem handles the event,
+                // creates the building + worker, and posts Cmd_RemoveConstructionSite.
+                ++i;
             } else {
                 ++i;
             }
