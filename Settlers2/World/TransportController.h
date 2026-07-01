@@ -93,6 +93,9 @@ namespace World {
 
         // ── Retry / recovery ────────────────────────────────────────────
         void RetryBlockedTasks();
+        // IsRouteValid checks whether the task's next hop is still reachable.
+        // Called from NotifyCarrierArrived before AdvanceHop.
+        bool IsRouteValid(const TransportTask* task) const;
 
         // ── Hop management (Phase 7.3.4) ────────────────────────────────
         bool IsLastHop(const TransportTask* task) const;

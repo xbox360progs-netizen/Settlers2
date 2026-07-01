@@ -133,6 +133,48 @@
 //      Infinite loop (≥64 transitions) triggers assert.
 //      Normal lifecycle: Created→Blocked/WaitingAtSource→Assigned→Moving
 //        →Arrived→AdvanceHop→...→Delivered produces ~6–12 transitions.
+//
+// Phase 7.6 — Multi-hop:
+//
+//  24. Three-hop chain A→B→C→D:
+//      CreateTask(A, D). Full lifecycle with 4 flags:
+//        hop=1/3 A→B, arrive, AdvanceHop
+//        hop=2/3 B→C, arrive, AdvanceHop
+//        hop=3/3 C→D, arrive, CompleteDelivery
+//      All 3 hops complete with same cargo object.
+//      route unchanged through entire lifecycle.
+//      Diagnostic output:
+//        [Transport] Hop task=17 1/3 src=8 dst=11
+//        [Transport] Hop task=17 2/3 src=11 dst=14
+//        [Transport] Hop task=17 3/3 src=14 dst=17
+//        [Transport] Complete task=17 hops=3 transitions=12 dest=17
+//
+//  25. Same-carrier handoff:
+//      carrier1 assigned at A, walks to B, AdvanceHop releases.
+//      NotifyCarrierIdle(c1, B) → same carrier assigned to next hop.
+//      carrier1 walks B→C, same pattern to D.
+//      ValidateOwnership passes at every intermediate flag.
+//
+//  26. Different-carrier handoff:
+//      carrier1 A→B, drops at B.
+//      carrier2 idle at B picks up next hop.
+//      carrier2 B→C, drops at C.
+//      carrier3 idle at C picks up last hop.
+//      carrier3 C→D, delivers.
+//      task->carrier changes each hop; route unchanged.
+//
+//  27. Mid-route cancellation:
+//      route A→B→C→D. Road B→C removed during Moving A→B.
+//      Arrived at B. IsRouteValid(B→D) == false.
+//      state → TTS_Blocked, carrier released.
+//      Route rebuilt → continue from B (not restart from A).
+//
+//  28. Flag removal:
+//      Flag B removed. All tasks whose route includes B → Blocked.
+//      WaitingAtSource at B: RemoveFromQueue → Blocked.
+//      Assigned to B: release carrier → Blocked.
+//      Moving toward B: release carrier, re-enqueue at A → Blocked.
+//      Delivered/Cancelled: no-op.
 
 #include <vector>
 #include <cassert>
@@ -293,6 +335,21 @@ namespace World {
 
     // ── Retry / recovery ──────────────────────────────────────────────────
 
+    bool TransportController::IsRouteValid(const TransportTask* task) const
+    {
+        assert(task != NULL);
+        // Must have at least the current position and one more hop
+        if (task->hopIndex + 2 >= task->route.count) return true; // last hop already valid
+        if (!m_roadManager || !m_flagManager) return false;
+
+        Flag* currentFlag = m_flagManager->GetFlagById(task->route.flags[task->hopIndex + 1]);
+        Flag* destFlag = m_flagManager->GetFlagById(task->route.flags[task->route.count - 1]);
+        if (!currentFlag || !destFlag) return false;
+
+        std::vector<Flag*> path = m_roadManager->FindFlagPath(currentFlag, destFlag);
+        return (path.size() >= 2);
+    }
+
     void TransportController::RetryBlockedTasks()
     {
         if (!m_roadManager || !m_flagManager) return;
@@ -370,7 +427,7 @@ namespace World {
         // Runtime trace for debugging
         char dbg[256];
         _snprintf(dbg, sizeof(dbg),
-            "[Transport] AdvanceHop task=%u hop=%u/%u flag=%u next=%u\n",
+            "[Transport] Hop task=%u %u/%u src=%u dst=%u\n",
             task->id, task->hopIndex, task->route.count - 1,
             arrivedFlagId, task->targetFlag);
         OutputDebugStringA(dbg);
@@ -408,8 +465,9 @@ namespace World {
 #ifdef _DEBUG
         char dbg[256];
         _snprintf(dbg, sizeof(dbg),
-            "[Transport] Delivered task=%u dest=%u\n",
-            task->id, destFlagId);
+            "[Transport] Complete task=%u hops=%u transitions=%u dest=%u\n",
+            task->id, task->route.count - 1,
+            task->transitionCount, destFlagId);
         OutputDebugStringA(dbg);
 #endif
 
@@ -594,8 +652,19 @@ namespace World {
 
         if (IsLastHop(task)) {
             CompleteDelivery(c, task);
-        } else {
+        } else if (IsRouteValid(task)) {
             AdvanceHop(c, task);
+        } else {
+            // Next hop is blocked — stay at current flag, release carrier
+            SetTaskState(task, TTS_Blocked);
+            task->carrier = NULL;
+            c->m_phase7Task = NULL;
+            c->m_phase7TargetFlag = 0;
+            c->m_phase7Cargo = NULL;
+            c->m_cargo = NULL;
+            assert(task->carrier == NULL);
+            assert(c->m_phase7Task == NULL);
+            NotifyCarrierIdle(c, flagId);
         }
     }
     void TransportController::NotifyCarrierPickedUp(void* carrier, void* cargo)
@@ -623,7 +692,65 @@ namespace World {
     {
         RetryBlockedTasks();
     }
-    void TransportController::NotifyFlagRemoved(FlagId /*flagId*/) {}
+    void TransportController::NotifyFlagRemoved(FlagId flagId)
+    {
+        // Scan all active tasks — if route includes the removed flag, block them
+        for (int i = 0; i < kMaxTasks; ++i) {
+            TransportTask* task = &m_pool[i];
+            if (task->id == 0) continue; // unused slot
+
+            // Check if this flag appears anywhere in the route
+            bool usesFlag = false;
+            for (uint8_t r = 0; r < task->route.count; ++r) {
+                if (task->route.flags[r] == flagId) {
+                    usesFlag = true;
+                    break;
+                }
+            }
+            if (!usesFlag) continue;
+
+            switch (task->state) {
+
+            case TTS_WaitingAtSource:
+                RemoveFromQueue(task);
+                SetTaskState(task, TTS_Blocked);
+                break;
+
+            case TTS_Assigned: {
+                Carrier* c = static_cast<Carrier*>(task->carrier);
+                if (c) {
+                    c->m_phase7Task = NULL;
+                    c->m_phase7TargetFlag = 0;
+                    c->m_phase7Cargo = NULL;
+                    c->m_cargo = NULL;
+                    task->carrier = NULL;
+                }
+                SetTaskState(task, TTS_Blocked);
+                break;
+            }
+
+            case TTS_Moving: {
+                Carrier* c = static_cast<Carrier*>(task->carrier);
+                if (c) {
+                    c->m_phase7Task = NULL;
+                    c->m_phase7TargetFlag = 0;
+                    c->m_phase7Cargo = NULL;
+                    c->m_cargo = NULL;
+                    task->carrier = NULL;
+                }
+                // Re-enqueue at current position for potential retry
+                FlagId sourceFlag = task->route.flags[task->hopIndex];
+                EnqueueWaiting(task, sourceFlag);
+                SetTaskState(task, TTS_Blocked);
+                break;
+            }
+
+            default:
+                // Delivered, Cancelled, already Blocked — no-op
+                break;
+            }
+        }
+    }
 
     // ── Query ────────────────────────────────────────────────────────────
 

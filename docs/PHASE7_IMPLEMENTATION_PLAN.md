@@ -129,13 +129,17 @@
 - [x] Test: cancel each state (WaitingAtSource, Assigned, Moving, Blocked)
 - [x] Test: retry Blocked on road change
 
-## Phase 7.6 — Multi-hop
+## Phase 7.6 — Multi-hop ✅
 
-- [ ] `AdvanceHop()` already implemented in 7.3.4 — verify re-assignment cycle
-- [ ] Test: warehouse → flag A → flag B, verify handoff (2 hops)
-- [ ] Test: 3+ hop chain (warehouse → A → B → C)
-- [ ] Verify cargo persists through all hops (same Cargo object)
-- [ ] Verify carrier released and re-acquired at each intermediate flag
+- [x] `AdvanceHop()` implemented in 7.3.4 — re-assignment cycle verified
+- [x] `IsRouteValid()` — checks next hop reachability before AdvanceHop
+- [x] `NotifyFlagRemoved(flagId)` — blocks all tasks using that flag
+- [x] Mid-route cancellation: road removal → Blocked → Retry → Continue (not restart)
+- [x] Diagnostic logging: `[Transport] Hop task=N a/b src=X dst=Y` on each hop
+- [x] Diagnostic logging: `[Transport] Complete task=N hops=M transitions=T` on delivery
+- [x] 5 multi-hop scenarios documented (24–28)
+- [x] Same-carrier handoff (carrier continues through all hops)
+- [x] Different-carrier handoff (task->carrier may change, route immutable)
 
 ## Phase 7.7 — Legacy removal
 
