@@ -32,6 +32,7 @@ namespace World {
         Carrier* carrier;               // NULL unless assigned/moving
 
         uint32_t createdTick;           // tick at creation (anti-starvation)
+        uint8_t transitionCount;        // total state transitions (safety: assert < 64)
 
         // Queue linkage (used by Controller for per-flag waiting lists)
         TransportTask* nextWaiting;     // next task in same waiting queue (NULL if tail)
@@ -39,10 +40,12 @@ namespace World {
         // Invariants:
         //  - route immutable after creation
         //  - hopIndex < route.count
-        //  - state == WaitingAtSource / ArrivedAtHop ⇒ carrier == NULL
-        //  - state == Moving ⇒ carrier != NULL  AND  cargo != NULL
-        //  - state == Delivered ⇒ carrier == NULL  AND  cargo == NULL
+        //  - state == WaitingAtSource / Blocked ⇒ carrier == NULL
+        //  - state == Assigned / Moving ⇒ carrier != NULL
+        //  - state == Moving ⇒ cargo != NULL
+        //  - state == Delivered / Cancelled ⇒ carrier == NULL  AND  cargo == NULL
         //  - id never reused (monotonic)
+        //  - transitionCount < 64 (prevents infinite state loops)
     };
 
 } // namespace World

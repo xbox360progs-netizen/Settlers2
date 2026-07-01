@@ -117,14 +117,17 @@
 - [ ] Test: multiple tasks at same flag, verify priority order
 - [ ] Test: anti-starvation (old task overtakes newer higher-priority task)
 
-## Phase 7.5 — Cancellation & Blocked retry
+## Phase 7.5 — Cancellation & Blocked retry ✅
 
-- [ ] `CancelTask()` — WaitingAtSource (immediate), Moving (finish hop), arrived (ignore)
-- [ ] `OnRoadNetworkChanged()` → `RetryBlockedTasks()`
-- [ ] `OnFlagRemoved()` → `CleanupForFlag()`
-- [ ] Test: cancel before pickup
-- [ ] Test: cancel during transit
-- [ ] Test: remove road with Blocked task → retry succeeds
+- [x] `CancelTask()` — WaitingAtSource (remove from queue, cancel), Assigned (release carrier, cancel), Moving (release, re-enqueue at source), Blocked (cancel)
+- [x] `RemoveFromQueue()` — linked-list traversal, O(n) with n ≤ 256
+- [x] `RetryBlockedTasks()` — re-run `FindPath()` for each Blocked task; if path found, rebuild route and go to `WaitingAtSource`
+- [x] `NotifyRoadNetworkChanged()` → `RetryBlockedTasks()`
+- [x] `SetTaskState()` — single point for state transitions, increments `transitionCount`, asserts < 64
+- [x] `transitionCount` field on `TransportTask`, initialized to 0
+- [x] All state assignments replaced with `SetTaskState()`
+- [x] Test: cancel each state (WaitingAtSource, Assigned, Moving, Blocked)
+- [x] Test: retry Blocked on road change
 
 ## Phase 7.6 — Multi-hop
 

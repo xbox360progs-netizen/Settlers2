@@ -66,6 +66,9 @@ namespace World {
 
         // ── Pool management ────────────────────────────────────────────
         TransportTask* AllocateTask();
+        // SetTaskState transitions the task to a new state and asserts
+        // that transitionCount < 64 (catches infinite state loops).
+        void SetTaskState(TransportTask* task, TransportTaskState newState);
 
         // ── Waiting queue ──────────────────────────────────────────────
         void EnqueueWaiting(TransportTask* task, FlagId atFlag);
@@ -80,10 +83,16 @@ namespace World {
         // All invariants are checked here.
         void AssignTask(void* carrier, TransportTask* task);
 
+        // ── Queue management ────────────────────────────────────────────
+        void RemoveFromQueue(TransportTask* task);
+
         // ── Ownership validation ────────────────────────────────────────
         void ValidateAssignment(const TransportTask* task, const Carrier* c) const;
         void ValidateOwnership(const TransportTask* task) const;
         void ValidateMovement(const TransportTask* task) const;
+
+        // ── Retry / recovery ────────────────────────────────────────────
+        void RetryBlockedTasks();
 
         // ── Hop management (Phase 7.3.4) ────────────────────────────────
         bool IsLastHop(const TransportTask* task) const;
