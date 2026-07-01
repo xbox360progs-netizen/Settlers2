@@ -520,6 +520,21 @@
     <ClInclude Include="World\TransportJobManager.h">
       <Filter>World</Filter>
     </ClInclude>
+    <ClInclude Include="World\TransportController.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\TransportPriority.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\TransportRoute.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\TransportTask.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\TransportTypes.h">
+      <Filter>World</Filter>
+    </ClInclude>
     <ClInclude Include="HabitatRegistry.h">
       <Filter>World</Filter>
     </ClInclude>
@@ -871,6 +886,12 @@
       <Filter>Graphics</Filter>
     </ClCompile>
     <ClCompile Include="World\TransportJobManager.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="World\TransportController.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="World\TransportTask.cpp">
       <Filter>World</Filter>
     </ClCompile>
     <ClCompile Include="World\HabitatRegistry.cpp">

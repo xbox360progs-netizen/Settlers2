@@ -404,6 +404,11 @@
     <ClInclude Include="World\RoadManager.h" />
     <ClInclude Include="World\TransportJob.h" />
     <ClInclude Include="World\TransportJobManager.h" />
+    <ClInclude Include="World\TransportController.h" />
+    <ClInclude Include="World\TransportPriority.h" />
+    <ClInclude Include="World\TransportRoute.h" />
+    <ClInclude Include="World\TransportTask.h" />
+    <ClInclude Include="World\TransportTypes.h" />
     <ClInclude Include="World\ConstructionSite.h" />
     <ClInclude Include="World\ConstructionManager.h" />
     <ClInclude Include="World\ResourceNode.h" />
@@ -543,6 +548,8 @@
     <ClCompile Include="World\RoadManager.cpp" />
     <ClCompile Include="World\StorehouseManager.cpp" />
     <ClCompile Include="World\TransportJobManager.cpp" />
+    <ClCompile Include="World\TransportController.cpp" />
+    <ClCompile Include="World\TransportTask.cpp" />
     <ClCompile Include="World\ObjectDeletionRules.cpp" />
     <ClCompile Include="World\ObjectLifecycleManager.cpp" />
     <ClCompile Include="World\ConstructionSite.cpp" />
