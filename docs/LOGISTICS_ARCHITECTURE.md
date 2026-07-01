@@ -627,11 +627,19 @@ A `Cancelled` task in `Moving` state always completes its current hop. Cargo is 
 - [ ] Per-flag waiting queues in Controller
 - [ ] Test: warehouse→flag A→flag B, verify hop handoff
 
-### Phase 7.4 — Priority dispatching
-- [ ] SelectBestTask() with priority formula
-- [ ] Dynamic priority decay/anti-starvation
-- [ ] TaskReason-based classPriority table
-- [ ] Test: multiple concurrent tasks sorted by priority
+### Phase 7.4 — Priority dispatching ✅
+- [x] `TransportBasePriority` enum: Low(0), Normal(100), High(200), Critical(300)
+- [x] `PriorityForReason()` — maps `TransportTaskReason` to base priority
+- [x] `PickNextTask(flagId)` — linear scan, selects by (priority DESC, enqueueOrder ASC)
+- [x] Age bonus on selection (no per-frame mutation)
+- [x] Anti-starvation: old Low task rises to Normal after ~100 ticks
+- [x] Instrumentation: Queue + Dispatch logs
+
+**Architectural boundary added:**
+> **Route planner decides WHERE cargo moves.**
+> **Priority dispatcher decides WHEN cargo moves.**
+> These responsibilities must never be mixed. The dispatcher (`PickNextTask`)
+> selects among waiting tasks but never modifies route, hopIndex, or targetFlag.
 
 ### Phase 7.5 — Cleanup & removal
 - [ ] Remove TransportJobManager, DemandTicket, old Demand pipeline
@@ -652,3 +660,4 @@ A `Cancelled` task in `Moving` state always completes its current hop. Cargo is 
 | Q5 | Task cancellation? | **Three phases**: before pickup → immediate; during transit → finish current hop, then discard; after arrival → ignored. |
 | Q6 | Blocked retry? | **Event-driven only**. `OnRoadNetworkChanged()` → `RetryBlockedTasks()`. No timers, no polling. |
 | Q7 | Warehouse as origin? | **Not special.** All nodes are `FlagId`. Storehouse is just a Cargo source. Controller never checks building type. |
+| Q8 | Priority affect route? | **No.** Route planner decides WHERE cargo moves. Priority dispatcher decides WHEN cargo moves. `PickNextTask` never modifies route/hopIndex/targetFlag. |

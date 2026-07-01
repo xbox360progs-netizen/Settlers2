@@ -114,6 +114,12 @@ Production → ResourceSlot { destFlagId } → TakeCargoForRoad() → Cargo { De
 
 `DemandTicket` governs moving resources. `ResourceSlot::destFlagId` governs ownership of stationary resources awaiting pickup. **These responsibilities must never overlap.**
 
+### Architectural boundary (Phase 7.4)
+> **Route planner decides WHERE cargo moves.**
+> **Priority dispatcher decides WHEN cargo moves.**
+> The dispatcher (`PickNextTask`) selects among waiting tasks but never modifies
+> route, hopIndex, or targetFlag. These responsibilities must never be mixed.
+
 ## Build Config
 - **Platform**: Xbox 360 (C++03, no variadic templates, `std::function`, auto, range-for)
 - **SDK**: Not available for local builds — correctness by code review only

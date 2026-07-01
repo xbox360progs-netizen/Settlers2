@@ -110,12 +110,21 @@
 - [x] Debug runtime trace on both paths
 - [ ] Phase 7.6: full multi-hop lifecycle test (A→B→C→D)
 
-## Phase 7.4 — Priority dispatching
+## Phase 7.4 — Priority dispatching ✅
 
-- [ ] `SelectBestTask()` with priority score formula
-- [ ] DynamicPriority read at selection time (age-based)
-- [ ] Test: multiple tasks at same flag, verify priority order
-- [ ] Test: anti-starvation (old task overtakes newer higher-priority task)
+- [x] `TransportBasePriority` enum: Low(0), Normal(100), High(200), Critical(300)
+- [x] `PriorityForReason()` — maps `TransportTaskReason` to base priority
+- [x] `TransportTask::basePriority` — immutable, set at creation
+- [x] `TransportTask::enqueueOrder` — monotonic FIFO counter, set on `EnqueueWaiting`
+- [x] `PickNextTask(flagId)` — linear scan, selects by (priority DESC, enqueueOrder ASC)
+- [x] Age bonus — `min(currentTick - createdTick, 200)` computed on selection; no per-frame mutation
+- [x] Anti-starvation: old Low(0) task rises to Normal(100) after 100 ticks, caps at 200
+- [x] Invariant: PickNextTask never changes route/hopIndex/targetFlag
+- [x] Instrumentation: `[Transport] Queue f=N cnt=N best=N` and `[Transport] Dispatch task=N pri=N age=N`
+- [x] Removed `PeekWaiting()` / `AcquireWaitingTask()` — replaced by `PickNextTask()` + `RemoveFromQueue()`
+- [x] Removed `TransportPriority` struct — replaced by `basePriority` + `enqueueOrder`
+- [x] `Update(float)` increments `m_currentTick` for age computation
+- [x] 5 test scenarios documented (29–33)
 
 ## Phase 7.5 — Cancellation & Blocked retry ✅
 
@@ -141,8 +150,17 @@
 - [x] Same-carrier handoff (carrier continues through all hops)
 - [x] Different-carrier handoff (task->carrier may change, route immutable)
 
-## Phase 7.7 — Legacy removal
+## Phase 7.7 — Load balancing / batching
 
+- [ ] Carrier utilization: distribute tasks across carriers at same flag
+- [ ] Batch coalescing: merge multiple same-route tasks into carrier capacity
+- [ ] Starvation detection: log if task waits > N ticks
+- [ ] Test: 10 carriers, 50 tasks, verify even distribution
+
+## Phase 8 — Economy integration
+
+- [ ] DemandManager creates TransportTasks (instead of DemandTickets)
+- [ ] CargoManager reports delivery completion to DemandManager
 - [ ] Remove `TransportJobManager`, `DemandTicket`, old Demand pipeline
 - [ ] Remove `kUseTransportJobs` flag
 - [ ] Remove `Reserve()`, `FindBestDemand()`, `Allocate()`

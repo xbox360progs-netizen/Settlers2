@@ -57,8 +57,8 @@ namespace World {
         TransportTask* PeekWaitingTask(FlagId flagId) const;
         uint16_t GetBlockedCount() const;
 
-        // Phase 7.3.1+ — no per-frame update needed (event-driven)
-        void Update(float /*deltaTime*/) {}
+        // Phase 7.4 — per-frame tick counter for age bonus
+        void Update(float /*deltaTime*/) { m_currentTick++; }
 
     private:
         TransportController(const TransportController&);
@@ -72,10 +72,11 @@ namespace World {
 
         // ── Waiting queue ──────────────────────────────────────────────
         void EnqueueWaiting(TransportTask* task, FlagId atFlag);
-        TransportTask* PeekWaiting(FlagId flagId) const;
-        // AcquireWaitingTask extracts the head only after successful assignment.
-        // Peek + validate + Acquire prevents popping a task that can't be assigned.
-        TransportTask* AcquireWaitingTask(FlagId flagId);
+        // Phase 7.4 — PickNextTask selects the best waiting task at a flag:
+        //   (priority DESC, enqueueOrder ASC)
+        // Age bonus (computed from createdTick) prevents starvation.
+        // Returns NULL if queue is empty.
+        TransportTask* PickNextTask(FlagId flagId);
 
         // ── Assignment (Phase 7.3.1) ───────────────────────────────────
         TransportTask* TryAssignTask(void* carrier, FlagId atFlag);
@@ -106,6 +107,8 @@ namespace World {
         TransportTask m_pool[kMaxTasks];
         uint32_t m_nextTaskId;
         int m_activeCount;
+        uint32_t m_currentTick;         // per-frame counter for age computation
+        uint32_t m_enqueueCounter;      // monotonic counter for FIFO tiebreak
 
         static const FlagId kMaxFlags = 256;
         TransportTask* m_waitingHead[kMaxFlags];

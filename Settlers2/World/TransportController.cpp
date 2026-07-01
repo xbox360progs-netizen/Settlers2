@@ -1,4 +1,4 @@
-// Phase 7 — Controller. CreateTask + waiting queue + Assigned state.
+// Phase 7 — Controller. CreateTask + waiting queue + Assignment + Priority.
 //
 // Self-test scenarios (Phase 7.2.5):
 //
@@ -175,6 +175,31 @@
 //      Assigned to B: release carrier → Blocked.
 //      Moving toward B: release carrier, re-enqueue at A → Blocked.
 //      Delivered/Cancelled: no-op.
+//
+// Phase 7.4 — Priority dispatching:
+//
+//  29. Priority order:
+//      Queue at flag A has tasks: T1(pri=300), T2(pri=100), T3(pri=200).
+//      PickNextTask(A) → T1 (highest priority).
+//
+//  30. FIFO within same priority:
+//      Queue at flag A: T1(pri=100, order=1), T2(pri=100, order=2).
+//      PickNextTask(A) → T1 (oldest enqueue order).
+//
+//  31. Age bonus prevents starvation:
+//      T1(pri=0, created=0), T2(pri=100, created=1).
+//      At tick 100: effective scores: T1=0+100=100, T2=100+99=199 → T2.
+//      T1 score rises with age but capped at +200.
+//      Against same priority: older task always wins.
+//
+//  32. Priority does NOT affect route:
+//      AssignTask sets targetFlag from route[hopIndex+1].
+//      PickNextTask only changes which task gets assigned next.
+//      Route, hopIndex, targetFlag are unchanged by selection.
+//
+//  33. Instrumentation:
+//      [Transport] Dispatch task=17 pri=300 age=12
+//      [Transport] Queue f=8 cnt=5 best=17
 
 #include <vector>
 #include <cassert>
@@ -190,6 +215,8 @@ namespace World {
     TransportController::TransportController()
         : m_nextTaskId(1)
         , m_activeCount(0)
+        , m_currentTick(0)
+        , m_enqueueCounter(1)
         , m_roadManager(NULL)
         , m_flagManager(NULL)
     {
@@ -240,6 +267,7 @@ namespace World {
         assert(atFlag < kMaxFlags);
         assert(task != NULL);
         task->nextWaiting = NULL;
+        task->enqueueOrder = m_enqueueCounter++;
 
         if (m_waitingTail[atFlag] != NULL) {
             m_waitingTail[atFlag]->nextWaiting = task;
@@ -252,27 +280,44 @@ namespace World {
 
     // ── Waiting queue — internal helpers ─────────────────────────────────
 
-    TransportTask* TransportController::PeekWaiting(FlagId flagId) const
+    // Phase 7.4 — PickNextTask selects the best task from a per-flag queue.
+    // Selection rule: (priority DESC, enqueueOrder ASC).
+    // Age bonus = min(currentTick - createdTick, 200) added to basePriority.
+    // This prevents starvation of old low-priority tasks.
+    TransportTask* TransportController::PickNextTask(FlagId flagId)
     {
         if (flagId >= kMaxFlags) return NULL;
-        return m_waitingHead[flagId];
-    }
 
-    // AcquireWaitingTask extracts the head task from a waiting queue.
-    // Caller must have already validated that the task can be assigned
-    // (PeekWaiting + check). Task is only removed once assignment succeeds.
-    TransportTask* TransportController::AcquireWaitingTask(FlagId flagId)
-    {
-        if (flagId >= kMaxFlags) return NULL;
-        TransportTask* task = m_waitingHead[flagId];
-        if (!task) return NULL;
+        TransportTask* best = NULL;
+        uint16_t bestScore = 0;
+        uint16_t bestOrder = 0;
 
-        m_waitingHead[flagId] = task->nextWaiting;
-        if (!m_waitingHead[flagId]) {
-            m_waitingTail[flagId] = NULL;
+        TransportTask* cur = m_waitingHead[flagId];
+        while (cur) {
+            uint16_t age = (uint16_t)(m_currentTick - cur->createdTick);
+            if (age > 200) age = 200;
+            uint16_t score = cur->basePriority + age;
+
+            if (!best || score > bestScore || (score == bestScore && cur->enqueueOrder < bestOrder)) {
+                best = cur;
+                bestScore = score;
+                bestOrder = cur->enqueueOrder;
+            }
+            cur = cur->nextWaiting;
         }
-        task->nextWaiting = NULL;
-        return task;
+
+#ifdef _DEBUG
+        if (best) {
+            uint16_t cnt = GetWaitingCount(flagId);
+            char dbg[256];
+            _snprintf(dbg, sizeof(dbg),
+                "[Transport] Queue f=%u cnt=%u best=%u\n",
+                flagId, cnt, best->id);
+            OutputDebugStringA(dbg);
+        }
+#endif
+
+        return best;
     }
 
     // ── Queue management ─────────────────────────────────────────────────
@@ -486,14 +531,22 @@ namespace World {
     {
         if (!carrier) return NULL;
 
-        TransportTask* task = PeekWaiting(atFlag);
+        TransportTask* task = PickNextTask(atFlag);
         if (!task) return NULL;
 
-        task = AcquireWaitingTask(atFlag);
-        // Peek + Acquire should be consistent — if Peek found one, Acquire must too
-        assert(task != NULL);
-
+        RemoveFromQueue(task);
         AssignTask(carrier, task);
+
+#ifdef _DEBUG
+        uint16_t age = (uint16_t)(m_currentTick - task->createdTick);
+        if (age > 200) age = 200;
+        char dbg[256];
+        _snprintf(dbg, sizeof(dbg),
+            "[Transport] Dispatch task=%u pri=%u age=%u\n",
+            task->id, task->basePriority + age, age);
+        OutputDebugStringA(dbg);
+#endif
+
         return task;
     }
 
@@ -543,11 +596,11 @@ namespace World {
         task->targetFlag = 0;
         task->cargo = NULL;
         task->carrier = NULL;
-        task->createdTick = 0; // updated by caller each frame if needed
+        task->createdTick = m_currentTick;
         task->transitionCount = 0;
         task->nextWaiting = NULL;
-        task->priority.classPriority = 0;
-        task->priority.dynamicPriority = 0;
+        task->basePriority = PriorityForReason(reason);
+        task->enqueueOrder = 0;
 
         // Build route
         if (m_roadManager && m_flagManager) {
@@ -764,7 +817,12 @@ namespace World {
         return NULL;
     }
 
-    void TransportController::Update(float /*deltaTime*/) {}
+    void TransportController::Update(float /*deltaTime*/)
+    {
+        m_currentTick++;
+        // Phase 7.4 — no per-task mutation needed.
+        // Age bonus is computed on selection (PickNextTask) from createdTick delta.
+    }
 
     // ── Debug / test API ─────────────────────────────────────────────────
 

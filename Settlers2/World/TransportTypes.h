@@ -28,4 +28,25 @@ namespace World {
         TTR_Emergency
     };
 
+    // Phase 7.4 — Priority dispatching
+    enum TransportBasePriority {
+        TBP_Low = 0,
+        TBP_Normal = 100,
+        TBP_High = 200,
+        TBP_Critical = 300
+    };
+
+    // Convert reason to base priority (set once at creation, immutable)
+    inline uint16_t PriorityForReason(TransportTaskReason reason) {
+        switch (reason) {
+            case TTR_Emergency:        return TBP_Critical;
+            case TTR_Food:             return TBP_High;
+            case TTR_Military:         return TBP_High;
+            case TTR_Construction:     return TBP_Normal;
+            case TTR_Production:       return TBP_Normal;
+            case TTR_WarehouseBalance: return TBP_Low;
+            default:                   return TBP_Normal;
+        }
+    }
+
 } // namespace World

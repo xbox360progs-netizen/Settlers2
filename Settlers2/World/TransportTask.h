@@ -3,7 +3,7 @@
 #include "ResourceNode.h"
 #include "TransportTypes.h"
 #include "TransportRoute.h"
-#include "TransportPriority.h"
+// TransportPriority.h merged into TransportTypes.h (Phase 7.4)
 
 // Phase 7 — Task data. Single source of truth for one shipment.
 // One TransportTask = one physical unit. No amount field.
@@ -22,7 +22,8 @@ namespace World {
         TransportTaskState state;
 
         TransportTaskReason reason;
-        TransportPriority priority;
+        uint16_t basePriority;          // set at creation from reason (immutable)
+        uint16_t enqueueOrder;          // monotonic, set on EnqueueWaiting (FIFO tiebreak)
 
         TransportRoute route;           // immutable after creation
         uint8_t hopIndex;               // current position: route.flags[hopIndex]
@@ -31,7 +32,7 @@ namespace World {
         Cargo* cargo;                   // NULL unless cargo exists
         Carrier* carrier;               // NULL unless assigned/moving
 
-        uint32_t createdTick;           // tick at creation (anti-starvation)
+        uint32_t createdTick;           // tick at creation (age bonus: computed on selection)
         uint8_t transitionCount;        // total state transitions (safety: assert < 64)
 
         // Queue linkage (used by Controller for per-flag waiting lists)
