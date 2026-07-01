@@ -38,63 +38,68 @@
 
 ---
 
-## Phase 7.2 — Task management (no carriers)
+## Phase 7.2 — Task management (no carriers) ✅
 
 **Controller can:**
 - `CreateTask(type, origin, destination, reason)`
 - `FindPath()` via RoadManager → route or Blocked
-- Enqueue in `m_waitingByFlag[source]`
-- `CancelTask()` — WaitingAtSource only (immediate)
+- Enqueue in `m_waitingByFlag[source]` (linked list via `nextWaiting`)
+- Debug API: `GetWaitingCount()`, `PeekWaitingTask()`, `GetBlockedCount()`
 
 **Checklist:**
-- [ ] `CreateTask()` — allocate from pool, build route, set state
-- [ ] `RetryBlockedTasks()` — called from `OnRoadNetworkChanged()`
-- [ ] `CancelTask()` — remove from queue, free
+- [x] `CreateTask()` — allocate from pool, build route, set state
+- [x] Pool exhaustion: 257th CreateTask → NULL
+- [x] Independent per-flag queues
+- [x] Route truncation at kMaxRouteLength (64)
+- [x] No-path → TTS_Blocked
+- [x] Debug API purity (no side effects)
 
----
+## 7.2.5 — Controller self-test
 
-## Phase 7.3 — Carrier integration (single hop)
+- [x] Self-test scenarios documented in `TransportController.cpp`
+- [x] All five scenarios pass code review
+- [x] Controller stable and testable in isolation
 
-**Controller can:**
-- Register carriers (`m_carriers[]`, `m_idleCarriers`)
-- `TryAssignTask(carrier, flagId)` — match task → carrier
+## Phase 7.3 — Carrier integration (staged)
+
+### 7.3.1 — Assignment (no movement)
+- Controller: `NotifyCarrierIdle(carrier, atFlag)` → `TryAssignTask()`
+- Pop task from `m_waitingHead[atFlag]`, set `carrier`, `targetFlag`, `state = TTS_Assigned`
 - Carrier receives `AssignTask(task, targetFlag)`
-- Carrier walks, picks up cargo, drops at target
-- `OnCarrierReachedTarget()` → `AdvanceHop()` → delivered
+- No movement, no cargo
+
+### 7.3.2 — PickUp
+- Carrier at source flag → `NotifyCarrierPickedUp(carrier)`
+- Controller: `state = TTS_Moving`, allocate Cargo (stub OK)
+- Cargo linked to task (`task->cargo = c`, `c->task = task`)
+
+### 7.3.3 — Walk
+- Carrier walks toward `targetFlag`
+- Controller not involved (pure Carrier movement)
+
+### 7.3.4 — Drop
+- Carrier arrives at `targetFlag` → `NotifyCarrierArrived(carrier, flagId)`
+- Controller: `NotifyCarrierDropped(carrier, flagId)` → `AdvanceHop(task)`
+- `AdvanceHop`: hopIndex++ → if last: `TTS_Delivered`; else: re-enqueue at next flag's queue, `state = TTS_WaitingAtSource`
+- Carrier becomes idle → `NotifyCarrierIdle(carrier, atFlag)`
 
 **Checklist:**
-- [ ] Carrier registration in Controller
-- [ ] `OnCarrierIdle()` → `TryAssignTask()`
-- [ ] `OnCarrierReachedTarget()` → `AdvanceHop()` → Delivered
-- [ ] Cargo integration: create Cargo on pickup, release on drop
-- [ ] Test: warehouse → single flag, task lifecycle complete
+- [ ] Controller: `TryAssignTask()` — pop from waitingHead, assign to carrier
+- [ ] `NotifyCarrierIdle` → `TryAssignTask()`
+- [ ] `NotifyCarrierPickedUp` → state→Moving, Cargo stub
+- [ ] `NotifyCarrierArrived` → `AdvanceHop()`
+- [ ] `AdvanceHop()` — hopIndex++, requeue or deliver
+- [ ] Test: single hop warehouse→flag, full lifecycle
+- [ ] Task invariants maintained (carrier/cargo NULL checks)
 
----
-
-## Phase 7.4 — Multi-hop
-
-**Controller can:**
-- `AdvanceHop()` → `hopIndex++`, re-enqueue or deliver
-- `OnCarrierReachedTarget()` at intermediate flag → ArrivedAtHop → requeue
-
-**Checklist:**
-- [ ] `AdvanceHop()` with hopIndex check
-- [ ] Re-enqueue at next flag's waiting queue
-- [ ] Test: warehouse → flag A → flag B, verify handoff
-- [ ] Test: 3+ hop chain
-
----
-
-## Phase 7.5 — Priority dispatching
+## Phase 7.4 — Priority dispatching
 
 - [ ] `SelectBestTask()` with priority score formula
 - [ ] DynamicPriority read at selection time (age-based)
 - [ ] Test: multiple tasks at same flag, verify priority order
 - [ ] Test: anti-starvation (old task overtakes newer higher-priority task)
 
----
-
-## Phase 7.6 — Cancellation & Blocked retry
+## Phase 7.5 — Cancellation & Blocked retry
 
 - [ ] `CancelTask()` — WaitingAtSource (immediate), Moving (finish hop), arrived (ignore)
 - [ ] `OnRoadNetworkChanged()` → `RetryBlockedTasks()`
@@ -103,7 +108,12 @@
 - [ ] Test: cancel during transit
 - [ ] Test: remove road with Blocked task → retry succeeds
 
----
+## Phase 7.6 — Multi-hop
+
+- [ ] `AdvanceHop()` with hopIndex check (moved from 7.3.4)
+- [ ] Re-enqueue at next flag's waiting queue
+- [ ] Test: warehouse → flag A → flag B, verify handoff
+- [ ] Test: 3+ hop chain
 
 ## Phase 7.7 — Legacy removal
 

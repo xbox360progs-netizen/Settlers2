@@ -1,5 +1,28 @@
 // Phase 7 — Controller. CreateTask + waiting queue + blocked retry.
 // No Carrier, no Cargo, no PickUp/Drop.
+//
+// Self-test scenarios (Phase 7.2.5):
+//
+//   1. Pool exhaustion:
+//      Create 256 tasks with valid routes.
+//      257th CreateTask() → returns NULL.
+//
+//   2. Independent per-flag queues:
+//      CreateTask(A→B), CreateTask(A→C), CreateTask(D→E).
+//      GetWaitingCount(A) == 2, GetWaitingCount(D) == 1.
+//      PeekWaitingTask(A) == first task, PeekWaitingTask(D) == third.
+//
+//   3. Route truncation at kMaxRouteLength (64):
+//      A route longer than 64 flags → first 64 flags stored, rest discarded.
+//      Task state == WaitingAtSource (not Blocked).
+//
+//   4. No-path scenarios:
+//      CreateTask between unconnected flags → state == TTS_Blocked.
+//      GetBlockedCount() == 1.
+//
+//   5. Debug API purity:
+//      Repeated GetWaitingCount() and PeekWaitingTask() calls with no
+//      intervening CreateTask()/CancelTask() return identical results.
 
 #include <vector>
 #include "TransportController.h"
@@ -124,7 +147,7 @@ namespace World {
     // ── Event callbacks (stubs until Phase 7.3+) ─────────────────────────
 
     void TransportController::NotifyCarrierIdle(void* /*carrier*/, FlagId /*atFlag*/) {}
-    void TransportController::NotifyCarrierReachedTarget(void* /*carrier*/, FlagId /*flagId*/) {}
+    void TransportController::NotifyCarrierArrived(void* /*carrier*/, FlagId /*flagId*/) {}
     void TransportController::NotifyCarrierPickedUp(void* /*carrier*/) {}
     void TransportController::NotifyCarrierDropped(void* /*carrier*/, FlagId /*flagId*/) {}
     void TransportController::NotifyRoadNetworkChanged() {}

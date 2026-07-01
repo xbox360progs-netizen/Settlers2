@@ -37,8 +37,10 @@ namespace World {
         void CancelTask(TransportTaskId taskId);
 
         // Event callbacks (from Carrier / world)
+        // Carrier never modifies TransportTask state. It only notifies.
+        // Controller decides all state transitions as a response.
         void NotifyCarrierIdle(void* carrier, FlagId atFlag);
-        void NotifyCarrierReachedTarget(void* carrier, FlagId flagId);
+        void NotifyCarrierArrived(void* carrier, FlagId flagId);
         void NotifyCarrierPickedUp(void* carrier);
         void NotifyCarrierDropped(void* carrier, FlagId flagId);
         void NotifyRoadNetworkChanged();
