@@ -75,7 +75,7 @@ GameRenderer::GameRenderer(
     , m_buildingRenderPass(m_buildingRenderer)
     , m_settlerRenderPass(m_settlerRenderer)
 {
-    // Execute order: Terrain → Buildings → RoadPreview → PlacementPreview → Settlers → Wildlife → GroundResources → FlagResources → Overlays → UI → Cursor
+    // Execute order: Terrain → Buildings → RoadPreview → PlacementPreview → Settlers → Wildlife → GroundResources → Workers → FlagResources → Overlays → UI → Cursor
     m_renderGraph.AddPass(&m_terrainPass);
     m_renderGraph.AddPass(&m_buildingRenderPass);
     m_renderGraph.AddPass(&m_roadPreviewPass);
@@ -83,6 +83,7 @@ GameRenderer::GameRenderer(
     m_renderGraph.AddPass(&m_settlerRenderPass);
     m_renderGraph.AddPass(&m_wildlifePass);
     m_renderGraph.AddPass(&m_groundResourcePass);
+    m_renderGraph.AddPass(&m_workerPass);
     m_renderGraph.AddPass(&m_flagResourcePass);
     m_renderGraph.AddPass(&m_geologistOverlayPass);
     m_renderGraph.AddPass(&m_confirmationMenuPass);
@@ -234,7 +235,7 @@ void GameRenderer::Render(Graphics::RenderQueue* renderQueue, const FrameContext
 
     // ─── Execute all registered render passes via RenderGraph ───────────
     // Each pass reads from RenderFrame + RenderContext and pushes to the buffer.
-    // Order: TerrainPass → BuildingPass → RoadPreviewPass → PlacementPreviewPass → SettlerPass → WildlifePass → GroundResourcePass → FlagResourcePass → GeologistOverlayPass → ConfirmationMenuPass → NotificationPass → CursorPass
+    // Order: TerrainPass → BuildingPass → RoadPreviewPass → PlacementPreviewPass → SettlerPass → WildlifePass → GroundResourcePass → WorkerPass → FlagResourcePass → GeologistOverlayPass → ConfirmationMenuPass → NotificationPass → CursorPass
     // Future: GamepadCursorPass, HudPass.
     if (spriteRenderer) {
         std::tr1::shared_ptr<SpriteAtlas> buildingsAtlas = reg.getAtlas("Buildings");
@@ -275,6 +276,8 @@ void GameRenderer::Render(Graphics::RenderQueue* renderQueue, const FrameContext
         m_cursorPass.SetTextureSlot(SLOT_UI_CURSOR);
         m_flagResourcePass.SetTextureSlot(SLOT_FLAG_RESOURCES);
         m_groundResourcePass.SetTextureSlot(SLOT_FLAG_RESOURCES);
+        m_workerPass.SetUnitSlot(SLOT_UNITS);
+        m_workerPass.SetIconSlot(SLOT_UI_MENU_ICON);
         m_wildlifePass.SetTextureSlot(SLOT_UNITS);
         m_placementPreviewPass.SetTextureSlot(SLOT_BUILDINGS_HIGHLIGHT);
         m_roadPreviewPass.SetTextureSlot(SLOT_STREETS);

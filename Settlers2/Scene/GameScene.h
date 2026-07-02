@@ -71,6 +71,7 @@
 #include "UI/ConfirmationMenuPresentationSystem.h"
 #include "UI/NotificationPresentationSystem.h"
 #include "Resources/GroundResourcePresentationSystem.h"
+#include "Workers/WorkerPresentationSystem.h"
 #include "Projection/ProjectionSystem.h"
 
 namespace Scene {
@@ -245,6 +246,7 @@ private:
     ConfirmationMenuPresentationSystem m_confirmationMenuPresentationSystem;
     NotificationPresentationSystem m_notificationPresentationSystem;
     GroundResourcePresentationSystem m_groundResourcePresentationSystem;
+    WorkerPresentationSystem m_workerPresentationSystem;
     ProjectionSystem m_projectionSystem;
 
     // Job data (reused each frame)

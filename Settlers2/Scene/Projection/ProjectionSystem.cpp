@@ -29,6 +29,7 @@ void ProjectionSystem::Project(RenderFrame& frame)
     ProjectRoadPreview(frame);
     ProjectOverlays(frame);
     ProjectGroundResources(frame);
+    ProjectWorkers(frame);
 }
 
 void ProjectionSystem::ProjectSettlers(RenderFrame& frame)
@@ -136,6 +137,17 @@ void ProjectionSystem::ProjectGroundResources(RenderFrame& frame)
 {
     for (size_t i = 0; i < frame.groundResources.size(); ++i) {
         RenderTransform& t = frame.groundResources[i].transform;
+        float sx, sy;
+        m_camera->WorldToScreen(t.worldX, t.worldY, sx, sy);
+        t.screenX = static_cast<int>(sx + 0.5f);
+        t.screenY = static_cast<int>(sy + 0.5f);
+    }
+}
+
+void ProjectionSystem::ProjectWorkers(RenderFrame& frame)
+{
+    for (size_t i = 0; i < frame.workers.size(); ++i) {
+        RenderTransform& t = frame.workers[i].transform;
         float sx, sy;
         m_camera->WorldToScreen(t.worldX, t.worldY, sx, sy);
         t.screenX = static_cast<int>(sx + 0.5f);

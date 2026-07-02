@@ -16,6 +16,7 @@
 #include "UI/ConfirmationMenuPass.h"
 #include "UI/NotificationPass.h"
 #include "Resources/GroundResourcePass.h"
+#include "Workers/WorkerPass.h"
 #include "Rendering/RenderCommandBuffer.h"
 #include "Rendering/RenderGraph.h"
 
@@ -130,6 +131,7 @@ private:
     ConfirmationMenuPass m_confirmationMenuPass;
     NotificationPass m_notificationPass;
     GroundResourcePass m_groundResourcePass;
+    WorkerPass m_workerPass;
 };
 
 } // namespace Scene

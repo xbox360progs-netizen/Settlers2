@@ -11,6 +11,7 @@
 #include "../Roads/RenderRoadPreview.h"
 #include "../Overlays/RenderOverlayMarker.h"
 #include "../Resources/RenderGroundResource.h"
+#include "../Workers/RenderWorker.h"
 #include "../UI/RenderUiFrame.h"
 
 namespace Scene {
@@ -32,6 +33,7 @@ struct RenderFrame {
     std::vector<RenderRoadSegment> roadPreview;
     std::vector<RenderOverlayMarker> overlays;
     std::vector<RenderGroundResource> groundResources;
+    std::vector<RenderWorker> workers;
     RenderUiFrame ui;
 
     // Future: std::vector<RenderEffect> effects;

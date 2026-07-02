@@ -1,38 +1,53 @@
 #include "stdafx.h"
-#include "SettlerPresentationSystem.h"
+#include "WorkerPresentationSystem.h"
 #include "../../World/CarrierManager.h"
 #include "../../World/ConstructionManager.h"
 #include "../../World/WorkerManager.h"
+#include "../../World/FlagManager.h"
 #include "../../World/RoadManager.h"
 #include "../../World/ConstructionSite.h"
 #include "../../World/Flag.h"
 #include "../../World/Road.h"
 #include "../../World/Cargo.h"
+#include "../../World/Components/Building.h"
 #include "../../Logic/CoordinateSystem.h"
 #include <math.h>
 
 namespace Scene {
 
-void SettlerPresentationSystem::SetManagers(
+WorkerPresentationSystem::WorkerPresentationSystem()
+    : m_carrierManager(NULL)
+    , m_constructionManager(NULL)
+    , m_workerManager(NULL)
+    , m_flagManager(NULL)
+    , m_roadManager(NULL)
+{
+}
+
+void WorkerPresentationSystem::SetManagers(
     World::CarrierManager* carrierManager,
     World::ConstructionManager* constructionManager,
     World::WorkerManager* workerManager,
+    World::FlagManager* flagManager,
     World::RoadManager* roadManager)
 {
     m_carrierManager = carrierManager;
     m_constructionManager = constructionManager;
     m_workerManager = workerManager;
+    m_flagManager = flagManager;
     m_roadManager = roadManager;
 }
 
-void SettlerPresentationSystem::BuildRenderFrame(RenderFrame& frame)
+void WorkerPresentationSystem::BuildRenderFrame(RenderFrame& frame)
 {
-    // DEPRECATED: WorkerPresentationSystem now produces all worker DTOs.
-    // Kept only to clear the vector until SettlerPass + SettlerRenderer are removed.
-    frame.settlers.clear();
+    frame.workers.clear();
+    CollectCarriers(frame.workers);
+    CollectBuilders(frame.workers);
+    CollectMovingWorkers(frame.workers);
+    CollectBuildingWorkers(frame.workers);
 }
 
-void SettlerPresentationSystem::CollectCarriers(std::vector<RenderSettler>& out)
+void WorkerPresentationSystem::CollectCarriers(std::vector<RenderWorker>& out)
 {
     if (!m_carrierManager) return;
     CoordinateSystem& coords = CoordinateSystem::GetInstance();
@@ -41,7 +56,6 @@ void SettlerPresentationSystem::CollectCarriers(std::vector<RenderSettler>& out)
         World::Carrier* carrier = m_carrierManager->GetCarrier(ci);
         if (!carrier) continue;
 
-        // Only render carriers in transit states
         if (!World::IsTransitState(carrier->state)) continue;
 
         const Vector2i* pathTiles = NULL;
@@ -81,22 +95,23 @@ void SettlerPresentationSystem::CollectCarriers(std::vector<RenderSettler>& out)
         float wx = wx0 + (wx1 - wx0) * frac;
         float wy = wy0 + (wy1 - wy0) * frac;
 
-        RenderSettler rs;
-        rs.transform.worldX = wx;
-        rs.transform.worldY = wy;
-        rs.transform.depthLayer = 30020 + tileA.y * 400;
-        rs.visual.type = SettlerType_Carrier;
-        rs.visual.state = SettlerState_Walking;
-        rs.visual.dx = dx;
-        rs.visual.dy = dy;
-        rs.visual.carrying = (carrier->m_cargo != NULL) ? 1 : 0;
-        rs.visual.cargoType = carrier->m_cargo ? carrier->m_cargo->type : World::ResourceType_None;
-        rs.visual.buildingType = (uint8_t)-1;
-        out.push_back(rs);
+        RenderWorker rw;
+        rw.transform.worldX = wx;
+        rw.transform.worldY = wy;
+        rw.transform.depthLayer = 30020 + tileA.y * 400;
+        rw.type = 0; // SettlerType_Carrier
+        rw.state = 0; // SettlerState_Walking
+        rw.dx = static_cast<int8_t>(dx);
+        rw.dy = static_cast<int8_t>(dy);
+        rw.carrying = (carrier->m_cargo != NULL) ? 1 : 0;
+        rw.cargoType = carrier->m_cargo ? static_cast<uint8_t>(carrier->m_cargo->type) : 0;
+        rw.buildingType = 255;
+        rw.animationFrame = 0;
+        out.push_back(rw);
     }
 }
 
-void SettlerPresentationSystem::CollectBuilders(std::vector<RenderSettler>& out)
+void WorkerPresentationSystem::CollectBuilders(std::vector<RenderWorker>& out)
 {
     if (!m_constructionManager) return;
     CoordinateSystem& coords = CoordinateSystem::GetInstance();
@@ -107,12 +122,13 @@ void SettlerPresentationSystem::CollectBuilders(std::vector<RenderSettler>& out)
         if (!site || !site->flag) continue;
         if (site->builderState == World::Builder_None) continue;
 
-        RenderSettler rs;
-        rs.visual.type = SettlerType_Builder;
-        rs.visual.state = SettlerState_Walking;
-        rs.visual.carrying = 0;
-        rs.visual.cargoType = World::ResourceType_None;
-        rs.visual.buildingType = (uint8_t)site->buildingType;
+        RenderWorker rw;
+        rw.type = 1; // SettlerType_Builder
+        rw.state = 0; // SettlerState_Walking
+        rw.carrying = 0;
+        rw.cargoType = 0;
+        rw.buildingType = static_cast<uint8_t>(site->buildingType);
+        rw.animationFrame = 0;
 
         if (site->builderState == World::Builder_Walking || site->builderState == World::Builder_Returning) {
             if (site->builderRouteCount < 2) continue;
@@ -121,14 +137,12 @@ void SettlerPresentationSystem::CollectBuilders(std::vector<RenderSettler>& out)
             uint32_t toIdx = fromIdx + 1;
 
             if (fromIdx >= site->builderRouteCount - 1) {
-                // Arrived at final flag
                 size_t lastIdx = site->builderRouteCount - 1;
                 World::Flag* f = site->builderRoute[lastIdx];
-                coords.NodeTileToWorld(f->pos.x, f->pos.y, rs.transform.worldX, rs.transform.worldY);
-                // Default SE sprite for idle builder at flag
-                rs.visual.dx = 1;
-                rs.visual.dy = 1;
-                rs.transform.depthLayer = 30020 + f->pos.y * 400;
+                coords.NodeTileToWorld(f->pos.x, f->pos.y, rw.transform.worldX, rw.transform.worldY);
+                rw.dx = 1;
+                rw.dy = 1;
+                rw.transform.depthLayer = 30020 + f->pos.y * 400;
             } else {
                 World::Flag* fromFlag = site->builderRoute[fromIdx];
                 World::Flag* toFlag = site->builderRoute[toIdx];
@@ -151,49 +165,47 @@ void SettlerPresentationSystem::CollectBuilders(std::vector<RenderSettler>& out)
                     float wx0, wy0, wx1, wy1;
                     coords.NodeTileToWorld(tileA.x, tileA.y, wx0, wy0);
                     coords.NodeTileToWorld(tileB.x, tileB.y, wx1, wy1);
-                    rs.transform.worldX = wx0 + (wx1 - wx0) * frac;
-                    rs.transform.worldY = wy0 + (wy1 - wy0) * frac;
+                    rw.transform.worldX = wx0 + (wx1 - wx0) * frac;
+                    rw.transform.worldY = wy0 + (wy1 - wy0) * frac;
 
-                    // FIXED: account for walkDir in direction (was bug in original GameRenderer code)
                     float wd = site->builderWalkDir;
-                    rs.visual.dx = (wd > 0.0f) ? (tileB.x - tileA.x) : (tileA.x - tileB.x);
-                    rs.visual.dy = (wd > 0.0f) ? (tileB.y - tileA.y) : (tileA.y - tileB.y);
-                    rs.transform.depthLayer = 30020 + tileA.y * 400;
+                    rw.dx = static_cast<int8_t>((wd > 0.0f) ? (tileB.x - tileA.x) : (tileA.x - tileB.x));
+                    rw.dy = static_cast<int8_t>((wd > 0.0f) ? (tileB.y - tileA.y) : (tileA.y - tileB.y));
+                    rw.transform.depthLayer = 30020 + tileA.y * 400;
                 } else {
-                    // No road — lerp between flags
                     float wx0, wy0, wx1, wy1;
                     coords.NodeTileToWorld(fromFlag->pos.x, fromFlag->pos.y, wx0, wy0);
                     coords.NodeTileToWorld(toFlag->pos.x, toFlag->pos.y, wx1, wy1);
                     float t = (1.0f > 0.0f) ? site->builderEp / 1.0f : 0.0f;
                     if (t < 0.0f) t = 0.0f;
                     if (t > 1.0f) t = 1.0f;
-                    rs.transform.worldX = wx0 + (wx1 - wx0) * t;
-                    rs.transform.worldY = wy0 + (wy1 - wy0) * t;
-                    rs.visual.dx = toFlag->pos.x - fromFlag->pos.x;
-                    rs.visual.dy = toFlag->pos.y - fromFlag->pos.y;
-                    rs.transform.depthLayer = 30020 + fromFlag->pos.y * 400;
+                    rw.transform.worldX = wx0 + (wx1 - wx0) * t;
+                    rw.transform.worldY = wy0 + (wy1 - wy0) * t;
+                    rw.dx = static_cast<int8_t>(toFlag->pos.x - fromFlag->pos.x);
+                    rw.dy = static_cast<int8_t>(toFlag->pos.y - fromFlag->pos.y);
+                    rw.transform.depthLayer = 30020 + fromFlag->pos.y * 400;
                 }
             }
 
             if (site->builderState == World::Builder_Returning) {
-                rs.visual.state = SettlerState_Walking;
+                rw.state = 0; // SettlerState_Walking
             }
 
         } else if (site->builderState == World::Builder_Building) {
-            coords.NodeTileToWorld(site->x, site->y, rs.transform.worldX, rs.transform.worldY);
-            rs.visual.dx = 1;
-            rs.visual.dy = 1;
-            rs.transform.depthLayer = 30020 + site->y * 400;
-            rs.visual.state = SettlerState_Building;
+            coords.NodeTileToWorld(site->x, site->y, rw.transform.worldX, rw.transform.worldY);
+            rw.dx = 1;
+            rw.dy = 1;
+            rw.transform.depthLayer = 30020 + site->y * 400;
+            rw.state = 3; // SettlerState_Building
         } else {
             continue;
         }
 
-        out.push_back(rs);
+        out.push_back(rw);
     }
 }
 
-void SettlerPresentationSystem::CollectWorkers(std::vector<RenderSettler>& out)
+void WorkerPresentationSystem::CollectMovingWorkers(std::vector<RenderWorker>& out)
 {
     if (!m_workerManager) return;
     CoordinateSystem& coords = CoordinateSystem::GetInstance();
@@ -206,23 +218,53 @@ void SettlerPresentationSystem::CollectWorkers(std::vector<RenderSettler>& out)
         float ty = w->posY;
         coords.NodeTileToWorld(tx, ty, tx, ty);
 
-        RenderSettler rs;
-        rs.transform.worldX = tx;
-        rs.transform.worldY = ty;
-        rs.transform.depthLayer = 30020 + (int)(w->posY + 0.5f) * 400;
-        rs.visual.type = SettlerType_Worker;
-        rs.visual.state = SettlerState_Walking;
-        rs.visual.dx = 1;
-        rs.visual.dy = 1;
-        rs.visual.carrying = 0;
-        rs.visual.cargoType = World::ResourceType_None;
-        rs.visual.buildingType = (uint8_t)w->profession;
-        out.push_back(rs);
+        RenderWorker rw;
+        rw.transform.worldX = tx;
+        rw.transform.worldY = ty;
+        rw.transform.depthLayer = 30020 + (int)(w->posY + 0.5f) * 400;
+        rw.type = 2; // SettlerType_Worker
+        rw.state = 0; // SettlerState_Walking
+        rw.dx = 1;
+        rw.dy = 1;
+        rw.carrying = 0;
+        rw.cargoType = 0;
+        rw.buildingType = static_cast<uint8_t>(w->profession);
+        rw.animationFrame = 0;
+        out.push_back(rw);
     }
+}
 
-    // NOTE: Building worker sprites (workers at their building) are resolved
-    // directly by SettlerRenderer from buildingType. No query to Building needed
-    // — the renderer knows sprite → buildingType mapping.
+void WorkerPresentationSystem::CollectBuildingWorkers(std::vector<RenderWorker>& out)
+{
+    if (!m_flagManager) return;
+    CoordinateSystem& coords = CoordinateSystem::GetInstance();
+
+    for (int fi = 0; fi < m_flagManager->GetFlagCount(); ++fi) {
+        World::Flag* flag = m_flagManager->GetFlagByIndex(fi);
+        if (!flag || !flag->building) continue;
+
+        float wx, wy;
+        int wSpriteIdx;
+        if (!flag->building->GetWorkerRenderInfo(wx, wy, wSpriteIdx)) continue;
+
+        float wwx, wwy;
+        coords.NodeTileToWorld(wx, wy, wwx, wwy);
+
+        RenderWorker rw;
+        rw.transform.worldX = wwx;
+        rw.transform.worldY = wwy;
+        rw.transform.depthLayer = 30020 + (int)(wy + 0.5f) * 400 + 1;
+
+        rw.type = 3; // SettlerType_BuildingWorker
+        rw.state = 1; // SettlerState_Idle
+        rw.dx = 1;
+        rw.dy = 1;
+        rw.carrying = 0;
+        rw.cargoType = 0;
+        rw.buildingType = static_cast<uint8_t>(flag->building->type);
+        rw.animationFrame = 0;
+        out.push_back(rw);
+    }
 }
 
 } // namespace Scene

@@ -598,6 +598,12 @@ namespace Scene {
         m_flagResourcePresentationSystem.SetFlagManager(m_flagManager);
         m_wildlifePresentationSystem.SetWildlifeSystem(m_wildlife);
         m_groundResourcePresentationSystem.SetMap(m_map);
+        m_workerPresentationSystem.SetManagers(
+            m_carrierManager,
+            m_constructionManager,
+            m_workerManager,
+            m_flagManager,
+            m_roadManager);
         m_placementPreviewPresentationSystem.SetPlacementController(&m_placement);
         m_roadPreviewPresentationSystem.SetControllers(&m_roadController, &m_placement);
 
@@ -800,6 +806,7 @@ void GameScene::Update(float deltaTime)
           m_flagResourcePresentationSystem.BuildRenderFrame(next.flagResources);
           m_wildlifePresentationSystem.BuildRenderFrame(next.wildlife);
           m_groundResourcePresentationSystem.BuildRenderFrame(next);
+          m_workerPresentationSystem.BuildRenderFrame(next);
           m_placementPreviewPresentationSystem.BuildRenderFrame(m_frameContext, next.preview);
           m_roadPreviewPresentationSystem.BuildRenderFrame(next.roadPreview);
            m_geologistOverlayPresentationSystem.BuildRenderFrame(m_frameContext, next.overlays);

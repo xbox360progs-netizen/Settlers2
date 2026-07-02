@@ -334,6 +334,9 @@
     <ClInclude Include="Scene\Rendering\RenderGraph.h" />
     <ClInclude Include="Scene\Rendering\RenderPass.h" />
     <ClInclude Include="Scene\Settlers\RenderSettler.h" />
+    <ClInclude Include="Scene\Workers\RenderWorker.h" />
+    <ClInclude Include="Scene\Workers\WorkerPass.h" />
+    <ClInclude Include="Scene\Workers\WorkerPresentationSystem.h" />
     <ClInclude Include="Scene\Settlers\SettlerPresentationSystem.h" />
     <ClInclude Include="Scene\Settlers\SettlerRenderer.h" />
     <ClInclude Include="Scene\Shared\BuildingVisual.h" />
@@ -570,6 +573,8 @@
     <ClCompile Include="Scene\Rendering\RenderGraph.cpp" />
     <ClCompile Include="Scene\Settlers\SettlerPresentationSystem.cpp" />
     <ClCompile Include="Scene\Settlers\SettlerRenderer.cpp" />
+    <ClCompile Include="Scene\Workers\WorkerPass.cpp" />
+    <ClCompile Include="Scene\Workers\WorkerPresentationSystem.cpp" />
     <ClCompile Include="Scene\Terrain\TerrainPass.cpp" />
     <ClCompile Include="Scene\Terrain\TerrainPresentationSystem.cpp" />
     <ClCompile Include="Scene\Wildlife\WildlifePass.cpp" />

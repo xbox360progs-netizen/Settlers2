@@ -27,6 +27,7 @@ private:
     void ProjectRoadPreview(RenderFrame& frame);
     void ProjectOverlays(RenderFrame& frame);
     void ProjectGroundResources(RenderFrame& frame);
+    void ProjectWorkers(RenderFrame& frame);
 
     Camera* m_camera;
 };
