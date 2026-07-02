@@ -1,16 +1,319 @@
-﻿Построение начато 02.07.2026 2:54:35.
+﻿Построение начато 02.07.2026 8:07:08.
      1>Проект "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" в узле 2 (целевые объекты build).
      1>InitializeBuildStatus:
-         Создание "Release\Settlers2.unsuccessfulbuild", так как было задано "AlwaysCreate".
+         Обращение к "Release\Settlers2.unsuccessfulbuild".
        ClCompile:
-         Для всех выходных данных обновления не требуется.
-         Для всех выходных данных обновления не требуется.
-         Для всех выходных данных обновления не требуется.
-         Для всех выходных данных обновления не требуется.
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yc"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP stdafx.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
+         stdafx.cpp
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Core\CommandBus.cpp Core\EventBus.cpp Core\GameEngine.cpp Core\JobManager.cpp Core\LanguageManager.cpp Core\ThreadSync.cpp Editor\MapEditor.cpp Game\UnitManager.cpp Graphics\BatchBuilder.cpp Graphics\BinFileManager.cpp Graphics\BitmapFont.cpp Graphics\BitmapText.cpp Graphics\Camera.cpp Graphics\Debug\DebugOverlay.cpp Graphics\FallbackResources.cpp Graphics\GPUTimer.cpp Graphics\Light.cpp Graphics\LightOptimizer.cpp Graphics\OverlayFPS.cpp Graphics\PostFX.cpp Graphics\PostProcessing.cpp Graphics\Quad.cpp Graphics\RenderCommandBuilder.cpp Graphics\RenderDebugOverlay.cpp Graphics\RenderFrame.cpp Graphics\RenderQueue.cpp Graphics\RenderStateValidator.cpp Graphics\RenderTargetManager.cpp Graphics\Renderer.cpp Graphics\ShaderManager.cpp Graphics\SpriteAtlas.cpp Graphics\SpriteRenderer.cpp Graphics\SpriteShadow.cpp Graphics\TextManager.cpp Graphics\TextureLoader.cpp Graphics\TextureRegistry.cpp Graphics\TileRenderer.cpp Graphics\Xbox360EDRAM.cpp Input\Gamepad.cpp Input\InputContext.cpp Input\InputManager.cpp Input\ScreenKeyboard.cpp Logic\AISystem.cpp Logic\EconomyManager.cpp Logic\IsoGrid.cpp Logic\ResourceRegistry.cpp Logic\WeightMap.cpp Scene\BuildingPlacement.cpp Scene\ConstructionVisualizer.cpp Scene\EditorScene.cpp Scene\FrameContext.cpp Scene\GameRenderer.cpp Scene\GameScene.cpp Scene\GeologistController.cpp Scene\Handlers\BuildingCommandHandler.cpp Scene\Handlers\ResourceCommandHandler.cpp Scene\LoadingScene.cpp Scene\MenuBootstrap.cpp Scene\MenuCommandDispatcher.cpp Scene\MenuScene.cpp Scene\PlacementController.cpp Scene\RoadController.cpp Scene\Scene.cpp Scene\SceneManager.cpp Scene\WorldBootstrap.cpp Scene\WorldRestorer.cpp Settlers2.cpp UI\BuildMenu.cpp UI\Button.cpp UI\EditorUI.cpp UI\GridMenu.cpp UI\LocalizationService.cpp UI\MenuModel.cpp UI\Minimap.cpp UI\NotificationManager.cpp UI\Panel.cpp UI\RadialMenu.cpp UI\ResourceBar.cpp UI\StatusManager.cpp UI\TilePalette.cpp UI\UIManager.cpp UI\UIMenu.cpp UI\UiController.cpp UI\UiEventSystem.cpp UI\WeightMenu.cpp UI\Widget.cpp World\AnimalManager.cpp World\CargoManager.cpp World\CarrierManager.cpp World\Components\Building.cpp World\Components\BuildingFactory.cpp World\Components\Collider.cpp World\Components\Model.cpp World\Components\Resource.cpp World\Components\Transform.cpp World\Components\Unit.cpp World\ConstructionManager.cpp World\ConstructionSite.cpp World\DemandManager.cpp World\Entity.cpp World\EntityManager.cpp World\FlagManager.cpp World\HabitatRegistry.cpp World\Map.cpp World\MapSerializer.cpp World\ObjectDeletionRules.cpp World\ObjectLifecycleManager.cpp World\RoadManager.cpp World\StorehouseManager.cpp World\Systems\AnimalSystem.cpp World\Systems\BuildingSystem.cpp World\Systems\CarrierSystem.cpp World\Systems\ConstructionFactory.cpp World\Systems\ConstructionSystem.cpp World\Systems\EconomySystem.cpp World\Systems\PathfindingSystem.cpp World\Systems\PhysicsSystem.cpp World\Systems\RenderSystem.cpp World\Systems\RoadNetworkRelinker.cpp World\Systems\SimulationSystem.cpp World\Systems\TransportSystem.cpp World\Systems\WorkforceSystem.cpp World\Systems\WorldSystem.cpp World\TileLayer.cpp World\TransportController.cpp World\TransportJobManager.cpp World\TransportTask.cpp World\WildlifeSystem.cpp World\WorkerManager.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
+         CommandBus.cpp
+         EventBus.cpp
+         GameEngine.cpp
+         JobManager.cpp
+         LanguageManager.cpp
+         ThreadSync.cpp
+         MapEditor.cpp
+         UnitManager.cpp
+         BatchBuilder.cpp
+         BinFileManager.cpp
+         BitmapFont.cpp
+         BitmapText.cpp
+         Camera.cpp
+         DebugOverlay.cpp
+         FallbackResources.cpp
+         GPUTimer.cpp
+         Light.cpp
+         LightOptimizer.cpp
+         OverlayFPS.cpp
+         PostFX.cpp
+         Generating Code...
+         Compiling...
+         PostProcessing.cpp
+         Quad.cpp
+         RenderCommandBuilder.cpp
+         RenderDebugOverlay.cpp
+         RenderFrame.cpp
+         RenderQueue.cpp
+         RenderStateValidator.cpp
+         RenderTargetManager.cpp
+         Renderer.cpp
+         ShaderManager.cpp
+         SpriteAtlas.cpp
+         SpriteRenderer.cpp
+         SpriteShadow.cpp
+         TextManager.cpp
+         TextureLoader.cpp
+         TextureRegistry.cpp
+         TileRenderer.cpp
+         Xbox360EDRAM.cpp
+         Gamepad.cpp
+         InputContext.cpp
+         Generating Code...
+         Compiling...
+         InputManager.cpp
+         ScreenKeyboard.cpp
+         AISystem.cpp
+         EconomyManager.cpp
+         IsoGrid.cpp
+     1>Logic\IsoGrid.cpp(25): warning C4244: 'initializing' : conversion from 'int' to 'float', possible loss of data
+     1>Logic\IsoGrid.cpp(26): warning C4244: 'initializing' : conversion from 'int' to 'float', possible loss of data
+         ResourceRegistry.cpp
+         WeightMap.cpp
+         BuildingPlacement.cpp
+         ConstructionVisualizer.cpp
+         EditorScene.cpp
+         FrameContext.cpp
+         GameRenderer.cpp
+         GameScene.cpp
+         GeologistController.cpp
+         BuildingCommandHandler.cpp
+         ResourceCommandHandler.cpp
+         LoadingScene.cpp
+         MenuBootstrap.cpp
+         MenuCommandDispatcher.cpp
+         MenuScene.cpp
+         Generating Code...
+         Compiling...
+         PlacementController.cpp
+         RoadController.cpp
+         Scene.cpp
+         SceneManager.cpp
+         WorldBootstrap.cpp
+         WorldRestorer.cpp
+         Settlers2.cpp
+         BuildMenu.cpp
+         Button.cpp
+     1>UI\Button.cpp(60): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>UI\Button.cpp(60): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>UI\Button.cpp(73): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>UI\Button.cpp(73): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+         EditorUI.cpp
+         GridMenu.cpp
+         LocalizationService.cpp
+         MenuModel.cpp
+         Minimap.cpp
+     1>UI\Minimap.cpp(87): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>UI\Minimap.cpp(87): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>UI\Minimap.cpp(114): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>UI\Minimap.cpp(114): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+         NotificationManager.cpp
+         Panel.cpp
+         RadialMenu.cpp
+         ResourceBar.cpp
+         StatusManager.cpp
+         TilePalette.cpp
+         Generating Code...
+         Compiling...
+         UIManager.cpp
+     1>UI\UIManager.cpp(125): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>UI\UIManager.cpp(125): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>UI\UIManager.cpp(134): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>UI\UIManager.cpp(134): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>UI\UIManager.cpp(200): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>UI\UIManager.cpp(200): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>UI\UIManager.cpp(208): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>UI\UIManager.cpp(208): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+         UIMenu.cpp
+         UiController.cpp
+         UiEventSystem.cpp
+         WeightMenu.cpp
+         Widget.cpp
+     1>UI\Widget.cpp(94): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>UI\Widget.cpp(94): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>UI\Widget.cpp(112): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>UI\Widget.cpp(112): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>UI\Widget.cpp(128): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>UI\Widget.cpp(128): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+         AnimalManager.cpp
+         CargoManager.cpp
+         CarrierManager.cpp
+         Building.cpp
+         BuildingFactory.cpp
+         Collider.cpp
+         Model.cpp
+         Resource.cpp
+         Transform.cpp
+         Unit.cpp
+         ConstructionManager.cpp
+         ConstructionSite.cpp
+         DemandManager.cpp
+         Entity.cpp
+         Generating Code...
+         Compiling...
+         EntityManager.cpp
+         FlagManager.cpp
+         HabitatRegistry.cpp
+         Map.cpp
+         MapSerializer.cpp
+         ObjectDeletionRules.cpp
+         ObjectLifecycleManager.cpp
+         RoadManager.cpp
+         StorehouseManager.cpp
+         AnimalSystem.cpp
+         BuildingSystem.cpp
+         CarrierSystem.cpp
+         ConstructionFactory.cpp
+         ConstructionSystem.cpp
+         EconomySystem.cpp
+         PathfindingSystem.cpp
+         PhysicsSystem.cpp
+         RenderSystem.cpp
+         RoadNetworkRelinker.cpp
+         SimulationSystem.cpp
+         Generating Code...
+         Compiling...
+         TransportSystem.cpp
+         WorkforceSystem.cpp
+         WorldSystem.cpp
+         TileLayer.cpp
+         TransportController.cpp
+         TransportJobManager.cpp
+         TransportTask.cpp
+         WildlifeSystem.cpp
+         WorkerManager.cpp
+         Generating Code...
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\Input\\" /Fd"Release\vc100.pdb" /TP Input\InputController.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
+         InputController.cpp
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\Scene\\" /Fd"Release\vc100.pdb" /TP Scene\InputController.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
+         InputController.cpp
        Link:
-         Для всех выходных данных обновления не требуется.
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\link.exe /ERRORREPORT:PROMPT /OUT:"D:\development\Settlers2\Settlers2\Release\Settlers2.exe" /INCREMENTAL:NO /NOLOGO xapilib.lib d3d9.lib d3dx9.lib xgraphics.lib xboxkrnl.lib xnet.lib xaudio2.lib xact3.lib x3daudio.lib xmcore.lib vcomp.lib /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"D:\development\Settlers2\Settlers2\Release\Settlers2.pdb" /STACK:"262144","262144" /OPT:REF /OPT:ICF /TLBID:1 /RELEASE /IMPLIB:"D:\development\Settlers2\Settlers2\Release\Settlers2.lib" Release\GameEngine.obj
+         Release\LanguageManager.obj
+         Release\JobManager.obj
+         Release\ThreadSync.obj
+         Release\CommandBus.obj
+         Release\EventBus.obj
+         Release\BatchBuilder.obj
+         Release\BinFileManager.obj
+         Release\BitmapFont.obj
+         Release\BitmapText.obj
+         Release\Camera.obj
+         Release\FallbackResources.obj
+         Release\Light.obj
+         Release\LightOptimizer.obj
+         Release\OverlayFPS.obj
+         Release\GPUTimer.obj
+         Release\PostFX.obj
+         Release\PostProcessing.obj
+         Release\Quad.obj
+         Release\RenderDebugOverlay.obj
+         Release\RenderFrame.obj
+         Release\Renderer.obj
+         Release\DebugOverlay.obj
+         Release\RenderCommandBuilder.obj
+         Release\RenderQueue.obj
+         Release\RenderStateValidator.obj
+         Release\RenderTargetManager.obj
+         Release\ShaderManager.obj
+         Release\SpriteAtlas.obj
+         Release\SpriteRenderer.obj
+         Release\SpriteShadow.obj
+         Release\TextManager.obj
+         Release\TextureLoader.obj
+         Release\TextureRegistry.obj
+         Release\TileRenderer.obj
+         Release\Xbox360EDRAM.obj
+         Release\Gamepad.obj
+         Release\InputContext.obj
+         Release\InputManager.obj
+         Release\ScreenKeyboard.obj
+         Release\AISystem.obj
+         Release\EconomyManager.obj
+         Release\ResourceRegistry.obj
+         Release\IsoGrid.obj
+         Release\WeightMap.obj
+         Release\BuildingPlacement.obj
+         Release\EditorScene.obj
+         Release\ConstructionVisualizer.obj
+         Release\GameRenderer.obj
+         Release\FrameContext.obj
+         Release\GeologistController.obj
+         Release\MenuBootstrap.obj
+         Release\PlacementController.obj
+         Release\RoadController.obj
+         Release\WorldBootstrap.obj
+         Release\WorldRestorer.obj
+         Release\GameScene.obj
+         Release\BuildingCommandHandler.obj
+         Release\ResourceCommandHandler.obj
+         Release\LoadingScene.obj
+         Release\MenuCommandDispatcher.obj
+         Release\MenuScene.obj
+         Release\Scene.obj
+         Release\SceneManager.obj
+         Release\Settlers2.obj
+         Release\stdafx.obj
+         Release\BuildMenu.obj
+         Release\Button.obj
+         Release\EditorUI.obj
+         Release\GridMenu.obj
+         Release\UIMenu.obj
+         Release\Minimap.obj
+         Release\Panel.obj
+         Release\RadialMenu.obj
+         Release\ResourceBar.obj
+         Release\UIManager.obj
+         Release\UiEventSystem.obj
+         Release\UiController.obj
+         Release\LocalizationService.obj
+         Release\NotificationManager.obj
+         Release\StatusManager.obj
+         Release\MenuModel.obj
+         Release\Widget.obj
+         Release\WeightMenu.obj
+         Release\Building.obj
+         Release\BuildingFactory.obj
+         Release\Collider.obj
+         Release\Model.obj
+         Release\Resource.obj
+         Release\Transform.obj
+         Release\Unit.obj
+         Release\CarrierManager.obj
+         Release\CargoManager.obj
+         Release\DemandManager.obj
+         Release\FlagManager.obj
+         Release\HabitatRegistry.obj
+         Release\RoadManager.obj
+         Release\StorehouseManager.obj
+         Release\TransportJobManager.obj
+         Release\TransportController.obj
+         Release\TransportTask.obj
+         Release\ObjectDeletionRules.obj
+         Release\ObjectLifecycleManager.obj
+         Release\ConstructionSite.obj
+         Release\ConstructionManager.obj
+         Release\Entity.obj
+         Release\EntityManager.obj
+         Release\Map.obj
+         Release\MapSerializer.obj
+         Release\AnimalManager.obj
+         Release\WorkerManager.obj
+         Release\WildlifeSystem.obj
+         Release\EconomySystem.obj
+         Release\PathfindingSystem.obj
+         Release\PhysicsSystem.obj
+         Release\AnimalSystem.obj
+         Release\CarrierSystem.obj
+         Release\RenderSystem.obj
+         Release\BuildingSystem.obj
+         Release\ConstructionSystem.obj
+         Release\RoadNetworkRelinker.obj
+         Release\SimulationSystem.obj
+         Release\TransportSystem.obj
+         Release\WorkforceSystem.obj
+         Release\WorldSystem.obj
+         Release\ConstructionFactory.obj
+         Release\TileLayer.obj
+         Release\MapEditor.obj
+         Release\UnitManager.obj
+         Release\TilePalette.obj
+         Release\\Input\InputController.obj
+         Release\\Scene\InputController.obj /XEX:NO
        ImageXex:
-       Целевой объект "ImageXex" пропускается, так как все выходные файлы актуальны по отношению к входным.
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\imagexex.exe /out:"D:\development\Settlers2\Settlers2\Release\Settlers2.xex" "D:\development\Settlers2\Settlers2\Release\Settlers2.exe" 
+         Microsoft(R) Xbox 360 Image File Builder Version 2.0.21256.0
+         (c)2012 Microsoft Corporation. All rights reserved.
+         
        FinalizeBuildStatus:
          Файл "Release\Settlers2.unsuccessfulbuild" удаляется.
          Обращение к "Release\Settlers2.lastbuildstate".
@@ -18,4 +321,4 @@
 
 Построение успешно завершено.
 
-Затраченное время: 00:00:00.28
+Затраченное время: 00:01:18.81
