@@ -14,6 +14,7 @@ enum ShaderID {
     SHADER_UI = 3,
     SHADER_TERRAIN = 4,
     SHADER_WORLD = 5,
+    SHADER_WORLD_SCREEN = 6,
     SHADER_COUNT
 };
 

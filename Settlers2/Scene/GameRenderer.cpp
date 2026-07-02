@@ -11,10 +11,8 @@
 #include "../World/Map.h"
 #include "../World/FlagManager.h"
 #include "../World/CarrierManager.h"
-#include "../World/RoadManager.h"
 #include "../World/ConstructionManager.h"
 #include "../World/WorkerManager.h"
-#include "../World/WildlifeSystem.h"
 #include "../Graphics/TextManager.h"
 #include "../Graphics/Camera.h"
 #include "../Graphics/TileRenderer.h"
@@ -23,10 +21,24 @@
 #include "../UI/UIMenu.h"
 #include "BuildingPlacement.h"
 #include "PlacementController.h"
-#include "RoadController.h"
 #include "TextureSlots.h"
+#include "Rendering/RenderContext.h"
 
 namespace Scene {
+
+// ─── Pass wrapper implementations ──────────────────────────────────────
+
+void BuildingRenderPass::Execute(const RenderFrame& frame, const RenderContext& context, RenderCommandBuffer& buffer)
+{
+    m_renderer.Render(buffer, frame);
+}
+
+void SettlerRenderPass::Execute(const RenderFrame& frame, const RenderContext& context, RenderCommandBuffer& buffer)
+{
+    m_renderer.Render(buffer, frame);
+}
+
+// ─── GameRenderer ──────────────────────────────────────────────────────
 
 
 
@@ -38,16 +50,12 @@ GameRenderer::GameRenderer(
     World::Map*       map,
     World::FlagManager*         flagManager,
     World::CarrierManager*      carrierManager,
-    World::RoadManager*         roadManager,
     World::ConstructionManager* constructionManager,
     World::WorkerManager*       workerManager,
-    World::WildlifeSystem*      wildlife,
     Logic::EconomyManager*      economyManager,
     PlacementController*        placement,
-    RoadController*             roadController,
     GridMenu*                   buildMenu,
     UIMenu*                     flagMenu,
-    UIMenu*                     geologistMenu,
     TextManager*                textManager
 )
     : m_tileRenderer(tileRenderer)
@@ -56,24 +64,35 @@ GameRenderer::GameRenderer(
     , m_map(map)
     , m_flagManager(flagManager)
     , m_carrierManager(carrierManager)
-    , m_roadManager(roadManager)
     , m_constructionManager(constructionManager)
     , m_workerManager(workerManager)
-    , m_wildlife(wildlife)
     , m_economyManager(economyManager)
     , m_placement(placement)
-    , m_roadController(roadController)
     , m_buildMenu(buildMenu)
     , m_flagMenu(flagMenu)
-    , m_geologistMenu(geologistMenu)
     , m_textManager(textManager)
     , m_groundWoodIconIdx(-1)
     , m_groundWoodIconLoaded(false)
+    , m_terrainPass(*tileRenderer)
+    , m_buildingRenderPass(m_buildingRenderer)
+    , m_settlerRenderPass(m_settlerRenderer)
 {
+    // Execute order: Terrain → Buildings → RoadPreview → PlacementPreview → Settlers → Wildlife → FlagResources → Overlays → UI → Cursor
+    m_renderGraph.AddPass(&m_terrainPass);
+    m_renderGraph.AddPass(&m_buildingRenderPass);
+    m_renderGraph.AddPass(&m_roadPreviewPass);
+    m_renderGraph.AddPass(&m_placementPreviewPass);
+    m_renderGraph.AddPass(&m_settlerRenderPass);
+    m_renderGraph.AddPass(&m_wildlifePass);
+    m_renderGraph.AddPass(&m_flagResourcePass);
+    m_renderGraph.AddPass(&m_geologistOverlayPass);
+    m_renderGraph.AddPass(&m_confirmationMenuPass);
+    m_renderGraph.AddPass(&m_notificationPass);
+    m_renderGraph.AddPass(&m_cursorPass);
 }
 
 // ─── Render ────────────────────────────────────────────────────────────
-void GameRenderer::Render(Graphics::RenderQueue* renderQueue, const FrameContext& frame)
+void GameRenderer::Render(Graphics::RenderQueue* renderQueue, const FrameContext& frame, const RenderFrame& renderFrame)
 {
     if (!m_tileRenderer || !m_map) {
         OutputDebugStringA("[GameRenderer::Render] Not ready, returning\n");
@@ -83,8 +102,6 @@ void GameRenderer::Render(Graphics::RenderQueue* renderQueue, const FrameContext
     if (m_renderer) {
         m_renderer->Clear(0xFF000000); // Black
     }
-
-    m_tileRenderer->SetRenderQueue(renderQueue);
 
     // ─── Set up atlas texture slots ────────────────────────────────────
     m_tileRenderer->ClearAtlasSlots();
@@ -159,8 +176,6 @@ void GameRenderer::Render(Graphics::RenderQueue* renderQueue, const FrameContext
         }
     }
 
-    m_tileRenderer->RenderMap();
-
     // ─── Full-screen background ────────────────────────────────────────
     {
         LPDIRECT3DTEXTURE9 bgTex = reg.getTextureOrLoad("background_game");
@@ -215,600 +230,101 @@ void GameRenderer::Render(Graphics::RenderQueue* renderQueue, const FrameContext
         }
     }
 
-    // ─── Render cursor or placement preview ────────────────────────────
-    if (m_placement->GetState() == PLACESTATE_PLACE_FLAG && !m_placement->IsIdle()) {
-        PlacementData pd = m_placement->GetPlacementData(frame.input.cursorTileX, frame.input.cursorTileY);
+    // ─── Clear scene command buffer for this frame ─────────────────
+    m_commandBuffer.Clear();
 
-        if (pd.spriteRegion) {
-            float wx, wy;
-            CoordinateSystem::GetInstance().NodeTileToWorld(pd.buildX, pd.buildY, wx, wy);
-
-            if (spriteRenderer) {
-                std::tr1::shared_ptr<SpriteAtlas> buildingsAtlas = reg.getAtlas("Buildings");
-                if (buildingsAtlas && buildingsAtlas->GetTexture())
-                    spriteRenderer->SetTextureSlot(SLOT_BUILDINGS_HIGHLIGHT, buildingsAtlas->GetTexture());
-            }
-
-            Graphics::RenderCommandBuilder()
-                .WorldSprite(wx - pd.spriteRegion->pivotX, wy - pd.spriteRegion->pivotY,
-                    (float)pd.spriteRegion->width, (float)pd.spriteRegion->height,
-                    pd.spriteRegion->u0, pd.spriteRegion->v0,
-                    pd.spriteRegion->u1, pd.spriteRegion->v1,
-                    SLOT_BUILDINGS_HIGHLIGHT, static_cast<WORD>(0.98f * 65535.0f))
-                .Color(pd.valid ? 0xAAFFFFFF : 0x44FF4444)
-                .Layer(LAYER_FOREGROUND)
-                .Submit(renderQueue);
-        }
-    } else if (!frame.input.menuActive && !frame.input.roadMenuActive && !frame.input.flagMenuActive && !frame.input.geologistMenuActive) {
-        RenderCursor(renderQueue, frame);
-    }
-
-    // ─── Render flags ──────────────────────────────────────────────────
-    if (m_flagManager && !m_flagManager->GetFlagPairs().empty() && spriteRenderer) {
+    // ─── Execute all registered render passes via RenderGraph ───────────
+    // Each pass reads from RenderFrame + RenderContext and pushes to the buffer.
+    // Order: TerrainPass → BuildingPass → RoadPreviewPass → PlacementPreviewPass → SettlerPass → WildlifePass → FlagResourcePass → GeologistOverlayPass → ConfirmationMenuPass → CursorPass
+    // Future: NotificationPass, GamepadCursorPass, HudPass.
+    if (spriteRenderer) {
         std::tr1::shared_ptr<SpriteAtlas> buildingsAtlas = reg.getAtlas("Buildings");
         if (buildingsAtlas && buildingsAtlas->GetTexture()) {
             LPDIRECT3DTEXTURE9 buildingsTex = buildingsAtlas->GetTexture();
             spriteRenderer->SetTextureSlot(SLOT_BUILDINGS_HIGHLIGHT, buildingsTex);
 
-            uint32_t flagIdx = buildingsAtlas->GetIndex("flag");
-            const SpriteRegion* flagRegion = buildingsAtlas->GetRegion(flagIdx);
-            if (flagRegion) {
-                CoordinateSystem& coords = CoordinateSystem::GetInstance();
-                const std::vector<std::pair<int,int> >& pairs = m_flagManager->GetFlagPairs();
-                for (size_t fi = 0; fi < pairs.size(); ++fi) {
-                    int fx = pairs[fi].first;
-                    int fy = pairs[fi].second;
-                    float wx, wy;
-                    coords.NodeTileToWorld(fx, fy, wx, wy);
-                    Graphics::RenderCommandBuilder()
-                        .WorldSprite(wx - flagRegion->pivotX, wy - flagRegion->pivotY,
-                            (float)flagRegion->width, (float)flagRegion->height,
-                            flagRegion->u0, flagRegion->v0, flagRegion->u1, flagRegion->v1,
-                            SLOT_BUILDINGS_HIGHLIGHT, static_cast<WORD>(30010 + fy * 400))
-                        .Submit(renderQueue);
-                }
-            }
+            m_buildingRenderer.SetAtlases(
+                buildingsAtlas.get(),
+                SLOT_BUILDINGS_HIGHLIGHT
+            );
         }
-    }
 
-    // ─── Render resource icons on flags ────────────────────────────────
-    if (m_flagManager && spriteRenderer) {
-        std::tr1::shared_ptr<SpriteAtlas> iconAtlas = reg.getAtlas("Icon");
-        if (iconAtlas && iconAtlas->GetTexture()) {
-            LPDIRECT3DTEXTURE9 iconTex = iconAtlas->GetTexture();
-            spriteRenderer->SetTextureSlot(SLOT_FLAG_RESOURCES, iconTex);
-
-            CoordinateSystem& coords = CoordinateSystem::GetInstance();
-            for (size_t fi = 0; fi < m_flagManager->GetCount(); ++fi) {
-                World::Flag* flag = m_flagManager->GetFlag(fi);
-                if (!flag) continue;
-                float fx, fy;
-                coords.NodeTileToWorld(flag->pos.x, flag->pos.y, fx, fy);
-                int iconY = 0;
-                for (int si = 0; si < 8; ++si) {
-                    if (flag->slots[si].type == World::ResourceType_None || flag->slots[si].amount <= 0) continue;
-                    const char* iconName = NULL;
-                    switch (flag->slots[si].type) {
-                        case World::ResourceType_Wood:   iconName = "r_wood"; break;
-                        case World::ResourceType_Planks: iconName = "r_planks"; break;
-                        case World::ResourceType_Stone:  iconName = "r_stone"; break;
-                        case World::ResourceType_Fish:   iconName = "r_fish"; break;
-                        case World::ResourceType_Meat:   iconName = "r_meat"; break;
-                        case World::ResourceType_Bread:  iconName = "r_bread"; break;
-                        case World::ResourceType_Coal:   iconName = "r_coal"; break;
-                        case World::ResourceType_IronOre: iconName = "r_ironore"; break;
-                        case World::ResourceType_GoldOre: iconName = "r_goldore"; break;
-                        case World::ResourceType_IronBar: iconName = "r_ironbar"; break;
-                        case World::ResourceType_GoldBar: iconName = "r_goldbar"; break;
-                        default: break;
-                    }
-                    if (!iconName) continue;
-                    uint32_t idx = iconAtlas->GetIndex(iconName);
-                    if (idx == 0xFFFFFFFF) continue;
-                    const SpriteRegion* r = iconAtlas->GetRegion(idx);
-                    if (!r) continue;
-
-                    Graphics::RenderCommandBuilder()
-                        .WorldSprite(fx - r->pivotX * 0.5f, fy - r->pivotY * 0.5f - 30.0f + iconY * -16.0f,
-                            r->width * 0.5f, r->height * 0.5f,
-                            r->u0, r->v0, r->u1, r->v1,
-                            SLOT_FLAG_RESOURCES, static_cast<WORD>(30011 + flag->pos.y * 400 + iconY))
-                        .Submit(renderQueue);
-                    iconY--;
-                }
-            }
-        }
-    }
-
-    // ─── Render carriers and builders ──────────────────────────────────
-    if (spriteRenderer) {
         reg.getTextureOrLoad("Units");
         std::tr1::shared_ptr<SpriteAtlas> unitsAtlas = reg.getAtlas("Units");
         if (unitsAtlas && unitsAtlas->GetTexture()) {
             LPDIRECT3DTEXTURE9 unitsTex = unitsAtlas->GetTexture();
             spriteRenderer->SetTextureSlot(SLOT_UNITS, unitsTex);
-            CoordinateSystem& coords = CoordinateSystem::GetInstance();
 
-            auto unitsSpriteIndex = [](bool isCarrier, bool hasCargo, int dx, int dy) -> int {
-                if (isCarrier) {
-                    if (hasCargo) {
-                        if (dy < 0) return (dx >= 0) ? 9 : 11;
-                        if (dy > 0) return (dx >= 0) ? 8 : 10;
-                        return (dx >= 0) ? 8 : 11;
-                    } else {
-                        if (dy < 0) return (dx < 0) ? 2 : 0;
-                        if (dy > 0) return (dx < 0) ? 3 : 1;
-                        return (dx >= 0) ? 1 : 3;
-                    }
-                } else {
-                    return (dx >= 0) ? 4 : 5;
-                }
-            };
+            std::tr1::shared_ptr<SpriteAtlas> iconAtlas = reg.getAtlas("Icon");
+            m_settlerRenderer.SetAtlases(
+                unitsAtlas.get(),
+                iconAtlas.get(),
+                SLOT_UNITS
+            );
+        }
 
-            static int carrierLogFrame = 0;
-            carrierLogFrame++;
-            bool logCarriers = (carrierLogFrame % 60 == 0);
-            if (m_carrierManager) {
-                for (int ci = 0; ci < m_carrierManager->GetCarrierCount(); ++ci) {
-                    World::Carrier* carrier = m_carrierManager->GetCarrier(ci);
-                    if (!carrier) continue;
-
-                    const Vector2i* pathTiles = NULL;
-                    int pathCount = 0;
-                    float ep = 0.0f;
-                    float walkDir = carrier->walkDir;
-
-                    if (World::IsTransitState(carrier->state)) {
-                        if (carrier->transitCount < 2) continue;
-                        pathTiles = carrier->transitTiles;
-                        pathCount = (int)carrier->transitCount;
-                        ep = carrier->transitProgress;
-                    } else {
-                        if (!carrier->road || carrier->road->tileCount < 2) continue;
-                        pathTiles = carrier->road->tiles;
-                        pathCount = (int)carrier->road->tileCount;
-                        ep = carrier->ep;
-                    }
-
-                    int pathLen = pathCount - 1;
-                    if (ep < 0.0f) ep = 0.0f;
-                    if (ep > (float)pathLen) ep = (float)pathLen;
-                    int idx = (int)ep;
-                    float frac = ep - (float)idx;
-                    if (idx >= pathLen) { idx = pathLen - 1; frac = 1.0f; }
-                    if (idx < 0) { idx = 0; frac = 0.0f; }
-
-                    const Vector2i& tileA = pathTiles[idx];
-                    const Vector2i& tileB = pathTiles[idx + 1];
-
-                    int dx = (walkDir > 0.0f) ? (tileB.x - tileA.x) : (tileA.x - tileB.x);
-                    int dy = (walkDir > 0.0f) ? (tileB.y - tileA.y) : (tileA.y - tileB.y);
-                    bool hasCargo = (carrier->m_cargo != NULL);
-                    int spriteIdx = unitsSpriteIndex(true, hasCargo, dx, dy);
-
-                    if (logCarriers) {
-                        const char* stateNames[] = { "WalkingToPost", "Working", "ReturningHome" };
-                        const char* sn = (carrier->state >= 0 && carrier->state < 3) ? stateNames[carrier->state] : "?";
-                        const char* cn = carrier->m_cargo ? World::ResourceTypeToString(carrier->m_cargo->type) : "empty";
-                        char dbg[256];
-                        _snprintf(dbg, sizeof(dbg),
-                            "[CARRIER] %d: state=%s ep=%.1f dir=%.1f sprite=%d cargo=%s path=%d tiles=(%d,%d)-(%d,%d)\n",
-                            ci, sn, ep, walkDir, spriteIdx, cn, pathLen,
-                            tileA.x, tileA.y, tileB.x, tileB.y);
-                        OutputDebugStringA(dbg);
-                    }
-
-                    float wx0, wy0, wx1, wy1;
-                    coords.NodeTileToWorld(tileA.x, tileA.y, wx0, wy0);
-                    coords.NodeTileToWorld(tileB.x, tileB.y, wx1, wy1);
-                    float wx = wx0 + (wx1 - wx0) * frac;
-                    float wy = wy0 + (wy1 - wy0) * frac;
-
-                    const SpriteRegion* r = unitsAtlas->GetRegion(spriteIdx);
-                    if (!r) continue;
-
-                    Graphics::RenderCommandBuilder()
-                        .WorldSprite(wx - r->pivotX, wy - r->pivotY,
-                            (float)r->width, (float)r->height,
-                            r->u0, r->v0, r->u1, r->v1,
-                            SLOT_UNITS, static_cast<WORD>(30020 + tileA.y * 400))
-                        .Submit(renderQueue);
-
-                    if (carrier->m_cargo) {
-                        const char* cargoIconName = World::ResourceTypeToIconName(carrier->m_cargo->type);
-                        if (cargoIconName && cargoIconName[0]) {
-                            std::tr1::shared_ptr<SpriteAtlas> cargoAtlas = reg.getAtlas("Icon");
-                            if (cargoAtlas) {
-                                uint32_t cargoIdx = cargoAtlas->GetIndex(cargoIconName);
-                                if (cargoIdx != 0xFFFFFFFF) {
-                                    const SpriteRegion* cargoR = cargoAtlas->GetRegion(cargoIdx);
-                                    if (cargoR) {
-                                        float cargoSize = 16.0f;
-                                        Graphics::RenderCommandBuilder()
-                                            .WorldSprite(wx - cargoSize * 0.5f, wy - r->pivotY - cargoSize,
-                                                cargoSize, cargoSize,
-                                                cargoR->u0, cargoR->v0, cargoR->u1, cargoR->v1,
-                                                SLOT_UI_MENU_ICON, static_cast<WORD>(30030 + tileA.y * 400))
-                                            .Submit(renderQueue);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Building workers
-            if (m_flagManager) {
-                for (size_t fi = 0; fi < m_flagManager->GetCount(); ++fi) {
-                    World::Flag* flag = m_flagManager->GetFlag((int)fi);
-                    if (!flag || !flag->building) continue;
-
-                    float wx, wy;
-                    int wSpriteIdx = -1;
-                    bool moving = false;
-
-                    if (flag->building->GetWorkerRenderInfo(wx, wy, wSpriteIdx)) {
-                        moving = true;
-                        coords.NodeTileToWorld(wx, wy, wx, wy);
-                    }
-                    if (wSpriteIdx < 0) continue;
-                    const SpriteRegion* wr = unitsAtlas->GetRegion(wSpriteIdx);
-                    if (!wr) continue;
-
-                    Graphics::RenderCommandBuilder()
-                        .WorldSprite(wx - wr->pivotX, wy - wr->pivotY,
-                            (float)wr->width, (float)wr->height,
-                            wr->u0, wr->v0, wr->u1, wr->v1,
-                            SLOT_UNITS, static_cast<WORD>(30020 + (moving ? (int)(wy + 0.5f) : flag->building->pos.y) * 400))
-                        .Submit(renderQueue);
-                }
-            }
-
-            // Arriving workers
-            if (m_workerManager && unitsAtlas) {
-                for (int wi = 0; wi < m_workerManager->GetActiveCount(); ++wi) {
-                    const World::Worker* w = m_workerManager->GetWorkerByActiveIdx(wi);
-                    if (w->state != World::WorkerState_MovingToJob) continue;
-                    float wx = w->posX;
-                    float wy = w->posY;
-                    int spriteIdx = 4;
-                    coords.NodeTileToWorld(wx, wy, wx, wy);
-                    const SpriteRegion* wr = unitsAtlas->GetRegion(spriteIdx);
-                    if (!wr) continue;
-                    Graphics::RenderCommandBuilder()
-                        .WorldSprite(wx - wr->pivotX, wy - wr->pivotY,
-                            (float)wr->width, (float)wr->height,
-                            wr->u0, wr->v0, wr->u1, wr->v1,
-                            SLOT_UNITS, static_cast<WORD>(30020 + (int)(wy + 0.5f) * 400))
-                        .Submit(renderQueue);
-                }
-            }
-
-            // Builders
-            if (m_constructionManager) {
-                const std::vector<World::ConstructionSite*>& sites = m_constructionManager->GetAllSites();
-                for (size_t si = 0; si < sites.size(); ++si) {
-                    World::ConstructionSite* site = sites[si];
-                    if (!site || !site->flag) continue;
-                    if (site->builderState == World::Builder_None) continue;
-
-                    float wx, wy;
-                    int spriteIdx = 4;
-
-                    if (site->builderState == World::Builder_Walking || site->builderState == World::Builder_Returning) {
-                        if (site->builderRouteCount < 2) continue;
-                        uint32_t fromIdx = site->builderRouteIndex;
-                        uint32_t toIdx = fromIdx + 1;
-                        if (fromIdx >= site->builderRouteCount - 1) {
-                            size_t lastIdx = site->builderRouteCount - 1;
-                            World::Flag* f = site->builderRoute[lastIdx];
-                            coords.NodeTileToWorld(f->pos.x, f->pos.y, wx, wy);
-                        } else {
-                            World::Flag* fromFlag = site->builderRoute[fromIdx];
-                            World::Flag* toFlag = site->builderRoute[toIdx];
-                            World::Road* road = m_roadManager ? m_roadManager->GetRoadBetween(fromFlag, toFlag) : NULL;
-                            if (road && road->tileCount >= 2) {
-                                int tc = (int)road->tileCount;
-                                float pathLen = (float)(tc - 1);
-                                float pos = site->builderEp;
-                                if (pos < 0.0f) pos = 0.0f;
-                                if (pos > pathLen) pos = pathLen;
-                                int tileIdx = (int)pos;
-                                float frac = pos - (float)tileIdx;
-                                if (tileIdx >= tc - 1) { tileIdx = tc - 2; frac = 1.0f; }
-                                if (tileIdx < 0) { tileIdx = 0; frac = 0.0f; }
-                                const Vector2i& tileA = road->tiles[tileIdx];
-                                const Vector2i& tileB = road->tiles[tileIdx + 1];
-                                float wx0, wy0, wx1, wy1;
-                                coords.NodeTileToWorld(tileA.x, tileA.y, wx0, wy0);
-                                coords.NodeTileToWorld(tileB.x, tileB.y, wx1, wy1);
-                                wx = wx0 + (wx1 - wx0) * frac;
-                                wy = wy0 + (wy1 - wy0) * frac;
-                                int bdx = tileB.x - tileA.x;
-                                int bdy = tileB.y - tileA.y;
-                                spriteIdx = unitsSpriteIndex(false, false, bdx, bdy);
-                            } else {
-                                float wx0, wy0, wx1, wy1;
-                                coords.NodeTileToWorld(fromFlag->pos.x, fromFlag->pos.y, wx0, wy0);
-                                coords.NodeTileToWorld(toFlag->pos.x, toFlag->pos.y, wx1, wy1);
-                                float t = (1.0f > 0.0f) ? site->builderEp / 1.0f : 0.0f;
-                                if (t < 0.0f) t = 0.0f;
-                                if (t > 1.0f) t = 1.0f;
-                                wx = wx0 + (wx1 - wx0) * t;
-                                wy = wy0 + (wy1 - wy0) * t;
-                                int bdx = toFlag->pos.x - fromFlag->pos.x;
-                                int bdy = toFlag->pos.y - fromFlag->pos.y;
-                                spriteIdx = unitsSpriteIndex(false, false, bdx, bdy);
-                            }
-                        }
-                    } else if (site->builderState == World::Builder_Building) {
-                        coords.NodeTileToWorld(site->x, site->y, wx, wy);
-                    } else {
-                        coords.NodeTileToWorld(site->x, site->y, wx, wy);
-                    }
-
-                    const SpriteRegion* r = unitsAtlas->GetRegion(spriteIdx);
-                    if (!r) continue;
-
-                    Graphics::RenderCommandBuilder()
-                        .WorldSprite(wx - r->pivotX, wy - r->pivotY,
-                            (float)r->width, (float)r->height,
-                            r->u0, r->v0, r->u1, r->v1,
-                            SLOT_UNITS, static_cast<WORD>(30020 + site->flag->pos.y * 400))
-                        .Submit(renderQueue);
-                }
+        // Bind Icon atlas for flag resource pass
+        {
+            std::tr1::shared_ptr<SpriteAtlas> iconAtlas = reg.getAtlas("Icon");
+            if (iconAtlas && iconAtlas->GetTexture()) {
+                LPDIRECT3DTEXTURE9 iconTex = iconAtlas->GetTexture();
+                spriteRenderer->SetTextureSlot(SLOT_FLAG_RESOURCES, iconTex);
             }
         }
+
+        // Set pass texture slots (atlases already bound above)
+        m_cursorPass.SetTextureSlot(SLOT_UI_CURSOR);
+        m_flagResourcePass.SetTextureSlot(SLOT_FLAG_RESOURCES);
+        m_wildlifePass.SetTextureSlot(SLOT_UNITS);
+        m_placementPreviewPass.SetTextureSlot(SLOT_BUILDINGS_HIGHLIGHT);
+        m_roadPreviewPass.SetTextureSlot(SLOT_STREETS);
+        m_geologistOverlayPass.SetTextureSlot(SLOT_UI_MENU_ICON);
+        m_confirmationMenuPass.SetBgSlot(SLOT_UI_MENU_BG);
+        m_confirmationMenuPass.SetIconSlot(SLOT_UI_MENU_ICON);
+        m_notificationPass.SetTextureSlot(SLOT_UI_MENU_BG);
+
+        // Build per-frame render context
+        RenderContext context;
+        context.camera = m_camera;
+        context.time = 0.0f;            // TODO: wire real time when needed
+        context.debugOverlay = false;
+
+        // Execute the render graph (all passes push to m_commandBuffer)
+        m_renderGraph.Execute(renderFrame, context, m_commandBuffer);
     }
 
-    // ─── Render wildlife ───────────────────────────────────────────────
-    if (m_wildlife) {
-        const std::vector<World::Animal>& animals = m_wildlife->GetAllAnimals();
-        if (!animals.empty()) {
-            reg.getTextureOrLoad("Units");
-            std::tr1::shared_ptr<SpriteAtlas> unitsAtlas = reg.getAtlas("Units");
-            if (unitsAtlas && unitsAtlas->GetTexture()) {
-                LPDIRECT3DTEXTURE9 unitsTex = unitsAtlas->GetTexture();
-                spriteRenderer->SetTextureSlot(SLOT_UNITS, unitsTex);
-                const std::vector<uint32_t>* animalGroup = unitsAtlas->GetGroup("Animals");
-                if (animalGroup && !animalGroup->empty()) {
-                    CoordinateSystem& coords = CoordinateSystem::GetInstance();
-                    for (size_t i = 0; i < animals.size(); ++i) {
-                        const World::Animal& a = animals[i];
-                        if (a.state != World::AnimalState_Alive) continue;
-                        if (a.type < 0 || a.type >= World::AnimalType_Count) continue;
-
-                        int rawIdx = (int)a.type;
-                        int dirIdx = World::VelocityToDirIndex(a.vx, a.vy);
-                        int dirSpriteIdx = rawIdx * World::AnimalDirSpriteCount() + dirIdx;
-                        int spriteIdx;
-                        if (dirSpriteIdx < (int)animalGroup->size()) {
-                            spriteIdx = dirSpriteIdx;
-                        } else if (rawIdx < (int)animalGroup->size()) {
-                            spriteIdx = rawIdx;
-                        } else {
-                            continue;
-                        }
-                        uint32_t regionIdx = (*animalGroup)[spriteIdx];
-                        const SpriteRegion* r = unitsAtlas->GetRegion(regionIdx);
-                        if (!r) continue;
-                        float wx, wy;
-                        coords.NodeTileToWorld(a.x, a.y, wx, wy);
-                        Graphics::RenderCommandBuilder()
-                            .WorldSprite(wx - r->pivotX, wy - r->pivotY,
-                                (float)r->width, (float)r->height,
-                                r->u0, r->v0, r->u1, r->v1,
-                                SLOT_UNITS, static_cast<WORD>(30005 + (int)(a.y + 0.5f) * 400))
-                            .Submit(renderQueue);
-                    }
-                }
-            }
-        }
-    }
-
-    // ─── Render road preview ───────────────────────────────────────────
-    const std::vector<std::pair<int,int> >& roadPath = m_roadController->GetPreviewPath();
-    if (m_placement->GetState() == PLACESTATE_PLACE_ROAD && !roadPath.empty()) {
-        std::tr1::shared_ptr<SpriteAtlas> streetsAtlas = reg.getAtlas("streets");
-        if (!streetsAtlas) return;
-        CoordinateSystem& coords = CoordinateSystem::GetInstance();
-
-        float flagAlignOffsetX = 0.0f;
-        {   std::tr1::shared_ptr<SpriteAtlas> ba = reg.getAtlas("Buildings");
-            uint32_t fi = ba->GetIndex("flag"); const SpriteRegion* fr = ba->GetRegion(fi);
-            if (fr) { const std::vector<uint32_t>* rg = streetsAtlas->GetGroup("street_1");
-            if (rg && !rg->empty()) { const SpriteRegion* rr = streetsAtlas->GetRegion((*rg)[0]);
-            if (rr) { flagAlignOffsetX = (fr->width * 0.5f - fr->pivotX) - (rr->width * 0.5f - rr->pivotX); }}}}
-
-        for (size_t i = 0; i < m_roadController->GetPreviewPath().size(); ++i) {
-            int px = m_roadController->GetPreviewPath()[i].first;
-            int py = m_roadController->GetPreviewPath()[i].second;
-            World::TileLayer* roadsLayer = m_map->GetLayer(World::Roads);
-            int pattern = RoadController::CalcPatternAt(px, py, roadsLayer, m_roadController->GetPreviewPath());
-
-            char groupBuf[16];
-            const char* groupName = groupBuf;
-            switch (pattern) {
-                case 0:  groupName = "street_1"; break;
-                case 1:  groupName = "street_1"; break;
-                case 2:  groupName = "street_2"; break;
-                case 3:  _snprintf(groupBuf, sizeof(groupBuf), "street_%d", 3); break;
-                case 4:  groupName = "street_1"; break;
-                case 5:  groupName = "street_5"; break;
-                case 6:  _snprintf(groupBuf, sizeof(groupBuf), "street_%d", 6); break;
-                case 7:  _snprintf(groupBuf, sizeof(groupBuf), "street_%d", 7); break;
-                case 8:  groupName = "street_2"; break;
-                case 9:  _snprintf(groupBuf, sizeof(groupBuf), "street_%d", 9); break;
-                case 10: groupName = "street_2"; break;
-                case 11: _snprintf(groupBuf, sizeof(groupBuf), "street_%d", 11); break;
-                case 12: _snprintf(groupBuf, sizeof(groupBuf), "street_%d", 12); break;
-                case 13: _snprintf(groupBuf, sizeof(groupBuf), "street_%d", 13); break;
-                case 14: _snprintf(groupBuf, sizeof(groupBuf), "street_%d", 14); break;
-                case 15: _snprintf(groupBuf, sizeof(groupBuf), "street_%d", 15); break;
-            }
-
-            const std::vector<uint32_t>* group = streetsAtlas->GetGroup(groupName);
-            if (!group || group->empty()) {
-                group = streetsAtlas->GetGroup("street_1");
-                if (!group || group->empty()) continue;
-            }
-
-            uint32_t regionIdx = (*group)[0];
-            const SpriteRegion* region = streetsAtlas->GetRegion(regionIdx);
-            if (!region) continue;
-
-            float wx, wy;
-            coords.NodeTileToWorld(px, py, wx, wy);
-
-            Graphics::RenderCommandBuilder()
-                .WorldSprite(wx - region->pivotX + flagAlignOffsetX, wy - region->pivotY,
-                    (float)region->width, (float)region->height,
-                    region->u0, region->v0, region->u1, region->v1,
-                    SLOT_STREETS, static_cast<WORD>(0.98f * 65535.0f))
-                .Color(D3DCOLOR_ARGB(160, 255, 255, 255))
-                .Layer(LAYER_FOREGROUND)
-                .Submit(renderQueue);
-        }
-
-        const std::vector<uint32_t>* ewGroup = streetsAtlas->GetGroup("street_1");
-        if (ewGroup && !ewGroup->empty()) {
-            uint32_t ewIdx = (*ewGroup)[0];
-            const SpriteRegion* ewRegion = streetsAtlas->GetRegion(ewIdx);
-            if (ewRegion) {
-                for (size_t i = 0; i + 1 < m_roadController->GetPreviewPath().size(); ++i) {
-                    int x1 = m_roadController->GetPreviewPath()[i].first;
-                    int y1 = m_roadController->GetPreviewPath()[i].second;
-                    int x2 = m_roadController->GetPreviewPath()[i + 1].first;
-                    int y2 = m_roadController->GetPreviewPath()[i + 1].second;
-                    if (abs(x1 - x2) == 1 && y1 == y2) {
-                        float wx1, wy1, wx2, wy2;
-                        coords.NodeTileToWorld(x1, y1, wx1, wy1);
-                        coords.NodeTileToWorld(x2, y2, wx2, wy2);
-                        float cx = (wx1 + wx2) * 0.5f;
-                        float cy = (wy1 + wy2) * 0.5f;
-                        float dx = (float)fabs(wx2 - wx1);
-                        Graphics::RenderCommandBuilder()
-                            .WorldSprite(cx - dx * 0.5f + flagAlignOffsetX, cy - 3.0f,
-                                dx, 6.0f,
-                                ewRegion->u0, ewRegion->v0, ewRegion->u1, ewRegion->v1,
-                                SLOT_STREETS, static_cast<WORD>(0.98f * 65535.0f))
-                            .Color(D3DCOLOR_ARGB(160, 255, 255, 255))
-                            .Layer(LAYER_FOREGROUND)
-                            .Submit(renderQueue);
-                    }
-                }
-            }
-        }
-    }
-
-    // ─── Render auto-path preview ──────────────────────────────────────
-    if (m_placement->GetState() == PLACESTATE_PLACE_ROAD && !m_roadController->GetAutoPath().empty()) {
-        std::tr1::shared_ptr<SpriteAtlas> streetsAtlas = reg.getAtlas("streets");
-        if (streetsAtlas) {
-            CoordinateSystem& coords = CoordinateSystem::GetInstance();
-
-            float flagAlignOffsetX = 0.0f;
-            {   std::tr1::shared_ptr<SpriteAtlas> ba = reg.getAtlas("Buildings");
-                uint32_t fi = ba->GetIndex("flag"); const SpriteRegion* fr = ba->GetRegion(fi);
-                if (fr) { const std::vector<uint32_t>* rg = streetsAtlas->GetGroup("street_1");
-                if (rg && !rg->empty()) { const SpriteRegion* rr = streetsAtlas->GetRegion((*rg)[0]);
-                if (rr) { flagAlignOffsetX = (fr->width * 0.5f - fr->pivotX) - (rr->width * 0.5f - rr->pivotX); }}}}
-
-            const std::vector<uint32_t>* group = streetsAtlas->GetGroup("street_1");
-            if (group && !group->empty()) {
-                uint32_t regionIdx = (*group)[0];
-                const SpriteRegion* region = streetsAtlas->GetRegion(regionIdx);
-                if (region) {
-                    for (size_t i = 0; i < m_roadController->GetAutoPath().size(); ++i) {
-                        int ax = m_roadController->GetAutoPath()[i].first;
-                        int ay = m_roadController->GetAutoPath()[i].second;
-                        float wx, wy;
-                        coords.NodeTileToWorld(ax, ay, wx, wy);
-                        Graphics::RenderCommandBuilder()
-                            .WorldSprite(wx - region->pivotX + flagAlignOffsetX, wy - region->pivotY,
-                                (float)region->width, (float)region->height,
-                                region->u0, region->v0, region->u1, region->v1,
-                                SLOT_STREETS, static_cast<WORD>(0.98f * 65535.0f))
-                            .Color(D3DCOLOR_ARGB(160, 100, 200, 255))
-                            .Layer(LAYER_FOREGROUND)
-                            .Submit(renderQueue);
-                    }
-                }
-            }
-
-            const std::vector<uint32_t>* ewGroup = streetsAtlas->GetGroup("street_1");
-            if (ewGroup && !ewGroup->empty()) {
-                uint32_t ewIdx = (*ewGroup)[0];
-                const SpriteRegion* ewRegion = streetsAtlas->GetRegion(ewIdx);
-                if (ewRegion) {
-                    for (size_t i = 0; i + 1 < m_roadController->GetAutoPath().size(); ++i) {
-                        int x1 = m_roadController->GetAutoPath()[i].first;
-                        int y1 = m_roadController->GetAutoPath()[i].second;
-                        int x2 = m_roadController->GetAutoPath()[i + 1].first;
-                        int y2 = m_roadController->GetAutoPath()[i + 1].second;
-                        if (abs(x1 - x2) == 1 && y1 == y2) {
-                            float wx1, wy1, wx2, wy2;
-                            coords.NodeTileToWorld(x1, y1, wx1, wy1);
-                            coords.NodeTileToWorld(x2, y2, wx2, wy2);
-                            float cx = (wx1 + wx2) * 0.5f;
-                            float cy = (wy1 + wy2) * 0.5f;
-                            float dx = (float)fabs(wx2 - wx1);
-                            Graphics::RenderCommandBuilder()
-                                .WorldSprite(cx - dx * 0.5f + flagAlignOffsetX, cy - 3.0f,
-                                    dx, 6.0f,
-                                    ewRegion->u0, ewRegion->v0, ewRegion->u1, ewRegion->v1,
-                                    SLOT_STREETS, static_cast<WORD>(0.98f * 65535.0f))
-                                .Color(D3DCOLOR_ARGB(160, 100, 200, 255))
-                                .Layer(LAYER_FOREGROUND)
-                                .Submit(renderQueue);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // ─── Render valid neighbor tiles ───────────────────────────────────
-    if (m_placement->GetState() == PLACESTATE_PLACE_ROAD && !m_roadController->GetValidNeighbors().empty()) {
-        std::tr1::shared_ptr<SpriteAtlas> streetsAtlas = reg.getAtlas("streets");
-        if (streetsAtlas) {
-            CoordinateSystem& coords = CoordinateSystem::GetInstance();
-
-            float flagAlignOffsetX = 0.0f;
-            {   std::tr1::shared_ptr<SpriteAtlas> ba = reg.getAtlas("Buildings");
-                uint32_t fi = ba->GetIndex("flag"); const SpriteRegion* fr = ba->GetRegion(fi);
-                if (fr) { const std::vector<uint32_t>* rg = streetsAtlas->GetGroup("street_1");
-                if (rg && !rg->empty()) { const SpriteRegion* rr = streetsAtlas->GetRegion((*rg)[0]);
-                if (rr) { flagAlignOffsetX = (fr->width * 0.5f - fr->pivotX) - (rr->width * 0.5f - rr->pivotX); }}}}
-
-            const std::vector<uint32_t>* group = streetsAtlas->GetGroup("street_1");
-            if (group && !group->empty()) {
-                uint32_t regionIdx = (*group)[0];
-                const SpriteRegion* region = streetsAtlas->GetRegion(regionIdx);
-                if (region) {
-                    for (size_t i = 0; i < m_roadController->GetValidNeighbors().size(); ++i) {
-                        int nx = m_roadController->GetValidNeighbors()[i].first;
-                        int ny = m_roadController->GetValidNeighbors()[i].second;
-                        float wx, wy;
-                        coords.NodeTileToWorld(nx, ny, wx, wy);
-                        Graphics::RenderCommandBuilder()
-                            .WorldSprite(wx - region->pivotX + flagAlignOffsetX, wy - region->pivotY,
-                                (float)region->width, (float)region->height,
-                                region->u0, region->v0, region->u1, region->v1,
-                                SLOT_STREETS, static_cast<WORD>(0.99f * 65535.0f))
-                            .Color(D3DCOLOR_ARGB(120, 255, 100, 100))
-                            .Layer(LAYER_FOREGROUND)
-                            .Submit(renderQueue);
-                    }
-                }
-            }
-        }
-    }
+    // ─── Submit scene command buffer to graphics queue ────────────
+    m_commandBuffer.SubmitToQueue(renderQueue);
 
     // ─── Render build menu ─────────────────────────────────────────────
     if (m_buildMenu && frame.input.menuActive) {
         m_buildMenu->Render();
+    }
+
+    // ─── Confirmation menu text (stage 8B1 bridge — removed with CommandBuffer text support) ───
+    if (renderFrame.ui.confirmation.visible && m_textManager) {
+        float cx = 640.0f;
+        float yOff = 200.0f;
+        m_textManager->DrawTextCenteredToScreen("Геолог", cx, yOff + 54.0f, D3DCOLOR_ARGB(255, 255, 255, 220), 0.095f, FONT_MENU, FONT_STYLE_NORMAL, LAYER_UI);
+        m_textManager->DrawTextCenteredToScreen("Отправить геолога для поиска полезных ископаемых",
+            cx, yOff + 162.0f, D3DCOLOR_ARGB(255, 200, 200, 200), 0.08f, FONT_MENU, FONT_STYLE_NORMAL, LAYER_UI);
+    }
+
+    // ─── Notification text (stage 8B2 bridge — removed with CommandBuffer text support) ───
+    if (!renderFrame.ui.notifications.empty() && m_textManager) {
+        float startX = 1280.0f - 280.0f + 10.0f;
+        float startY = 20.0f;
+        float boxH = 60.0f;
+        for (size_t i = 0; i < renderFrame.ui.notifications.size(); ++i) {
+            const RenderNotification& n = renderFrame.ui.notifications[i];
+            if (!n.isActive) continue;
+            float yPos = startY + n.offsetY;
+            m_textManager->DrawString(n.title, startX, yPos + 4.0f, D3DCOLOR_ARGB(255, 255, 200, 80), 0.07f);
+            m_textManager->DrawString(n.line1, startX, yPos + 22.0f, D3DCOLOR_ARGB(255, 220, 220, 220), 0.06f);
+            if (n.line2[0] != '\0') {
+                m_textManager->DrawString(n.line2, startX, yPos + 38.0f, D3DCOLOR_ARGB(255, 180, 180, 180), 0.055f);
+            }
+        }
     }
 
     // ─── Render flag menu ──────────────────────────────────────────────
@@ -1068,8 +584,6 @@ void GameRenderer::Render(Graphics::RenderQueue* renderQueue, const FrameContext
         }
     }
 
-    // ─── Geologist overlay ─────────────────────────────────────────────
-    RenderGeologistOverlay(renderQueue, frame);
 
     // ─── Gamepad UI ────────────────────────────────────────────────────
     PushUiToQueue(renderQueue, frame);
@@ -1199,242 +713,7 @@ void GameRenderer::Render(Graphics::RenderQueue* renderQueue, const FrameContext
     }
 }
 
-// ─── RenderCursor ──────────────────────────────────────────────────────
-void GameRenderer::RenderCursor(Graphics::RenderQueue* renderQueue, const FrameContext& frame)
-{
-    TextureRegistry& reg = TextureRegistry::instance();
-    std::tr1::shared_ptr<SpriteAtlas> uiAtlas = reg.getAtlas("ui");
-    if (!uiAtlas) return;
-
-    uint32_t cursorIdx = uiAtlas->GetIndex("cursor");
-    if (cursorIdx == 0xFFFFFFFF) return;
-
-    const SpriteRegion* cursorRegion = uiAtlas->GetRegion(cursorIdx);
-    if (!cursorRegion) return;
-
-    SpriteRenderer* spriteRenderer = m_renderer ? m_renderer->GetSpriteRenderer() : NULL;
-    if (spriteRenderer) {
-        LPDIRECT3DTEXTURE9 uiTex = uiAtlas->GetTexture();
-        if (uiTex) spriteRenderer->SetTextureSlot(SLOT_UI_CURSOR, uiTex);
-    }
-
-    float worldX, worldY;
-    CoordinateSystem::GetInstance().NodeTileToWorld(frame.input.cursorTileX, frame.input.cursorTileY, worldX, worldY);
-
-    Graphics::RenderCommandBuilder()
-        .WorldSprite(worldX - cursorRegion->pivotX, worldY - cursorRegion->pivotY,
-            (float)cursorRegion->width, (float)cursorRegion->height,
-            cursorRegion->u0, cursorRegion->v0, cursorRegion->u1, cursorRegion->v1,
-            SLOT_UI_CURSOR, static_cast<WORD>(0.99f * 65535.0f))
-        .Layer(LAYER_FOREGROUND)
-        .Submit(renderQueue);
-}
-
-// ─── RenderGeologistOverlay ────────────────────────────────────────────
-void GameRenderer::RenderGeologistOverlay(Graphics::RenderQueue* renderQueue, const FrameContext& frame)
-{
-    if (!m_map || !renderQueue) return;
-    CoordinateSystem& coords = CoordinateSystem::GetInstance();
-
-    TextureRegistry& reg = TextureRegistry::instance();
-    std::tr1::shared_ptr<SpriteAtlas> uiAtlas = reg.getAtlas("ui");
-
-    // 1. Mountain highlight
-    if (m_map) {
-        int cursorX = frame.input.cursorTileX;
-        int cursorY = frame.input.cursorTileY;
-        const World::Tile& objTile = m_map->GetTile(World::Objects, cursorX, cursorY);
-        if (objTile.type == World::Mountain || objTile.type == World::MountainOnWater || objTile.type == World::Rock) {
-            SpriteRenderer* sr = m_renderer ? m_renderer->GetSpriteRenderer() : NULL;
-            float wx, wy;
-            coords.NodeTileToWorld(cursorX, cursorY, wx, wy);
-            int tileW = 60, tileH = 30;
-            {
-                const World::Tile& objTile2 = m_map->GetTile(World::Objects, cursorX, cursorY);
-                if (objTile2.regionIndex >= 0) {
-                    std::tr1::shared_ptr<SpriteAtlas> maptilesAtlas = reg.getAtlas("maptiles");
-                    if (maptilesAtlas) {
-                        const SpriteRegion* mountainReg = maptilesAtlas->GetRegion((uint32_t)objTile2.regionIndex);
-                        if (mountainReg) {
-                            tileW = (int)mountainReg->width;
-                            tileH = (int)mountainReg->height;
-                        }
-                    }
-                }
-            }
-            std::tr1::shared_ptr<SpriteAtlas> buildingsAtlas = reg.getAtlas("Buildings");
-            LPDIRECT3DTEXTURE9 buildingsTex = buildingsAtlas ? buildingsAtlas->GetTexture() : NULL;
-            if (sr && buildingsTex) sr->SetTextureSlot(SLOT_BUILDINGS_HIGHLIGHT, buildingsTex);
-            Graphics::RenderCommandBuilder()
-                .WorldSprite(wx, wy,
-                    (float)tileW, (float)tileH,
-                    0.5f, 0.5f, 0.5001f, 0.5001f,
-                    SLOT_BUILDINGS_HIGHLIGHT, static_cast<WORD>(0.98f * 65535.0f))
-                .Color(D3DCOLOR_ARGB(80, 255, 255, 0))
-                .Layer(LAYER_EFFECTS)
-                .Submit(renderQueue);
-        }
-    }
-
-        // 2. Geologist confirmation overlay
-        if (m_geologistMenu && m_geologistMenu->IsVisible()) {
-            m_geologistMenu->Render();
-        if (m_textManager && m_geologistMenu->IsVisible()) {
-            std::tr1::shared_ptr<SpriteAtlas> uiAtl = reg.getAtlas("ui");
-            std::tr1::shared_ptr<SpriteAtlas> iconAtl = reg.getAtlas("Icon");
-            SpriteRenderer* sr2 = m_renderer ? m_renderer->GetSpriteRenderer() : NULL;
-            float cx = 640.0f;
-            float yOff = 200.0f;
-            int iconSize = 40;
-
-            WORD kSlotBg = SLOT_UI_MENU_BG;
-            WORD kSlotIcon = SLOT_UI_MENU_ICON;
-            auto renderIcon = [&](const char* name, float x, float y, float w, float h, D3DCOLOR fallback) {
-                bool ok = false;
-                if (sr2) {
-                    LPDIRECT3DTEXTURE9 tex = NULL;
-                    float u0=0.5f,v0=0.5f,u1=0.5001f,v1=0.5001f;
-                    if (uiAtl) {
-                        uint32_t idx = uiAtl->GetIndex(name);
-                        if (idx != 0xFFFFFFFF) {
-                            const SpriteRegion* r = uiAtl->GetRegion(idx);
-                            if (r) { u0=r->u0;v0=r->v0;u1=r->u1;v1=r->v1; tex=uiAtl->GetTexture(); }
-                        }
-                    }
-                    if (!tex && iconAtl) {
-                        uint32_t idx = iconAtl->GetIndex(name);
-                        if (idx != 0xFFFFFFFF) {
-                            const SpriteRegion* r = iconAtl->GetRegion(idx);
-                            if (r) { u0=r->u0;v0=r->v0;u1=r->u1;v1=r->v1; tex=iconAtl->GetTexture(); }
-                        }
-                    }
-                    if (tex) {
-                        WORD slot = tex == uiAtl->GetTexture() ? kSlotBg : kSlotIcon;
-                        sr2->SetTextureSlot(slot, tex);
-                        Graphics::RenderCommandBuilder()
-                            .UIElement(x, y, w, h, u0, v0, u1, v1, slot, 100)
-                            .Submit(renderQueue);
-                        ok = true;
-                    }
-                }
-                if (!ok) {
-                    Graphics::RenderCommandBuilder()
-                        .UIElement(x, y, w, h, 0.5f, 0.5f, 0.5001f, 0.5001f, kSlotBg, 100)
-                        .Color(fallback)
-                        .Submit(renderQueue);
-                }
-            };
-
-            renderIcon("icon_mountain", cx - 24.0f, yOff, 48.0f, 48.0f, D3DCOLOR_ARGB(200, 140, 110, 80));
-            m_textManager->DrawTextCenteredToScreen("Геолог", cx, yOff + 54.0f, D3DCOLOR_ARGB(255, 255, 255, 220), 0.095f, FONT_MENU, FONT_STYLE_NORMAL, LAYER_FOREGROUND);
-            renderIcon("icon_geologist", cx - 18.0f, yOff + 90.0f, 36.0f, 36.0f, D3DCOLOR_ARGB(200, 255, 220, 100));
-            renderIcon("ornament_1", cx - 50.0f, yOff + 132.0f, 100.0f, 14.0f, D3DCOLOR_ARGB(180, 180, 150, 80));
-            m_textManager->DrawTextCenteredToScreen("Отправить геолога для поиска полезных ископаемых",
-                cx, yOff + 162.0f, D3DCOLOR_ARGB(255, 200, 200, 200), 0.08f, FONT_MENU, FONT_STYLE_NORMAL, LAYER_FOREGROUND);
-        }
-    }
-
-    // 3. Resource icons on SURVEYED mountains
-    int w = m_map->GetWidth() * 2;
-    int h = m_map->GetHeight() * 4;
-    SpriteRenderer* sr = m_renderer ? m_renderer->GetSpriteRenderer() : NULL;
-    std::tr1::shared_ptr<SpriteAtlas> iconAtlas = reg.getAtlas("Icon");
-
-    for (int y = 0; y < h; y += 1) {
-        for (int x = 0; x < w; x += 1) {
-            const World::ResourceNode& node = m_map->GetResourceNode(x, y);
-            if (!node.surveyed || node.type == World::ResourceType_None || node.amount <= 0) continue;
-
-            float wx, wy;
-            coords.NodeTileToWorld(x, y, wx, wy);
-
-            bool iconRendered = false;
-            if (iconAtlas && sr) {
-                LPDIRECT3DTEXTURE9 iconTex = iconAtlas->GetTexture();
-                if (iconTex) {
-                    const char* depositName = World::ResourceTypeToDepositIconName(node.type);
-                    if (depositName && depositName[0] != '\0') {
-                        sr->SetTextureSlot(SLOT_UI_MENU_ICON, iconTex);
-                        uint32_t depositIdx = iconAtlas->GetIndex(depositName);
-                        if (depositIdx != 0xFFFFFFFF) {
-                            const SpriteRegion* depositReg = iconAtlas->GetRegion(depositIdx);
-                            if (depositReg) {
-                                Graphics::RenderCommandBuilder()
-                                    .WorldSprite(wx, wy - 40.0f,
-                                        (float)depositReg->width * 0.8f, (float)depositReg->height * 0.8f,
-                                        depositReg->u0, depositReg->v0, depositReg->u1, depositReg->v1,
-                                        SLOT_UI_MENU_ICON, static_cast<WORD>(0.97f * 65535.0f))
-                                    .Color(D3DCOLOR_ARGB(220, 255, 255, 255))
-                                    .Layer(LAYER_EFFECTS)
-                                    .Submit(renderQueue);
-                                iconRendered = true;
-                            }
-                        }
-                    }
-                }
-            }
-            if (!iconRendered) {
-                D3DCOLOR fallbackColor = D3DCOLOR_ARGB(200, 255, 255, 0);
-                switch (node.type) {
-                    case World::ResourceType_Coal:    fallbackColor = D3DCOLOR_ARGB(200, 80, 80, 80);    break;
-                    case World::ResourceType_IronOre: fallbackColor = D3DCOLOR_ARGB(200, 180, 100, 50);  break;
-                    case World::ResourceType_GoldOre: fallbackColor = D3DCOLOR_ARGB(200, 255, 215, 0);   break;
-                    case World::ResourceType_Stone:   fallbackColor = D3DCOLOR_ARGB(200, 150, 150, 150); break;
-                    case World::ResourceType_Marble:  fallbackColor = D3DCOLOR_ARGB(200, 200, 180, 220); break;
-                    case World::ResourceType_Granite: fallbackColor = D3DCOLOR_ARGB(200, 130, 90, 70);   break;
-                    default:                         fallbackColor = D3DCOLOR_ARGB(200, 255, 255, 0);   break;
-                }
-                Graphics::RenderCommandBuilder()
-                    .WorldSprite(wx, wy - 40.0f,
-                        24.0f, 24.0f,
-                        0.5f, 0.5f, 0.5001f, 0.5001f,
-                        SLOT_UI_MENU_ICON, static_cast<WORD>(0.97f * 65535.0f))
-                    .Color(fallbackColor)
-                    .Layer(LAYER_EFFECTS)
-                    .Submit(renderQueue);
-            }
-        }
-    }
-
-    // 4. Geologist working indicator
-    if (frame.overlay.geologistState == OverlayFrameState::GEOLOGIST_WORKING && frame.overlay.geologistTileX >= 0 && frame.overlay.geologistTileY >= 0) {
-        float wx, wy;
-        coords.NodeTileToWorld(frame.overlay.geologistTileX, frame.overlay.geologistTileY, wx, wy);
-        bool iconRendered = false;
-        if (iconAtlas && sr) {
-            LPDIRECT3DTEXTURE9 iconTex = iconAtlas->GetTexture();
-            if (iconTex) {
-                sr->SetTextureSlot(SLOT_UI_MENU_ICON, iconTex);
-                uint32_t workIdx = iconAtlas->GetIndex("icon_geologist_work");
-                if (workIdx != 0xFFFFFFFF) {
-                    const SpriteRegion* workReg = iconAtlas->GetRegion(workIdx);
-                    if (workReg) {
-                        Graphics::RenderCommandBuilder()
-                            .WorldSprite(wx, wy - 50.0f,
-                                (float)workReg->width, (float)workReg->height,
-                                workReg->u0, workReg->v0, workReg->u1, workReg->v1,
-                                SLOT_UI_MENU_ICON, static_cast<WORD>(0.97f * 65535.0f))
-                                .Layer(LAYER_EFFECTS)
-                                .Submit(renderQueue);
-                        iconRendered = true;
-                    }
-                }
-            }
-        }
-        if (!iconRendered) {
-            Graphics::RenderCommandBuilder()
-                .WorldSprite(wx - 16.0f, wy - 50.0f,
-                    32.0f, 32.0f,
-                    0.5f, 0.5f, 0.5001f, 0.5001f,
-                    SLOT_UI_MENU_ICON, static_cast<WORD>(0.97f * 65535.0f))
-                .Color(D3DCOLOR_ARGB(180, 255, 255, 0))
-                .Layer(LAYER_EFFECTS)
-                .Submit(renderQueue);
-        }
-    }
-}
-
-// ─── PushUiToQueue (gamepad cursor + notifications) ────────────────────
+// ─── PushUiToQueue (gamepad cursor) ────────────────────────────────────
 void GameRenderer::PushUiToQueue(Graphics::RenderQueue* renderQueue, const FrameContext& frame)
 {
     if (!m_textManager) return;
@@ -1475,53 +754,8 @@ void GameRenderer::PushUiToQueue(Graphics::RenderQueue* renderQueue, const Frame
         }
     }
 
-    // Ensure UI atlas texture is bound for notification backgrounds
-    {
-        std::tr1::shared_ptr<SpriteAtlas> uiAtlas = reg.getAtlas("ui");
-        if (uiAtlas) {
-            SpriteRenderer* sr = m_renderer ? m_renderer->GetSpriteRenderer() : NULL;
-            if (sr) {
-                LPDIRECT3DTEXTURE9 uiTex = uiAtlas->GetTexture();
-                if (uiTex) sr->SetTextureSlot(SLOT_UI_MENU_BG, uiTex);
-            }
-        }
-    }
-
-    // ── Notifications ─────────────────────────────────────────────────
-    if (frame.ui.notificationCount > 0) {
-        float startX = 1280.0f - 280.0f;
-        float startY = 20.0f;
-        float boxW = 260.0f;
-        float boxH = 60.0f;
-        float pad = 10.0f;
-
-        for (int i = 0; i < frame.ui.notificationCount; ++i) {
-            const UiFrameState::UiNotification& n = frame.ui.notifications[i];
-            if (!n.isActive) continue;
-
-            float yPos = startY + (float)i * (boxH + 6.0f);
-
-            // Background box
-            Graphics::RenderCommandBuilder()
-                .UIElement(startX, yPos, boxW, boxH,
-                    0.0f, 0.0f, 1.0f, 1.0f,
-                    SLOT_UI_MENU_BG, static_cast<WORD>(0.95f * 65535.0f))
-                .Color(D3DCOLOR_ARGB(200, 20, 20, 40))
-                .Submit(renderQueue);
-
-            // Title
-            m_textManager->DrawString(n.title, startX + pad, yPos + 4.0f, D3DCOLOR_ARGB(255, 255, 200, 80), 0.07f);
-
-            // Line1
-            m_textManager->DrawString(n.line1, startX + pad, yPos + 22.0f, D3DCOLOR_ARGB(255, 220, 220, 220), 0.06f);
-
-            // Line2
-            if (n.line2[0] != '\0') {
-                m_textManager->DrawString(n.line2, startX + pad, yPos + 38.0f, D3DCOLOR_ARGB(255, 180, 180, 180), 0.055f);
-            }
-        }
-    }
-
 }
+
+
 
 } // namespace Scene

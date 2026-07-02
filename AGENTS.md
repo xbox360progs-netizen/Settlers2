@@ -39,6 +39,52 @@ Telemetry(`LogTelemetry`) scans state every 600 ticks, `assert oldestWaitingAge 
 - **Platform**: Xbox 360 (C++03, no variadic templates, `std::function`, auto, range-for)
 - **SDK**: Not available for local builds — correctness by code review only
 
+# Render Pipeline — Architectural Invariants
+
+## Seven rules
+
+```
+1. Simulation  →  never knows about Rendering.
+2. Presentation  →  never knows about Graphics API.
+3. Projection  →  the only place world becomes screen.
+4. swap()  →  the only frame publication boundary.
+5. After swap()  →  RenderFrame is immutable.
+6. RenderGraph  →  the sole owner of pass execution order.
+7. Pass  →  only receives RenderFrame, RenderContext, CommandBuffer.
+```
+
+## Derived invariants
+
+```
+Presentation reads Simulation, writes RenderFrame.
+After swap(), only RenderGraph reads RenderFrame.
+No Pass may reference a Simulation Manager, Controller, Map, or FrameContext.
+Infrastructure services (TextRenderer, FontService) are permitted in Pass.
+```
+
+## Core assignment (Xbox 360 target)
+
+```
+Core2      AI
+Core1      Simulation  →  Presentation  →  Projection  →  Publish(RenderFrame)
+Core0      Acquire(RenderFrame)  →  RenderGraph  →  CommandBuffer  →  GPU
+```
+
+The `swap()` call is the sole publish point. Everything before it is Core1 work;
+everything after it is Core0 work. No shared mutable state crosses this boundary.
+
+`RenderFramePublisher` (Stage 9) replaces the direct `swap()` to formalize the
+handoff, but changes nothing else in the pipeline.
+
+## Projection invariant
+
+```
+Projection is deterministic.
+Given the same RenderFrame + Camera snapshot → bit-identical projected frame.
+No dependency on time, GPU state, or pass order.
+```
+Same RenderFrame + Camera → бит-идентичный output.
+
 # Architecture — Cycle 2 Complete ✅ (tag: `architecture-cycle-2`)
 
 ## Domain First
@@ -476,3 +522,459 @@ ConstructionSite → Resources delivered → Builder → ConstructionComplete
 | Warehouse | ? | — | Stores resources |
 
 For each: verify the full chain logs cleanly, the building sprite appears, the worker walks to post, and production begins.
+
+---
+
+# RenderFrame Pipeline — Core0/Core1 Contract
+
+## Architecture
+
+```
+Simulation (Core1)
+    ↓ reads
+SettlerPresentationSystem (Core1)
+    ↓ produces
+RenderFrame (immutable DTO, swapped via double-buffer)
+    ↓ consumed
+SettlerRenderer (Core0)
+    ↓ resolves sprites
+Graphics::RenderCommandBuilder → RenderQueue
+```
+
+## Layer Stack
+
+```
+Simulation state   →   Presentation   →   RenderFrame   →   Renderer
+(position/tile)        (world coords,      (POD DTOs,        (sprite indices,
+                        depth,             no pointers,       atlas lookups,
+                        direction)         no sim deps)       render commands)
+```
+
+## Key Decisions
+
+1. **Renderer reads `RenderFrame`, never simulation** — zero simulation manager access in render path.
+2. **Double-buffer swap** (`RenderFrame next; Build(next); m_renderFrame.swap(next)`) — prepares for Core0/Core1 split where Core1 writes into `frames[back]` and Core0 reads `frames[front]`.
+3. **No sprite logic in Presentation** — `SettlerVisual` stores only enum values (type, state, dx/dy). `ResolveSpriteIndex()` lives in SettlerRenderer.
+4. **Depth pre-computed in Presentation** — `RenderTransform::depthLayer` stores the final draw order value (e.g., `30020 + tileY * 400`). Renderer casts to WORD directly.
+
+## Data Structures
+
+```
+Scene/Shared/
+├── RenderTransform.h    worldX, worldY, depthLayer
+├── SettlerVisual.h      type, state, dx, dy, carrying, cargoType, buildingType
+└── RenderFrame.h        frameId, simulationTick, vector<RenderSettler>
+
+Scene/Settlers/
+├── RenderSettler.h      RenderTransform + SettlerVisual
+├── SettlerRenderer.h/.cpp     pure render (no simulation includes)
+└── SettlerPresentationSystem.h/.cpp  pure presentation (no graphics includes)
+```
+
+## Future Extensions
+
+```
+RenderFrame {
+    uint32_t frameId;
+    uint32_t simulationTick;
+    vector<RenderSettler> settlers;
+    // vector<RenderBuilding> buildings;   — next
+    // vector<RenderTerrain> terrain;      — future
+    // vector<RenderEffect> effects;       — future
+}
+
+Core1 → Build(frames[back]); atomic Publish(back);
+Core0 → atomic Read(front); Render(frames[front]);
+
+---
+
+# Pipeline Roadmap
+
+## Stage 1 — Full RenderFrame ✅ (current)
+
+```
+RenderFrame { frameId, simTick, settlers }
+SettlerPresentationSystem  →  RenderFrame.settlers
+SettlerRenderer            ←  RenderFrame.settlers
+```
+
+## Stage 2 — RenderBuilding + BuildingPresentationSystem ✅
+
+```
+RenderBuilding               structure DTO (kind: 0=flag, 1=building)
+BuildingPresentationSystem   reads FlagManager → writes RenderFrame.buildings
+BuildingRenderer             resolves sprites (flag/building) from DTO fields
+GameRenderer                 removes inline flag rendering → delegates to RenderFrame
+```
+
+Pending: building sprites still come from Buildings map layer (TileRenderer).
+Migration to RenderFrame is deferred until Buildings layer is removed from tile rendering.
+
+## Stage 2.5 — BuildingVisual split ✅
+
+```
+RenderBuilding   →   RenderTransform + BuildingVisual
+Matches the pattern established by RenderSettler.
+Prevents struct bloat when selecting/highlighting/depleted flags are added.
+```
+
+## Stage 3 — ProjectionSystem ✅
+
+```
+ScreenTransform { screenX, screenY, depth }
+Pipeline: Simulation → Presentation → Projection → RenderFrame → Renderer
+Camera/Zoom/Shake → ProjectionSystem only, never touches simulation.
+Renderers use ScreenSprite() with SHADER_UI + LAYER_WORLD (screen coords, no VP transform).
+GameRenderer no longer needs camera for entity rendering — only terrain VP remains.
+```
+
+### Invariant (from Stage 3)
+
+```
+Renderer consumes pixels.
+Projection owns coordinates.
+Simulation owns world.
+```
+
+**Violation**: any call to `Camera::WorldToScreen()` inside a renderer, or any simulation-manager read in a renderer, or any coordinate math in a renderer that isn't pure pixel-offset.
+
+### Temporary compromise
+
+`ScreenSprite` uses `SHADER_UI` because there is no dedicated `SHADER_WORLD_SCREEN` yet. This is correct for depth interleaving but limits future fog/lighting/palette effects on projected entities. Creating a dedicated shader is deferred until Stage 4 (RenderCommandBuffer).
+
+## Stage 4 — RenderCommandBuffer ✅
+
+```
+RenderFrame → Renderer → CommandBuffer → GPU
+Sorting, batching, GPU abstraction separated from entity type.
+Stage 4 also creates the dedicated SHADER_WORLD_SCREEN for projected entities.
+```
+
+**New files:**
+- `Scene/Rendering/RenderCommand.h` — scene-side command DTO (int16 x/y, uint16 w/h/tex/depth, float UV, uint32 color)
+- `Scene/Rendering/RenderCommandBuffer.h/.cpp` — buffer with `PushSprite`, `Clear`, `SubmitToQueue`
+
+**Modified files:**
+- `Graphics/ShaderManager.h` — added `SHADER_WORLD_SCREEN = 6`
+- `Graphics/ShaderManager.cpp` — aliased `SHADER_WORLD_SCREEN` to `UI.fx` effect (deferred: dedicated shader file)
+- `Scene/Settlers/SettlerRenderer.h/.cpp` — `Render(RenderQueue*)` → `Render(RenderCommandBuffer&)`
+- `Scene/Buildings/BuildingRenderer.h/.cpp` — same pattern
+- `Scene/GameRenderer.h/.cpp` — owns `m_commandBuffer`, clears/passes/submits each frame
+- `Settlers2.vcxproj` — added all missing Scene/Shared/, Settlers/, Buildings/, Projection/, Rendering/ files
+
+**Architectural change:**
+```
+Before: Renderer → RenderCommandBuilder → Submit(RenderQueue)  (per-call submit)
+After:  Renderer → CommandBuffer.PushSprite → SubmitToQueue()  (batch submit)
+```
+
+Renderers no longer depend on `Graphics::RenderQueue`, `RenderCommandBuilder`, or shader IDs.
+The scene-to-graphics boundary is now `CommandBuffer` (scene) → `RenderQueue` (graphics).
+
+**Future extension points (API reserved):**
+- `PushShadow(...)` — shadow pass for projected entities
+- `PushOverlay(...)` — overlay pass (selection highlights, debug overlays)
+
+### Architectural invariant (from Stage 4)
+
+```
+Renderer input:  RenderFrame + RenderCommandBuffer only
+Renderer input:  NOT Camera, NOT Manager, NOT RenderQueue, NOT ShaderId
+```
+
+**Violation**: any `#include` of `Graphics/RenderQueue.h`, `Graphics/RenderCommandBuilder.h`,
+`Graphics/ShaderManager.h`, or `Graphics/Camera.h` in a scene renderer; any direct
+`Submit` call to `RenderQueue` from a scene renderer; any `WorldToScreen()` call.
+
+### Future directions (noted, not implemented)
+
+- **RenderCommandType**: `enum { Sprite, Shadow, Overlay }` to dispatch in CommandBuffer
+- **POD CommandBuffer**: fixed `RenderCommand[MAX_COMMANDS]` + `uint16 count` for Xbox 360
+  linear memory (deferred until hot-path profiling)
+
+## Stage 5 — RenderGraph ✅
+
+```
+RenderFrame → RenderGraph → passes → CommandBuffer → RenderQueue
+```
+
+**New files:**
+- `Scene/Rendering/RenderPass.h` — pass interface (BuildingPass, SettlerPass...)
+- `Scene/Rendering/RenderGraph.h/.cpp` — pass registration, `Execute(frame, buffer)`
+
+**Architectural change:**
+```
+Before: GameRenderer orchestrates renderers inline
+After:  RenderGraph owns pass order; GameRenderer delegates to graph
+```
+
+### Future — RenderContext
+
+Add `RenderContext&` to `Execute()` before it becomes deeply wired:
+
+```
+Execute(const RenderFrame& frame, RenderContext& context, RenderCommandBuffer& buffer)
+```
+
+Context carries: atlases, camera, viewport, palette, time, debug flags.
+Passes stop pulling globals.
+
+Current `Execute(frame, buffer)` is fine for Stage 5 — add Context when Stage 6
+creates the first pass that needs cross-pass shared state.
+
+## Stage 6 — TerrainPresentation + TerrainPass (next)
+
+```
+TileRenderer → TerrainPresentationSystem → RenderFrame.terrain
+TileRenderer becomes pure render (reads DTOs only)
+```
+
+**New DTO** (in RenderFrame):
+```cpp
+struct RenderTerrainTile {
+    ScreenTransform screen;
+    uint16_t textureSlot;
+    uint8_t  variant;
+};
+// Future: RenderTerrainChunk for batching
+```
+
+**Goal**: Remove the last world→graphics bypass.
+After Stage 6:
+- `TileRenderer::RenderMap()` disappears from `GameRenderer`
+- Terrain enters the graph as `TerrainPass`, reading from `RenderFrame.terrain`
+
+**Forbidden after Stage 6**:
+- `TileRenderer → Camera`
+- `TileRenderer → RenderQueue`
+
+**Permitted**:
+- `TerrainPass → RenderCommandBuffer`
+
+**Granularity**: Start with `RenderTerrainTile[]` (precise, simple).
+Evolve to `RenderTerrainChunk[]` when batching becomes the bottleneck.
+
+## Stage 7 — Kill inline submit
+
+All remaining direct `Submit` calls in `GameRenderer` become passes:
+- CursorPass
+- PreviewPass
+- FlagResourcePass (flag icons migrate from WorldSprite to ScreenSprite)
+- WildlifePass
+- UiPass (menus, notifications, status)
+
+**Goal**: `RenderGraph` owns full frame execution.
+`GameRenderer::Render()` is a pure orchestrator:
+```
+context.Begin();
+buffer.Clear();
+graph.Execute(frame, context, buffer);
+buffer.SubmitToQueue(queue);
+```
+Zero special-case branches, zero `queue.Push()` outside passes.
+
+**After Stage 7**: render regression test becomes possible —
+`RenderFrame → RenderGraph → CommandBuffer` without running the game.
+
+## Stage 8 — RenderContext
+
+Context is **read-only** — per-frame data, not mutable global state.
+
+```
+struct RenderContext {
+    const Camera* camera;
+    const Viewport* viewport;
+    float time;
+    bool debug;
+    // Future: palette tables, fog params
+};
+```
+
+**Invariant**: `RenderPass::Execute(frame, context, buffer)` is a pure function
+of its inputs — no globals, no side effects outside `buffer`.
+
+## Stage 9 — Core0 / Core1 split
+
+```
+RenderFrame frames[2];
+volatile int front, back;
+Core1: Simulation → Presentation → Projection → Build(back) → Publish()
+Core0: Read(front) → RenderGraph → RenderContext → CommandBuffer → RenderQueue → GPU
+```
+
+**No refactoring needed** — all contracts already defined by Stage 8.
+Split is organizational (move files to Core0 project), not architectural.
+
+GameRenderer becomes thin facade:
+```
+Render(frame) { context.Begin(); buffer.Clear(); graph.Execute(frame, context, buffer); buffer.Submit(); }
+```
+
+## Stage 7D2 Complete — RoadPreviewPass ✅
+
+Road preview migrated to DTO+Pass pattern:
+- `RenderRoadSegment { worldX0/Y0, worldX1/Y1, screenX0/Y0, screenX1/Y1, valid }` — single DTO for both tile sprites and horizontal connection quads
+- `RoadPreviewPresentationSystem` reads `GetPreviewPath()`/`GetAutoPath()`/`GetValidNeighbors()` — complexity in Presentation
+- `ProjectionSystem::ProjectRoadPreview()` projects both endpoints — no exceptions for lines
+- `RoadPreviewPass` — caches `street_1` sprite, pre-computes flag alignment, renders white/red at depth `0.98×65535`
+- Removed `m_roadController`, `m_roadManager`, `RoadController.h`, `RoadManager.h` from `GameRenderer`
+
+## GameRenderer Invariant (post-7D2)
+
+```
+Forbidden:
+  GameRenderer → Controller  (no m_roadController, m_placement is transitional)
+  GameRenderer → Manager     (no m_roadManager)
+
+Permitted:
+  RenderGraph           (m_renderGraph)
+  RenderContext         (future — Stage 8)
+  CommandBuffer         (m_commandBuffer — sole output path)
+```
+
+## Stage 8B1 Complete — ConfirmationMenuPass ✅
+
+First screen-space UI pass. Geologist confirmation dialog migrated to DTO+Pass:
+- `RenderConfirmationMenu { visible, selected, style }` — minimal DTO for confirmation state
+- `RenderUiFrame { confirmation }` — top-level UI frame in `RenderFrame`
+- `ConfirmationMenuPresentationSystem` reads `UIMenu::IsVisible()` — complexity in Presentation
+- `ConfirmationMenuPass` — caches panel bg + icon sprites from ui/Icon atlases, renders at screen-space positions
+- No world projection needed (pure screen-space)
+- Text rendering kept as minimal inline bridge (removed `m_geologistMenu` dependency from `GameRenderer`)
+
+**Architectural change**: first pass that reads `RenderFrame.ui` instead of calling a menu object directly.
+
+## Stage 8B2 Complete — NotificationPass ✅
+
+Notifications (top-right stacked panels) migrated to DTO+Pass pattern:
+- `RenderNotification { isActive, alpha, offsetY, title[32], line1[32], line2[32] }` — DTO with pre-resolved strings + pre-computed alpha and vertical offset
+- `NotificationPresentationSystem` reads `UiFrameState::notifications[]` (already populated by `NotificationManager::FillFrameContext`) — computes `offsetY = i × (boxH + gap)`, `alpha = 1.0` (no timer animation yet; fields reserved for future fade/slide)
+- `NotificationPass` — caches no sprites, pushes colored rect (`0xC8141428`) at screen position for each active notification
+- Text rendering kept as minimal inline bridge in `GameRenderer` (reads `RenderFrame.ui.notifications`)
+- Removed ~30 lines of inline rendering from `GameRenderer::PushUiToQueue()` and the redundant UI atlas rebind block (texture already bound in main binding section)
+- Pipeline: `NotificationManager::FillFrameContext(uiState)` → `NotificationPresentationSystem::BuildRenderFrame(uiState, renderFrame.ui)` → `NotificationPass::Execute(renderFrame, context, buffer)` + inline text bridge
+
+**Architectural notes**:
+- `alpha` and `offsetY` are pre-computed in Presentation for future animation (fade out on timer expiry, slide up on stack reflow); Pass consumes them as-is
+- `UiFrameState::UiNotification` remains the intermediate DTO because `NotificationManager` resolves strings via `LocalizationService`; Presentation reads the already-resolved buffer
+
+## Stage 8A Complete — RenderContext ✅
+
+Introduced `RenderContext` as per-frame readonly context:
+```
+struct RenderContext {
+    const Camera* camera;
+    float   time;
+    bool    debugOverlay;
+};
+```
+
+Changed `RenderPass::Execute(frame, buffer)` → `Execute(frame, context, buffer)`.
+
+All 11 passes updated (accept context, ignore it for now).
+
+### Architectural invariant (enforced by signature, not convention)
+
+```
+Forbidden:
+  RenderPass → FrameContext
+  RenderPass → Map
+  RenderPass → Controller
+  RenderPass → Simulation Manager   (FlagManager, EconomyManager, etc.)
+
+Permitted:
+  RenderFrame
+  RenderContext
+  CommandBuffer
+  *Renderer / *FontService         (infrastructure, not game managers)
+```
+
+Pass input is now strictly bounded to `(frame, context, buffer)`.
+The `context` parameter provides the per-frame camera/time/debug state
+that UI and animated passes will use next.
+
+### RenderFrame lifecycle invariant
+
+```
+Presentation
+    ↓  BuildRenderFrame(next)
+Projection(next)
+    ↓  swap()
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+No code modifies RenderFrame
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    ↓
+RenderGraph.Execute(frame, context, buffer)
+
+```
+
+`RenderFrame` is **immutable after swap()**. This single invariant
+eliminates the entire class of Core0/Core1 races and makes the
+transition to parallel threading a linear-ownership problem, not a
+mutex problem.
+
+After `swap()`:
+- Presentation + Projection own the **next** (back-buffer) frame.
+- RenderGraph reads the **current** (front-buffer) frame.
+- No atomics, no locks, no dirty flags — just data generation
+  followed by data consumption.
+
+## Stage 7E1 Complete — GeologistOverlayPass ✅
+
+Geologist world-space overlays migrated to DTO+Pass pattern:
+- `RenderOverlayMarker { RenderTransform, markerType, resourceType }` — single DTO for mountain highlight, surveyed deposit icons, and working indicator
+- `GeologistOverlayPresentationSystem` reads `Map` (resource nodes, cursor tile) + `FrameContext.overlay` (geologist state) — complexity in Presentation
+- `ProjectionSystem::ProjectOverlays()` — uniform projection, no exceptions
+- `GeologistOverlayPass` — caches deposit sprites from Icon atlas by `ResourceType`, fallback color quads for missing icons
+- Markers rendered at depth `0.97-0.98×65535` with `LAYER_EFFECTS`
+- Removed `RenderGeologistOverlay()` function (~200 lines) from `GameRenderer`
+- Geologist confirmation menu (screen-space UI) kept as inline — Stage 8 target
+- New files: `Scene/Overlays/OverlayMarkerType.h`, `RenderOverlayMarker.h`, `GeologistOverlayPresentationSystem.h/.cpp`, `GeologistOverlayPass.h/.cpp`
+
+## Scene maturity (post-8B2)
+
+```
+Terrain          ✅  (Stage 6C)
+Buildings        ✅  (Stage 5)
+Settlers         ✅  (Stage 1-3)
+Wildlife         ✅  (Stage 7C)
+Road Preview     ✅  (Stage 7D2)
+Placement        ✅  (Stage 7D1)
+Cursor           ✅  (Stage 7A)
+Flag Resources   ✅  (Stage 7B)
+Overlays         ✅  (Stage 7E1)
+---              ---
+UI               ⏳  (Stage 8B1 — ConfirmationMenuPass)
+                 👆  (Stage 8B2 — NotificationPass)
+Background       ⏳  (Stage 7F)
+Ground Resources ⏳  (Stage 7E2)
+```
+
+## Stage 10 — Asset Definition Pipeline
+
+Separate **Definitions** (static metadata) from **Runtime State** (per-frame DTO):
+
+```
+WorkerDefinition {
+    sprite;      // static index
+    shadow;
+    animSet;
+}
+
+SettlerVisual (runtime) {
+    state;
+    cargo;
+}
+```
+
+**Invariant**: Definitions never mutate during gameplay.
+Runtime DTOs are the only per-frame representation.
+
+Pipeline:
+```
+BuildingType → BuildingDefinition → BuildingVisual → RenderFrame
+WorkerType   → WorkerDefinition   → SettlerVisual   → RenderFrame
+```
+
+Eliminates all `if (type == WOODCUTTER)` from render path.
+```

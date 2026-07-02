@@ -271,6 +271,30 @@ HRESULT ShaderManager::LoadAll() {
         OutputDebugStringA("[ShaderManager] WARNING: UI shader not loaded, continuing\n");
     }
 
+    // SHADER_WORLD_SCREEN reuses UI.fx effect (same orthographic projection,
+    // no VP transform). In Stage 6 a dedicated SHADER_WORLD_SCREEN.fx will
+    // add fog, lighting, and palette effects for projected entities.
+    if (m_effects.find(SHADER_UI) != m_effects.end()) {
+        ID3DXEffect* pUiFx = GetEffect(SHADER_UI);
+        m_effects[SHADER_WORLD_SCREEN] = pUiFx;
+        pUiFx->AddRef();
+        Shader shader;
+        shader.pEffect = pUiFx;
+        shader.hTechnique = pUiFx->GetTechniqueByName("UITech");
+        shader.hMatOrtho = pUiFx->GetParameterByName(NULL, "matOrtho");
+        shader.hTexture = pUiFx->GetParameterByName(NULL, "g_texture");
+        D3DXEFFECT_DESC desc;
+        pUiFx->GetDesc(&desc);
+        for (UINT i = 0; i < desc.Parameters; i++) {
+            D3DXHANDLE hParam = pUiFx->GetParameter(NULL, i);
+            D3DXPARAMETER_DESC paramDesc;
+            pUiFx->GetParameterDesc(hParam, &paramDesc);
+            shader.hParams[paramDesc.Name] = hParam;
+        }
+        m_shaders[SHADER_WORLD_SCREEN] = shader;
+        OutputDebugStringA("[ShaderManager] Shared UI.fx effect for WORLD_SCREEN shader\n");
+    }
+
     hr = LoadShader(SHADER_WORLD, SHADER_ROOT "World.fx", "WorldTech");
     if (FAILED(hr)) {
         OutputDebugStringA("[ShaderManager] WARNING: WORLD shader not loaded, continuing\n");

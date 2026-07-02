@@ -300,13 +300,8 @@ namespace Scene {
             m_tileRenderer = NULL;
         }
         m_tileRenderer = new TileRenderer(m_renderer, m_map->GetWidth(), m_map->GetHeight());
-        m_tileRenderer->SetMap(m_map);
         // Initialize coordinate system for world↔node conversions (needed before first render)
         CoordinateSystem::GetInstance().Initialize(m_map->GetWidth(), m_map->GetHeight());
-        // Set the tile renderer's render queue to the renderer's render queue
-        if (m_renderer && m_tileRenderer) {
-            m_tileRenderer->SetRenderQueue(m_renderer->GetRenderQueue());
-        }
         OutputDebugStringA("[GameScene::Load] TileRenderer ready\n");
 
         // Create camera
@@ -575,14 +570,35 @@ namespace Scene {
             m_gameRenderer = new GameRenderer(
                 m_tileRenderer, m_renderer, m_camera,
                 m_map, m_flagManager, m_carrierManager,
-                m_roadManager, m_constructionManager, m_workerManager,
-                m_wildlife, m_economyManager,
-                &m_placement, &m_roadController,
-                m_buildMenu, m_flagMenu, m_geologistMenu,
+                m_constructionManager, m_workerManager,
+                m_economyManager,
+                &m_placement,
+                m_buildMenu, m_flagMenu,
                 m_textManager
             );
             OutputDebugStringA("[GameScene::Load] GameRenderer created\n");
         }
+
+        // ─── Wire ProjectionSystem with camera ──────────────────────
+        m_projectionSystem.SetCamera(m_camera);
+
+        // ─── Wire up Presentation Systems (simulation → DTO bridge) ──
+        m_terrainPresentationSystem.SetMap(m_map, m_map->GetWidth(), m_map->GetHeight());
+        m_geologistOverlayPresentationSystem.SetMap(m_map);
+        m_confirmationMenuPresentationSystem.SetGeologistMenu(m_geologistMenu);
+        m_settlerPresentationSystem.SetManagers(
+            m_carrierManager,
+            m_constructionManager,
+            m_workerManager,
+            m_roadManager
+        );
+        m_buildingPresentationSystem.SetManagers(
+            m_flagManager
+        );
+        m_flagResourcePresentationSystem.SetFlagManager(m_flagManager);
+        m_wildlifePresentationSystem.SetWildlifeSystem(m_wildlife);
+        m_placementPreviewPresentationSystem.SetPlacementController(&m_placement);
+        m_roadPreviewPresentationSystem.SetControllers(&m_roadController, &m_placement);
 
 		// Initialize command handlers after managers are created
   m_buildingCommandHandler = new Handlers::BuildingCommandHandler(
@@ -770,6 +786,28 @@ void GameScene::Update(float deltaTime)
       //  Simulation
       m_simulation.Update(deltaTime);
 
+      // Build render snapshot into a fresh frame, then swap (double-buffer pattern)
+      {
+          RenderFrame next;
+          m_terrainPresentationSystem.BuildRenderFrame(next);
+          m_settlerPresentationSystem.BuildRenderFrame(next);
+          m_buildingPresentationSystem.BuildRenderFrame(next);
+          // Suppress cursor during flag placement preview (replaced by preview sprite).
+          m_cursorPresentationSystem.SetSuppressed(
+              m_placement.GetState() == PLACESTATE_PLACE_FLAG && !m_placement.IsIdle());
+          m_cursorPresentationSystem.BuildRenderFrame(m_frameContext, next.cursor);
+          m_flagResourcePresentationSystem.BuildRenderFrame(next.flagResources);
+          m_wildlifePresentationSystem.BuildRenderFrame(next.wildlife);
+          m_placementPreviewPresentationSystem.BuildRenderFrame(m_frameContext, next.preview);
+          m_roadPreviewPresentationSystem.BuildRenderFrame(next.roadPreview);
+           m_geologistOverlayPresentationSystem.BuildRenderFrame(m_frameContext, next.overlays);
+           m_confirmationMenuPresentationSystem.BuildRenderFrame(next.ui);
+           m_notificationPresentationSystem.BuildRenderFrame(m_frameContext.ui, next.ui);
+           m_projectionSystem.Project(next);
+          next.frameId = m_frameCount;
+          m_renderFrame.swap(next);
+      }
+
       // Flush any pending deletions at end of frame
       if (m_objectLifecycleManager) {
           m_objectLifecycleManager->FlushDeletions();
@@ -830,7 +868,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         return;
     }
 
-    m_gameRenderer->Render(renderQueue, m_frameContext);
+    m_gameRenderer->Render(renderQueue, m_frameContext, m_renderFrame);
 }
     void GameScene::UpdateCursor()
     {

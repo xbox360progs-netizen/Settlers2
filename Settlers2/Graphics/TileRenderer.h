@@ -1,19 +1,20 @@
 #ifndef SETTLERS2_GRAPHICS_TILE_RENDERER_H
 #define SETTLERS2_GRAPHICS_TILE_RENDERER_H
 
-#include "../World/TileType.h"
-#include "../World/TileLayer.h"
-#include "../World/Map.h"
-#include "RenderQueue.h"
 #include "RenderTypes.h"
 #include "RenderLayers.h"
 #include "TextureRegistry.h"
 #include "../Logic/CoordinateSystem.h"
 #include <map>
+#include <vector>
+#include <string>
 
 class Renderer;
-class SpriteAtlas;
-struct SpriteRegion;
+
+namespace Scene {
+    struct RenderTerrainTile;
+    class RenderCommandBuffer;
+}
 
 struct IsoTransform {
     static const float TILE_WIDTH;
@@ -35,13 +36,13 @@ public:
     TileRenderer(Renderer* renderer, int mapWidth, int mapHeight);
     ~TileRenderer();
 
-    void SetMap(World::Map* map) { m_map = map; }
-    void RenderMap();
-    void RenderTileLayer(World::LayerType layer, int layerOffset = 0);
-    void RenderTile(int tileX, int tileY, World::TileType type, int layerOffset = 0);
+    // DTO-based terrain render (Stage 6B — pushes to CommandBuffer).
+    // Reads pre-built DTOs from TerrainPresentationSystem; resolves atlas
+    // slots from m_atlasSlots (set by atlas binding loop in GameRenderer).
+    void RenderTerrainTiles(const std::vector<Scene::RenderTerrainTile>& tiles,
+                            Scene::RenderCommandBuffer& buffer);
 
     void SetProjectionMode(int mode) { m_mode = mode; }
-    void SetRenderQueue(Graphics::RenderQueue* rq) { m_renderQueue = rq; }
     void WorldToScreen(int wx, int wy, int& sx, int& sy);
     void ScreenToWorld(int sx, int sy, int& wx, int& wy);
 
@@ -52,14 +53,7 @@ public:
     std::pair<int, int> screenToTileCoords(float screenX, float screenY) const;
 
 private:
-    void submitTile(float x, float y, float width, float height,
-                    LPDIRECT3DTEXTURE9 texture, WORD textureID,
-                    float u0, float v0, float u1, float v1,
-                    WORD shaderID, BYTE blendMode, BYTE layer, WORD depth);
-
     Renderer* m_renderer;
-    World::Map* m_map;
-    Graphics::RenderQueue* m_renderQueue;
     int m_mapWidth;
     int m_mapHeight;
     int m_mode;

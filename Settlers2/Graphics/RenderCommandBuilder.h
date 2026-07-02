@@ -94,6 +94,28 @@ public:
         return *this;
     }
 
+    // Screen sprite: projected world entities (units, buildings) in screen coords.
+    // Uses SHADER_UI (no VP transform) at LAYER_WORLD for correct depth interleaving with terrain.
+    RenderCommandBuilder& ScreenSprite(int x, int y, float w, float h,
+                                      float u0, float v0, float u1, float v1,
+                                      WORD textureID, WORD depth) {
+        m_cmd.x = (float)x;
+        m_cmd.y = (float)y;
+        m_cmd.width = w;
+        m_cmd.height = h;
+        m_cmd.u0 = u0;
+        m_cmd.v0 = v0;
+        m_cmd.u1 = u1;
+        m_cmd.v1 = v1;
+        m_cmd.textureID = textureID;
+        m_cmd.shaderID = SHADER_UI;
+        m_cmd.blendMode = 1;
+        m_cmd.layer = LAYER_WORLD;
+        m_cmd.depth = depth;
+        m_cmd.color = 0xFFFFFFFF;
+        return *this;
+    }
+
     // UI element: menu, UI layer sprites
     // Default: SHADER_UI, LAYER_UI, blend=1, depth=100
     RenderCommandBuilder& UIElement(float x, float y, float w, float h,

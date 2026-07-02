@@ -57,6 +57,20 @@
 #include "../UI/UiController.h"
 #include "../UI/LocalizationService.h"
 #include "../UI/StatusManager.h"
+#include "Settlers/RenderSettler.h"
+#include "Shared/RenderFrame.h"
+#include "Settlers/SettlerPresentationSystem.h"
+#include "Buildings/BuildingPresentationSystem.h"
+#include "Terrain/TerrainPresentationSystem.h"
+#include "Cursor/CursorPresentationSystem.h"
+#include "Flags/FlagResourcePresentationSystem.h"
+#include "Wildlife/WildlifePresentationSystem.h"
+#include "Placement/PlacementPreviewPresentationSystem.h"
+#include "Roads/RoadPreviewPresentationSystem.h"
+#include "Overlays/GeologistOverlayPresentationSystem.h"
+#include "UI/ConfirmationMenuPresentationSystem.h"
+#include "UI/NotificationPresentationSystem.h"
+#include "Projection/ProjectionSystem.h"
 
 namespace Scene {
 
@@ -215,6 +229,21 @@ private:
     void GetEntranceOffset(const std::string& buildingName, int& outX, int& outY);
 
 
+
+    // Render frame snapshot (populated by Presentation systems each frame)
+    RenderFrame m_renderFrame;
+    TerrainPresentationSystem m_terrainPresentationSystem;
+    SettlerPresentationSystem m_settlerPresentationSystem;
+    BuildingPresentationSystem m_buildingPresentationSystem;
+    CursorPresentationSystem m_cursorPresentationSystem;
+    FlagResourcePresentationSystem m_flagResourcePresentationSystem;
+    WildlifePresentationSystem m_wildlifePresentationSystem;
+    PlacementPreviewPresentationSystem m_placementPreviewPresentationSystem;
+    RoadPreviewPresentationSystem m_roadPreviewPresentationSystem;
+    GeologistOverlayPresentationSystem m_geologistOverlayPresentationSystem;
+    ConfirmationMenuPresentationSystem m_confirmationMenuPresentationSystem;
+    NotificationPresentationSystem m_notificationPresentationSystem;
+    ProjectionSystem m_projectionSystem;
 
     // Job data (reused each frame)
     EconomyJobData m_economyJobData;

@@ -184,9 +184,8 @@ void MapEditor::Initialize(World::Map* map, Renderer* renderer,
     if (renderer && map)
     {
         m_tileRenderer = new TileRenderer(renderer,
-                                          map->GetWidth(),
-                                          map->GetHeight());
-        m_tileRenderer->SetMap(map);
+                                           map->GetWidth(),
+                                           map->GetHeight());
     }
 
     // Инициализация UI (палитра тайлов, панель инструментов)
