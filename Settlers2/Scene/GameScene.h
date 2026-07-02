@@ -70,6 +70,7 @@
 #include "Overlays/GeologistOverlayPresentationSystem.h"
 #include "UI/ConfirmationMenuPresentationSystem.h"
 #include "UI/NotificationPresentationSystem.h"
+#include "Resources/GroundResourcePresentationSystem.h"
 #include "Projection/ProjectionSystem.h"
 
 namespace Scene {
@@ -243,6 +244,7 @@ private:
     GeologistOverlayPresentationSystem m_geologistOverlayPresentationSystem;
     ConfirmationMenuPresentationSystem m_confirmationMenuPresentationSystem;
     NotificationPresentationSystem m_notificationPresentationSystem;
+    GroundResourcePresentationSystem m_groundResourcePresentationSystem;
     ProjectionSystem m_projectionSystem;
 
     // Job data (reused each frame)

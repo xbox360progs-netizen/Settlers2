@@ -322,6 +322,9 @@
     <ClInclude Include="Scene\Flags\FlagResourcePresentationSystem.h" />
     <ClInclude Include="Scene\Flags\RenderFlagResource.h" />
     <ClInclude Include="Scene\Cursor\CursorPresentationSystem.h" />
+    <ClInclude Include="Scene\Resources\GroundResourcePass.h" />
+    <ClInclude Include="Scene\Resources\GroundResourcePresentationSystem.h" />
+    <ClInclude Include="Scene\Resources\RenderGroundResource.h" />
     <ClInclude Include="Scene\Cursor\RenderCursor.h" />
     <ClInclude Include="Scene\Projection\ProjectionSystem.h" />
     <ClInclude Include="Scene\Projection\ScreenTransform.h" />
@@ -561,6 +564,8 @@
     <ClCompile Include="Scene\Flags\FlagResourcePass.cpp" />
     <ClCompile Include="Scene\Flags\FlagResourcePresentationSystem.cpp" />
     <ClCompile Include="Scene\Projection\ProjectionSystem.cpp" />
+    <ClCompile Include="Scene\Resources\GroundResourcePass.cpp" />
+    <ClCompile Include="Scene\Resources\GroundResourcePresentationSystem.cpp" />
     <ClCompile Include="Scene\Rendering\RenderCommandBuffer.cpp" />
     <ClCompile Include="Scene\Rendering\RenderGraph.cpp" />
     <ClCompile Include="Scene\Settlers\SettlerPresentationSystem.cpp" />

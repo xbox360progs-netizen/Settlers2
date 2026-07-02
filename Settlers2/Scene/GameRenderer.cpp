@@ -71,19 +71,18 @@ GameRenderer::GameRenderer(
     , m_buildMenu(buildMenu)
     , m_flagMenu(flagMenu)
     , m_textManager(textManager)
-    , m_groundWoodIconIdx(-1)
-    , m_groundWoodIconLoaded(false)
     , m_terrainPass(*tileRenderer)
     , m_buildingRenderPass(m_buildingRenderer)
     , m_settlerRenderPass(m_settlerRenderer)
 {
-    // Execute order: Terrain → Buildings → RoadPreview → PlacementPreview → Settlers → Wildlife → FlagResources → Overlays → UI → Cursor
+    // Execute order: Terrain → Buildings → RoadPreview → PlacementPreview → Settlers → Wildlife → GroundResources → FlagResources → Overlays → UI → Cursor
     m_renderGraph.AddPass(&m_terrainPass);
     m_renderGraph.AddPass(&m_buildingRenderPass);
     m_renderGraph.AddPass(&m_roadPreviewPass);
     m_renderGraph.AddPass(&m_placementPreviewPass);
     m_renderGraph.AddPass(&m_settlerRenderPass);
     m_renderGraph.AddPass(&m_wildlifePass);
+    m_renderGraph.AddPass(&m_groundResourcePass);
     m_renderGraph.AddPass(&m_flagResourcePass);
     m_renderGraph.AddPass(&m_geologistOverlayPass);
     m_renderGraph.AddPass(&m_confirmationMenuPass);
@@ -235,8 +234,8 @@ void GameRenderer::Render(Graphics::RenderQueue* renderQueue, const FrameContext
 
     // ─── Execute all registered render passes via RenderGraph ───────────
     // Each pass reads from RenderFrame + RenderContext and pushes to the buffer.
-    // Order: TerrainPass → BuildingPass → RoadPreviewPass → PlacementPreviewPass → SettlerPass → WildlifePass → FlagResourcePass → GeologistOverlayPass → ConfirmationMenuPass → CursorPass
-    // Future: NotificationPass, GamepadCursorPass, HudPass.
+    // Order: TerrainPass → BuildingPass → RoadPreviewPass → PlacementPreviewPass → SettlerPass → WildlifePass → GroundResourcePass → FlagResourcePass → GeologistOverlayPass → ConfirmationMenuPass → NotificationPass → CursorPass
+    // Future: GamepadCursorPass, HudPass.
     if (spriteRenderer) {
         std::tr1::shared_ptr<SpriteAtlas> buildingsAtlas = reg.getAtlas("Buildings");
         if (buildingsAtlas && buildingsAtlas->GetTexture()) {
@@ -275,6 +274,7 @@ void GameRenderer::Render(Graphics::RenderQueue* renderQueue, const FrameContext
         // Set pass texture slots (atlases already bound above)
         m_cursorPass.SetTextureSlot(SLOT_UI_CURSOR);
         m_flagResourcePass.SetTextureSlot(SLOT_FLAG_RESOURCES);
+        m_groundResourcePass.SetTextureSlot(SLOT_FLAG_RESOURCES);
         m_wildlifePass.SetTextureSlot(SLOT_UNITS);
         m_placementPreviewPass.SetTextureSlot(SLOT_BUILDINGS_HIGHLIGHT);
         m_roadPreviewPass.SetTextureSlot(SLOT_STREETS);
@@ -369,42 +369,15 @@ void GameRenderer::Render(Graphics::RenderQueue* renderQueue, const FrameContext
         }
     }
 
-    // ─── Ground resource overlays ──────────────────────────────────────
-    {
-        TextureRegistry& reg2 = TextureRegistry::instance();
-        std::tr1::shared_ptr<SpriteAtlas> iconAtlas = reg2.getAtlas("Icon");
-        if (iconAtlas && m_map && m_textManager) {
-            if (!m_groundWoodIconLoaded) {
-                uint32_t idx = iconAtlas->GetIndex("r_exotic_wood");
-                m_groundWoodIconIdx = (idx != 0xFFFFFFFF) ? (int)idx : -1;
-                m_groundWoodIconLoaded = true;
-            }
-            int n = m_map->GetGroundResourceCount();
-            if (n > 0) {
-                CoordinateSystem& coords = CoordinateSystem::GetInstance();
-                int iconIdx = m_groundWoodIconIdx;
-                const SpriteRegion* iconR = (iconIdx >= 0) ? iconAtlas->GetRegion(iconIdx) : NULL;
-                for (int gi = 0; gi < n; ++gi) {
-                    World::GroundResource* gr = m_map->GetGroundResource(gi);
-                    if (!gr) continue;
-                    float wx, wy;
-                    coords.NodeTileToWorld(gr->pos.x, gr->pos.y, wx, wy);
-                    if (iconR) {
-                        float iconSize = 24.0f;
-                        Graphics::RenderCommandBuilder()
-                            .WorldSprite(wx - iconSize * 0.5f, wy - iconSize - 8.0f,
-                                iconSize, iconSize,
-                                iconR->u0, iconR->v0, iconR->u1, iconR->v1,
-                                SLOT_UI_MENU_ICON, static_cast<WORD>(0.99f * 65535.0f))
-                            .Color(D3DCOLOR_ARGB(220, 255, 255, 255))
-                            .Layer(LAYER_FOREGROUND)
-                            .Submit(renderQueue);
-                    }
-                    char buf[16];
-                    _snprintf(buf, sizeof(buf), "%d", gr->amount);
-                    m_textManager->DrawTextToWorld(buf, wx, wy - 40.0f, D3DCOLOR_ARGB(255, 255, 255, 0), 0.08f);
-                }
-            }
+    // ─── Ground resource amount text (stage 7E2 bridge — removed with CommandBuffer text support) ───
+    if (m_textManager && !renderFrame.groundResources.empty()) {
+        for (size_t i = 0; i < renderFrame.groundResources.size(); ++i) {
+            const RenderGroundResource& r = renderFrame.groundResources[i];
+            if (r.visualOnly) continue;
+            char buf[16];
+            _snprintf(buf, sizeof(buf), "%d", r.amount);
+            m_textManager->DrawTextToWorld(buf, r.transform.worldX, r.transform.worldY - 40.0f,
+                D3DCOLOR_ARGB(255, 255, 255, 0), 0.08f);
         }
     }
 

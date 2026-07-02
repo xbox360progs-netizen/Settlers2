@@ -248,14 +248,25 @@ and logical owner may differ; after PickUp they must converge (Carrier carries).
 
 ---
 
-### Roadmap to Transport v1 complete
+### Roadmap (updated)
 
 ```
-8.3   Parallel Validation    → log [MIGRATION] old=new per delivery
-8.3.5 Soak Tests             → T1–T8, 30+ min runs, telemetry clean
-8.4   Legacy Removal          → delete DemandTicket, TransportJobManager, Reserve, bridge code
-tag   transport-v1-complete   → stable baseline for Cycle 3
-Cycle 3  Definition Pattern  → BuildingDefinition table
+Transport Complete
+        │
+        ▼
+RenderFrame becomes the only visual source
+        │
+        ▼
+Old renderer removed
+        │
+        ▼
+Visual World Verification (T1–T8)
+        │
+        ▼
+Remove legacy transport (Phase 8.4)
+        │
+        ▼
+Cycle 3 — Definition Pattern
 ```
 
 # Phase 8 Migration Checklist
@@ -977,4 +988,31 @@ WorkerType   → WorkerDefinition   → SettlerVisual   → RenderFrame
 ```
 
 Eliminates all `if (type == WOODCUTTER)` from render path.
+
+---
+
+# Visual Completeness
+
+**RenderFrame is the sole visual representation of Simulation.**
+
+Every gameplay-visible state transition must be observable through RenderFrame.
+Renderer never queries Simulation Managers or Controllers.
+
+If a gameplay event cannot be verified visually through RenderFrame,
+the rendering pipeline is incomplete.
+
+```
+Simulation
+    ↓
+Presentation (transforms state → DTOs)
+    ↓
+RenderFrame (immutable snapshot)
+    ↓
+RenderGraph (Passes → CommandBuffer)
+    ↓
+GPU
+```
+
+**Violation**: any `#include` of a Simulation Manager header in a Renderer,
+or any direct call to `FlagManager/RoadManager/Map` from a RenderPass.
 ```

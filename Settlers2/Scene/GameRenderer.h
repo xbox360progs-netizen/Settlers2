@@ -15,6 +15,7 @@
 #include "Overlays/GeologistOverlayPass.h"
 #include "UI/ConfirmationMenuPass.h"
 #include "UI/NotificationPass.h"
+#include "Resources/GroundResourcePass.h"
 #include "Rendering/RenderCommandBuffer.h"
 #include "Rendering/RenderGraph.h"
 
@@ -110,8 +111,6 @@ private:
     BuildingRenderer m_buildingRenderer;
 
     // Self-contained render state (not shared with GameScene)
-    int  m_groundWoodIconIdx;
-    bool m_groundWoodIconLoaded;
 
     // Scene-side command buffer: collects projected entity commands
     // before batch submission to the graphics RenderQueue.
@@ -130,6 +129,7 @@ private:
     GeologistOverlayPass m_geologistOverlayPass;
     ConfirmationMenuPass m_confirmationMenuPass;
     NotificationPass m_notificationPass;
+    GroundResourcePass m_groundResourcePass;
 };
 
 } // namespace Scene
