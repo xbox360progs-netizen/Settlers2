@@ -4,33 +4,33 @@
 #include "../Shared/RenderBuilding.h"
 #include "../Rendering/RenderCommandBuffer.h"
 #include "../../Graphics/SpriteAtlas.h"
-#include "../TextureSlots.h"
-#include "../BuildingPlacement.h"
 
 namespace Scene {
 
 BuildingRenderer::BuildingRenderer()
     : m_buildingsAtlas(NULL)
-    , m_buildingsSlot(SLOT_BUILDINGS_HIGHLIGHT)
+    , m_buildingsSlot(0)
     , m_flagSpriteIdx(-1)
     , m_flagSpriteCached(false)
+    , m_constrSpriteIdx(-1)
+    , m_constrSpriteCached(false)
 {
 }
 
 void BuildingRenderer::SetAtlases(
-    Graphics::SpriteAtlas* buildingsAtlas,
+    SpriteAtlas* buildingsAtlas,
     int buildingsTextureSlot)
 {
     m_buildingsAtlas = buildingsAtlas;
     m_buildingsSlot = buildingsTextureSlot;
     m_flagSpriteCached = false;
+    m_constrSpriteCached = false;
 }
 
-int BuildingRenderer::ResolveSpriteIndex(const RenderBuilding& b) const
+int BuildingRenderer::ResolveSpriteIndex(const RenderBuilding& b)
 {
     const BuildingVisual& v = b.visual;
     if (v.kind == 0) {
-        // Flag sprite
         if (!m_flagSpriteCached && m_buildingsAtlas) {
             m_flagSpriteIdx = (int)m_buildingsAtlas->GetIndex("flag");
             m_flagSpriteCached = true;
@@ -38,20 +38,17 @@ int BuildingRenderer::ResolveSpriteIndex(const RenderBuilding& b) const
         return m_flagSpriteIdx;
     }
 
-    // Building sprite
-    const char* spriteName = BuildingPlacementManager::GetBuildingSpriteName(
-        static_cast<World::BuildingType>(v.buildingType));
-    if (!spriteName || !spriteName[0]) return -1;
-
-    if (v.depleted && m_buildingsAtlas) {
-        std::string depletedName = std::string(spriteName) + "_depleted";
-        int idx = (int)m_buildingsAtlas->GetIndex(depletedName.c_str());
-        if (idx >= 0) return idx;
+    if (v.kind == 2) {
+        if (!m_constrSpriteCached && m_buildingsAtlas) {
+            m_constrSpriteIdx = (int)m_buildingsAtlas->GetIndex("construction");
+            if (m_constrSpriteIdx < 0) m_constrSpriteIdx = (int)m_buildingsAtlas->GetIndex("Construction");
+            if (m_constrSpriteIdx < 0) m_constrSpriteIdx = (int)m_buildingsAtlas->GetIndex("ConstructionSite");
+            m_constrSpriteCached = true;
+        }
+        return m_constrSpriteIdx;
     }
 
-    if (m_buildingsAtlas) {
-        return (int)m_buildingsAtlas->GetIndex(spriteName);
-    }
+    // kind == 1: no sprite rendered by BuildingRenderer (handled by terrain tile layer)
     return -1;
 }
 
@@ -63,24 +60,59 @@ void BuildingRenderer::Render(
 
     for (size_t i = 0; i < frame.buildings.size(); ++i) {
         const RenderBuilding& b = frame.buildings[i];
-        const RenderTransform& t = b.transform;
+        const BuildingVisual& v = b.visual;
 
-        int spriteIdx = ResolveSpriteIndex(b);
-        if (spriteIdx < 0) continue;
+        if (v.kind == 0 || v.kind == 2) {
+            int spriteIdx = ResolveSpriteIndex(b);
+            if (spriteIdx < 0) continue;
 
-        const SpriteRegion* r = m_buildingsAtlas->GetRegion(spriteIdx);
-        if (!r) continue;
+            const SpriteRegion* r = m_buildingsAtlas->GetRegion(spriteIdx);
+            if (!r) continue;
 
-        WORD depth = static_cast<WORD>(t.depthLayer);
+            buffer.PushSprite(
+                b.transform.screenX - (int)(r->pivotX + 0.5f),
+                b.transform.screenY - (int)(r->pivotY + 0.5f),
+                (float)r->width, (float)r->height,
+                r->u0, r->v0, r->u1, r->v1,
+                m_buildingsSlot,
+                static_cast<WORD>(b.transform.depthLayer),
+                v.color);
+            continue;
+        }
 
-        uint32_t color = b.visual.color;
-        buffer.PushSprite(
-            t.screenX - (int)(r->pivotX + 0.5f),
-            t.screenY - (int)(r->pivotY + 0.5f),
-            (float)r->width, (float)r->height,
-            r->u0, r->v0, r->u1, r->v1,
-            m_buildingsSlot, depth, color);
+        // kind == 1: state overlays for completed buildings
+        if (v.kind == 1) {
+            RenderStateOverlay(buffer, b.transform, v, static_cast<WORD>(b.transform.depthLayer));
+        }
     }
+}
+
+void BuildingRenderer::RenderStateOverlay(
+    RenderCommandBuffer& buffer,
+    const RenderTransform& t,
+    const BuildingVisual& v,
+    WORD buildingDepth)
+{
+    // FSM state indicator: small colored rect above building.
+    // HasWorker indicator: green dot if worker present.
+    uint32_t stateColor = 0x00808080;  // Idle → semi-transparent gray
+
+    switch (v.fsmState) {
+        case 1: stateColor = 0xFF00FF00; break; // Producing → green
+        case 2: stateColor = 0xFFFF0000; break; // OutputFull → red
+        default: break;
+    }
+
+    float overlaySize = 6.0f;
+    int ox1 = t.screenX - (int)(overlaySize * 0.5f);
+    int oy1 = t.screenY - 48 - (int)(overlaySize * 0.5f); // fixed offset above building
+
+    buffer.PushSprite(
+        ox1, oy1, overlaySize, overlaySize,
+        0.0f, 0.0f, 1.0f, 1.0f,
+        0,
+        static_cast<WORD>(buildingDepth + 5),
+        stateColor);
 }
 
 } // namespace Scene

@@ -1,141 +1,28 @@
-﻿Построение начато 17.06.2026 20:23:09.
+﻿Построение начато 02.07.2026 10:54:44.
      1>Проект "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" в узле 2 (целевые объекты build).
      1>InitializeBuildStatus:
-         Создание "Debug\Settlers2.unsuccessfulbuild", так как было задано "AlwaysCreate".
+         Обращение к "Debug\Settlers2.unsuccessfulbuild".
        ClCompile:
          Для всех выходных данных обновления не требуется.
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D _DEBUG /D _XBOX /GF- /Gm /MTd /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Debug\Settlers2.pch" /Fo"Debug\\" /Fd"Debug\vc100.pdb" /TP Core\GameEngine.cpp Editor\MapEditor.cpp Logic\AISystem.cpp Logic\EconomyManager.cpp Logic\ResourceRegistry.cpp Scene\GameScene.cpp World\CargoManager.cpp World\CarrierManager.cpp World\Components\Building.cpp World\Components\BuildingFactory.cpp World\ConstructionManager.cpp World\FlagManager.cpp World\MapSerializer.cpp World\ObjectDeletionRules.cpp World\ObjectLifecycleManager.cpp World\RoadManager.cpp World\Systems\CarrierSystem.cpp World\WorkerManager.cpp /callcap /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
-         CargoManager.cpp
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D _DEBUG /D _XBOX /GF- /Gm /MTd /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Debug\Settlers2.pch" /Fo"Debug\\" /Fd"Debug\vc100.pdb" /TP Core\GameEngine.cpp Scene\GameRenderer.cpp Scene\GameScene.cpp /callcap /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
+         GameScene.cpp
+     1>d:\development\settlers2\settlers2\scene\Terrain/TerrainPresentationSystem.h(10): warning C4099: 'Scene::RenderFrame' : type name first seen using 'struct' now seen using 'class'
+                 d:\development\settlers2\settlers2\scene\Shared/RenderFrame.h(22) : see declaration of 'Scene::RenderFrame'
+         GameRenderer.cpp
+     1>d:\development\settlers2\settlers2\scene\GameRenderer.h(70): error C2061: syntax error : identifier 'Camera'
+     1>Scene\GameRenderer.cpp(61): error C2511: 'Scene::GameRenderer::GameRenderer(TileRenderer *,Renderer *,Camera *,World::Map *,World::FlagManager *,World::CarrierManager *,World::ConstructionManager *,World::WorkerManager *,Logic::EconomyManager *,Scene::PlacementController *,GridMenu *,UIMenu *,TextManager *)' : overloaded member function not found in 'Scene::GameRenderer'
+                 d:\development\settlers2\settlers2\scene\GameRenderer.h(68) : see declaration of 'Scene::GameRenderer'
+     1>Scene\GameRenderer.cpp(737): error C2059: syntax error : '}'
+     1>Scene\GameRenderer.cpp(739): error C2612: trailing 'end of file' illegal in base/member initializer list
+     1>Scene\GameRenderer.cpp(739): fatal error C1004: unexpected end-of-file found
          Generating Code...
          Compiling...
          GameEngine.cpp
+     1>d:\development\settlers2\settlers2\scene\Terrain/TerrainPresentationSystem.h(10): warning C4099: 'Scene::RenderFrame' : type name first seen using 'struct' now seen using 'class'
+                 d:\development\settlers2\settlers2\scene\Shared/RenderFrame.h(22) : see declaration of 'Scene::RenderFrame'
          Generating Code...
-         Compiling...
-         CarrierSystem.cpp
-         RoadManager.cpp
-         ObjectLifecycleManager.cpp
-         ObjectDeletionRules.cpp
-         FlagManager.cpp
-         BuildingFactory.cpp
-         CarrierManager.cpp
-         GameScene.cpp
-         AISystem.cpp
-         Generating Code...
-         WorkerManager.cpp
-         MapSerializer.cpp
-         ConstructionManager.cpp
-         Building.cpp
-         ResourceRegistry.cpp
-         EconomyManager.cpp
-         MapEditor.cpp
-       Link:
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\link.exe /ERRORREPORT:PROMPT /OUT:"D:\development\Settlers2\Settlers2\Debug\Settlers2.exe" /INCREMENTAL /NOLOGO xapilibd.lib d3d9d.lib d3dx9d.lib xgraphicsd.lib xboxkrnl.lib xnetd.lib xaudiod2.lib xactd3.lib x3daudiod.lib xmcored.lib xbdm.lib vcompd.lib /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"D:\development\Settlers2\Settlers2\Debug\Settlers2.pdb" /STACK:"262144","262144" /TLBID:1 /IMPLIB:"D:\development\Settlers2\Settlers2\Debug\Settlers2.lib" Debug\GameEngine.obj
-         Debug\LanguageManager.obj
-         Debug\JobManager.obj
-         Debug\ThreadSync.obj
-         Debug\BatchBuilder.obj
-         Debug\BinFileManager.obj
-         Debug\BitmapFont.obj
-         Debug\BitmapText.obj
-         Debug\Camera.obj
-         Debug\FallbackResources.obj
-         Debug\Light.obj
-         Debug\LightOptimizer.obj
-         Debug\OverlayFPS.obj
-         Debug\GPUTimer.obj
-         Debug\PostFX.obj
-         Debug\PostProcessing.obj
-         Debug\Quad.obj
-         Debug\RenderDebugOverlay.obj
-         Debug\RenderFrame.obj
-         Debug\Renderer.obj
-         Debug\DebugOverlay.obj
-         Debug\RenderQueue.obj
-         Debug\RenderStateValidator.obj
-         Debug\RenderTargetManager.obj
-         Debug\ShaderManager.obj
-         Debug\SpriteAtlas.obj
-         Debug\SpriteRenderer.obj
-         Debug\SpriteShadow.obj
-         Debug\TextManager.obj
-         Debug\TextureLoader.obj
-         Debug\TextureRegistry.obj
-         Debug\TileRenderer.obj
-         Debug\Xbox360EDRAM.obj
-         Debug\Gamepad.obj
-         Debug\InputContext.obj
-         Debug\InputController.obj
-         Debug\InputManager.obj
-         Debug\ScreenKeyboard.obj
-         Debug\AISystem.obj
-         Debug\EconomyManager.obj
-         Debug\ResourceRegistry.obj
-         Debug\IsoGrid.obj
-         Debug\WeightMap.obj
-         Debug\EditorScene.obj
-         Debug\GameScene.obj
-         Debug\LoadingScene.obj
-         Debug\MenuScene.obj
-         Debug\Scene.obj
-         Debug\SceneManager.obj
-         Debug\Settlers2.obj
-         Debug\stdafx.obj
-         Debug\BuildMenu.obj
-         Debug\Button.obj
-         Debug\EditorUI.obj
-         Debug\GridMenu.obj
-         Debug\Minimap.obj
-         Debug\Panel.obj
-         Debug\RadialMenu.obj
-         Debug\ResourceBar.obj
-         Debug\UIManager.obj
-         Debug\Widget.obj
-         Debug\WeightMenu.obj
-         Debug\Building.obj
-         Debug\BuildingFactory.obj
-         Debug\Collider.obj
-         Debug\Model.obj
-         Debug\Resource.obj
-         Debug\Transform.obj
-         Debug\Unit.obj
-         Debug\CarrierManager.obj
-         Debug\CargoManager.obj
-         Debug\DemandManager.obj
-         Debug\FlagManager.obj
-         Debug\HabitatRegistry.obj
-         Debug\RoadManager.obj
-         Debug\TransportJobManager.obj
-         Debug\ObjectDeletionRules.obj
-         Debug\ObjectLifecycleManager.obj
-         Debug\ConstructionSite.obj
-         Debug\ConstructionManager.obj
-         Debug\Entity.obj
-         Debug\EntityManager.obj
-         Debug\Map.obj
-         Debug\MapSerializer.obj
-         Debug\AnimalManager.obj
-         Debug\WorkerManager.obj
-         Debug\WildlifeSystem.obj
-         Debug\EconomySystem.obj
-         Debug\PathfindingSystem.obj
-         Debug\PhysicsSystem.obj
-         Debug\AnimalSystem.obj
-         Debug\CarrierSystem.obj
-         Debug\RenderSystem.obj
-         Debug\TileLayer.obj
-         Debug\MapEditor.obj
-         Debug\UnitManager.obj
-         Debug\TilePalette.obj /XEX:NO
-       ImageXex:
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\imagexex.exe /out:"D:\development\Settlers2\Settlers2\Debug\Settlers2.xex" "D:\development\Settlers2\Settlers2\Debug\Settlers2.exe" 
-         Microsoft(R) Xbox 360 Image File Builder Version 2.0.21256.0
-         (c)2012 Microsoft Corporation. All rights reserved.
-         
-       FinalizeBuildStatus:
-         Файл "Debug\Settlers2.unsuccessfulbuild" удаляется.
-         Обращение к "Debug\Settlers2.lastbuildstate".
-     1>Построение проекта "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" завершено (целевые объекты build).
+     1>Построение проекта "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" завершено (целевые объекты build) с ошибкой.
 
-Построение успешно завершено.
+СБОЙ построения.
 
-Затраченное время: 00:00:22.73
+Затраченное время: 00:00:10.13

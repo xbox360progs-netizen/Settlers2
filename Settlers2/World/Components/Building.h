@@ -226,6 +226,7 @@ public:
 
     void SetDepleted() { m_isDepleted = true; }
     bool IsDepleted() const { return m_isDepleted; }
+    BuildingFSM GetFsmState() const { return m_fsmState; }
 
     int ConsumeFood() {
         int varietyBonus = 0;

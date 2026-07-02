@@ -14,7 +14,7 @@
 namespace Scene {
 
 LoadingScene::LoadingScene()
-    : Scene("Loading")
+    : SceneBase("Loading")
     , m_currentTaskIndex(0)
     , m_completedWeight(0.0f)
     , m_totalWeight(0.0f)
@@ -97,7 +97,7 @@ void LoadingScene::Load()
     // Check if target scene is already loaded to skip loading
     SceneManager* mgr = GetSceneManager();
     if (mgr) {
-        Scene* target = mgr->GetScene(m_targetScene);
+        SceneBase* target = mgr->GetScene(m_targetScene);
         if (target && target->IsLoaded()) {
             std::cout << "[LoadingScene] Target scene " << m_targetScene << " already loaded, skipping loading." << std::endl;
             std::cout.flush();

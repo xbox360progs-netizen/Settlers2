@@ -56,7 +56,7 @@ SceneManager::~SceneManager()
     Clear();
 }
 
-void SceneManager::AddScene(Scene* scene)
+void SceneManager::AddScene(SceneBase* scene)
 {
     if (!scene)
     {
@@ -66,7 +66,7 @@ void SceneManager::AddScene(Scene* scene)
     // Set this as the scene's manager
     scene->SetSceneManager(this);
 
-    std::map<std::string, Scene*>::iterator it = m_scenes.find(scene->GetName());
+    std::map<std::string, SceneBase*>::iterator it = m_scenes.find(scene->GetName());
     if (it != m_scenes.end())
     {
         // Сцена с таким именем уже есть — удаляем старую
@@ -81,7 +81,7 @@ void SceneManager::AddScene(Scene* scene)
 
 void SceneManager::RemoveScene(const std::string& name)
 {
-    std::map<std::string, Scene*>::iterator it = m_scenes.find(name);
+    std::map<std::string, SceneBase*>::iterator it = m_scenes.find(name);
     if (it != m_scenes.end())
     {
         if (m_currentScene == it->second)
@@ -110,7 +110,7 @@ bool SceneManager::SwitchTo(const std::string& name)
     m_bSceneGraphicsReady = false;
     OutputDebugStringA("[SceneManager::SwitchTo] Blocking render thread\n");
 
-    std::map<std::string, Scene*>::iterator it = m_scenes.find(name);
+    std::map<std::string, SceneBase*>::iterator it = m_scenes.find(name);
     if (it == m_scenes.end())
     {
         _snprintf(buf, sizeof(buf), "[SceneManager::SwitchTo] ERROR Scene not found=%s\n", name.c_str());
@@ -121,7 +121,7 @@ bool SceneManager::SwitchTo(const std::string& name)
     OutputDebugStringA("[SceneManager::SwitchTo] Scene found\n");
 
     // Exit current scene OUTSIDE critical section to prevent deadlock
-    Scene* oldScene = m_currentScene;
+    SceneBase* oldScene = m_currentScene;
     if (oldScene)
     {
         OutputDebugStringA("[SceneManager::SwitchTo] Found old scene, exiting\n");
@@ -132,7 +132,7 @@ bool SceneManager::SwitchTo(const std::string& name)
     }
 
     // Switch to new scene
-    Scene* newScene = it->second;
+    SceneBase* newScene = it->second;
     m_currentScene = newScene;
     OutputDebugStringA("[SceneManager::SwitchTo] New scene set\n");
 
@@ -183,9 +183,9 @@ bool SceneManager::SwitchTo(const std::string& name)
     return true;
 }
 
-Scene* SceneManager::GetScene(const std::string& name) const
+SceneBase* SceneManager::GetScene(const std::string& name) const
 {
-    std::map<std::string, Scene*>::const_iterator it = m_scenes.find(name);
+    std::map<std::string, SceneBase*>::const_iterator it = m_scenes.find(name);
     if (it != m_scenes.end())
     {
         return it->second;
@@ -252,7 +252,7 @@ void SceneManager::Render()
 
 void SceneManager::Clear()
 {
-    for (std::map<std::string, Scene*>::iterator it = m_scenes.begin();
+    for (std::map<std::string, SceneBase*>::iterator it = m_scenes.begin();
          it != m_scenes.end(); ++it)
     {
         if (it->second->IsLoaded())

@@ -46,7 +46,7 @@ void SettlerRenderPass::Execute(const RenderFrame& frame, const RenderContext& c
 GameRenderer::GameRenderer(
     TileRenderer*     tileRenderer,
     Renderer*         renderer,
-    Camera*           camera,
+    Camera* camera,
     World::Map*       map,
     World::FlagManager*         flagManager,
     World::CarrierManager*      carrierManager,

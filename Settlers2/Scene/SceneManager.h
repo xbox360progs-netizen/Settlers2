@@ -32,16 +32,16 @@ public:
     ~SceneManager();
 
     // Управление сценами
-    void AddScene(Scene* scene);
+    void AddScene(SceneBase* scene);
     void RemoveScene(const std::string& name);
 
     // Переключение сцен
     bool SwitchTo(const std::string& name);
-    Scene* GetCurrentScene() const { return m_currentScene; }
+    SceneBase* GetCurrentScene() const { return m_currentScene; }
     const std::string& GetCurrentSceneName() const;
 
     // Получить сцену по имени
-    Scene* GetScene(const std::string& name) const;
+    SceneBase* GetScene(const std::string& name) const;
 
     // Обновление и рендер текущей сцены
     void Update(float deltaTime);
@@ -87,8 +87,8 @@ public:
     void ResetFrameRendered();
 
 private:
-    std::map<std::string, Scene*> m_scenes;
-    Scene* volatile m_currentScene;  // volatile for Xenon cache coherency
+    std::map<std::string, SceneBase*> m_scenes;
+    SceneBase* volatile m_currentScene;  // volatile for Xenon cache coherency
     ShaderManager* m_shaderManager;
     Graphics::SpriteRenderer* m_spriteRenderer;
     Renderer* m_renderer;

@@ -4,17 +4,17 @@
 
 namespace Scene {
 
-SceneManager* Scene::GetSceneManager() const
+SceneManager* SceneBase::GetSceneManager() const
 {
     return m_sceneManager;
 }
 
-void Scene::SetSceneManager(SceneManager* manager)
+void SceneBase::SetSceneManager(SceneManager* manager)
 {
     m_sceneManager = manager;
 }
 
-Scene::Scene(const std::string& name)
+SceneBase::SceneBase(const std::string& name)
     : m_name(name)
     , m_loaded(false)
     , m_hasPendingSwitch(false)
@@ -23,29 +23,27 @@ Scene::Scene(const std::string& name)
 {
 }
 
-void Scene::RequestSceneSwitch(const std::string& sceneName)
+void SceneBase::RequestSceneSwitch(const std::string& sceneName)
 {
     m_pendingSceneName = sceneName;
     m_hasPendingSwitch = true;
 }
 
-void Scene::Initialize(LPDIRECT3DDEVICE9 device, Graphics::SpriteRenderer* spriteRenderer)
+void SceneBase::Initialize(LPDIRECT3DDEVICE9 device, Graphics::SpriteRenderer* spriteRenderer)
 {
     (void)device;
     (void)spriteRenderer;
-    // Базовая реализация - ничего не делает
-    // Производные классы могут переопределить
 }
 
-Scene::~Scene()
+SceneBase::~SceneBase()
 {
 }
 
-void Scene::OnEnter()
+void SceneBase::OnEnter()
 {
 }
 
-void Scene::OnExit()
+void SceneBase::OnExit()
 {
 }
 

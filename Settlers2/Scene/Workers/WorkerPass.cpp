@@ -6,6 +6,7 @@
 #include "../../Graphics/SpriteAtlas.h"
 #include "../../Graphics/TextureRegistry.h"
 #include "../../World/ResourceNode.h"
+#include "../../World/Components/Building.h"
 #include "../TextureSlots.h"
 
 namespace Scene {
@@ -36,17 +37,17 @@ int WorkerPass::ResolveSpriteIndex(const RenderWorker& w) const
 
         case 3: // SettlerType_BuildingWorker
             switch (w.buildingType) {
-                case World::Building_Woodcutter:
+                case World::Woodcutter:
                     if (w.dy < 0) return (w.dx < 0) ? 19 : 18;
                     if (w.dy > 0) return (w.dx >= 0) ? 20 : 21;
                     return (w.dx >= 0) ? 20 : 19;
-                case World::Building_Forester:
+                case World::Forester:
                     if (w.dy < 0) return (w.dx < 0) ? 37 : 36;
                     if (w.dy > 0) return (w.dx >= 0) ? 34 : 35;
                     return (w.dx >= 0) ? 34 : 37;
-                case World::Building_Fisher:
+                case World::Fisher:
                     return (w.dx >= 0) ? 6 : 7;
-                case World::Building_Hunter:
+                case World::Hunter:
                     return (w.dx >= 0) ? 12 : 13;
                 default:
                     return (w.dx >= 0) ? 4 : 5;

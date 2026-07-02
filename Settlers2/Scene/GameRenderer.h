@@ -42,7 +42,6 @@ namespace Scene {
 }
 class GridMenu;
 class UIMenu;
-struct RenderContext;
 
 namespace Scene {
 
@@ -71,7 +70,7 @@ public:
     GameRenderer(
         TileRenderer*     tileRenderer,
         Renderer*         renderer,
-        Camera*           camera,
+        Camera* camera,
         World::Map*       map,
         World::FlagManager*         flagManager,
         World::CarrierManager*      carrierManager,
@@ -92,7 +91,7 @@ private:
     // Dependencies (non-owning pointers)
     TileRenderer*     m_tileRenderer;
     Renderer*         m_renderer;
-    Camera*           m_camera;
+    Camera* m_camera;
     World::Map*       m_map;
     World::FlagManager*         m_flagManager;
     World::CarrierManager*      m_carrierManager;

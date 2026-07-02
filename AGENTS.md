@@ -378,13 +378,35 @@ Multi-site with shared roads: Hunter at (18,38) received all 3 Wood via road 2 c
 
 ---
 
-# Next Steps
+# Next Steps (Stabilization Phase)
 
-1. **Soak tests** (8.3.5): T1–T8 — multiple buildings, road delete, flag delete, long routes, mass construction
-2. **Phase 8.4**: Remove legacy TransportJobManager, DemandTicket, Reserve bridge code, `kUseTransportJobs`
-3. **Tag**: `transport-v1-complete`
-4. **UI6**: EditorScene migration to MenuModel / UiMessageId pattern (~268 string literals in EditorScene.cpp + TilePalette.cpp)
-5. **Cycle 3**: Definition Pattern — `BuildingDefinition` table
+## Pipeline
+
+```
+Build Errors Fixed (this session)  ✅
+        │
+        ▼
+Visual World Smoke Test (Xbox 360 — 10-15 min)
+        │
+        ▼
+Find remaining render bypasses
+(queue.Push, WorldSprite, Camera::WorldToScreen, FlagManager* in Renderers)
+        │
+        ▼
+Visual World Complete (delete legacy code)
+        │
+        ▼
+Update AGENTS.md with proven invariants
+        │
+        ▼
+T1–T8 soak tests
+        │
+        ▼
+Remove legacy transport (Phase 8.4)
+        │
+        ▼
+Cycle 3 — Definition Pattern
+```
 
 ## Definition Pattern (Architectural Invariant for Cycle 3)
 
@@ -947,18 +969,19 @@ Geologist world-space overlays migrated to DTO+Pass pattern:
 ```
 Terrain          ✅  (Stage 6C)
 Buildings        ✅  (Stage 5)
-Settlers         ✅  (Stage 1-3)
+Workers          ✅  (Stage 7E3 — replaces Settlers)
+Settlers         🗑️  (deprecated — kept for RenderGraph registration only)
 Wildlife         ✅  (Stage 7C)
 Road Preview     ✅  (Stage 7D2)
 Placement        ✅  (Stage 7D1)
 Cursor           ✅  (Stage 7A)
 Flag Resources   ✅  (Stage 7B)
 Overlays         ✅  (Stage 7E1)
+Ground Resources ✅  (Stage 7E2)
 ---              ---
 UI               ⏳  (Stage 8B1 — ConfirmationMenuPass)
                  👆  (Stage 8B2 — NotificationPass)
 Background       ⏳  (Stage 7F)
-Ground Resources ⏳  (Stage 7E2)
 ```
 
 ## Stage 10 — Asset Definition Pipeline
@@ -1015,4 +1038,58 @@ GPU
 
 **Violation**: any `#include` of a Simulation Manager header in a Renderer,
 or any direct call to `FlagManager/RoadManager/Map` from a RenderPass.
+
+---
+
+# Build Stabilization Session (2026-07-02)
+
+## Problem
+
+After committing Stage 7E4 (Building State Presentation), the project had 9+ build errors:
+
+1. **C2757**: `class Scene` conflicts with `Scene` namespace (`Scene.h:16`)
+2. **`const` mutating cached fields**: `BuildingRenderer::ResolveSpriteIndex` declared `const` but wrote `m_flagSpriteCached`
+3. **Deleted enum refs**: `SettlerType`, `SettlerState` enums removed but still referenced in `SettlerPresentationSystem.cpp` + `SettlerRenderer.cpp`
+4. **Wrong enum names**: `Building_Woodcutter` → `Woodcutter` (BuildingType enum renamed)
+5. **Wrong method name**: `GetFlagCount()` → `GetCount()`
+6. **Missing `stdafx.h`**: `GroundResourcePresentationSystem.cpp`
+7. **Wrong namespace forward decl**: `UIMenu` forward-declared inside `namespace Scene` instead of global
+8. **`Graphics::SpriteAtlas` vs `::SpriteAtlas`**: Forward-declared as `Graphics::SpriteAtlas` but real class is in global namespace — caused type mismatch + undefined type errors
+9. **Missing `Building.h` include**: `WorkerPass.cpp` referenced `World::Woodcutter` etc. without including `World/Components/Building.h`
+
+## All 11 Fixes
+
+| # | Fix | File(s) |
+|---|-----|---------|
+| 1 | `class Scene` → `class SceneBase`; constructor `Scene` → `SceneBase` | `Scene/Scene.h`, `Scene/Scene.cpp` |
+| 2 | Remove `const` from `ResolveSpriteIndex` (caches m_flagSpriteCached) | `Buildings/BuildingRenderer.h/.cpp` |
+| 3 | Strip `CollectCarriers/Builders/Workers`; keep no-op `BuildRenderFrame` | `Settlers/SettlerPresentationSystem.h/.cpp` |
+| 4 | Strip all `SettlerType`/`SettlerState` refs; `Render` becomes no-op | `Settlers/SettlerRenderer.h/.cpp` |
+| 5 | `Building_Woodcutter` → `Woodcutter` etc. | `Workers/WorkerPass.cpp` |
+| 6 | Add `#include "World/Components/Building.h"` | `Workers/WorkerPass.cpp` |
+| 7 | `GetFlagCount()` → `GetCount()` | `Workers/WorkerPresentationSystem.cpp` |
+| 8 | Add `#include "stdafx.h"` | `Resources/GroundResourcePresentationSystem.cpp` |
+| 9 | Move `class UIMenu;` to global scope | `UI/ConfirmationMenuPresentationSystem.h` |
+| 10 | `Graphics::SpriteAtlas*` → `SpriteAtlas*` (forward decl mismatch) | `Buildings/BuildingRenderer.h/.cpp` |
+| 11 | Same forward decl fix | `Settlers/SettlerRenderer.h/.cpp` |
+
+### Pattern: namespace hygiene for forward declarations
+
+All 3rd-party types used in Scene/ headers must be forward-declared in their **real** namespace. The pattern `namespace Graphics { class SpriteAtlas; }` is wrong when `SpriteAtlas` lives in the global namespace. Rule: verify the actual `class Foo { ... }` declaration location, not the folder path.
+
+## Status
+
+All 9 build error categories resolved. Cannot verify via local build (no Xbox 360 SDK available — `stdafx.h` includes `<xtl.h>`). Next: visual smoke test on Xbox 360 hardware when SDK becomes available.
+
+---
+
+# Updated Next Steps (Stabilization Phase)
+
+1. **Visual World Smoke Test** (10-15 min on Xbox 360): check builder visible, carrier walking, resources visible, building constructs, overlays change, worker at building, no teleporting, no double-render
+2. **Find remaining render bypasses**: scan for `queue.Push(...)`, `WorldSprite(...)`, `Camera::WorldToScreen(...)`, `FlagManager*` in Renderer code
+3. **Visual World Complete**: delete `SettlerPresentationSystem`, `SettlerRenderer`, inline text bridges, old `DrawXXX` calls, remaining `WorldSprite` calls, direct Manager accesses in Renderer
+4. **Update AGENTS.md** with final proven invariants
+5. **T1–T8 soak tests**
+6. **Remove legacy transport (Phase 8.4)**
+7. **Cycle 3**
 ```

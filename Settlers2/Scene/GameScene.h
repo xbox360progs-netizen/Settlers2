@@ -82,7 +82,7 @@ struct EconomyJobData
     World::CarrierManager* carriers;
 };
 
-class GameScene : public Scene, public Core::EventListener, public IInputHost, public IGeologistHost
+class GameScene : public SceneBase, public Core::EventListener, public IInputHost, public IGeologistHost
 {
 public:
     GameScene();

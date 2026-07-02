@@ -16,13 +16,13 @@ namespace Scene {
         if (!m_sceneManager)
             return;
 
-        Scene* currentScene = m_sceneManager->GetCurrentScene();
+        SceneBase* currentScene = m_sceneManager->GetCurrentScene();
 
         switch (action.command) {
 
         case UI::UI_CMD_NEW_GAME:
             {
-                Scene* loading = m_sceneManager->GetScene("Loading");
+                SceneBase* loading = m_sceneManager->GetScene("Loading");
                 if (loading) {
                     LoadingScene* ls = static_cast<LoadingScene*>(loading);
                     ls->SetTargetScene("Game");
@@ -37,7 +37,7 @@ namespace Scene {
                 EditorScene::s_mapGridWidth = action.value;
                 EditorScene::s_mapGridHeight = action.value;
 
-                Scene* loading = m_sceneManager->GetScene("Loading");
+                SceneBase* loading = m_sceneManager->GetScene("Loading");
                 if (loading) {
                     LoadingScene* ls = static_cast<LoadingScene*>(loading);
                     ls->SetTargetScene("Editor");

@@ -26,7 +26,7 @@ namespace Scene {
     static void AdjustEntranceForParity(bool buildingEvenY, int& entranceX, int entranceY);
 
     GameScene::GameScene()
-        : Scene("Game")
+        : SceneBase("Game")
 		, m_buildingCommandHandler(NULL)
 		, m_resourceCommandHandler(NULL)
         , m_eventBus(NULL)
@@ -593,7 +593,8 @@ namespace Scene {
             m_roadManager
         );
         m_buildingPresentationSystem.SetManagers(
-            m_flagManager
+            m_flagManager,
+            m_constructionManager
         );
         m_flagResourcePresentationSystem.SetFlagManager(m_flagManager);
         m_wildlifePresentationSystem.SetWildlifeSystem(m_wildlife);
@@ -814,7 +815,7 @@ void GameScene::Update(float deltaTime)
            m_notificationPresentationSystem.BuildRenderFrame(m_frameContext.ui, next.ui);
            m_projectionSystem.Project(next);
           next.frameId = m_frameCount;
-          m_renderFrame.swap(next);
+           std::swap(m_renderFrame, next);
       }
 
       // Flush any pending deletions at end of frame

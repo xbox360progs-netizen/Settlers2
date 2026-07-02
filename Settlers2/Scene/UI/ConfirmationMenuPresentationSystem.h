@@ -1,9 +1,9 @@
 #pragma once
 #include "RenderUiFrame.h"
 
-namespace Scene {
-
 class UIMenu;
+
+namespace Scene {
 
 class ConfirmationMenuPresentationSystem {
 public:

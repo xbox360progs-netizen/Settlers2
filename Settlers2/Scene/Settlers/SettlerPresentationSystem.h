@@ -28,10 +28,6 @@ public:
     void BuildRenderFrame(RenderFrame& frame);
 
 private:
-    void CollectCarriers(std::vector<RenderSettler>& out);
-    void CollectBuilders(std::vector<RenderSettler>& out);
-    void CollectWorkers(std::vector<RenderSettler>& out);
-
     World::CarrierManager*       m_carrierManager;
     World::ConstructionManager*  m_constructionManager;
     World::WorkerManager*        m_workerManager;

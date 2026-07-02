@@ -45,7 +45,7 @@ enum EditorMode
     MODE_PLACEMENT
 };
 
-class EditorScene : public Scene {
+class EditorScene : public SceneBase {
 private:
     // Weight menu related
     bool m_weightMenuVisible;

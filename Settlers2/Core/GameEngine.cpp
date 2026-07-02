@@ -298,7 +298,7 @@ void GameEngine::Shutdown()
 
 void GameEngine::ProcessSceneRequests()
 {
-    Scene::Scene* currentScene = m_sceneManager->GetCurrentScene();
+    Scene::SceneBase* currentScene = m_sceneManager->GetCurrentScene();
     if (!currentScene)
     {
         return;

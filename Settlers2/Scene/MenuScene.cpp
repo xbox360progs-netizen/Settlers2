@@ -45,7 +45,7 @@ static const UI::MenuItem SIZE_ITEMS[MAP_SIZE_COUNT] = {
 };
 
 MenuScene::MenuScene()
-  : Scene("MenuScene"), m_backgroundPath(""),
+  : SceneBase("MenuScene"), m_backgroundPath(""),
     m_dispatcher(NULL), m_device(NULL), m_spriteRenderer(NULL), m_renderer(NULL), m_gamepad(NULL),
     m_textManager(NULL), m_binFileManager(NULL), m_textureLoader(NULL), m_stickTimer(0.0f),
     m_menuState(MENU_STATE_MAIN), m_prevMainSelection(0) {

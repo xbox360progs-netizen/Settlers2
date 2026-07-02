@@ -104,7 +104,7 @@ static const ResourceMenuGroupDef kResourceMenuGroups[] = {
 };
 
 EditorScene::EditorScene()
-    : Scene("Editor")
+    : SceneBase("Editor")
     , m_renderer(nullptr)
     , m_spriteRenderer(nullptr)
     , m_inputManager(nullptr)

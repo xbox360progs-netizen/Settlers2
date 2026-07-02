@@ -18,7 +18,7 @@ using Graphics::ShaderManager;
 
 namespace Scene {
 
-class LoadingScene : public Scene
+class LoadingScene : public SceneBase
 {
 public:
     LoadingScene();

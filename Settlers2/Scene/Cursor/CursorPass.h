@@ -30,5 +30,6 @@ private:
 
     uint16_t m_textureSlot;
 
+};
 
 } // namespace Scene

@@ -10,11 +10,11 @@ namespace Scene {
 
 class SceneManager;
 
-class Scene
+class SceneBase
 {
 public:
-    Scene(const std::string& name);
-    virtual ~Scene();
+    SceneBase(const std::string& name);
+    virtual ~SceneBase();
 
     const std::string& GetName() const { return m_name; }
     bool IsLoaded() const { return m_loaded; }

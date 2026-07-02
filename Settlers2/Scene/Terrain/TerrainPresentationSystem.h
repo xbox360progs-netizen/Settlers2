@@ -7,7 +7,7 @@ namespace World {
 
 namespace Scene {
 
-class RenderFrame;
+struct RenderFrame;
 struct RenderTerrainTile;
 
 // Reads World::Map tile layers (Ground, Roads, Objects, Buildings) and

@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "GroundResourcePresentationSystem.h"
 #include "RenderGroundResource.h"
 #include "../../World/Map.h"

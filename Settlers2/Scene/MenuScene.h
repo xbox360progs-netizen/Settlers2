@@ -25,7 +25,7 @@ enum MenuState {
     MENU_STATE_SIZE_SELECT
 };
 
-class MenuScene : public Scene::Scene {
+class MenuScene : public Scene::SceneBase {
 public:
     MenuScene();
     virtual ~MenuScene();

@@ -239,7 +239,7 @@ void WorkerPresentationSystem::CollectBuildingWorkers(std::vector<RenderWorker>&
     if (!m_flagManager) return;
     CoordinateSystem& coords = CoordinateSystem::GetInstance();
 
-    for (int fi = 0; fi < m_flagManager->GetFlagCount(); ++fi) {
+    for (int fi = 0; fi < (int)m_flagManager->GetCount(); ++fi) {
         World::Flag* flag = m_flagManager->GetFlagByIndex(fi);
         if (!flag || !flag->building) continue;
 

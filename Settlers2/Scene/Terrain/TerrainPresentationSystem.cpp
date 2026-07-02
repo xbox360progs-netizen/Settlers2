@@ -43,6 +43,7 @@ void TerrainPresentationSystem::BuildRenderFrame(RenderFrame& frame)
     ResolveLayer(static_cast<int>(World::Roads), tiles);
     ResolveLayer(static_cast<int>(World::Ground), tiles);
     ResolveLayer(static_cast<int>(World::Objects), tiles);
+    // Footprint tiles kept until BuildingRenderer covers all building sprites.
     ResolveLayer(static_cast<int>(World::Buildings), tiles);
 }
 
