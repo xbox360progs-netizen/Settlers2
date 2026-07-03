@@ -8,7 +8,6 @@
 #include "../World/CarrierManager.h"
 #include "../World/DemandManager.h"
 #include "../World/StorehouseManager.h"
-#include "../World/TransportJobManager.h"
 #include "../World/ConstructionManager.h"
 #include "../World/Systems/RoadNetworkRelinker.h"
 #include "../World/Components/Building.h"
@@ -262,9 +261,6 @@ void WorldRestorer::RestoreBuildingsFromLayer()
                 wh->AddResource(World::ResourceType_Coal, 100);
 
                 economy->SetWarehouse(wh);
-                if (m_ctx.transportJobs) {
-                    m_ctx.transportJobs->SetWarehouse(wh);
-                }
                 if (m_ctx.construction) {
                     m_ctx.construction->SetWarehouseFlag(flag);
                 }

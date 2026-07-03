@@ -514,12 +514,6 @@
     <ClInclude Include="World\Road.h">
       <Filter>World</Filter>
     </ClInclude>
-    <ClInclude Include="World\TransportJob.h">
-      <Filter>World</Filter>
-    </ClInclude>
-    <ClInclude Include="World\TransportJobManager.h">
-      <Filter>World</Filter>
-    </ClInclude>
     <ClInclude Include="World\TransportController.h">
       <Filter>World</Filter>
     </ClInclude>
@@ -884,9 +878,6 @@
     </ClCompile>
     <ClCompile Include="Graphics\SpriteShadow.cpp">
       <Filter>Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="World\TransportJobManager.cpp">
-      <Filter>World</Filter>
     </ClCompile>
     <ClCompile Include="World\TransportController.cpp">
       <Filter>World</Filter>

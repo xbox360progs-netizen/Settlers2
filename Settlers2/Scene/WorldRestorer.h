@@ -11,7 +11,6 @@ namespace World {
     class Map;
     class RoadNetworkRelinker;
     class StorehouseManager;
-    class TransportJobManager;
 }
 
 namespace Logic {
@@ -25,7 +24,6 @@ struct WorldRestorerContext {
     World::FlagManager* flags;
     Logic::EconomyManager* economy;
     World::StorehouseManager* storehouse;
-    World::TransportJobManager* transportJobs;
     World::ConstructionManager* construction;
     World::CarrierManager* carriers;
     World::DemandManager* demand;

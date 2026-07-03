@@ -12,10 +12,8 @@ namespace World {
     class FlagManager;
     struct Road;
     class RoadManager;
-    class TransportJobManager;
-
-    bool CanDestroyFlag(Flag* flag, CarrierManager* cm, TransportJobManager* jm, RoadManager* rm);
-    bool CanDestroyRoad(Road* road, CarrierManager* cm, TransportJobManager* jm);
-    bool CanDestroyCarrier(Carrier* carrier, TransportJobManager* jm);
+    bool CanDestroyFlag(Flag* flag, CarrierManager* cm, RoadManager* rm);
+    bool CanDestroyRoad(Road* road, CarrierManager* cm);
+    bool CanDestroyCarrier(Carrier* carrier);
     bool CanDestroyBuilding(Building* building, Logic::EconomyManager* em);
 }

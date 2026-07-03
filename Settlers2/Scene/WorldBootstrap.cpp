@@ -15,7 +15,6 @@
 #include "../World/FlagManager.h"
 #include "../World/RoadManager.h"
 #include "../World/TransportController.h"
-#include "../World/TransportJobManager.h"
 #include "../World/CargoManager.h"
 #include "../World/DemandManager.h"
 #include "../World/StorehouseManager.h"
@@ -242,19 +241,6 @@ void SetupSystems(World::Map* map,
     ctx.economy->SetFlagManager(flagMgr);
     ctx.economy->SetRoadManager(roadMgr);
 
-    // TransportJobManager
-    OutputDebugStringA("[WorldBootstrap] Creating TransportJobManager\n");
-    World::TransportJobManager* tjm = new World::TransportJobManager();
-    tjm->SetFlagManager(flagMgr);
-    tjm->SetRoadManager(roadMgr);
-    tjm->SetCarrierManager(ctx.carrierManager);
-    if (ctx.economy && ctx.economy->GetWarehouse()) {
-        tjm->SetWarehouse(ctx.economy->GetWarehouse());
-    }
-    ctx.carrierManager->SetJobManager(tjm);
-    ctx.transportJobs = tjm;
-    OutputDebugStringA("[WorldBootstrap] TransportJobManager ready\n");
-
     // CargoManager + DemandManager
     OutputDebugStringA("[WorldBootstrap] Creating CargoManager\n");
     ctx.cargo = new World::CargoManager();
@@ -334,7 +320,6 @@ void SetupSystems(World::Map* map,
             ctx.carrierManager,
             ctx.carrierSystem,
             ctx.workerManager,
-            ctx.transportJobs,
             ctx.cargo,
             ctx.demand,
             ctx.storehouse,
@@ -384,7 +369,7 @@ void SetupSystems(World::Map* map,
     // ObjectLifecycleManager
     ctx.lifecycle = new World::ObjectLifecycleManager(
         flagMgr, roadMgr, ctx.carrierManager, ctx.cargo,
-        tjm, cm, ctx.economy, map);
+        cm, ctx.economy, map);
     if (ctx.lifecycle) {
         ctx.lifecycle->SetEventBus(ctx.eventBus);
         ctx.commandBus->Register(Core::Cmd_DeleteFlag, ctx.lifecycle);
@@ -458,7 +443,6 @@ void WorldBootstrap::CreateStartingHQ(
     World::FlagManager* flagManager,
     World::CarrierManager* carrierManager,
     World::StorehouseManager* storehouse,
-    World::TransportJobManager* transportJobs,
     World::ConstructionManager* construction,
     World::DemandManager* demand,
     World::RoadNetworkRelinker& relinker)
@@ -522,9 +506,6 @@ void WorldBootstrap::CreateStartingHQ(
 
     economy->SetWarehouse(warehouse);
     economy->AddBuilding(warehouse);
-    if (transportJobs) {
-        transportJobs->SetWarehouse(warehouse);
-    }
     if (construction) {
         construction->SetWarehouseFlag(hqFlag);
     }

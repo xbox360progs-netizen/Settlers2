@@ -24,7 +24,6 @@ namespace World {
     class SimulationSystem;
     class StorehouseManager;
     class TransportController;
-    class TransportJobManager;
     class WildlifeSystem;
     class WorkerManager;
     class RoadNetworkRelinker;
@@ -54,7 +53,6 @@ struct WorldBootstrapCtx {
     Logic::AISystem*& aiSystem;
     World::FlagManager*& flagManager;
     World::RoadManager*& roadManager;
-    World::TransportJobManager*& transportJobs;
     World::TransportController*& transportController;
     World::CargoManager*& cargo;
     World::DemandManager*& demand;
@@ -83,7 +81,6 @@ namespace WorldBootstrap {
         World::FlagManager* flagManager,
         World::CarrierManager* carrierManager,
         World::StorehouseManager* storehouse,
-        World::TransportJobManager* transportJobs,
         World::ConstructionManager* construction,
         World::DemandManager* demand,
         World::RoadNetworkRelinker& relinker);

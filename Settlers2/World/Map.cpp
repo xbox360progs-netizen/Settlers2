@@ -19,7 +19,6 @@ Map::Map(int groundWidth, int groundHeight, int otherWidth, int otherHeight)
     , m_cargoManager(NULL)
     , m_demandManager(NULL)
 {
-    InitializeCriticalSection(&m_cs);
     m_layers.resize(static_cast<int>(LayerCount), NULL);
 
     // Ground layer: 20x20
@@ -45,13 +44,15 @@ Map::Map(int groundWidth, int groundHeight, int otherWidth, int otherHeight)
 
 Map::~Map()
 {
-    DeleteCriticalSection(&m_cs);
     for (size_t i = 0; i < m_layers.size(); ++i)
     {
         delete m_layers[i];
         m_layers[i] = NULL;
     }
 }
+
+void Map::Lock() { m_lock.Lock(); }
+void Map::Unlock() { m_lock.Unlock(); }
 
 TileLayer* Map::GetLayer(LayerType type)
 {
@@ -487,7 +488,7 @@ void Map::SetResourceRegistry(Logic::ResourceRegistry* rr) {
 
 bool Map::FindResourceInRadius(int centerX, int centerY, int radius, ResourceType type, int& foundX, int& foundY) const
 {
-    EnterCriticalSection(&const_cast<Map*>(this)->m_cs);
+    const_cast<Map*>(this)->Lock();
     int layerWidth = m_width * 2;
     int layerHeight = m_height * 4;
 
@@ -509,16 +510,16 @@ bool Map::FindResourceInRadius(int centerX, int centerY, int radius, ResourceTyp
         }
     }
 end:
-    LeaveCriticalSection(&const_cast<Map*>(this)->m_cs);
+    const_cast<Map*>(this)->Unlock();
     return found;
 }
 
 bool Map::FindTileTypeInRadius(int centerX, int centerY, int radius, LayerType layer, TileType type, int& foundX, int& foundY) const
 {
-    EnterCriticalSection(&const_cast<Map*>(this)->m_cs);
+    const_cast<Map*>(this)->Lock();
     TileLayer* tileLayer = const_cast<Map*>(this)->GetLayer(layer);
     if (!tileLayer) {
-        LeaveCriticalSection(&const_cast<Map*>(this)->m_cs);
+        const_cast<Map*>(this)->Unlock();
         return false;
     }
     
@@ -542,12 +543,12 @@ bool Map::FindTileTypeInRadius(int centerX, int centerY, int radius, LayerType l
         }
     }
 end_tile:
-    LeaveCriticalSection(&const_cast<Map*>(this)->m_cs);
+    const_cast<Map*>(this)->Unlock();
     return found;
 }
 
 // Weight management
-BYTE Map::GetNodeWeight(int x, int y) const
+uint8_t Map::GetNodeWeight(int x, int y) const
 {
     int layerWidth = m_width * 2;   // 40
     int layerHeight = m_height * 4; // 80 (double rows at half spacing)
@@ -564,7 +565,7 @@ BYTE Map::GetNodeWeight(int x, int y) const
     return Weight_Land;
 }
 
-void Map::SetNodeWeight(int x, int y, BYTE weight)
+void Map::SetNodeWeight(int x, int y, uint8_t weight)
 {
     int layerWidth = m_width * 2;   // 40
     int layerHeight = m_height * 4; // 80
@@ -579,7 +580,7 @@ void Map::SetNodeWeight(int x, int y, BYTE weight)
     }
 }
 
-void Map::InitializeWeights(BYTE defaultWeight)
+void Map::InitializeWeights(uint8_t defaultWeight)
 {
     for (size_t i = 0; i < m_resourceMap.size(); ++i) {
         m_resourceMap[i].weight = defaultWeight;
@@ -611,7 +612,7 @@ void Map::GenerateWildlife() {
     for (int y = 0; y < h; ++y) {
         for (int x = 0; x < w; ++x) {
             int idx = y * w + x;
-            BYTE weight = m_resourceMap[idx].weight;
+            uint8_t weight = m_resourceMap[idx].weight;
             // Water tiles have Weight_Deep or Weight_Shallow
             if (weight <= Weight_Shallow && m_resourceMap[idx].type == ResourceType_None) {
                 SetResourceNode(x, y, ResourceType_Fish, 5, false);

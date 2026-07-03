@@ -4,7 +4,6 @@
 #include "../CarrierManager.h"
 #include "CarrierSystem.h"
 #include "../WorkerManager.h"
-#include "../TransportJobManager.h"
 #include "../CargoManager.h"
 #include "../DemandManager.h"
 #include "../StorehouseManager.h"
@@ -50,7 +49,6 @@ SimulationSystem::SimulationSystem()
     , m_extCarriers(NULL)
     , m_extCarrierSystem(NULL)
     , m_extWorkers(NULL)
-        , m_extTransportJobs(NULL)
         , m_extTransportCtrl(NULL)
         , m_extCargo(NULL)
     , m_extDemand(NULL)
@@ -75,7 +73,6 @@ void SimulationSystem::SetExternalManagers(
     CarrierManager* carriers,
     CarrierSystem* carrierSystem,
     WorkerManager* workers,
-    TransportJobManager* transportJobs,
     CargoManager* cargo,
     DemandManager* demand,
     StorehouseManager* storehouse,
@@ -86,7 +83,6 @@ void SimulationSystem::SetExternalManagers(
     m_extCarriers = carriers;
     m_extCarrierSystem = carrierSystem;
     m_extWorkers = workers;
-    m_extTransportJobs = transportJobs;
     m_extCargo = cargo;
     m_extDemand = demand;
     m_extStorehouse = storehouse;
@@ -123,7 +119,7 @@ void SimulationSystem::Initialize(
         // Wire external managers into TransportSystem
         if (m_extCarriers && m_extCarrierSystem) {
             m_transport.SetExternalManagers(
-                m_extCarriers, m_extCarrierSystem, m_extTransportJobs,
+                m_extCarriers, m_extCarrierSystem,
                 m_extCargo, m_extDemand, flagManager, roadManager);
         }
         m_transport.Initialize(entityManager, flagManager, roadManager, m_eventBus);

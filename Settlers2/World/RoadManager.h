@@ -8,8 +8,6 @@ namespace World {
     class Flag;
     class FlagManager;
     class CarrierManager;
-    class TransportJobManager;
-
     static const size_t MAX_FLAGS = 256;
 
     class RoadManager {
@@ -24,7 +22,7 @@ namespace World {
         void RemoveRoad(Road* road);
         void RemoveRoadsForFlag(Flag* flag);
         void MarkForDeletion(Road* road);
-        bool CanDestroy(Road* road, CarrierManager* cm, TransportJobManager* jm) const;
+        bool CanDestroy(Road* road, CarrierManager* cm) const;
         bool HasRoadsConnectedToFlag(Flag* flag) const;
         Road* GetRoadBetween(Flag* a, Flag* b) const;
         void Clear();

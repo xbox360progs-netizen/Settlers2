@@ -20,7 +20,6 @@
 #include "../World/Flag.h"
 #include "../World/FlagManager.h"
 #include "../World/RoadManager.h"
-#include "../World/TransportJobManager.h"
 #include "../World/CargoManager.h"
 #include "../World/DemandManager.h"
 #include "../World/StorehouseManager.h"
@@ -179,7 +178,6 @@ private:
     // Flags & Roads
     World::FlagManager* m_flagManager;
     World::RoadManager* m_roadManager;
-    World::TransportJobManager* m_transportJobManager;
     World::TransportController* m_transportController;
     World::CargoManager* m_cargoManager;
     World::DemandManager* m_demandManager;

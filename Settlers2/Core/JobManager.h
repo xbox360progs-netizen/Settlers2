@@ -1,5 +1,4 @@
 #pragma once
-#include <xtl.h>
 
 typedef void (*JobFunction)(void*);
 
@@ -22,25 +21,8 @@ public:
     void WaitAll();
 
 private:
-    static const int QUEUE_SIZE = 256;
+    struct Impl;
+    Impl* m_impl;
 
-    Job m_jobs[QUEUE_SIZE];
-    volatile LONG m_head;
-    volatile LONG m_tail;
-    volatile LONG m_counter;
-
-    int m_numWorkers;
-    struct WorkerThread
-    {
-        JobManager* owner;
-        HANDLE handle;
-        HANDLE wakeEvent;
-        volatile bool running;
-        int processor;
-    }* m_workers;
-
-    void Push(JobFunction func, void* data);
-    bool TryPop(Job& job);
-
-    static DWORD WINAPI WorkerProc(LPVOID param);
+    static unsigned long __stdcall WorkerProc(void* param);
 };

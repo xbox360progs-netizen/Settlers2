@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "ObjectDeletionRules.h"
 #include "CarrierManager.h"
-#include "TransportJobManager.h"
 #include "RoadManager.h"
 #include "FlagManager.h"
 #include "Components/Building.h"
@@ -12,21 +11,20 @@
 
 namespace World {
 
-    bool CanDestroyFlag(Flag* flag, CarrierManager* cm, TransportJobManager* jm, RoadManager* rm) {
+    bool CanDestroyFlag(Flag* flag, CarrierManager* cm, RoadManager* rm) {
         if (!flag) return true;
         if (flag->type == FLAG_WAREHOUSE) return false;
         if (flag->state != Active) return true;
-        return !cm->IsFlagInUse(flag) && !jm->IsFlagInUse(flag) && !rm->HasRoadsConnectedToFlag(flag);
+        return !cm->IsFlagInUse(flag) && !rm->HasRoadsConnectedToFlag(flag);
     }
 
-    bool CanDestroyRoad(Road* road, CarrierManager* cm, TransportJobManager* jm) {
+    bool CanDestroyRoad(Road* road, CarrierManager* cm) {
         if (!road) return true;
         if (road->state != Active) return true;
-        return road->carrier.IsValid() == false && !cm->IsRoadInUse(road) && !jm->IsRoadInUse(road);
+        return road->carrier.IsValid() == false && !cm->IsRoadInUse(road);
     }
 
-    bool CanDestroyCarrier(Carrier* carrier, TransportJobManager* jm) {
-        (void)jm;
+    bool CanDestroyCarrier(Carrier* carrier) {
         if (!carrier) return true;
         return carrier->readyToRemove;
     }

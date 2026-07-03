@@ -462,13 +462,6 @@
       <FileName>World\FlagManager.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="World::TransportJobManager" Collapsed="true">
-    <Position X="41.5" Y="8.5" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AQSwAAEEAABgCACEIAAAEQQgAQACGKAiEAACAAAAQAI=</HashCode>
-      <FileName>World\TransportJobManager.h</FileName>
-    </TypeIdentifier>
-  </Class>
   <Class Name="World::RoadManager" Collapsed="true">
     <Position X="46.75" Y="6.5" Width="1.5" />
     <TypeIdentifier>
@@ -1145,14 +1138,7 @@
     <Position X="46.75" Y="9.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAACAAAAAAAAAAAAAABgAABAAAAAAAAAAA=</HashCode>
-      <FileName>World\TransportJob.h</FileName>
-    </TypeIdentifier>
-  </Struct>
-  <Struct Name="World::TransportJob" Collapsed="true">
-    <Position X="52" Y="14.75" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AIBAAAAAAAAAACAQAAAAAABAAAAEgAAUAACAAAAAAgA=</HashCode>
-      <FileName>World\TransportJob.h</FileName>
+      <FileName>World\TransportTask.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="World::InTransitCounts" Collapsed="true">

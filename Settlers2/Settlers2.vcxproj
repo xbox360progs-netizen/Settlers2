@@ -113,7 +113,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>$(OutDir)$(ProjectName).pdb</ProgramDatabaseFile>
-      <AdditionalDependencies>xapilibd.lib;d3d9d.lib;d3dx9d.lib;xgraphicsd.lib;xboxkrnl.lib;xnetd.lib;xaudiod2.lib;xactd3.lib;x3daudiod.lib;xmcored.lib;xbdm.lib;vcompd.lib</AdditionalDependencies>
+      <AdditionalDependencies>SimulationCore.lib;xapilibd.lib;d3d9d.lib;d3dx9d.lib;xgraphicsd.lib;xboxkrnl.lib;xnetd.lib;xaudiod2.lib;xactd3.lib;x3daudiod.lib;xmcored.lib;xbdm.lib;vcompd.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='CodeAnalysis|Xbox 360'">
@@ -134,7 +134,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>$(OutDir)$(ProjectName).pdb</ProgramDatabaseFile>
-      <AdditionalDependencies>xapilibd.lib;d3d9d.lib;d3dx9d.lib;xgraphicsd.lib;xboxkrnl.lib;xnetd.lib;xaudiod2.lib;xactd3.lib;x3daudiod.lib;xmcored.lib;xbdm.lib;vcompd.lib</AdditionalDependencies>
+      <AdditionalDependencies>SimulationCore.lib;xapilibd.lib;d3d9d.lib;d3dx9d.lib;xgraphicsd.lib;xboxkrnl.lib;xnetd.lib;xaudiod2.lib;xactd3.lib;x3daudiod.lib;xmcored.lib;xbdm.lib;vcompd.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Profile|Xbox 360'">
@@ -160,7 +160,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <ProgramDatabaseFile>$(OutDir)$(ProjectName).pdb</ProgramDatabaseFile>
       <SetChecksum>true</SetChecksum>
-      <AdditionalDependencies>xapilibi.lib;d3d9i.lib;d3dx9.lib;xgraphics.lib;xboxkrnl.lib;xnet.lib;xaudio2.lib;xact3i.lib;x3daudioi.lib;xmcorei.lib;xbdm.lib;vcomp.lib</AdditionalDependencies>
+      <AdditionalDependencies>SimulationCore.lib;xapilibi.lib;d3d9i.lib;d3dx9.lib;xgraphics.lib;xboxkrnl.lib;xnet.lib;xaudio2.lib;xact3i.lib;x3daudioi.lib;xmcorei.lib;xbdm.lib;vcomp.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Profile_FastCap|Xbox 360'">
@@ -185,7 +185,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <ProgramDatabaseFile>$(OutDir)$(ProjectName).pdb</ProgramDatabaseFile>
       <SetChecksum>true</SetChecksum>
-      <AdditionalDependencies>xapilib.lib;d3d9.lib;d3dx9.lib;xgraphics.lib;xboxkrnl.lib;xnet.lib;xaudio2.lib;xact3.lib;x3daudio.lib;xmcore.lib;vcomp.lib;xbdm.lib</AdditionalDependencies>
+      <AdditionalDependencies>SimulationCore.lib;xapilib.lib;d3d9.lib;d3dx9.lib;xgraphics.lib;xboxkrnl.lib;xnet.lib;xaudio2.lib;xact3.lib;x3daudio.lib;xmcore.lib;vcomp.lib;xbdm.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Xbox 360'">
@@ -208,7 +208,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <ProgramDatabaseFile>$(OutDir)$(ProjectName).pdb</ProgramDatabaseFile>
       <SetChecksum>true</SetChecksum>
-      <AdditionalDependencies>xapilib.lib;d3d9.lib;d3dx9.lib;xgraphics.lib;xboxkrnl.lib;xnet.lib;xaudio2.lib;xact3.lib;x3daudio.lib;xmcore.lib;vcomp.lib</AdditionalDependencies>
+      <AdditionalDependencies>SimulationCore.lib;xapilib.lib;d3d9.lib;d3dx9.lib;xgraphics.lib;xboxkrnl.lib;xnet.lib;xaudio2.lib;xact3.lib;x3daudio.lib;xmcore.lib;vcomp.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_LTCG|Xbox 360'">
@@ -232,7 +232,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <ProgramDatabaseFile>$(OutDir)$(ProjectName).pdb</ProgramDatabaseFile>
       <SetChecksum>true</SetChecksum>
-      <AdditionalDependencies>xapilib.lib;d3d9ltcg.lib;d3dx9.lib;xgraphics.lib;xboxkrnl.lib;xnet.lib;xaudio2.lib;xact3ltcg.lib;x3daudioltcg.lib;xmcoreltcg.lib;vcomp.lib</AdditionalDependencies>
+      <AdditionalDependencies>SimulationCore.lib;xapilib.lib;d3d9ltcg.lib;d3dx9.lib;xgraphics.lib;xboxkrnl.lib;xnet.lib;xaudio2.lib;xact3ltcg.lib;x3daudioltcg.lib;xmcoreltcg.lib;vcomp.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -245,6 +245,7 @@
     <ClInclude Include="Core\LanguageManager.h" />
     <ClInclude Include="Core\ThreadSync.h" />
     <ClInclude Include="Core\Vector2i.h" />
+    <ClInclude Include="Core\PlatformLock.h" />
     <ClInclude Include="Game\Unit.h" />
     <ClInclude Include="Graphics\BatchBuilder.h" />
     <ClInclude Include="Graphics\BinFileManager.h" />
@@ -482,8 +483,6 @@
     <ClInclude Include="World\ObjectLifecycleManager.h" />
     <ClInclude Include="World\Road.h" />
     <ClInclude Include="World\RoadManager.h" />
-    <ClInclude Include="World\TransportJob.h" />
-    <ClInclude Include="World\TransportJobManager.h" />
     <ClInclude Include="World\TransportController.h" />
     <ClInclude Include="World\TransportPriority.h" />
     <ClInclude Include="World\TransportRoute.h" />
@@ -522,6 +521,7 @@
     <ClCompile Include="Core\ThreadSync.cpp" />
     <ClCompile Include="Core\CommandBus.cpp" />
     <ClCompile Include="Core\EventBus.cpp" />
+    <!-- PlatformLock.cpp moved to SimulationCore.lib -->
     <ClCompile Include="Graphics\BatchBuilder.cpp" />
     <ClCompile Include="Graphics\BinFileManager.cpp" />
     <ClCompile Include="Graphics\BitmapFont.cpp" />
@@ -674,9 +674,8 @@
     <ClCompile Include="World\HabitatRegistry.cpp" />
     <ClCompile Include="World\RoadManager.cpp" />
     <ClCompile Include="World\StorehouseManager.cpp" />
-    <ClCompile Include="World\TransportJobManager.cpp" />
     <ClCompile Include="World\TransportController.cpp" />
-    <ClCompile Include="World\TransportTask.cpp" />
+    <!-- TransportTask.cpp moved to SimulationCore.lib (header-only struct, no impl) -->
     <ClCompile Include="World\ObjectDeletionRules.cpp" />
     <ClCompile Include="World\ObjectLifecycleManager.cpp" />
     <ClCompile Include="World\ConstructionSite.cpp" />
@@ -706,6 +705,11 @@
     <ClCompile Include="Editor\MapEditor.cpp" />
     <ClCompile Include="Game\UnitManager.cpp" />
     <ClCompile Include="UI\TilePalette.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SimulationCore\SimulationCore.vcxproj">
+      <Project>{0E264B64-587C-4D28-9BAA-8BB7A61CFDB3}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

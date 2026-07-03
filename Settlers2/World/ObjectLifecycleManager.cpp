@@ -4,7 +4,6 @@
 #include "FlagManager.h"
 #include "RoadManager.h"
 #include "CarrierManager.h"
-#include "TransportJobManager.h"
 #include "ConstructionManager.h"
 #include "Components/Building.h"
 #include "Map.h"
@@ -18,25 +17,25 @@ namespace World {
 
     ObjectLifecycleManager::ObjectLifecycleManager(
         FlagManager* fm, RoadManager* rm, CarrierManager* cm,
-        CargoManager* cargoMgr, TransportJobManager* jm,
+        CargoManager* cargoMgr,
         ConstructionManager* con, Logic::EconomyManager* em,
         Map* map)
         : m_flagManager(fm), m_roadManager(rm), m_carrierManager(cm),
-          m_cargoManager(cargoMgr), m_jobManager(jm),
+          m_cargoManager(cargoMgr),
           m_constructionManager(con), m_economyManager(em), m_map(map),
           m_eventBus(NULL)
     {}
 
     bool ObjectLifecycleManager::SafeDeleteFlag(Flag* flag) {
-        return CanDestroyFlag(flag, m_carrierManager, m_jobManager, m_roadManager);
+        return CanDestroyFlag(flag, m_carrierManager, m_roadManager);
     }
 
     bool ObjectLifecycleManager::SafeDeleteRoad(Road* road) {
-        return CanDestroyRoad(road, m_carrierManager, m_jobManager);
+        return CanDestroyRoad(road, m_carrierManager);
     }
 
     bool ObjectLifecycleManager::SafeDeleteCarrier(Carrier* carrier) {
-        return CanDestroyCarrier(carrier, m_jobManager);
+        return CanDestroyCarrier(carrier);
     }
 
     bool ObjectLifecycleManager::SafeDeleteBuilding(Building* building) {

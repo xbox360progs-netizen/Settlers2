@@ -38,7 +38,7 @@ class Fisher : public WorkerBuilding {
                 int checkX = pos.x + dx;
                 int checkY = pos.y + dy;
                 if (checkX < 0 || checkY < 0) continue;
-                BYTE weight = map->GetNodeWeight(checkX, checkY);
+                uint8_t weight = map->GetNodeWeight(checkX, checkY);
                 if (weight == Weight_Deep || weight == Weight_Shallow) {
                     ResourceNode& node = map->GetResourceNode(checkX, checkY);
                     if (node.type == ResourceType_Fish && node.amount > 0) {

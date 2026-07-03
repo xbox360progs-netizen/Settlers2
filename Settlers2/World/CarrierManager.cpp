@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "CarrierManager.h"
 #include "FlagManager.h"
-#include "TransportJobManager.h"
 #include "Flag.h"
 #include "Road.h"
 #include "RoadManager.h"
@@ -27,7 +26,7 @@ namespace World {
     }
 
     CarrierManager::CarrierManager()
-        : m_flagManager(NULL), m_jobManager(NULL), m_roadManager(NULL), m_warehouseFlag(NULL), m_carrierSystem(NULL),
+        : m_flagManager(NULL), m_roadManager(NULL), m_warehouseFlag(NULL), m_carrierSystem(NULL),
           m_demandManager(NULL), m_cargoManager(NULL)
     {
     }

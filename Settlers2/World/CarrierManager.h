@@ -8,7 +8,6 @@
 namespace World {
     class Flag;
     class FlagManager;
-    class TransportJobManager;
     class RoadManager;
     class CarrierSystem;
     class DemandManager;
@@ -20,7 +19,6 @@ namespace World {
         void Update(float deltaTime);
 
         void SetFlagManager(FlagManager* fm) { m_flagManager = fm; }
-        void SetJobManager(TransportJobManager* jm) { m_jobManager = jm; }
         void SetRoadManager(RoadManager* rm) { m_roadManager = rm; }
         void SetWarehouseFlag(Flag* f) { m_warehouseFlag = f; }
         void SetCarrierSystem(CarrierSystem* cs) { m_carrierSystem = cs; }
@@ -49,7 +47,6 @@ namespace World {
         std::vector<Carrier*> m_carriers;
         HandleRegistry m_carrierRegistry;
         FlagManager* m_flagManager;
-        TransportJobManager* m_jobManager;
         RoadManager* m_roadManager;
         Flag* m_warehouseFlag;
         CarrierSystem* m_carrierSystem;

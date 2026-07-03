@@ -1,14 +1,15 @@
 #pragma once
 
 #include <vector>
-#include <xtl.h> // For CRITICAL_SECTION
+#include <cstdint>
 #include "TileLayer.h"
 #include "TileType.h"
 #include "ResourceNode.h"
 #include "MapNode.h"
-#include <d3dx9math.h>
 #include "HabitatRegistry.h"
 #include "../Core/Vector2i.h"
+#include "../Core/PlatformLock.h"
+
 class Camera;
 
 namespace Logic {
@@ -37,8 +38,8 @@ public:
     Map(int groundWidth, int groundHeight, int otherWidth, int otherHeight);
     ~Map();
 
-    void Lock() { EnterCriticalSection(&m_cs); }
-    void Unlock() { LeaveCriticalSection(&m_cs); }
+    void Lock();
+    void Unlock();
 
     int GetWidth() const { return m_width; }
 
@@ -80,9 +81,9 @@ public:
     bool FindTileTypeInRadius(int centerX, int centerY, int radius, LayerType layer, TileType type, int& foundX, int& foundY) const;
 
     // Weight management
-    BYTE GetNodeWeight(int x, int y) const;
-    void SetNodeWeight(int x, int y, BYTE weight);
-    void InitializeWeights(BYTE defaultWeight = Weight_Land);
+    uint8_t GetNodeWeight(int x, int y) const;
+    void SetNodeWeight(int x, int y, uint8_t weight);
+    void InitializeWeights(uint8_t defaultWeight = Weight_Land);
 
     // Territory management
     void RecalculateTerritory();
@@ -154,7 +155,7 @@ private:
     CargoManager* m_cargoManager;
     DemandManager* m_demandManager;
 
-    CRITICAL_SECTION m_cs;
+    PlatformLock m_lock;
 };
 
 } // namespace World

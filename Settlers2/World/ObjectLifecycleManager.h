@@ -17,12 +17,10 @@ namespace World {
     class Map;
     struct Road;
     class RoadManager;
-    class TransportJobManager;
-
     class ObjectLifecycleManager : public Core::CommandListener {
     public:
         ObjectLifecycleManager(FlagManager* fm, RoadManager* rm, CarrierManager* cm,
-                               CargoManager* cargoMgr, TransportJobManager* jm,
+                               CargoManager* cargoMgr,
                                ConstructionManager* con, Logic::EconomyManager* em,
                                Map* map);
 
@@ -50,7 +48,6 @@ namespace World {
         RoadManager* m_roadManager;
         CarrierManager* m_carrierManager;
         CargoManager* m_cargoManager;
-        TransportJobManager* m_jobManager;
         ConstructionManager* m_constructionManager;
         Logic::EconomyManager* m_economyManager;
         Map* m_map;

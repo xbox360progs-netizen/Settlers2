@@ -5,7 +5,6 @@
 
 namespace World {
     class CarrierManager;
-    class TransportJobManager;
     class RoadManager;
 
     class FlagManager {
@@ -24,7 +23,7 @@ namespace World {
     void RemoveFlagAt(int x, int y);
     void RemoveFlag(FlagHandle h);
     void MarkForDeletion(Flag* flag);
-    bool CanDestroy(Flag* flag, CarrierManager* cm, TransportJobManager* jm, RoadManager* rm) const;
+    bool CanDestroy(Flag* flag, CarrierManager* cm, RoadManager* rm) const;
     void Clear();
 
         size_t GetCount() const { return m_flags.size(); }

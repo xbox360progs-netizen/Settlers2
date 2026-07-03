@@ -1,7 +1,6 @@
 #pragma once
 
 #include "TileType.h"
-#include <d3dx9math.h>
 
 namespace World {
 
@@ -11,7 +10,8 @@ struct Tile
     int x;
     int y;
     float height;
-    D3DXVECTOR2 uvOffset;
+    float uvOffsetU;
+    float uvOffsetV;
     bool walkable;
     bool buildable;
     int regionIndex;
@@ -23,7 +23,7 @@ struct Tile
         : type(Tile_None)
         , x(0), y(0)
         , height(0.0f)
-        , uvOffset(0.0f, 0.0f)
+        , uvOffsetU(0.0f), uvOffsetV(0.0f)
         , walkable(true)
         , buildable(true)
         , regionIndex(-1)
@@ -37,7 +37,7 @@ struct Tile
         , x(tileX)
         , y(tileY)
         , height(0.0f)
-        , uvOffset(0.0f, 0.0f)
+        , uvOffsetU(0.0f), uvOffsetV(0.0f)
         , walkable(true)
         , buildable(true)
         , regionIndex(0)

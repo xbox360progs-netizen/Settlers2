@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstdint>
 #include "../World/TileType.h"
+#include "../SimulationCore/Core/ResourceTypes.h"
 
 namespace World {
 
@@ -11,42 +13,6 @@ enum WeightType
     Weight_Shallow = 1,
     Weight_Land = 2,
     Weight_Block = 3
-};
-
-enum ResourceType
-{
-    ResourceType_None = 0,
-    ResourceType_Wood,
-    ResourceType_Planks,
-    ResourceType_Fish,
-    ResourceType_Coal,
-    ResourceType_IronOre,
-    ResourceType_GoldOre,
-    ResourceType_IronBar,
-    ResourceType_GoldBar,
-    ResourceType_Stone,
-    ResourceType_Meat,
-    ResourceType_Wheat,
-    ResourceType_Flour,
-    ResourceType_Bread,
-    ResourceType_Water,
-    ResourceType_Tools,
-    ResourceType_Trap,
-    ResourceType_Field,
-    ResourceType_RealWood,    // real wood (deposit_real_wood)
-    ResourceType_ExoticWood,  // exotic wood (deposit_exotic_wood)
-    ResourceType_BronzeOre,
-    ResourceType_Marble,
-    ResourceType_Granite,
-    ResourceType_Titanium,
-    ResourceType_Salpeter,
-    ResourceType_WildlifeSpawner_Deer,
-    ResourceType_WildlifeSpawner_Rabbit,
-    ResourceType_WildlifeSpawner_Crocodile,
-    ResourceType_WildlifeSpawner_Snake,
-    ResourceType_WaterSource,
-    ResourceType_BronzeBar,
-    ResourceType_Count
 };
 
 // Tree growth states for ResourceType_Wood world nodes
@@ -69,7 +35,7 @@ inline bool IsTreeStump(int amount) { return amount == TreeState_Stump; }
 
 struct ResourceNode
 {
-    BYTE weight;
+    uint8_t weight;
     ResourceType type;
     int amount;
     bool isVisible;

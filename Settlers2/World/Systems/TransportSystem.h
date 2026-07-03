@@ -4,7 +4,6 @@
 namespace World {
     class CarrierManager;
     class CarrierSystem;
-    class TransportJobManager;
     class CargoManager;
     class DemandManager;
     class FlagManager;
@@ -24,7 +23,6 @@ public:
     void SetExternalManagers(
         CarrierManager* carriers,
         CarrierSystem* carrierSystem,
-        TransportJobManager* transportJobs,
         CargoManager* cargo,
         DemandManager* demand,
         FlagManager* flagManager,
@@ -43,7 +41,6 @@ public:
 
     CarrierManager* GetCarrierManager() { return m_carrierManager; }
     CarrierSystem* GetCarrierSystem() { return m_carrierSystem; }
-    TransportJobManager* GetJobManager() { return m_transportJobManager; }
     CargoManager* GetCargoManager() { return m_cargoManager; }
     DemandManager* GetDemandManager() { return m_demandManager; }
     FlagManager* GetFlagManager() { return m_flagManager; }
@@ -58,7 +55,6 @@ public:
 private:
     CarrierManager* m_carrierManager;
     CarrierSystem* m_carrierSystem;
-    TransportJobManager* m_transportJobManager;
     CargoManager* m_cargoManager;
     DemandManager* m_demandManager;
     FlagManager* m_flagManager;

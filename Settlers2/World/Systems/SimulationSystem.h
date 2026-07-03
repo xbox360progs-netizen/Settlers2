@@ -25,7 +25,6 @@ namespace World {
     class WorkerManager;
     class CargoManager;
     class DemandManager;
-    class TransportJobManager;
     class TransportController;
     class StorehouseManager;
     class Flag;
@@ -47,7 +46,6 @@ public:
         CarrierManager* carriers,
         CarrierSystem* carrierSystem,
         WorkerManager* workers,
-        TransportJobManager* transportJobs,
         CargoManager* cargo,
         DemandManager* demand,
         StorehouseManager* storehouse,
@@ -105,7 +103,6 @@ private:
     CarrierManager* m_extCarriers;
     CarrierSystem* m_extCarrierSystem;
     WorkerManager* m_extWorkers;
-    TransportJobManager* m_extTransportJobs;
     TransportController* m_extTransportCtrl;
     CargoManager* m_extCargo;
     DemandManager* m_extDemand;

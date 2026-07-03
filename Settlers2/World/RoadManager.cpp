@@ -3,7 +3,6 @@
 #include "Flag.h"
 #include "FlagManager.h"
 #include "CarrierManager.h"
-#include "TransportJobManager.h"
 #include <algorithm>
 #include <cstring>
 
@@ -124,10 +123,10 @@ namespace World {
         if (road) road->state = PendingDelete;
     }
 
-    bool RoadManager::CanDestroy(Road* road, CarrierManager* cm, TransportJobManager* jm) const
+    bool RoadManager::CanDestroy(Road* road, CarrierManager* cm) const
     {
         if (!road) return true;
-        return !cm->IsRoadInUse(road) && !jm->IsRoadInUse(road);
+        return !cm->IsRoadInUse(road);
     }
 
     bool RoadManager::HasRoadsConnectedToFlag(Flag* flag) const

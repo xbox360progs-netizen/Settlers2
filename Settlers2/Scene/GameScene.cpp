@@ -31,7 +31,6 @@ namespace Scene {
 		, m_resourceCommandHandler(NULL)
         , m_eventBus(NULL)
         , m_commandBus(NULL)
-        , m_transportJobManager(NULL)
         , m_transportController(NULL)
         , m_map(NULL)
         , m_entityManager(NULL)
@@ -277,7 +276,7 @@ namespace Scene {
                 m_animalSystem, m_animalManager, m_wildlife,
                 m_economyManager, m_carrierSystem, m_carrierManager,
                 m_workerManager, m_aiSystem, m_flagManager,
-                m_roadManager, m_transportJobManager, m_transportController,
+                m_roadManager, m_transportController,
                 m_cargoManager,
                 m_demandManager, m_storehouseManager, m_constructionManager,
                 m_objectLifecycleManager, m_placementManager, m_constructionVisualizer,
@@ -456,7 +455,6 @@ namespace Scene {
             restorerCtx.flags = m_flagManager;
             restorerCtx.economy = m_economyManager;
             restorerCtx.storehouse = m_storehouseManager;
-            restorerCtx.transportJobs = m_transportJobManager;
             restorerCtx.construction = m_constructionManager;
             restorerCtx.carriers = m_carrierManager;
             restorerCtx.demand = m_demandManager;
@@ -524,10 +522,7 @@ namespace Scene {
                     }
                 }
             }
-            // Update TransportJobManager with warehouse reference
-            if (m_transportJobManager) {
-                m_transportJobManager->SetWarehouse(wh);
-            }
+
             // WorkerManager no longer needs warehouse reference
 
             // Propagate warehouse flag to internal ConstructionManager
@@ -549,7 +544,7 @@ namespace Scene {
             WorldBootstrap::CreateStartingHQ(
                 m_map, m_economyManager, m_flagManager,
                 m_carrierManager, m_storehouseManager,
-                m_transportJobManager, m_constructionManager,
+                m_constructionManager,
                 m_demandManager, m_relinker);
 
             // Also set warehouse flag on the internal ConstructionManager used by
@@ -642,11 +637,6 @@ void GameScene::Unload()
     if (m_roadManager) {
         delete m_roadManager;
         m_roadManager = NULL;
-    }
-
-    if (m_transportJobManager) {
-        delete m_transportJobManager;
-        m_transportJobManager = NULL;
     }
 
     if (m_cargoManager) {

@@ -82,7 +82,8 @@ bool MapSerializer::Save(const World::Map& map, const std::string& path, const s
                 Append(buffer, &tile.x, sizeof(tile.x));
                 Append(buffer, &tile.y, sizeof(tile.y));
                 Append(buffer, &tile.height, sizeof(tile.height));
-                Append(buffer, &tile.uvOffset, sizeof(tile.uvOffset));
+                Append(buffer, &tile.uvOffsetU, sizeof(tile.uvOffsetU));
+                Append(buffer, &tile.uvOffsetV, sizeof(tile.uvOffsetV));
                 BYTE wb = tile.walkable ? 1 : 0;
                 BYTE bb = tile.buildable ? 1 : 0;
                 Append(buffer, &wb, 1);
@@ -188,7 +189,8 @@ bool MapSerializer::Load(World::Map& map, const std::string& path, std::vector<s
                 reader.Read(&tile.x, sizeof(tile.x));
                 reader.Read(&tile.y, sizeof(tile.y));
                 reader.Read(&tile.height, sizeof(tile.height));
-                reader.Read(&tile.uvOffset, sizeof(tile.uvOffset));
+                reader.Read(&tile.uvOffsetU, sizeof(tile.uvOffsetU));
+                reader.Read(&tile.uvOffsetV, sizeof(tile.uvOffsetV));
                 BYTE wb, bb;
                 reader.Read(&wb, 1);
                 reader.Read(&bb, 1);
@@ -300,7 +302,8 @@ bool MapSerializer::SaveV4(const World::Map& map, const std::string& path, const
                 Append(buffer, &tile.x, sizeof(tile.x));
                 Append(buffer, &tile.y, sizeof(tile.y));
                 Append(buffer, &tile.height, sizeof(tile.height));
-                Append(buffer, &tile.uvOffset, sizeof(tile.uvOffset));
+                Append(buffer, &tile.uvOffsetU, sizeof(tile.uvOffsetU));
+                Append(buffer, &tile.uvOffsetV, sizeof(tile.uvOffsetV));
                 BYTE wb = tile.walkable ? 1 : 0;
                 BYTE bb = tile.buildable ? 1 : 0;
                 Append(buffer, &wb, 1);
@@ -450,7 +453,8 @@ bool MapSerializer::LoadV4(World::Map& map, const std::string& path, std::vector
                 reader.Read(&tile.x, sizeof(tile.x));
                 reader.Read(&tile.y, sizeof(tile.y));
                 reader.Read(&tile.height, sizeof(tile.height));
-                reader.Read(&tile.uvOffset, sizeof(tile.uvOffset));
+                reader.Read(&tile.uvOffsetU, sizeof(tile.uvOffsetU));
+                reader.Read(&tile.uvOffsetV, sizeof(tile.uvOffsetV));
                 BYTE wb, bb;
                 reader.Read(&wb, 1);
                 reader.Read(&bb, 1);
