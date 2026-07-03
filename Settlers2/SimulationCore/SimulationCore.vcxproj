@@ -115,6 +115,14 @@
     <ClInclude Include="Interfaces\IFlagInventory.h" />
     <ClInclude Include="Interfaces\ICargoRepository.h" />
     <ClInclude Include="Interfaces\IDemandService.h" />
+    <ClInclude Include="Simulation\Simulation.h" />
+    <ClInclude Include="Simulation\SimulationConfig.h" />
+    <ClInclude Include="Simulation\SimulationState.h" />
+    <ClInclude Include="Stubs\StubRoadGraph.h" />
+    <ClInclude Include="Stubs\StubFlagInventory.h" />
+    <ClInclude Include="Stubs\StubCargoRepository.h" />
+    <ClInclude Include="Stubs\StubDemandService.h" />
+    <ClInclude Include="World\WorldModel.h" />
     <ClInclude Include="Transport\TransportTypes.h" />
     <ClInclude Include="Transport\TransportRoute.h" />
     <ClInclude Include="Transport\TransportTask.h" />
@@ -124,6 +132,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\PlatformLock.cpp" />
+    <ClCompile Include="Simulation\Simulation.cpp" />
     <ClCompile Include="Transport\TransportController.cpp" />
     <ClCompile Include="Transport\TransportTask.cpp" />
   </ItemGroup>
