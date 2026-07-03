@@ -33,6 +33,16 @@ Telemetry(`LogTelemetry`) scans state every 600 ticks, `assert oldestWaitingAge 
 
 Derived: `Presentation reads Simulation, writes RenderFrame. After swap(), only RenderGraph reads RenderFrame. No Pass may reference a Simulation Manager, Controller, Map, or FrameContext. Infrastructure services (TextRenderer, FontService) are permitted in Pass.`
 
+## GameScene Render Invariant
+
+```
+GameScene rendering is fully RenderFrame-driven.
+All remaining direct rendering paths belong to standalone auxiliary scenes
+(EditorScene, MenuScene, LoadingScene) and are outside the gameplay rendering architecture.
+```
+
+Auxiliary scenes use their own `Render()` methods and are not required to follow the `RenderFrame → RenderGraph → Pass` pipeline. They have no simulation state to snapshot and no Core0/Core1 split requirement.
+
 ## Core Assignments (Xbox 360 target)
 
 ```

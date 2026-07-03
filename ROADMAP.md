@@ -171,11 +171,20 @@ Background       ⏳  (Stage 7F)
 
 ---
 
-## Next Steps (Stabilization)
+## Status — GameScene RenderFrame pipeline complete ✅
 
-1. **Visual World Smoke Test** (10-15 min on Xbox 360): check builder visible, carrier walking, resources visible, building constructs, overlays change, worker at building, no teleporting, no double-render
-2. **Find remaining render bypasses**: scan for `queue.Push(...)`, `WorldSprite(...)`, `Camera::WorldToScreen(...)`, `FlagManager*` in Renderer code
-3. **Visual World Complete**: delete `SettlerPresentationSystem`, `SettlerRenderer`, inline text bridges, old `DrawXXX` calls, remaining `WorldSprite` calls, direct Manager accesses in Renderer
-4. **T1–T8 soak tests**
-5. **Remove legacy transport (Phase 8.4)**
-6. **Cycle 3 — Definition Pattern**
+```
+GameScene → Presentation → RenderFrame → RenderGraph → Pass → CommandBuffer
+```
+
+All auxiliary scenes (EditorScene, LoadingScene, MenuScene) use independent renderers — this is not a bypass of the game pipeline.
+
+## Next Steps
+
+1. **T1–T8 soak tests** (Xbox 360)
+2. **Remove legacy transport (Phase 8.4)** — delete TransportJobManager, DemandTicket, kUseTransportJobs
+3. **Cycle 3 — Definition Pattern** — BuildingDefinition, WorkerDefinition, ResourceDefinition
+
+## Future (no immediate action)
+
+- Auxiliary scene migration to RenderGraph — decide per scene when maintenance requires it
