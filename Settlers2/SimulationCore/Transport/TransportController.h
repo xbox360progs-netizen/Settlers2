@@ -1,11 +1,12 @@
 #pragma once
 #include <stdint.h>
+#include "../Core/ResourceTypes.h"
 #include "TransportTypes.h"
+#include "TransportTask.h"
 
 namespace World {
 
     class Carrier;
-    struct TransportTask;
     class IRoadGraph;
     class IFlagInventory;
     class ICargoRepository;

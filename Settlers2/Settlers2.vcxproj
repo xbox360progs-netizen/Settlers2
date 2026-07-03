@@ -514,6 +514,10 @@
     <ClInclude Include="World\WorkerDefs.h" />
     <ClInclude Include="World\Worker.h" />
     <ClInclude Include="World\WorkerManager.h" />
+    <ClInclude Include="World\Adapters\RoadGraphAdapter.h" />
+    <ClInclude Include="World\Adapters\FlagInventoryAdapter.h" />
+    <ClInclude Include="World\Adapters\CargoRepositoryAdapter.h" />
+    <ClInclude Include="World\Adapters\DemandServiceAdapter.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\GameEngine.cpp" />
@@ -703,6 +707,10 @@
     <ClCompile Include="World\Systems\WorldSystem.cpp" />
     <ClCompile Include="World\Systems\ConstructionFactory.cpp" />
     <ClCompile Include="World\TileLayer.cpp" />
+    <ClCompile Include="World\Adapters\RoadGraphAdapter.cpp" />
+    <ClCompile Include="World\Adapters\FlagInventoryAdapter.cpp" />
+    <ClCompile Include="World\Adapters\CargoRepositoryAdapter.cpp" />
+    <ClCompile Include="World\Adapters\DemandServiceAdapter.cpp" />
     <ClCompile Include="Editor\MapEditor.cpp" />
     <ClCompile Include="Game\UnitManager.cpp" />
     <ClCompile Include="UI\TilePalette.cpp" />
