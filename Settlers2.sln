@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Settlers2", "Settlers2\Settlers2.vcxproj", "{B2C7BB3C-EAE9-43CF-AC97-F1199AD6A03B}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SimulationCore", "Settlers2\SimulationCore\SimulationCore.vcxproj", "{0E264B64-587C-4D28-9BAA-8BB7A61CFDB3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		CodeAnalysis|Xbox 360 = CodeAnalysis|Xbox 360
@@ -25,6 +27,14 @@ Global
 		{B2C7BB3C-EAE9-43CF-AC97-F1199AD6A03B}.Release_LTCG|Xbox 360.Build.0 = Release_LTCG|Xbox 360
 		{B2C7BB3C-EAE9-43CF-AC97-F1199AD6A03B}.Release|Xbox 360.ActiveCfg = Release|Xbox 360
 		{B2C7BB3C-EAE9-43CF-AC97-F1199AD6A03B}.Release|Xbox 360.Build.0 = Release|Xbox 360
+		{0E264B64-587C-4D28-9BAA-8BB7A61CFDB3}.CodeAnalysis|Xbox 360.ActiveCfg = Debug|Xbox 360
+		{0E264B64-587C-4D28-9BAA-8BB7A61CFDB3}.Debug|Xbox 360.ActiveCfg = Debug|Xbox 360
+		{0E264B64-587C-4D28-9BAA-8BB7A61CFDB3}.Debug|Xbox 360.Build.0 = Debug|Xbox 360
+		{0E264B64-587C-4D28-9BAA-8BB7A61CFDB3}.Profile|Xbox 360.ActiveCfg = Release|Xbox 360
+		{0E264B64-587C-4D28-9BAA-8BB7A61CFDB3}.Profile_FastCap|Xbox 360.ActiveCfg = Release|Xbox 360
+		{0E264B64-587C-4D28-9BAA-8BB7A61CFDB3}.Release_LTCG|Xbox 360.ActiveCfg = Release|Xbox 360
+		{0E264B64-587C-4D28-9BAA-8BB7A61CFDB3}.Release|Xbox 360.ActiveCfg = Release|Xbox 360
+		{0E264B64-587C-4D28-9BAA-8BB7A61CFDB3}.Release|Xbox 360.Build.0 = Release|Xbox 360
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
