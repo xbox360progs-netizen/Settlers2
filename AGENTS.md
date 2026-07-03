@@ -75,6 +75,42 @@ Domain types are the only stable identifiers. UI assets, render assets, metadata
 - Dead code removal is consequence, not goal
 - All 3rd-party types in Scene/ headers must be forward-declared in their **real** namespace
 
+## SimulationCore — Cross-System Communication
+
+```
+All cross-system communication is expressed as changes to WorldModel
+or explicit domain requests. Systems never invoke domain logic in
+other systems directly.
+```
+
+Derived from PR12: EconomySystem publishes `TransportRequest[]` to WorldModel;
+Simulation (coordinator) reads and converts; TransportController executes.
+Neither system knows the other's internals. Same pattern applies to all future
+systems (Construction, Workers, Buildings).
+
+```
+EconomySystem → WorldModel (TransportRequest[])
+                                          ↓
+                                  Simulation
+                                      ↓
+                              TransportController
+                                      ↓
+                                  WorldModel
+```
+
+## SimulationCore — Future System Lifecycle
+
+All domain systems follow `Tick(WorldModel&)` — Simulation only owns ordering:
+
+```
+Simulation::Tick():
+    economy.Tick(world)       → writes requests
+    construction.Tick(world)  → writes build commands
+    workers.Tick(world)       → writes worker tasks
+    Simulation processes requests → TransportController.CreateTask()
+    transport.Update(dt)      → executes
+```
+
 ## Build Config
 
 - **Platform**: Xbox 360 (C++03, no variadic templates, `std::function`, auto, range-for)
@@ -86,9 +122,9 @@ Domain types are the only stable identifiers. UI assets, render assets, metadata
 
 | File | Content |
 |------|---------|
-| `ARCHITECTURE.md` | Full architecture documentation (Transport Contract, Render Pipeline, Cycle 2, Component Responsibility Map, Architecture Audit) |
-| `ROADMAP.md` | Pipeline stages, Scene maturity, PR sequence, Next Steps |
-| `CHANGELOG.md` | Cycle history, Phase 6b, Post-merge debugging, Build stabilization |
+| `ARCHITECTURE.md` | Full architecture documentation (Transport Contract, Render Pipeline, Component Responsibility Map, Architecture Audit) |
+| `ROADMAP.md` | Pipeline stages, Scene maturity, PR sequence, Cycle 2 (Domain Systems) plan |
+| `CHANGELOG.md` | Cycle history, Phase 6b, Post-merge stabilization, Cycle 1 completion |
 | `MIGRATION.md` | Phase 8 checklist, Current status, Stabilization checklist, Verification criteria |
 | This file | Essential invariants, cross-references, build config |
 
