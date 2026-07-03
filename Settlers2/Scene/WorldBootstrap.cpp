@@ -15,6 +15,10 @@
 #include "../World/FlagManager.h"
 #include "../World/RoadManager.h"
 #include "../World/TransportController.h"
+#include "../World/RoadGraphAdapter.h"
+#include "../World/FlagInventoryAdapter.h"
+#include "../World/CargoRepositoryAdapter.h"
+#include "../World/DemandServiceAdapter.h"
 #include "../World/CargoManager.h"
 #include "../World/DemandManager.h"
 #include "../World/StorehouseManager.h"
@@ -249,15 +253,15 @@ void SetupSystems(World::Map* map,
     ctx.demand->SetFlagManager(flagMgr);
     OutputDebugStringA("[WorldBootstrap] DemandManager ready\n");
 
-    // TransportController (Phase 7)
+    // TransportController (Phase 7) — with dependency-injected adapters
     {
         OutputDebugStringA("[WorldBootstrap] Creating TransportController\n");
-        World::TransportController* tc = new World::TransportController();
-        tc->SetRoadManager(roadMgr);
-        tc->SetFlagManager(flagMgr);
-        tc->SetCarrierManager(ctx.carrierManager);
-        tc->SetCargoManager(ctx.cargo);
-        tc->SetDemandManager(ctx.demand);
+        World::RoadGraphAdapter* roadGraph = new World::RoadGraphAdapter(*roadMgr, *flagMgr);
+        World::FlagInventoryAdapter* inv = new World::FlagInventoryAdapter(*flagMgr, *ctx.cargo);
+        World::CargoRepositoryAdapter* cargoRepo = new World::CargoRepositoryAdapter(*ctx.cargo);
+        World::DemandServiceAdapter* demandSvc = new World::DemandServiceAdapter(*ctx.demand);
+        World::TransportController* tc = new World::TransportController(
+            *roadGraph, *inv, *cargoRepo, *demandSvc);
         ctx.demand->SetTransportController(tc);
         ctx.transportController = tc;
         OutputDebugStringA("[WorldBootstrap] TransportController ready\n");

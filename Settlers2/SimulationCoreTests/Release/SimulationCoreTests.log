@@ -1,0 +1,28 @@
+﻿Построение начато 03.07.2026 9:50:49.
+     1>Проект "D:\development\Settlers2\Settlers2\SimulationCoreTests\SimulationCoreTests.vcxproj" в узле 2 (целевые объекты build).
+     1>PrepareForBuild:
+         Создание каталога "D:\development\Settlers2\Release\".
+       InitializeBuildStatus:
+         Создание "Release\SimulationCoreTests.unsuccessfulbuild", так как было задано "AlwaysCreate".
+       ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /Zi /nologo /W1 /WX- /O2 /Oy- /Gm- /EHsc /MD /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt TestRunner.cpp HandleTests.cpp TransportTaskTests.cpp TransportRouteTests.cpp CargoTests.cpp TransportControllerVerification.cpp DemandManagerVerification.cpp main.cpp
+         TestRunner.cpp
+         HandleTests.cpp
+         TransportTaskTests.cpp
+         TransportRouteTests.cpp
+         CargoTests.cpp
+         TransportControllerVerification.cpp
+         DemandManagerVerification.cpp
+         main.cpp
+         Создание кода...
+     1>d:\development\settlers2\settlers2\simulationcoretests\transportroutetests.cpp(7): warning C4700: использована неинициализированная локальная переменная "r"
+     1>d:\development\settlers2\settlers2\simulationcoretests\transporttasktests.cpp(8): warning C4700: использована неинициализированная локальная переменная "t"
+     1>d:\development\settlers2\settlers2\simulationcoretests\transporttasktests.cpp(65): warning C4700: использована неинициализированная локальная переменная "t"
+     1>Проект "D:\development\Settlers2\Settlers2\SimulationCoreTests\SimulationCoreTests.vcxproj" (1) выполняет построение "D:\development\Settlers2\Settlers2\SimulationCore\SimulationCore.vcxproj" (2:3) в узле 2 (целевые объекты GetResolvedLinkLibs).
+     2>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\Microsoft.CppBuild.targets(283,5): error MSB8013: этот проект не содержит сочетание конфигурации и платформы Debug|Win32.
+     2>Построение проекта "D:\development\Settlers2\Settlers2\SimulationCore\SimulationCore.vcxproj" завершено (целевые объекты GetResolvedLinkLibs) с ошибкой.
+     1>Построение проекта "D:\development\Settlers2\Settlers2\SimulationCoreTests\SimulationCoreTests.vcxproj" завершено (целевые объекты build) с ошибкой.
+
+СБОЙ построения.
+
+Затраченное время: 00:00:05.02

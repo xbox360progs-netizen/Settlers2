@@ -31,7 +31,7 @@
   <Class Name="Camera" Collapsed="true">
     <Position X="52" Y="0.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEQSQAEAEIAABQAAEAAACAAQQCMAAhggAAABABAAYAQ=</HashCode>
+      <HashCode>AEQSQAEAEIAABQAAEAAACAAQQCsAAhggAAABABAAYAQ=</HashCode>
       <FileName>Graphics\Camera.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -94,14 +94,14 @@
   <Class Name="TileRenderer" Collapsed="true">
     <Position X="38" Y="8.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>QAIIYCAAAIAAAAAACUQgSAEQAEAAQAAggAAQAQAAAAA=</HashCode>
+      <HashCode>AAIIYAAAAIAAAAAACQQgSAAAAAAAQAAgAAAAAQAAAAI=</HashCode>
       <FileName>Graphics\TileRenderer.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="MenuScene" Collapsed="true">
     <Position X="8.5" Y="7.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>IAQkgJCBBAASAwACKJgAAAAhAAAwAIQAAJIVCQAAAAA=</HashCode>
+      <HashCode>IQQkgJCACAASEQACKBAAAAAhEAAwAYQAELIFCQAAAAA=</HashCode>
       <FileName>Scene\MenuScene.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -122,14 +122,14 @@
   <Class Name="GridMenu" Collapsed="true">
     <Position X="39.75" Y="3.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>gCQQgJEQFRACE4kC8SCgBTA6FGI2AwrIqBEeoweWBIE=</HashCode>
+      <HashCode>gCQQkJESFTgSE4kC8SygBTA6NEI2A5vKqDke4weWBIE=</HashCode>
       <FileName>UI\GridMenu.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="RadialMenu" Collapsed="true">
     <Position X="46.75" Y="5.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAwAggAISAAAETgCMBACASAA0SgUICBgAhASq0AYhAQ=</HashCode>
+      <HashCode>AAwAggAISAAAETgCMBAiASAA0SgUISBgAhAQq0AYhAQ=</HashCode>
       <FileName>UI\RadialMenu.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -164,7 +164,7 @@
   <Class Name="JobManager" Collapsed="true">
     <Position X="50.25" Y="3.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAACgAABAAAUCACAEAAYAAEAAAAAgAIAAAAwAACAA=</HashCode>
+      <HashCode>AAAAAAACAAAAAQAACAAAAQAAAAAAAAgAIAAAAwAAAAA=</HashCode>
       <FileName>Core\JobManager.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -360,14 +360,14 @@
   <Class Name="Scene::EditorScene" Collapsed="true">
     <Position X="50.25" Y="1.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>MGwgiNKVUbMjBIRUR5I0miYmSoIQaAWQBJAJxQmpYaA=</HashCode>
+      <HashCode>MGwgiNKVUbNrBIRUR5I0miYmSoIRaAWQBJQJxQmpYYA=</HashCode>
       <FileName>Scene\EditorScene.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="Scene::GameScene" Collapsed="true">
     <Position X="50.25" Y="2.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>gi0gpLqkBQNeQYUFEFSJFJQIE8K1FeQloRAAKUjYcMI=</HashCode>
+      <HashCode>AQ8igbukCEMPQcAkBUTBFCYCEcgzEKVcABlgCxmMQIg=</HashCode>
       <FileName>Scene\GameScene.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -385,10 +385,10 @@
       <FileName>Scene\SceneManager.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="Scene::Scene" Collapsed="true">
+  <Class Name="Scene::SceneBase" Collapsed="true">
     <Position X="8.5" Y="6.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>UCQAgEigRAAAAQAIgAIAAAAAQoAQAAQAAJABAAAABiA=</HashCode>
+      <HashCode>UCQAgEigRAAABQAIAAIAAAAAAoAQAgQAAJABAAAABiA=</HashCode>
       <FileName>Scene\Scene.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -409,21 +409,21 @@
   <Class Name="World::EntityManager" Collapsed="true">
     <Position X="38" Y="2.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AACRAAQAAAAJAAAAABAABAAABACAAQAEQAAgAABAAAA=</HashCode>
+      <HashCode>AQCBCIgAAAAKAAAAABAABIAAAAAAAQAEACwAAABAAAA=</HashCode>
       <FileName>World\EntityManager.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="World::WildlifeSystem" Collapsed="true">
     <Position X="50.25" Y="8.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>BSYkACAAAAAAAAAAAwAABGAIKgAAkABAAIIBAIAAAgA=</HashCode>
+      <HashCode>ASQgECAAAAABAAAAAAAABGAIKAAAAABAAIAAAIAAAgA=</HashCode>
       <FileName>World\WildlifeSystem.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="World::Map" Collapsed="true">
     <Position X="43.25" Y="4.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>owVQAQAAIBAACABBEEAQAABBAAAKQACAIAgKCEFgAog=</HashCode>
+      <HashCode>owXQAQAAIRDIiClBkOgUAABBAAAiQACMMggPKEFgAog=</HashCode>
       <FileName>World\Map.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -444,42 +444,42 @@
   <Class Name="World::Carrier" Collapsed="true">
     <Position X="53.75" Y="0.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>BAUiAiAAAAEBAAAAIQgggCIAACAgAABEAAJBgQAAAQA=</HashCode>
-      <FileName>World\Carrier.h</FileName>
+      <HashCode>BMUoggAJAAMIAAAAIQAgkCIAAAACECAMBEJBEAAAQQA=</HashCode>
+      <FileName>simulationcore\transport\carrier.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="World::Flag" Collapsed="true">
     <Position X="41.5" Y="2.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>EAAAAgAAACAAAAAQAAgBAICACAABAAAEAgBiCAQAAgA=</HashCode>
+      <HashCode>EAAAAgAAACAAAAAQAAABAICAAAABAAAEAgBiCAQEAiA=</HashCode>
       <FileName>World\Flag.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="World::FlagManager" Collapsed="true">
     <Position X="43.25" Y="2.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>lAQACBAAAkAAARAAAJEBEAFAAAACAAEAAAEQEQBAACA=</HashCode>
+      <HashCode>lAQACBAAAkAAARAAAJEBEAFAAACCAAEAAAEQEQBAACA=</HashCode>
       <FileName>World\FlagManager.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="World::RoadManager" Collapsed="true">
     <Position X="46.75" Y="6.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAYggAAAABAABAAAAAAAAABAEAAAAAEQAABwCQRgQAA=</HashCode>
+      <HashCode>ABYggAAABBAABAQAAAAAAABAMAAAAAEQAADwCQRgwAA=</HashCode>
       <FileName>World\RoadManager.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="World::CarrierManager" Collapsed="true">
     <Position X="38" Y="1.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAQgAAEgCABgQAIIABYAQAKgIgAAABgAAQAAYAAAQAA=</HashCode>
+      <HashCode>AAQgAAEgCABoQAoIABYAQAIgIgAAABgIAAAEYBAEQAA=</HashCode>
       <FileName>World\CarrierManager.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="World::Pathfinding" Collapsed="true">
     <Position X="39.75" Y="5.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <HashCode>QACgAAQAAEAAAAAAAAAAAAAAAAAAAAAAAAACAABAAAA=</HashCode>
       <FileName>World\Pathfinding.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -500,42 +500,42 @@
   <Class Name="World::Warehouse" Collapsed="true">
     <Position X="15.25" Y="1.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAQAAAAAAAAAACAAAAAAAAAAABAAAAAACAAgAAQAAAA=</HashCode>
+      <HashCode>AAQAAAAAAAAAAAAAAAAAAAABABAAAAAFCAAgAAQAAAA=</HashCode>
       <FileName>World\Warehouse.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="World::Building" Collapsed="true">
     <Position X="19.75" Y="0.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>BFQCEVAQAAAFgEIJAAAAAJAAABEBIQAFIgBBCAAAggA=</HashCode>
+      <HashCode>BFQCMVAQBBEFoEIJAACAQJAAGREBIQJBJgBBCAAAgEE=</HashCode>
       <FileName>World\Components\Building.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="World::ConstructionManager" Collapsed="true">
     <Position X="41.5" Y="1.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AIQgAAkACAAAAACAAAqACQAgABIAQAAAAIAgUGBAQAA=</HashCode>
+      <HashCode>AIQgIAkAGCAKQACAAAqACQAgABIAQAAACIIkUGRARAA=</HashCode>
       <FileName>World\ConstructionManager.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="World::ConstructionSite" Collapsed="true">
     <Position X="43.25" Y="1.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AwIACAIAAAAAAAAQQIgAAAAIkAAAZBAEAAJgQBBAQgA=</HashCode>
+      <HashCode>AwIACAIAAAAAAAQQQIgAAAAI0AAAZBAEACJgQBBAQgA=</HashCode>
       <FileName>World\ConstructionSite.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="World::HandleRegistry" Collapsed="true">
     <Position X="43.25" Y="3.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAABAAEAAACAEAAAAAAAAAAAAAABAAAAAAAAAABAEAA=</HashCode>
-      <FileName>World\Handle.h</FileName>
+      <HashCode>AAABAAEAAACAEAAAAAAgAAAAAAABAAAAAAAAAABAEAA=</HashCode>
+      <FileName>simulationcore\core\handle.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="World::ObjectLifecycleManager" Collapsed="true">
     <Position X="52" Y="4.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AGAgAAAAAAAAgAAAAAABAAAAMIgBACAEAYAAAAAAQAA=</HashCode>
+      <HashCode>AGAgACAAAAAEgAAAAABBAAAQMIgBACAMAIAAQAAAQCA=</HashCode>
       <FileName>World\ObjectLifecycleManager.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -563,7 +563,7 @@
   <Class Name="World::CoalMine" Collapsed="true">
     <Position X="6.25" Y="1.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEAAAEAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAACAQAA=</HashCode>
+      <HashCode>AAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>World\Components\CoalMine.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -577,14 +577,14 @@
   <Class Name="World::Fisher" Collapsed="true">
     <Position X="13" Y="1.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEAAAEAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAA=</HashCode>
+      <HashCode>BAAAAgAEAAAAQAAAAAQAUBAAAAAAAQAAAAAAAAQAAAA=</HashCode>
       <FileName>World\Components\Fisher.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="World::GoldMine" Collapsed="true">
     <Position X="17.5" Y="1.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEAAAEAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAACAQAA=</HashCode>
+      <HashCode>AAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>World\Components\GoldMine.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -598,14 +598,14 @@
   <Class Name="World::Hunter" Collapsed="true">
     <Position X="33.25" Y="1.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEQAAEAAAAAAAAAAIAAAAAAAAEAAAAAAAAAAAAAAAAA=</HashCode>
+      <HashCode>BAAAAgAAAAAAAAAAAAQAUBAAAEAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>World\Components\Hunter.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="World::IronMine" Collapsed="true">
     <Position X="35.5" Y="1.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEAAAEAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAACAQAA=</HashCode>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>World\Components\IronMine.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -626,14 +626,14 @@
   <Class Name="World::Sawmill" Collapsed="true">
     <Position X="24.25" Y="3.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAA=</HashCode>
+      <HashCode>AAQAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAQBAAA=</HashCode>
       <FileName>World\Components\Sawmill.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="World::Stonemason" Collapsed="true">
     <Position X="4" Y="1.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAA=</HashCode>
+      <HashCode>BQQCIgAAAAAAgAgCAhQAUBAACABAAAAAIASCAAAAABA=</HashCode>
       <FileName>World\Components\Stonemason.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -647,7 +647,7 @@
   <Class Name="World::Woodcutter" Collapsed="true">
     <Position X="10.75" Y="1.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEAAAEAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAA=</HashCode>
+      <HashCode>BAUAAgAAAAAAAAAAAAQAUBAECAACAAAAAAAICAAAAAA=</HashCode>
       <FileName>World\Components\Woodcutter.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -661,14 +661,14 @@
   <Class Name="Logic::ResourceRegistry" Collapsed="true">
     <Position X="45" Y="6.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AgAAAAAAEACAAAAAAEAAAACEgABBAECAAAACAAgBEAA=</HashCode>
+      <HashCode>AgAAAAAAEACAAAAAAECAAACEgABBAECAAAACAAgBEAA=</HashCode>
       <FileName>Logic\ResourceRegistry.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="Logic::EconomyManager" Collapsed="true">
     <Position X="48.5" Y="1.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>IQUgAAEAAQEEBgAQgFgAEgQADAAAiAABAAAAAQAASAA=</HashCode>
+      <HashCode>IQUgAAEQQQEMBggQgFgAEgQADAAQiAANAAAEEQAASAA=</HashCode>
       <FileName>logic\economymanager.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -906,8 +906,8 @@
   <Struct Name="Vector2i" Collapsed="true">
     <Position X="53.75" Y="14.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABgAAAAAAA=</HashCode>
-      <FileName>Core\Vector2i.h</FileName>
+      <HashCode>ACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABgAAAAAAA=</HashCode>
+      <FileName>simulationcore\core\vector2i.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="Job" Collapsed="true">
@@ -1067,21 +1067,21 @@
   <Struct Name="World::ResourceNode" Collapsed="true">
     <Position X="41.5" Y="13.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAABAAAQAAAAABgAAgAAAAAAAAAAA=</HashCode>
+      <HashCode>AAAAAAAAAAAAAAAAABAAAQAAAAABgAAgAAAABAAAAAA=</HashCode>
       <FileName>World\ResourceNode.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="World::Tile" Collapsed="true">
     <Position X="46.75" Y="14.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AgAAAAAAAAAAAAYAAAAAAACAAhIBAAAAABJgAAAIAQE=</HashCode>
+      <HashCode>AgAAAAAAAAAAAAYAAAAAAACIAhIBAAAAABJgAAAIAQE=</HashCode>
       <FileName>World\Tile.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="World::AnimalHabitat" Collapsed="true">
     <Position X="41.5" Y="9.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAgAAAAACAAAAAAAAAAEAAACAAABAAAAAAAAAAAAAgA=</HashCode>
+      <HashCode>ACgAAAAACAAAAAAAAAAEAAACAAABAAAAAAAAAAAAAgA=</HashCode>
       <FileName>World\AnimalHabitat.h</FileName>
     </TypeIdentifier>
   </Struct>
@@ -1095,7 +1095,7 @@
   <Struct Name="World::Animal" Collapsed="true">
     <Position X="39.75" Y="9.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAEAAAAAAAAAAAAAAABAAAEAABgIAAAAAA=</HashCode>
+      <HashCode>EAAAAAAAAAAEAAgAAggAAAAAAAABAAAEAABgIAAAAAA=</HashCode>
       <FileName>World\Animal.h</FileName>
     </TypeIdentifier>
   </Struct>
@@ -1116,7 +1116,7 @@
   <Struct Name="World::ResourceSlot" Collapsed="true">
     <Position X="45" Y="13.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAACAAIAAAAAAAAAAABgAAAAAAEAAAAAAA=</HashCode>
+      <HashCode>AAAAAAAAAAAACAAAAAAAAAAAAAABgAAAAAAEAABAAAA=</HashCode>
       <FileName>World\Flag.h</FileName>
     </TypeIdentifier>
   </Struct>
@@ -1124,21 +1124,21 @@
     <Position X="3.5" Y="10.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAgAAAAAAAAAAAAAAAgAAQAAAAAAAAIAAAAAEAABAAA=</HashCode>
-      <FileName>World\Handle.h</FileName>
+      <FileName>simulationcore\core\handle.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="World::RoadData" Collapsed="true">
     <Position X="50.25" Y="13.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAQAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAACAgA=</HashCode>
+      <HashCode>AAAAAQAAAAAAAAAAAAAAAAAAAgAAAAAEAAAAAAACAgA=</HashCode>
       <FileName>World\Road.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="World::Cargo" Collapsed="true">
     <Position X="46.75" Y="9.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAACAAAAAAAAAAAAAABgAABAAAAAAAAAAA=</HashCode>
-      <FileName>World\TransportTask.h</FileName>
+      <HashCode>AAAAAAAAAAAAAAgAAAAAAAAAAAABgAANAAAAAAAAAgA=</HashCode>
+      <FileName>simulationcore\transport\cargo.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="World::InTransitCounts" Collapsed="true">
@@ -1271,7 +1271,7 @@
     <Position X="6.5" Y="10.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>World\Carrier.h</FileName>
+      <FileName>simulationcore\transport\carrier.h</FileName>
     </TypeIdentifier>
   </Typedef>
   <Typedef Name="World::FlagHandle" Collapsed="true">
@@ -1319,7 +1319,7 @@
   <Enum Name="ShaderID" Collapsed="true">
     <Position X="52" Y="18.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAACAAQAAABEAFAAAAAAAAAgAAA=</HashCode>
+      <HashCode>AAAAAAAAAAAACAAAAAACAAQAAABEAFAAAAAAAAAgAAA=</HashCode>
       <FileName>Graphics\ShaderManager.h</FileName>
     </TypeIdentifier>
   </Enum>
@@ -1389,8 +1389,8 @@
   <Enum Name="World::ResourceType" Collapsed="true">
     <Position X="46.75" Y="18.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AgECAgAEAACBEAAgAQBBCAgAABAoAAIUBAiEgQAEAYI=</HashCode>
-      <FileName>World\ResourceNode.h</FileName>
+      <HashCode>AgECAgAEAACBEAAgAQBBCAgAABAoACIUBAiEgQAEAYI=</HashCode>
+      <FileName>simulationcore\core\resourcetypes.h</FileName>
     </TypeIdentifier>
   </Enum>
   <Enum Name="World::LayerType" Collapsed="true">
@@ -1418,7 +1418,7 @@
     <Position X="50.25" Y="17" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAIAAIAAAAAAA=</HashCode>
-      <FileName>World\Carrier.h</FileName>
+      <FileName>simulationcore\transport\carrier.h</FileName>
     </TypeIdentifier>
   </Enum>
   <Enum Name="World::SoldierRank" Collapsed="true">
@@ -1431,8 +1431,8 @@
   <Enum Name="World::WorkerState" Collapsed="true">
     <Position X="43.25" Y="19.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAACAAAAAAAAAAgAAAAACAAAAAAAAAAAAAAAAAQAAA=</HashCode>
-      <FileName>World\Worker.h</FileName>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>World\WorkerDefs.h</FileName>
     </TypeIdentifier>
   </Enum>
   <Enum Name="World::AnimalState" Collapsed="true">
@@ -1466,7 +1466,7 @@
   <Enum Name="World::BuildingType" Collapsed="true">
     <Position X="48.5" Y="17" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>CQgAACACEAQAAAAAQEBEEAUAAETSAQAIACAAAAQhEQA=</HashCode>
+      <HashCode>CQgAACACEAQAAAAAQEBEEAUAAETSAQAIACEAAAQhEQA=</HashCode>
       <FileName>World\Components\Building.h</FileName>
     </TypeIdentifier>
   </Enum>
@@ -1477,7 +1477,7 @@
       <FileName>World\Components\Building.h</FileName>
     </TypeIdentifier>
   </Enum>
-  <Enum Name="World::BuildingFSM" Collapsed="true">
+  <Enum Name="World::BuildingFSM">
     <Position X="45" Y="17" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAQAAABQAAAAAAAAAAAAAAA=</HashCode>

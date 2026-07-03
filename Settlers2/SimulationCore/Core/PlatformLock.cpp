@@ -1,5 +1,9 @@
 #include "PlatformLock.h"
+#ifdef _XBOX
 #include <xtl.h>
+#else
+#include <windows.h>
+#endif
 
 struct PlatformLock::Impl {
     CRITICAL_SECTION cs;

@@ -1,0 +1,24 @@
+﻿Построение начато 03.07.2026 10:40:31.
+     1>Проект "D:\development\Settlers2\Settlers2\SimulationCore\SimulationCore.vcxproj" в узле 2 (целевые объекты build).
+     1>InitializeBuildStatus:
+         Создание "Debug\SimulationCore\SimulationCore.unsuccessfulbuild", так как было задано "AlwaysCreate".
+       ClCompile:
+         Для всех выходных данных обновления не требуется.
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D _DEBUG /D _XBOX /GF- /Gm- /MTd /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Fo"Debug\SimulationCore\\" /Fd"Debug\SimulationCore\vc100.pdb" /TP Core\PlatformLock.cpp Transport\TransportController.cpp Transport\TransportTask.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
+         PlatformLock.cpp
+         TransportController.cpp
+         TransportTask.cpp
+         Generating Code...
+       Lib:
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\Lib.exe /OUT:"D:\development\Settlers2\Settlers2\SimulationCore\Debug\SimulationCore.lib" /NOLOGO Debug\SimulationCore\PlatformLock.obj
+         Debug\SimulationCore\TransportController.obj
+         Debug\SimulationCore\TransportTask.obj
+         SimulationCore.vcxproj -> D:\development\Settlers2\Settlers2\SimulationCore\Debug\SimulationCore.lib
+       FinalizeBuildStatus:
+         Файл "Debug\SimulationCore\SimulationCore.unsuccessfulbuild" удаляется.
+         Обращение к "Debug\SimulationCore\SimulationCore.lastbuildstate".
+     1>Построение проекта "D:\development\Settlers2\Settlers2\SimulationCore\SimulationCore.vcxproj" завершено (целевые объекты build).
+
+Построение успешно завершено.
+
+Затраченное время: 00:00:05.31

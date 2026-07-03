@@ -378,35 +378,120 @@ Multi-site with shared roads: Hunter at (18,38) received all 3 Wood via road 2 c
 
 ---
 
-# Next Steps (Stabilization Phase)
+# Next Steps — Methodology Pipeline
 
-## Pipeline
+## Current Cycle
 
 ```
-Build Errors Fixed (this session)  ✅
+Model layer (completed in document)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PR12 — Carrier cleaned ✅
         │
         ▼
-Visual World Smoke Test (Xbox 360 — 10-15 min)
+PR13 — DemandManager Verification ✅
         │
         ▼
-Find remaining render bypasses
-(queue.Push, WorldSprite, Camera::WorldToScreen, FlagManager* in Renderers)
+PR13.1 — Minimal repair (Demand.h include fix) ✅
         │
         ▼
-Visual World Complete (delete legacy code)
+PR13.2 — Win32 build infrastructure + 94/94 PASS ✅
         │
         ▼
-Update AGENTS.md with proven invariants
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Measurement layer (requires Xbox 360 SDK)
+
+Re-Verification (Xbox 360) ⏳ (expected 94/94)
         │
         ▼
-T1–T8 soak tests
-        │
-        ▼
-Remove legacy transport (Phase 8.4)
-        │
-        ▼
-Cycle 3 — Definition Pattern
+Next subsystem (Verification → Repair → Re-Verification)
 ```
+
+## Candidate order (by testability score)
+
+| Subsystem | Score | Next step |
+|-----------|-------|-----------|
+| DemandManager | 4/5 | PR13 ✅ (94/94 PASS on Win32, Xbox 360 re-verify pending) |
+| FlagManager | 2/5 | Defer (needs Flag DTO split first) |
+| ConstructionManager | 1/5 | Defer (needs decomposition first) |
+
+## Process invariant
+
+```
+Verification → Root Cause → Minimal Repair → Re-Verification → Measured Improvement
+```
+
+One root cause per cycle. Repair never larger than necessary to eliminate
+one confirmed Root Cause.
+
+### Emerging pattern (2 data points)
+
+```
+Subsystem       Root cause          Category
+─────────────── ─────────────────── ───────────────────────────────────
+Transport       Carrier.h → World   Public header carries unnecessary deps
+DemandManager   Demand.h → ResourceNode.h  Same
+```
+
+Both root causes are not algorithmic complexity — they are **public header
+pollution**: the header includes more than the type contract requires.
+If 2–3 more subsystems show the same pattern, it becomes a validated
+architectural observation about the project's primary source of untestability.
+
+## Three knowledge layers
+
+| Layer | What | Confirmed by | Changes when |
+|-------|------|-------------|-------------|
+| **Methodological invariants** | Properties of the process itself | Repeatability across independent subsystems | Process stops reproducing |
+| **Architectural observations** | Empirical findings about this codebase | Accumulated Verification data | New data contradicts current model |
+| **Architectural invariants** | Conscious design decisions | Project charter | Architecture is deliberately changed |
+
+### 1. Methodological invariants (confirmed by process repeatability)
+
+- Verification precedes Repair.
+- Repair does not begin without an established Root Cause.
+- Verification localizes the problem to one minimal independent cause.
+- Re-Verification confirms or refutes the hypothesis.
+
+After two independent cycles (Transport, Demand), these are properties
+of the process itself, not of any subsystem.
+
+### 2. Architectural observations (provisional, subject to evidence)
+
+| Evidence level | Criterion | Current status |
+|----------------|-----------|---------------|
+| **Observation** | 1 independent subsystem | Transport (PR11) |
+| **Emerging pattern** | 2–3 independent subsystems | **Current**: Transport + Demand (PR11 + PR13) |
+| **Validated architectural observation** | ≥4 independent confirmations | Not yet reached |
+
+**Emerging pattern**: "Public header pollution is the primary source of untestability."
+(2 data points — pending confirmation from ≥2 more subsystems.)
+
+### 3. Architectural invariants (design decisions)
+
+```
+SimulationCore → no Scene, Graphics, Xbox SDK dependencies
+Dependency direction: World → SimulationCore (never reverse)
+TransportTask is the single mutable representation of a shipment
+```
+
+These are not derived from Verification. They are conscious architectural
+constraints. Changed only by deliberate decision.
+
+### Core principle
+
+> **The architecture model is derived from Verification, not imposed on it.**
+
+The model must explain accumulated observations, not constrain future search.
+If data contradicts today's assumptions, the model adjusts — the process
+does not break.
+
+```diff
+- Deductive:  Architecture theory → Verify code
++ Inductive:  Code → Verification → Evidence → Architecture model
+```
+
+Do not predefine root cause categories. Each Verification surfaces its own.
+Categories emerge from accumulated data, not from prior classification.
 
 ## Definition Pattern (Architectural Invariant for Cycle 3)
 
@@ -1070,40 +1155,111 @@ Files deleted:
 - `World/TransportJob.h` — old job DTO
 - `World/Systems/TransportSystem.h/.cpp` — old system glue
 
-## PR8 Analysis (In Progress)
+## PR8 — Dependency Inversion for Transport ✅
 
-Bidirectional cycle: `TransportController.cpp ↔ DemandManager.cpp`
+**Criterion achieved**: `TransportController` has zero `#include` on `RoadManager`, `FlagManager`, `CarrierManager`, `CargoManager`, `DemandManager` — verified by grep (0 matches in `.h` + `.cpp`).
 
-TransportController uses:
-- `m_roadManager->FindFlagPath(Flag*, Flag*)` → `std::vector<Flag*>`
-- `m_flagManager->GetFlagById(FlagId)` → `Flag*`
-- `m_flagManager->GetCount()` → `uint32_t`
-- `m_flagManager->GetFlag(size_t)` → `Flag*`
-- `m_carrierManager->GetCarrierCount()` → telemetry only (int)
-- `m_cargoManager->Release(uint32_t cargoId)`
-- `m_demandManager->GetTicket(uint32_t ticketId)` → `DemandTicket*`
-- `m_demandManager->Deliver(DemandTicket*)`
+### Three commits
 
-Interfaces needed (not yet written): IRoadGraph, IFlagRepository, ICarrierScheduler, ICargoStore, ITransportRequestHandler
+**Commit 1 — Usage inventory**: extracted all 16 calls grouped by obligation:
+- `IRoadGraph`: `FindRoute(FlagId, FlagId)` — 3 calls (was `FindFlagPath(Flag*, Flag*)`)
+- `IFlagInventory`: `ReceiveDelivery(FlagId, ResourceType, uint8_t, uint32_t)` — 1 call (was `AcceptCargo`+`AddResource`)
+- `ICargoRepository`: `Release(uint32_t)` — 1 call
+- `IDemandService`: `CompleteDemand(uint32_t)` — 1 call (was `GetTicket`+`Deliver`)
+- Telemetry deferred (used `CarrierManager::GetCarrierCount()`, `FlagManager::GetCount/GetFlag` — removed)
+
+**Commit 2 — ISP interfaces**: 4 interface files in `SimulationCore/Interfaces/`:
+- `IRoadGraph.h`, `IFlagInventory.h`, `ICargoRepository.h`, `IDemandService.h`
+- All use only SimulationCore types (`FlagId`, `ResourceType`, `TransportRoute`)
+- No `Flag*`, `DemandTicket*`, `Cargo*` in any interface
+
+**Commit 3 — Adapters + wiring**: 4 adapters in `World/`:
+- `RoadGraphAdapter` — wraps `RoadManager` + `FlagManager`
+- `FlagInventoryAdapter` — wraps `FlagManager` + `CargoManager`
+- `CargoRepositoryAdapter` — wraps `CargoManager`
+- `DemandServiceAdapter` — wraps `DemandManager`
+- Constructor injection in `TransportController`: `TransportController(IRoadGraph&, IFlagInventory&, ICargoRepository&, IDemandService&)`
+- Wiring in `WorldBootstrap.cpp`: creates adapters, passes to TransportController
+
+### Old vs New dependency graph
+
+```
+Before PR8:
+  TransportController → RoadManager, FlagManager, CarrierManager, CargoManager, DemandManager
+
+After PR8:
+  TransportController → IRoadGraph, IFlagInventory, ICargoRepository, IDemandService
+                              ↑              ↑               ↑               ↑
+                         RoadGraphAdapter  FlagInvAdapter  CargoRepoAdapter  DemandSvcAdapter
+                              ↑              ↑               ↑               ↑
+                         RoadManager     FlagManager      CargoManager     DemandManager
+```
+
+**Telemetry stripped**: `LogTelemetry()`, `TakeSnapshot()`, `EconomySnapshot`, `DeltaReason` removed (deferred to separate PR). `Update()` no longer calls telemetry.
+
+**Cycle broken**: `TransportController.cpp ↔ DemandManager.cpp` cycle resolved — TransportController no longer includes DemandManager.h.
+
+### PR9 Completed
+
+- TransportController migrated to `SimulationCore/Transport/`.
+- Cargo and transport data types colocated with transport logic.
+- Handle moved to `SimulationCore/Core/`.
+- `ResourceTypeToString` extracted to `SimulationCore/Core/ResourceDebug.h` (debug utility, not model).
+- TransportController is independent of World, Logic, Scene, Graphics, platform headers and precompiled headers.
+
+**Architectural invariant**: SimulationCore may not depend on Scene, Graphics or platform-specific code. New transport logic must not introduce dependencies from SimulationCore back into World.
+
+**Remaining technical debt**:
+- Carrier has temporary dependencies on World types (Road, Flag, FlagManager, RoadManager, etc.). Remove these when navigation/spatial state is extracted.
+- Delete transitional forwarding headers (`World/Carrier.h`, `World/Cargo.h`, `World/Handle.h`, etc.) after all includes are migrated.
 
 ## Current Architecture
 
 ```
 SimulationCore.lib (no platform deps, no stdafx.h)
 ├── Core/
+│   ├── Handle.h                 (template Handle<T>, moved from World)
 │   ├── PlatformLock.h/.cpp      (PImpl, CRITICAL_SECTION hidden)
-│   └── ResourceTypes.h          (enum ResourceType, header-only)
+│   ├── ResourceDebug.h          (ResourceTypeToString, extracted from ResourceNode.h)
+│   ├── ResourceTypes.h          (enum ResourceType, header-only)
+│   └── Vector2i.h               (moved from Core/, PR12)
+├── Interfaces/
+│   ├── IRoadGraph.h, IFlagInventory.h, ICargoRepository.h, IDemandService.h
 └── Transport/
+    ├── Cargo.h                  (data-only struct, moved from World)
+    ├── Carrier.h                (moved from World — zero World #includes as of PR12)
     ├── TransportTypes.h         (FlagId, TransportTaskId, enums)
     ├── TransportRoute.h         (route data, header-only)
-    ├── TransportTask.h/.cpp     (task data, first .cpp in lib)
-    └── TransportController.h    (forward decls only, .cpp in main)
+    ├── TransportTask.h/.cpp     (task data)
+    ├── TransportController.h    (header, 4 interface refs via DI)
+    └── TransportController.cpp  (implementation — zero World includes)
 
 Settlers2 (main project — Xbox 360 deps)
 ├── World/*.h                    (forwarding headers for migrated types)
-├── TransportController.cpp      (implementation — 8 World includes)
+├── World/RoadGraphAdapter.cpp   (adapters bridge SimulationCore ↔ World)
+├── World/FlagInventoryAdapter.cpp
+├── World/CargoRepositoryAdapter.cpp
+├── World/DemandServiceAdapter.cpp
 └── all other simulation .cpp
 ```
+
+### Carrier relocation — PR12 complete ✅
+
+`Carrier.h` was moved to `SimulationCore/Transport/` (PR9D) with **transitional**
+World dependencies. PR12 removed these: `SimulationCore/Transport/Carrier.h` now
+contains only forward declarations for `Road`, `Flag`, `FlagManager`, `RoadManager`,
+`DemandManager`, `CargoManager`, and `TransportController`. All method bodies that
+dereference World types moved to `World/Carrier.cpp` (5 methods: `GetPathLen`,
+`GetCenterEp`, `GetFlagEp`, `Update`, `UpdateWalkingToPost`).
+
+`Vector2i.h` was duplicated to `SimulationCore/Core/Vector2i.h` — the original
+`Core/Vector2i.h` is now a forwarding header.
+
+**Expected**: PR11 re-verification to show 42✅ 0❌ (all 8 previously
+blocked tests now compilable in SimulationCoreTests).
+
+The forwarding header `World/Carrier.h` will be deleted once all includes reference the
+canonical path `SimulationCore/Transport/Carrier.h`.
 
 ## Key Decisions
 
@@ -1209,57 +1365,267 @@ SimulationCore → Graphics
 `Settlers2.exe` — host-приложение, не содержащее новой логики симуляции. Новая бизнес-логика сразу попадает в SimulationCore.
 
 ### 12. AI-testability ✅
-- Существует `TestWorldBuilder` для декларативного описания сценариев
-- Сценарии читаются как спецификация: `world.Simulate(200)` → `EXPECT_EQ(TaskState::Delivered, task.state)`
-- Новый тест можно написать без знания Xbox SDK или внутреннего устройства GameScene
-- Тест использует только публичный API SimulationCore
-- Один сценарий — один файл (например, `SimulationCoreTests/Transport/CreateTask.cpp`)
-- Минимум моков — предпочтителен небольшой настоящий мир через TestWorldBuilder
-- Все проверки явные: `EXPECT_EQ(TaskState::Delivered, task.state)`, а не `EXPECT_TRUE(ok)`
-- Сообщения об ошибках достаточно информативны для локализации регрессии по одному запуску
-- ИИ может сгенерировать новый тест по аналогии с существующими, не изучая весь проект
+- `SimulationCoreTests/` — Xbox 360 console app project, links against SimulationCore.lib
+- 3 source files: `HandleTests.cpp` (17 tests), `TransportTaskTests.cpp` (8 tests), `TransportRouteTests.cpp` (5 tests), `CargoTests.cpp` (2 tests) — total 32 tests
+- TestRunner.h — self-registering via static constructors, `TEST(name)`/`EXPECT_TRUE`/`EXPECT_FALSE`/`EXPECT_EQ` macros
+- Все тесты используют только публичные API SimulationCore (`Handle.h`, `TransportTask.h`, `Cargo.h`, `TransportRoute.h`, `ResourceTypes.h`)
+- Ни один тест не требует Xbox SDK, Graphics, Scene, или World Manager'ов
+- Новый тест можно написать по аналогии: `#include "TestRunner.h"` + `#include "../SimulationCore/..."` + `TEST(Name) { ... }`
+- Pipeline: `Build (SimulationCore → SimulationCoreTests) → Run → PASS/FAIL`
+- Сборка возможна только на Xbox 360 с SDK; платформонезависимость ядра симуляции позволяет в будущем собрать Win32 версию тестов
 
-**Definition of Test**: каждый новый тест отвечает на четыре вопроса — (1) начальное состояние мира, (2) действие, (3) количество тиков, (4) ожидаемый результат.
+**Definition of Test**: каждый тест проверяет одно assertable свойство (state, equality, construction) без external dependencies.
 
 **Definition of Done**: SimulationCore — самостоятельное платформонезависимое ядро симуляции со своей сборкой, логикой, минимальными зависимостями, тестами, используемое игровым приложением как обычная библиотека.
 
-## Roadmap
+## Project Goal
+
+> SimulationCore — единственное место, где появляется новая игровая механика.
+> Settlers2.exe — хост и интеграционный слой.
+>
+> Любая новая механика:
+>   1. Появляется как платформонезависимый API в SimulationCore.
+>   2. ИИ автоматически генерирует тесты.
+>   3. Только после этого интегрируется в игровое приложение.
+
+## Definition of Stable API
+
+```
+Public headers under SimulationCore/ are contracts.
+
+Changing them requires:
+  - architecture review (человек);
+  - regenerated AI tests (покрывают новые/изменённые контракты);
+  - migration notes if compatibility changes.
+```
+
+## Testing Discipline
+
+### Rule 1 — One bug → one test
+Баг → сначала тест, который его воспроизводит, затем исправление.
+
+### Rule 2 — New public types include tests
+Любой новый публичный тип/алгоритм в SimulationCore — с тестами.
+
+### Rule 3 — API change → regenerate tests
+Изменение публичного API SimulationCore → тесты (новые/обновлённые), сгенерированные ИИ.
+
+### Rule 4 — AI-generated test quality
+Каждый сгенерированный тест должен:
+```
+✓ test only public API
+✓ avoid implementation knowledge
+✓ be deterministic
+✓ avoid timing assumptions
+✓ avoid platform APIs
+✓ verify one observable property per test
+```
+
+## Architectural Invariants (SimulationCore)
+
+```
+1.  Public API first — интерфейс до реализации.
+2.  Tests include only public headers — никаких #include на детали.
+3.  New public algorithms require tests.
+4.  Bug fixes require regression tests.
+5.  SimulationCore must not depend on:
+      World, Scene, Graphics, Xbox SDK
+```
+
+## Refactoring Rule
+
+```
+When extracting code into SimulationCore,
+preserve dependency direction:
+
+  World → SimulationCore
+
+never:
+
+  SimulationCore → World
+```
+
+## Completed
 
 ```
 Phase 8.4 — Legacy transport removed                     ✅
 Phase 8.5 — Invariants / asserts                         ✅
-Phase 8.6 — SimulationCore (platform, DI, code, tests)   ⏳
-Phase 9   — Dual-core: SimulationCore(Core1)→RenderFrame→Renderer(Core0)
-Phase 10  — Performance: SIMD, batching, profiling
+Phase 8.6 — SimulationCore (platform, DI, code, tests)   ✅ (PR1–PR10)
 ```
 
-**Phase 9 target state**:
-```
-Core1: SimulationCore::Update() → RenderFrame
-                                         │
-                                    swap()
-                                         │
-Core0: Renderer reads RenderFrame
-```
-Единственный объект, пересекающий границу потоков, — `RenderFrame`.
-
-## Definition of PR (Migrationsphase)
-
-Каждый PR в рамках миграции должен отвечать на четыре вопроса:
-1. **Что переносится?** — один законченный модуль
-2. **Какие зависимости исчезают?** — измеримо
-3. **Какие новые зависимости появляются?** — в идеале никакие
-4. **Какой тест подтверждает, что поведение не изменилось?** — если ответа нет, PR слишком ранний или слишком большой
-
-## PR Sequence
+## PR Sequence (stabilisation phase)
 
 | PR | What | Criterion |
 |----|------|-----------|
-| **PR8** | Usage inventory → ISP interfaces | TransportController без `#include` на Manager'ы |
-| **PR9** | Mechanically move TransportController.cpp | Diff только include paths |
-| **PR10** | Test infrastructure + 5 tests | Pipeline Build→Run→PASS/FAIL |
-| **Cleanup** | Remove forwarding headers | Canonical includes only |
+| **PR11** | TransportController testability measurement | Testability Report: 34✅ 8❌ 1 root cause ✅ |
+| **PR12** ✅ | Remove World dependencies from Carrier's public interface | Carrier.h no longer includes World headers (forward decls only); method bodies → World/Carrier.cpp; Vector2i.h → SimulationCore/Core/ |
+| **PR13** ✅ | DemandManager Verification + Win32 CI | Testability report: 94/94 PASS (Win32 Debug). All 9 build errors fixed (4 PR12 + 3 pre-existing + 2 test). Demand.h → ResourceNode.h resolved in PR13.1. |
+| **PR13+** | Spread pattern to other subsystems | Apply proven SimulationCore → World pattern |
+
+### Testability history
+
+| PR | Behavioural API | ✅ | ❌ | Root causes |
+|----|-----------------|----|----|-------------|
+| PR11 ✅ (Verified) | 42 | 34 | 8 | 1 (Carrier → World) |
+| PR12 ✅ (Complete) | 42 | Pending | Pending | Pending |
+| Re-Verification   | 42 | Expected: 42 | Expected: 0 | Expected: 0 |
+| PR13 ⏳ (Verified) | 94 | 0 | 17 | 1 (Demand.h → ResourceNode.h) |
+| **PR13.2** ✅ (Win32) | 94 | **94** | **0** | **0** |
+
+### Root cause tracking
+
+| PR | Root Causes Remaining | Removed | Added |
+|----|----------------------|---------|-------|
+| PR11 | 1 | – | 1 |
+| PR12 | (expected: 0) | 1 | – |
+| PR13 | 0 | 1 | 1 (Demand.h → ResourceNode.h) — resolved in PR13.1/13.2 |
+
+Reflects architectural complexity, not volume of work.
+
+### PR completion criterion
+
+PR считается завершённым, когда выполнены три условия:
+1. Функциональность реализована.
+2. Behavioural tests обновлены (сгенерированы ИИ).
+3. Количество root causes не увеличилось (или уменьшилось).
+
+### Repair PR format (hypothesis → intervention → check)
+
+Каждый Repair-PR формулируется как эксперимент:
+
+**Гипотеза**: ожидаемый эффект (например, "устранение причины X разблокирует N тестов").
+**Вмешательство**: минимальное изменение, не меняющее поведение системы.
+**Проверка**: полный цикл Verification после Repair.
+**Критерий успеха**: конкретное изменение метрик (например, 8❌ → 0❌).
+
+До PR фиксируется прогноз:
+
+```
+До PR:    34✅ / 8❌ / 1 root cause
+Прогноз:  42✅ / 0❌ / 0 root causes
+После PR: (сравнение с прогнозом)
+```
+
+Несовпадение прогноза с фактом — не провал, а обнаружение новой скрытой причины.
+
+### Core rule — one root cause per cycle
+
+```
+Verification → Root Cause → Minimal Repair → Re-Verification → Measured Improvement
+```
+
+**Repair must not be larger than necessary to eliminate one confirmed Root Cause.**
+
+Если Verification Report (PR11) показывает одну причину (Carrier → World), то Repair
+(PR12) устраняет именно её — не переписывает Carrier, не вводит ICarrierAccess,
+не рефакторит смежные подсистемы. Любое расширение объёма требует отдельного
+Verification, подтверждающего необходимость.
+
+**Защита методологии**: если кто-то предлагает масштабный рефакторинг,
+первый вопрос — "какой Verification Report показывает необходимость
+именно этого изменения?". Если отчёта нет — сначала Verification.
+
+## Strategy: testability-driven refactoring
+
+Tests drive further refactoring. If writing a test is hard, the architecture
+needs improvement.
+
+```
+Before:   Migrate → (later) Write tests → Find bugs → Fix
+After:    Refactor → Generate tests → Run → Fix → Repeat
+```
+
+AI generates tests from headers + implementation; human defines architecture
+and reviews correctness.
+
+### Behavioural Test Workflow
+
+```mermaid
+flowchart TD
+    A[Read public API] --> B[Generate behavioural tests]
+    B --> C[Build SimulationCoreTests]
+    C --> D[Execute tests]
+    D --> E{All PASS?}
+    E -->|Yes| F[Done]
+    E -->|No| G[Research root cause]
+    G --> H[Classify failure]
+    H --> I[Test issue]
+    H --> J[Implementation issue]
+    H --> K[API design issue]
+    I --> B
+    J --> L[Minimal fix]
+    K --> M[Architecture review]
+    M --> N[Update API]
+    L --> C
+    N --> B
+```
+
+**Modes**:
+
+| Mode | Scope | Rule |
+|------|-------|------|
+| **Verification** | Generate → Build → Run → Report | No code changes. Used for PR11 and testability measurement. |
+| **Repair** | Full cycle with Research → Fix → Rebuild | Requires explicit pass/fail classification before any change. |
+
+**Critical rule**: after a FAIL, always research root cause before modifying code.
+Never skip to "fix the test" or "patch the symptom" without understanding why.
+
+**One cycle = one root cause**: each Repair cycle addresses exactly one independent
+cause of untestability. If the report identifies 3 blockers (e.g. World dependency,
+Carrier creation impossible, hidden global state), run 3 separate Verification →
+Repair → Verification cycles. This ensures each fix independently improves
+testability.
+
+### PR11 Methodology
+
+**Goal**: measure testability of TransportController via its public API.
+AI generates tests *before* refactoring. The results categorise every public method:
+
+| Label | Meaning |
+|-------|---------|
+| ✅ | Generated, compiles, passes |
+| ⚠️ | Requires non-trivial fixture/mock |
+| ❌ | Impossible without World dependency or encapsulation breach |
+
+For each ❌: **fix the API, not the test**. The blocker is the refactoring target.
+
+> ❌ — это не провал тестирования, а обнаруженный архитектурный дефект.
+
+**Output**: `TransportController Testability Report`
+```
+✓ CreateTask()      AI generated 6 behavioural tests
+✓ CancelTask()      AI generated 4 behavioural tests
+⚠ AssignTask()      Requires Carrier fixture
+✗ ProcessMovement() Depends on World navigation state
+
+Recommendation: Extract MovementState from Carrier.
+```
+
+**Metrics**: count of ✅/⚠️/❌ per API method, not total test count.
+
+### Future: Full SimulationCore testability matrix
+
+After Transport stabilises, extend the ✅/⚠️/❌ metric across all subsystems:
+
+```
+Subsystem       ✅   ⚠️   ❌
+Transport       ..   ..   ..
+Construction    ..   ..   ..
+Economy         ..   ..   ..
+AI              ..   ..   ..
+```
+
+Updated after each major refactoring. Shows architectural testability, not test count.
+
+## Technical Debt
+
+- **TransportController behavioural tests**: 34 tests written (✅), 8 previously blocked (❌) — all 8 were blocked by Carrier.h World dependencies, resolved in PR12. Re-verification needed: expected 42✅ 0❌.
+- **53 `.cpp` files**: still use `<xtl.h>` transitively through `stdafx.h` — mechanical migration, low priority.
+- **SimulationCoreTests build**: requires Xbox 360 SDK — verify `Build→Run→PASS/FAIL` on target.
+- **53 `.cpp` files**: still use `<xtl.h>` transitively through `stdafx.h` — mechanical migration, low priority.
+- **SimulationCoreTests build**: requires Xbox 360 SDK — verify `Build→Run→PASS/FAIL` on target.
 
 ## Deferred
-- Оставшиеся 53 `.cpp` с `#include "stdafx.h"` — механический перенос после PR10
+- Phase 9 (dual-core): until SimulationCore stabilises
+- Phase 10 (performance): deferred
 ```

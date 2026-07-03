@@ -1,8 +1,8 @@
 #pragma once
 #include <stdint.h>
 #include <vector>
-#include "ResourceNode.h"
-#include "Handle.h"
+#include "../SimulationCore/Core/ResourceTypes.h"
+#include "../SimulationCore/Core/Handle.h"
 
 namespace World {
     class Flag;

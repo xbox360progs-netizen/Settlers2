@@ -1,28 +1,205 @@
-﻿Построение начато 02.07.2026 10:54:44.
-     1>Проект "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" в узле 2 (целевые объекты build).
+﻿Построение начато 03.07.2026 10:40:37.
+     1>Проект "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" в узле 3 (целевые объекты build).
      1>InitializeBuildStatus:
          Обращение к "Debug\Settlers2.unsuccessfulbuild".
        ClCompile:
          Для всех выходных данных обновления не требуется.
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D _DEBUG /D _XBOX /GF- /Gm /MTd /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Debug\Settlers2.pch" /Fo"Debug\\" /Fd"Debug\vc100.pdb" /TP Core\GameEngine.cpp Scene\GameRenderer.cpp Scene\GameScene.cpp /callcap /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
-         GameScene.cpp
-     1>d:\development\settlers2\settlers2\scene\Terrain/TerrainPresentationSystem.h(10): warning C4099: 'Scene::RenderFrame' : type name first seen using 'struct' now seen using 'class'
-                 d:\development\settlers2\settlers2\scene\Shared/RenderFrame.h(22) : see declaration of 'Scene::RenderFrame'
-         GameRenderer.cpp
-     1>d:\development\settlers2\settlers2\scene\GameRenderer.h(70): error C2061: syntax error : identifier 'Camera'
-     1>Scene\GameRenderer.cpp(61): error C2511: 'Scene::GameRenderer::GameRenderer(TileRenderer *,Renderer *,Camera *,World::Map *,World::FlagManager *,World::CarrierManager *,World::ConstructionManager *,World::WorkerManager *,Logic::EconomyManager *,Scene::PlacementController *,GridMenu *,UIMenu *,TextManager *)' : overloaded member function not found in 'Scene::GameRenderer'
-                 d:\development\settlers2\settlers2\scene\GameRenderer.h(68) : see declaration of 'Scene::GameRenderer'
-     1>Scene\GameRenderer.cpp(737): error C2059: syntax error : '}'
-     1>Scene\GameRenderer.cpp(739): error C2612: trailing 'end of file' illegal in base/member initializer list
-     1>Scene\GameRenderer.cpp(739): fatal error C1004: unexpected end-of-file found
-         Generating Code...
-         Compiling...
-         GameEngine.cpp
-     1>d:\development\settlers2\settlers2\scene\Terrain/TerrainPresentationSystem.h(10): warning C4099: 'Scene::RenderFrame' : type name first seen using 'struct' now seen using 'class'
-                 d:\development\settlers2\settlers2\scene\Shared/RenderFrame.h(22) : see declaration of 'Scene::RenderFrame'
-         Generating Code...
-     1>Построение проекта "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" завершено (целевые объекты build) с ошибкой.
+         Для всех выходных данных обновления не требуется.
+         Для всех выходных данных обновления не требуется.
+         Для всех выходных данных обновления не требуется.
+       Link:
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\link.exe /ERRORREPORT:PROMPT /OUT:"D:\development\Settlers2\Settlers2\Debug\Settlers2.exe" /INCREMENTAL /NOLOGO /LIBPATH:SimulationCore\Debug SimulationCore.lib xapilibd.lib d3d9d.lib d3dx9d.lib xgraphicsd.lib xboxkrnl.lib xnetd.lib xaudiod2.lib xactd3.lib x3daudiod.lib xmcored.lib xbdm.lib vcompd.lib /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"D:\development\Settlers2\Settlers2\Debug\Settlers2.pdb" /STACK:"262144","262144" /TLBID:1 /IMPLIB:"D:\development\Settlers2\Settlers2\Debug\Settlers2.lib" Debug\GameEngine.obj
+         Debug\LanguageManager.obj
+         Debug\JobManager.obj
+         Debug\ThreadSync.obj
+         Debug\CommandBus.obj
+         Debug\EventBus.obj
+         Debug\BatchBuilder.obj
+         Debug\BinFileManager.obj
+         Debug\BitmapFont.obj
+         Debug\BitmapText.obj
+         Debug\Camera.obj
+         Debug\FallbackResources.obj
+         Debug\Light.obj
+         Debug\LightOptimizer.obj
+         Debug\OverlayFPS.obj
+         Debug\GPUTimer.obj
+         Debug\PostFX.obj
+         Debug\PostProcessing.obj
+         Debug\Quad.obj
+         Debug\RenderDebugOverlay.obj
+         Debug\RenderFrame.obj
+         Debug\Renderer.obj
+         Debug\DebugOverlay.obj
+         Debug\RenderCommandBuilder.obj
+         Debug\RenderQueue.obj
+         Debug\RenderStateValidator.obj
+         Debug\RenderTargetManager.obj
+         Debug\ShaderManager.obj
+         Debug\SpriteAtlas.obj
+         Debug\SpriteRenderer.obj
+         Debug\SpriteShadow.obj
+         Debug\TextManager.obj
+         Debug\TextureLoader.obj
+         Debug\TextureRegistry.obj
+         Debug\TileRenderer.obj
+         Debug\Xbox360EDRAM.obj
+         Debug\Gamepad.obj
+         Debug\InputContext.obj
+         Debug\InputManager.obj
+         Debug\ScreenKeyboard.obj
+         Debug\AISystem.obj
+         Debug\EconomyManager.obj
+         Debug\ResourceRegistry.obj
+         Debug\IsoGrid.obj
+         Debug\WeightMap.obj
+         Debug\BuildingPlacement.obj
+         Debug\EditorScene.obj
+         Debug\ConstructionVisualizer.obj
+         Debug\GameRenderer.obj
+         Debug\FrameContext.obj
+         Debug\GeologistController.obj
+         Debug\MenuBootstrap.obj
+         Debug\PlacementController.obj
+         Debug\RoadController.obj
+         Debug\WorldBootstrap.obj
+         Debug\WorldRestorer.obj
+         Debug\GameScene.obj
+         Debug\BuildingCommandHandler.obj
+         Debug\ResourceCommandHandler.obj
+         Debug\LoadingScene.obj
+         Debug\MenuCommandDispatcher.obj
+         Debug\MenuScene.obj
+         Debug\Scene.obj
+         Debug\SceneManager.obj
+         Debug\BuildingHighlightPass.obj
+         Debug\BuildingRenderer.obj
+         Debug\BuildingPresentationSystem.obj
+         Debug\CursorPass.obj
+         Debug\CursorPresentationSystem.obj
+         Debug\FlagResourcePass.obj
+         Debug\FlagResourcePresentationSystem.obj
+         Debug\ProjectionSystem.obj
+         Debug\GroundResourcePass.obj
+         Debug\GroundResourcePresentationSystem.obj
+         Debug\RenderCommandBuffer.obj
+         Debug\RenderGraph.obj
+         Debug\SettlerPresentationSystem.obj
+         Debug\SettlerRenderer.obj
+         Debug\WorkerPass.obj
+         Debug\WorkerPresentationSystem.obj
+         Debug\TerrainPass.obj
+         Debug\TerrainPresentationSystem.obj
+         Debug\WildlifePass.obj
+         Debug\WildlifePresentationSystem.obj
+         Debug\PlacementPreviewPass.obj
+         Debug\PlacementPreviewPresentationSystem.obj
+         Debug\BackgroundPass.obj
+         Debug\RoadConnectionPass.obj
+         Debug\RoadConnectionPresentationSystem.obj
+         Debug\RoadPreviewPass.obj
+         Debug\RoadPreviewPresentationSystem.obj
+         Debug\GeologistOverlayPass.obj
+         Debug\GeologistOverlayPresentationSystem.obj
+         Debug\HuntingSpotPresentationSystem.obj
+         Debug\HuntingSpotPass.obj
+         Debug\WorkSitePresentationSystem.obj
+         Debug\WorkSitePass.obj
+         Debug\ConfirmationMenuPass.obj
+         Debug\ConfirmationMenuPresentationSystem.obj
+         Debug\MenuPass.obj
+         Debug\MenuPresentationSystem.obj
+         Debug\NotificationPass.obj
+         Debug\NotificationPresentationSystem.obj
+         Debug\TownHallPresentationSystem.obj
+         Debug\TownHallPanelPass.obj
+         Debug\LogisticsDebugPresentationSystem.obj
+         Debug\LogisticsDebugPass.obj
+         Debug\ResourceHudPresentationSystem.obj
+         Debug\ResourceHudPass.obj
+         Debug\BannerPresentationSystem.obj
+         Debug\BannerPass.obj
+         Debug\Settlers2.obj
+         Debug\stdafx.obj
+         Debug\BuildMenu.obj
+         Debug\Button.obj
+         Debug\EditorUI.obj
+         Debug\GridMenu.obj
+         Debug\UIMenu.obj
+         Debug\Minimap.obj
+         Debug\Panel.obj
+         Debug\RadialMenu.obj
+         Debug\ResourceBar.obj
+         Debug\UIManager.obj
+         Debug\UiEventSystem.obj
+         Debug\UiController.obj
+         Debug\LocalizationService.obj
+         Debug\NotificationManager.obj
+         Debug\StatusManager.obj
+         Debug\MenuModel.obj
+         Debug\Widget.obj
+         Debug\WeightMenu.obj
+         Debug\Building.obj
+         Debug\BuildingFactory.obj
+         Debug\Collider.obj
+         Debug\Model.obj
+         Debug\Resource.obj
+         Debug\Transform.obj
+         Debug\Unit.obj
+         Debug\Carrier.obj
+         Debug\CarrierManager.obj
+         Debug\CargoManager.obj
+         Debug\DemandManager.obj
+         Debug\FlagManager.obj
+         Debug\HabitatRegistry.obj
+         Debug\RoadManager.obj
+         Debug\StorehouseManager.obj
+         Debug\RoadGraphAdapter.obj
+         Debug\FlagInventoryAdapter.obj
+         Debug\CargoRepositoryAdapter.obj
+         Debug\DemandServiceAdapter.obj
+         Debug\ObjectDeletionRules.obj
+         Debug\ObjectLifecycleManager.obj
+         Debug\ConstructionSite.obj
+         Debug\ConstructionManager.obj
+         Debug\Entity.obj
+         Debug\EntityManager.obj
+         Debug\Map.obj
+         Debug\MapSerializer.obj
+         Debug\AnimalManager.obj
+         Debug\WorkerManager.obj
+         Debug\WildlifeSystem.obj
+         Debug\EconomySystem.obj
+         Debug\PathfindingSystem.obj
+         Debug\PhysicsSystem.obj
+         Debug\AnimalSystem.obj
+         Debug\CarrierSystem.obj
+         Debug\RenderSystem.obj
+         Debug\BuildingSystem.obj
+         Debug\ConstructionSystem.obj
+         Debug\RoadNetworkRelinker.obj
+         Debug\SimulationSystem.obj
+         Debug\TransportSystem.obj
+         Debug\WorkforceSystem.obj
+         Debug\WorldSystem.obj
+         Debug\ConstructionFactory.obj
+         Debug\TileLayer.obj
+         Debug\MapEditor.obj
+         Debug\UnitManager.obj
+         Debug\TilePalette.obj
+         Debug\\Input\InputController.obj
+         Debug\\Scene\InputController.obj
+         D:\development\Settlers2\Settlers2\SimulationCore\Debug\SimulationCore.lib /XEX:NO
+       ImageXex:
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\imagexex.exe /out:"D:\development\Settlers2\Settlers2\Debug\Settlers2.xex" "D:\development\Settlers2\Settlers2\Debug\Settlers2.exe" 
+         Microsoft(R) Xbox 360 Image File Builder Version 2.0.21256.0
+         (c)2012 Microsoft Corporation. All rights reserved.
+         
+       FinalizeBuildStatus:
+         Файл "Debug\Settlers2.unsuccessfulbuild" удаляется.
+         Обращение к "Debug\Settlers2.lastbuildstate".
+     1>Построение проекта "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" завершено (целевые объекты build).
 
-СБОЙ построения.
+Построение успешно завершено.
 
-Затраченное время: 00:00:10.13
+Затраченное время: 00:00:21.18

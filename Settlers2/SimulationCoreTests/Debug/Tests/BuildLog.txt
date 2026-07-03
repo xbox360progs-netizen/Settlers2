@@ -1,0 +1,39 @@
+﻿Построение начато 03.07.2026 10:40:36.
+     1>Проект "D:\development\Settlers2\Settlers2\SimulationCoreTests\SimulationCoreTests.vcxproj" в узле 2 (целевые объекты build).
+     1>InitializeBuildStatus:
+         Создание "Debug\Tests\SimulationCoreTests.unsuccessfulbuild", так как было задано "AlwaysCreate".
+       ClCompile:
+         Для всех выходных данных обновления не требуется.
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /I..\SimulationCore /Zi /nologo /W3 /WX- /Od /D _DEBUG /D _XBOX /GF- /Gm- /MTd /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Fo"Debug\Tests\\" /Fd"Debug\Tests\vc100.pdb" /TP TestRunner.cpp HandleTests.cpp TransportTaskTests.cpp TransportRouteTests.cpp CargoTests.cpp TransportControllerVerification.cpp DemandManagerVerification.cpp main.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
+         TestRunner.cpp
+         HandleTests.cpp
+         TransportTaskTests.cpp
+         TransportRouteTests.cpp
+         CargoTests.cpp
+         TransportControllerVerification.cpp
+         DemandManagerVerification.cpp
+         main.cpp
+         Generating Code...
+       Link:
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\link.exe /ERRORREPORT:PROMPT /OUT:"D:\development\Settlers2\Settlers2\SimulationCoreTests\Debug\SimulationCoreTests.exe" /NOLOGO /LIBPATH:..\SimulationCore\Debug SimulationCore.lib xapilibd.lib xboxkrnl.lib /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /PDB:"D:\development\Settlers2\Debug\Tests\SimulationCoreTests.pdb" /STACK:"262144","262144" /TLBID:1 /IMPLIB:"D:\development\Settlers2\Debug\Tests\SimulationCoreTests.lib" Debug\Tests\TestRunner.obj
+         Debug\Tests\HandleTests.obj
+         Debug\Tests\TransportTaskTests.obj
+         Debug\Tests\TransportRouteTests.obj
+         Debug\Tests\CargoTests.obj
+         Debug\Tests\TransportControllerVerification.obj
+         Debug\Tests\DemandManagerVerification.obj
+         Debug\Tests\main.obj
+         D:\development\Settlers2\Settlers2\SimulationCore\Debug\SimulationCore.lib /XEX:NO
+       ImageXex:
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\imagexex.exe /out:"D:\development\Settlers2\Settlers2\SimulationCoreTests\Debug\SimulationCoreTests.xex" "D:\development\Settlers2\Settlers2\SimulationCoreTests\Debug\SimulationCoreTests.exe" 
+         Microsoft(R) Xbox 360 Image File Builder Version 2.0.21256.0
+         (c)2012 Microsoft Corporation. All rights reserved.
+         
+       FinalizeBuildStatus:
+         Файл "Debug\Tests\SimulationCoreTests.unsuccessfulbuild" удаляется.
+         Обращение к "Debug\Tests\SimulationCoreTests.lastbuildstate".
+     1>Построение проекта "D:\development\Settlers2\Settlers2\SimulationCoreTests\SimulationCoreTests.vcxproj" завершено (целевые объекты build).
+
+Построение успешно завершено.
+
+Затраченное время: 00:00:05.75

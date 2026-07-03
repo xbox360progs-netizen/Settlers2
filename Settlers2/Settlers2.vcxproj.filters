@@ -517,6 +517,18 @@
     <ClInclude Include="World\TransportController.h">
       <Filter>World</Filter>
     </ClInclude>
+    <ClInclude Include="World\RoadGraphAdapter.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\FlagInventoryAdapter.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\CargoRepositoryAdapter.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\DemandServiceAdapter.h">
+      <Filter>World</Filter>
+    </ClInclude>
     <ClInclude Include="World\TransportPriority.h">
       <Filter>World</Filter>
     </ClInclude>
@@ -879,7 +891,16 @@
     <ClCompile Include="Graphics\SpriteShadow.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="World\TransportController.cpp">
+    <ClCompile Include="World\RoadGraphAdapter.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="World\FlagInventoryAdapter.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="World\CargoRepositoryAdapter.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="World\DemandServiceAdapter.cpp">
       <Filter>World</Filter>
     </ClCompile>
     <!-- TransportTask.cpp moved to SimulationCore.lib -->

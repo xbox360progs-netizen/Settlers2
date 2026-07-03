@@ -2,6 +2,10 @@
 #include <cassert>
 #include "CarrierSystem.h"
 #include "../EntityManager.h"
+#include "../Flag.h"
+#include "../Road.h"
+#include "../FlagManager.h"
+#include "../RoadManager.h"
 
 namespace World {
 

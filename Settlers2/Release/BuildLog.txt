@@ -1,20 +1,23 @@
-﻿Построение начато 03.07.2026 5:06:34.
-     1>Проект "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" в узле 2 (целевые объекты build).
+﻿Построение начато 03.07.2026 9:49:03.
+     1>Проект "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" в узле 3 (целевые объекты build).
+     1>C:\Windows\Microsoft.NET\Framework\v4.0.30319\Microsoft.Common.Targets(1422,5): warning : The referenced project '..\SimulationCore\SimulationCore.vcxproj' does not exist.
      1>InitializeBuildStatus:
-         Создание "Release\Settlers2.unsuccessfulbuild", так как было задано "AlwaysCreate".
+         Обращение к "Release\Settlers2.unsuccessfulbuild".
        ClCompile:
          Для всех выходных данных обновления не требуется.
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Core\GameEngine.cpp Scene\GameScene.cpp Scene\Overlays\HuntingSpotPresentationSystem.cpp Scene\UI\LogisticsDebugPresentationSystem.cpp Scene\UI\TownHallPresentationSystem.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Core\GameEngine.cpp Core\JobManager.cpp Scene\WorldBootstrap.cpp Scene\GameScene.cpp World\Systems\SimulationSystem.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
          GameEngine.cpp
+         JobManager.cpp
+         WorldBootstrap.cpp
          GameScene.cpp
-         HuntingSpotPresentationSystem.cpp
-         LogisticsDebugPresentationSystem.cpp
-         TownHallPresentationSystem.cpp
+         SimulationSystem.cpp
          Generating Code...
-         Для всех выходных данных обновления не требуется.
-         Для всех выходных данных обновления не требуется.
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\Input\\" /Fd"Release\vc100.pdb" /TP Input\InputController.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
+         InputController.cpp
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\Scene\\" /Fd"Release\vc100.pdb" /TP Scene\InputController.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
+         InputController.cpp
        Link:
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\link.exe /ERRORREPORT:PROMPT /OUT:"D:\development\Settlers2\Settlers2\Release\Settlers2.exe" /INCREMENTAL:NO /NOLOGO xapilib.lib d3d9.lib d3dx9.lib xgraphics.lib xboxkrnl.lib xnet.lib xaudio2.lib xact3.lib x3daudio.lib xmcore.lib vcomp.lib /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"D:\development\Settlers2\Settlers2\Release\Settlers2.pdb" /STACK:"262144","262144" /OPT:REF /OPT:ICF /TLBID:1 /RELEASE /IMPLIB:"D:\development\Settlers2\Settlers2\Release\Settlers2.lib" Release\GameEngine.obj
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\link.exe /ERRORREPORT:PROMPT /OUT:"D:\development\Settlers2\Settlers2\Release\Settlers2.exe" /INCREMENTAL:NO /NOLOGO SimulationCore.lib xapilib.lib d3d9.lib d3dx9.lib xgraphics.lib xboxkrnl.lib xnet.lib xaudio2.lib xact3.lib x3daudio.lib xmcore.lib vcomp.lib /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"D:\development\Settlers2\Settlers2\Release\Settlers2.pdb" /STACK:"262144","262144" /OPT:REF /OPT:ICF /TLBID:1 /RELEASE /IMPLIB:"D:\development\Settlers2\Settlers2\Release\Settlers2.lib" Release\GameEngine.obj
          Release\LanguageManager.obj
          Release\JobManager.obj
          Release\ThreadSync.obj
@@ -152,6 +155,7 @@
          Release\Resource.obj
          Release\Transform.obj
          Release\Unit.obj
+         Release\Carrier.obj
          Release\CarrierManager.obj
          Release\CargoManager.obj
          Release\DemandManager.obj
@@ -159,9 +163,10 @@
          Release\HabitatRegistry.obj
          Release\RoadManager.obj
          Release\StorehouseManager.obj
-         Release\TransportJobManager.obj
-         Release\TransportController.obj
-         Release\TransportTask.obj
+         Release\RoadGraphAdapter.obj
+         Release\FlagInventoryAdapter.obj
+         Release\CargoRepositoryAdapter.obj
+         Release\DemandServiceAdapter.obj
          Release\ObjectDeletionRules.obj
          Release\ObjectLifecycleManager.obj
          Release\ConstructionSite.obj
@@ -193,16 +198,9 @@
          Release\TilePalette.obj
          Release\\Input\InputController.obj
          Release\\Scene\InputController.obj /XEX:NO
-       ImageXex:
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\imagexex.exe /out:"D:\development\Settlers2\Settlers2\Release\Settlers2.xex" "D:\development\Settlers2\Settlers2\Release\Settlers2.exe" 
-         Microsoft(R) Xbox 360 Image File Builder Version 2.0.21256.0
-         (c)2012 Microsoft Corporation. All rights reserved.
-         
-       FinalizeBuildStatus:
-         Файл "Release\Settlers2.unsuccessfulbuild" удаляется.
-         Обращение к "Release\Settlers2.lastbuildstate".
-     1>Построение проекта "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" завершено (целевые объекты build).
+     1>LINK : fatal error LNK1181: cannot open input file 'SimulationCore.lib'
+     1>Построение проекта "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" завершено (целевые объекты build) с ошибкой.
 
-Построение успешно завершено.
+СБОЙ построения.
 
-Затраченное время: 00:00:22.71
+Затраченное время: 00:00:12.45

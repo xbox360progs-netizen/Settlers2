@@ -21,6 +21,8 @@ public:
     void WaitAll();
 
 private:
+    bool TryPop(Job& job);
+
     struct Impl;
     Impl* m_impl;
 

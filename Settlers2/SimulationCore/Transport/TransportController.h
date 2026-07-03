@@ -6,59 +6,23 @@
 
 namespace World {
 
-    class CargoManager;
-    class CarrierManager;
+    class IRoadGraph;
+    class IFlagInventory;
+    class ICargoRepository;
+    class IDemandService;
     class Carrier;
-    class RoadManager;
-    class FlagManager;
-    class DemandManager;
     struct TransportTask;
-
-    enum DeltaReason {
-        DR_None,
-        DR_TaskCreated,
-        DR_Pickup,
-        DR_AdvanceHop,
-        DR_Delivered,
-        DR_Cancelled,
-        DR_RetryBlocked,
-        DR_FlagRemoved
-    };
 
     static const int kMaxTasks = 256;
 
     class TransportController {
     public:
-        TransportController();
+        TransportController(
+            IRoadGraph& roadGraph,
+            IFlagInventory& inventory,
+            ICargoRepository& cargo,
+            IDemandService& demand);
         ~TransportController();
-
-        struct EconomySnapshot {
-            uint32_t totalResources;
-            uint16_t flagInvHash;
-            uint16_t taskCargoHash;
-            uint32_t ownershipHash;
-            uint16_t ownershipMask;
-            uint16_t blockedCount;
-            uint16_t flagCount;
-
-            bool operator==(const EconomySnapshot& o) const {
-                return totalResources == o.totalResources &&
-                       flagInvHash == o.flagInvHash &&
-                       taskCargoHash == o.taskCargoHash &&
-                       ownershipHash == o.ownershipHash &&
-                       ownershipMask == o.ownershipMask &&
-                       blockedCount == o.blockedCount &&
-                       flagCount == o.flagCount;
-            }
-            bool operator!=(const EconomySnapshot& o) const { return !(*this == o); }
-        const char* m_deltaReason;
-    };
-
-        void SetRoadManager(RoadManager* rm) { m_roadManager = rm; }
-        void SetFlagManager(FlagManager* fm) { m_flagManager = fm; }
-        void SetCarrierManager(CarrierManager* cm) { m_carrierManager = cm; }
-        void SetCargoManager(CargoManager* cm) { m_cargoManager = cm; }
-        void SetDemandManager(DemandManager* dm) { m_demandManager = dm; }
 
         TransportTask* CreateTask(
             ResourceType resource,
@@ -90,11 +54,8 @@ namespace World {
         TransportTask* PeekWaitingTask(FlagId flagId) const;
         uint16_t GetBlockedCount() const;
 
-        void Update(float /*deltaTime*/) {
+        void Update(float deltaTime) {
             m_currentTick++;
-            if ((m_currentTick % kTelemetryInterval) == 0) {
-                LogTelemetry();
-            }
         }
 
     private:
@@ -123,11 +84,6 @@ namespace World {
         void AdvanceHop(Carrier* c, TransportTask* task);
         void CompleteDelivery(Carrier* c, TransportTask* task);
 
-        static const int kTelemetryInterval = 600;
-        void LogTelemetry();
-
-        EconomySnapshot TakeSnapshot() const;
-
         TransportTask m_pool[kMaxTasks];
         uint32_t m_nextTaskId;
         int m_activeCount;
@@ -138,17 +94,10 @@ namespace World {
         TransportTask* m_waitingHead[kMaxFlags];
         TransportTask* m_waitingTail[kMaxFlags];
 
-        RoadManager* m_roadManager;
-        FlagManager* m_flagManager;
-        CarrierManager* m_carrierManager;
-        CargoManager* m_cargoManager;
-        DemandManager* m_demandManager;
-
-        EconomySnapshot m_prevSnapshot;
-        bool m_snapshotInitialized;
-        DeltaReason m_deltaReason;
+        IRoadGraph& m_roads;
+        IFlagInventory& m_inventory;
+        ICargoRepository& m_cargo;
+        IDemandService& m_demand;
     };
-
-    const char* GetDeltaReasonName(DeltaReason reason);
 
 } // namespace World

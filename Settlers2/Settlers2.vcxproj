@@ -114,6 +114,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>$(OutDir)$(ProjectName).pdb</ProgramDatabaseFile>
       <AdditionalDependencies>SimulationCore.lib;xapilibd.lib;d3d9d.lib;d3dx9d.lib;xgraphicsd.lib;xboxkrnl.lib;xnetd.lib;xaudiod2.lib;xactd3.lib;x3daudiod.lib;xmcored.lib;xbdm.lib;vcompd.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>SimulationCore\$(Configuration)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='CodeAnalysis|Xbox 360'">
@@ -135,6 +136,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>$(OutDir)$(ProjectName).pdb</ProgramDatabaseFile>
       <AdditionalDependencies>SimulationCore.lib;xapilibd.lib;d3d9d.lib;d3dx9d.lib;xgraphicsd.lib;xboxkrnl.lib;xnetd.lib;xaudiod2.lib;xactd3.lib;x3daudiod.lib;xmcored.lib;xbdm.lib;vcompd.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>SimulationCore\$(Configuration)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Profile|Xbox 360'">
@@ -161,6 +163,7 @@
       <ProgramDatabaseFile>$(OutDir)$(ProjectName).pdb</ProgramDatabaseFile>
       <SetChecksum>true</SetChecksum>
       <AdditionalDependencies>SimulationCore.lib;xapilibi.lib;d3d9i.lib;d3dx9.lib;xgraphics.lib;xboxkrnl.lib;xnet.lib;xaudio2.lib;xact3i.lib;x3daudioi.lib;xmcorei.lib;xbdm.lib;vcomp.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>SimulationCore\$(Configuration)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Profile_FastCap|Xbox 360'">
@@ -186,6 +189,7 @@
       <ProgramDatabaseFile>$(OutDir)$(ProjectName).pdb</ProgramDatabaseFile>
       <SetChecksum>true</SetChecksum>
       <AdditionalDependencies>SimulationCore.lib;xapilib.lib;d3d9.lib;d3dx9.lib;xgraphics.lib;xboxkrnl.lib;xnet.lib;xaudio2.lib;xact3.lib;x3daudio.lib;xmcore.lib;vcomp.lib;xbdm.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>SimulationCore\$(Configuration)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Xbox 360'">
@@ -209,6 +213,7 @@
       <ProgramDatabaseFile>$(OutDir)$(ProjectName).pdb</ProgramDatabaseFile>
       <SetChecksum>true</SetChecksum>
       <AdditionalDependencies>SimulationCore.lib;xapilib.lib;d3d9.lib;d3dx9.lib;xgraphics.lib;xboxkrnl.lib;xnet.lib;xaudio2.lib;xact3.lib;x3daudio.lib;xmcore.lib;vcomp.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>SimulationCore\$(Configuration)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_LTCG|Xbox 360'">
@@ -233,6 +238,7 @@
       <ProgramDatabaseFile>$(OutDir)$(ProjectName).pdb</ProgramDatabaseFile>
       <SetChecksum>true</SetChecksum>
       <AdditionalDependencies>SimulationCore.lib;xapilib.lib;d3d9ltcg.lib;d3dx9.lib;xgraphics.lib;xboxkrnl.lib;xnet.lib;xaudio2.lib;xact3ltcg.lib;x3daudioltcg.lib;xmcoreltcg.lib;vcomp.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>SimulationCore\$(Configuration)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -484,6 +490,10 @@
     <ClInclude Include="World\Road.h" />
     <ClInclude Include="World\RoadManager.h" />
     <ClInclude Include="World\TransportController.h" />
+    <ClInclude Include="World\RoadGraphAdapter.h" />
+    <ClInclude Include="World\FlagInventoryAdapter.h" />
+    <ClInclude Include="World\CargoRepositoryAdapter.h" />
+    <ClInclude Include="World\DemandServiceAdapter.h" />
     <ClInclude Include="World\TransportPriority.h" />
     <ClInclude Include="World\TransportRoute.h" />
     <ClInclude Include="World\TransportTask.h" />
@@ -667,6 +677,7 @@
     <ClCompile Include="World\Components\Resource.cpp" />
     <ClCompile Include="World\Components\Transform.cpp" />
     <ClCompile Include="World\Components\Unit.cpp" />
+    <ClCompile Include="World\Carrier.cpp" />
     <ClCompile Include="World\CarrierManager.cpp" />
     <ClCompile Include="World\CargoManager.cpp" />
     <ClCompile Include="World\DemandManager.cpp" />
@@ -674,7 +685,11 @@
     <ClCompile Include="World\HabitatRegistry.cpp" />
     <ClCompile Include="World\RoadManager.cpp" />
     <ClCompile Include="World\StorehouseManager.cpp" />
-    <ClCompile Include="World\TransportController.cpp" />
+    <!-- TransportController.cpp moved to SimulationCore.lib -->
+    <ClCompile Include="World\RoadGraphAdapter.cpp" />
+    <ClCompile Include="World\FlagInventoryAdapter.cpp" />
+    <ClCompile Include="World\CargoRepositoryAdapter.cpp" />
+    <ClCompile Include="World\DemandServiceAdapter.cpp" />
     <!-- TransportTask.cpp moved to SimulationCore.lib -->
     <ClCompile Include="World\ObjectDeletionRules.cpp" />
     <ClCompile Include="World\ObjectLifecycleManager.cpp" />
@@ -707,7 +722,7 @@
     <ClCompile Include="UI\TilePalette.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\SimulationCore\SimulationCore.vcxproj">
+    <ProjectReference Include="SimulationCore\SimulationCore.vcxproj">
       <Project>{0E264B64-587C-4D28-9BAA-8BB7A61CFDB3}</Project>
     </ProjectReference>
   </ItemGroup>
