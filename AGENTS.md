@@ -161,13 +161,16 @@ Simulation::Tick():
 
 ## Three Development Tracks
 
-After Cycle 2 (PR18) and Simulation Validation (PR19), development splits into independent tracks:
+After Cycle 2 (PR18) → PR19 (Validation) → PR20 (BuildingDefinition), development splits into independent tracks:
 
 **A. Simulation Engine** — new domain systems:
 Worker AI, Production, Economy expansion, Save/Load, Building lifecycle.
 
 **B. Definition Pattern** — data-driven definitions:
-BuildingDefinition, ResourceDefinition, WorkerDefinition. Replace switch-based tables. Does not change simulation behavior.
+BuildingDefinition ✅, ResourceDefinition, WorkerDefinition, ProductionDefinition.
+Each definition PR is a behavior-preserving refactoring: no logic change, only data source.
+Systems appear **after** definitions (e.g. ProductionSystem after ProductionDefinition).
+PR sequence: PR21 ResourceDefinition → PR22 WorkerDefinition → PR23 ProductionDefinition → PR24 ProductionSystem.
 
 **C. Simulation Validation** — scenarios + invariants:
 `IScenario` interface, T1–T8 regression suite, categorized assertions (Transport, Construction, Economy, World), AI fuzzing.
