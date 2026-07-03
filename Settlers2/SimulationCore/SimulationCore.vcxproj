@@ -107,6 +107,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Core\ResourceTypes.h" />
+    <ClInclude Include="Core\ResourceDebug.h" />
+    <ClInclude Include="Core\Handle.h" />
+    <ClInclude Include="Core\Vector2i.h" />
+    <ClInclude Include="Core\PlatformLock.h" />
     <ClInclude Include="Interfaces\IRoadGraph.h" />
     <ClInclude Include="Interfaces\IFlagInventory.h" />
     <ClInclude Include="Interfaces\ICargoRepository.h" />
@@ -115,6 +119,13 @@
     <ClInclude Include="Transport\TransportRoute.h" />
     <ClInclude Include="Transport\TransportTask.h" />
     <ClInclude Include="Transport\TransportController.h" />
+    <ClInclude Include="Transport\Cargo.h" />
+    <ClInclude Include="Transport\Carrier.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Core\PlatformLock.cpp" />
+    <ClCompile Include="Transport\TransportController.cpp" />
+    <ClCompile Include="Transport\TransportTask.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
