@@ -1,38 +1,38 @@
-// Phase 7 òÀÔ Controller. CreateTask + waiting queue + Assignment + Priority.
+// Phase 7 ï¿½ï¿½ï¿½ Controller. CreateTask + waiting queue + Assignment + Priority.
 //
 // Self-test scenarios (Phase 7.2.5):
 //
 //   1. Pool exhaustion:
 //      Create 256 tasks with valid routes.
-//      257th CreateTask() òÆÒ returns NULL.
+//      257th CreateTask() ï¿½ï¿½ï¿½ returns NULL.
 //
 //   2. Independent per-flag queues:
-//      CreateTask(AòÆÒB), CreateTask(AòÆÒC), CreateTask(DòÆÒE).
+//      CreateTask(Aï¿½ï¿½ï¿½B), CreateTask(Aï¿½ï¿½ï¿½C), CreateTask(Dï¿½ï¿½ï¿½E).
 //      GetWaitingCount(A) == 2, GetWaitingCount(D) == 1.
 //      PeekWaitingTask(A) == first task, PeekWaitingTask(D) == third.
 //
 //   3. Route truncation at kMaxRouteLength (64):
-//      A route longer than 64 flags òÆÒ first 64 flags stored, rest discarded.
+//      A route longer than 64 flags ï¿½ï¿½ï¿½ first 64 flags stored, rest discarded.
 //      Task state == WaitingAtSource (not Blocked).
 //
 //   4. No-path scenarios:
-//      CreateTask between unconnected flags òÆÒ state == TTS_Blocked.
+//      CreateTask between unconnected flags ï¿½ï¿½ï¿½ state == TTS_Blocked.
 //      GetBlockedCount() == 1.
 //
 //   5. Debug API purity:
 //      Repeated GetWaitingCount() and PeekWaitingTask() calls with no
 //      intervening CreateTask()/CancelTask() return identical results.
 //
-// Phase 7.3.1 òÀÔ Assignment scenarios:
+// Phase 7.3.1 ï¿½ï¿½ï¿½ Assignment scenarios:
 //
 //   6. One carrier, one task:
-//      CreateTask(AòÆÒB). NotifyCarrierIdle(c1, A).
+//      CreateTask(Aï¿½ï¿½ï¿½B). NotifyCarrierIdle(c1, A).
 //      Task1 state == TTS_Assigned.
 //      Carrier1.m_phase7Task == Task1.
 //      Waiting queue at A is empty.
 //
 //   7. No carrier (no NotifyCarrierIdle):
-//      CreateTask(AòÆÒB). No idle notification.
+//      CreateTask(Aï¿½ï¿½ï¿½B). No idle notification.
 //      Task1 state == TTS_WaitingAtSource.
 //      Waiting queue at A has 1 entry.
 //
@@ -41,36 +41,36 @@
 //      Nothing changes. Carrier stays idle.
 //
 //   9. Two carriers, one task:
-//      CreateTask(AòÆÒB). NotifyCarrierIdle(c1, A). NotifyCarrierIdle(c2, A).
+//      CreateTask(Aï¿½ï¿½ï¿½B). NotifyCarrierIdle(c1, A). NotifyCarrierIdle(c2, A).
 //      Only c1 gets assigned. c2 finds empty queue.
 //
 //  10. Two tasks, one carrier:
-//      CreateTask(AòÆÒB), CreateTask(AòÆÒC). NotifyCarrierIdle(c1, A).
+//      CreateTask(Aï¿½ï¿½ï¿½B), CreateTask(Aï¿½ï¿½ï¿½C). NotifyCarrierIdle(c1, A).
 //      Only Task1 assigned. Task2 remains in queue.
 //
-// Phase 7.3.2 òÀÔ PickUp:
+// Phase 7.3.2 ï¿½ï¿½ï¿½ PickUp:
 //
-//  11. Assigned òÆÒ Moving (no Cargo):
-//      NotifyCarrierIdle(c1, A) òÆÒ Assign Task1.
-//      NotifyCarrierPickedUp(c1) òÆÒ Task1 state == TTS_Moving.
+//  11. Assigned ï¿½ï¿½ï¿½ Moving (no Cargo):
+//      NotifyCarrierIdle(c1, A) ï¿½ï¿½ï¿½ Assign Task1.
+//      NotifyCarrierPickedUp(c1) ï¿½ï¿½ï¿½ Task1 state == TTS_Moving.
 //      Carrier unchanged (no Cargo created).
 //
-// Phase 7.3.3a òÀÔ PickUp with Cargo ownership:
+// Phase 7.3.3a ï¿½ï¿½ï¿½ PickUp with Cargo ownership:
 //
 //  12. Full ownership triangle:
-//      NotifyCarrierIdle(c1, A) òÆÒ Assign Task1.
-//      NotifyCarrierPickedUp(c1, cargo1) òÆÒ
+//      NotifyCarrierIdle(c1, A) ï¿½ï¿½ï¿½ Assign Task1.
+//      NotifyCarrierPickedUp(c1, cargo1) ï¿½ï¿½ï¿½
 //        Task1.cargo == cargo1
 //        cargo1.ownerTask == Task1
 //        c1.m_phase7Cargo == cargo1
 //        Task1.state == TTS_Moving
 //      ValidateOwnership(Task1) passes.
 //
-// Phase 7.3.3b òÀÔ Walk:
+// Phase 7.3.3b ï¿½ï¿½ï¿½ Walk:
 //
 //  13. Walk toward targetFlag:
 //      Carrier c1: state == TTS_Moving, targetFlag == route.flags[1].
-//      c1.Update(dt) òÆÒ ep moves toward targetFlag.
+//      c1.Update(dt) ï¿½ï¿½ï¿½ ep moves toward targetFlag.
 //      On arrival: asserts fire, NotifyCarrierArrived(c1, targetFlag).
 //      Controller validates: ValidateAssignment, ValidateOwnership,
 //        ValidateMovement (state==Moving, targetFlag matches).
@@ -79,18 +79,18 @@
 //      During c1.Update(), no task->state, hopIndex, or route changes.
 //      Carrier moves ep/walkDir only (spatial movement).
 //
-// Phase 7.3.4 òÀÔ AdvanceHop / CompleteDelivery:
+// Phase 7.3.4 ï¿½ï¿½ï¿½ AdvanceHop / CompleteDelivery:
 //
 //  15. Single hop delivery:
 //      Carrier c1 arrives at targetFlag B (destination, last hop).
-//      NotifyCarrierArrived òÆÒ IsLastHop==true òÆÒ CompleteDelivery.
+//      NotifyCarrierArrived ï¿½ï¿½ï¿½ IsLastHop==true ï¿½ï¿½ï¿½ CompleteDelivery.
 //      task->state == TTS_Delivered.
 //      task->cargo == NULL, task->carrier == NULL.
 //      carrier->m_phase7Task == NULL (freed).
 //
 //  16. Intermediate hop (not last):
-//      Route AòÆÒBòÆÒC, carrier arrives at B (not destination).
-//      AdvanceHop: hopIndex 0òÆÒ1, targetFlag BòÆÒC.
+//      Route Aï¿½ï¿½ï¿½Bï¿½ï¿½ï¿½C, carrier arrives at B (not destination).
+//      AdvanceHop: hopIndex 0ï¿½ï¿½ï¿½1, targetFlag Bï¿½ï¿½ï¿½C.
 //      state == TTS_WaitingAtSource.
 //      Task re-enqueued at B.
 //      carrier released, NotifyCarrierIdle(c, B).
@@ -102,19 +102,19 @@
 //      ValidateOwnership passes.
 //      Carrier walks to C.
 //
-// Phase 7.5 òÀÔ Cancellation & Blocked retry:
+// Phase 7.5 ï¿½ï¿½ï¿½ Cancellation & Blocked retry:
 //
 //  18. Cancel WaitingAtSource:
-//      CreateTask(AòÆÒB). CancelTask(taskId).
+//      CreateTask(Aï¿½ï¿½ï¿½B). CancelTask(taskId).
 //      Task removed from queue. state == TTS_Cancelled.
 //
 //  19. Cancel Assigned:
-//      CreateTask(AòÆÒB). Assign to c1. CancelTask(taskId).
+//      CreateTask(Aï¿½ï¿½ï¿½B). Assign to c1. CancelTask(taskId).
 //      carrier released (m_phase7Task==NULL).
 //      state == TTS_Cancelled.
 //
 //  20. Cancel Moving:
-//      CreateTask(AòÆÒB). Assign + PickUp. CancelTask(taskId).
+//      CreateTask(Aï¿½ï¿½ï¿½B). Assign + PickUp. CancelTask(taskId).
 //      carrier released, task re-enqueued at A.
 //      state == TTS_WaitingAtSource.
 //
@@ -124,23 +124,23 @@
 //
 //  22. RetryBlockedTasks:
 //      Two blocked tasks. Road network changed.
-//      NotifyRoadNetworkChanged òÆÒ RetryBlockedTasks.
-//      If path found: state òÆÒ WaitingAtSource, enqueued.
+//      NotifyRoadNetworkChanged ï¿½ï¿½ï¿½ RetryBlockedTasks.
+//      If path found: state ï¿½ï¿½ï¿½ WaitingAtSource, enqueued.
 //      If still blocked: state stays TTS_Blocked.
 //
 //  23. transitionCount safety:
 //      Every state change increments transitionCount.
-//      Infinite loop (òÉå64 transitions) triggers assert.
-//      Normal lifecycle: CreatedòÆÒBlocked/WaitingAtSourceòÆÒAssignedòÆÒMoving
-//        òÆÒArrivedòÆÒAdvanceHopòÆÒ...òÆÒDelivered produces ~6òÀÓ12 transitions.
+//      Infinite loop (ï¿½ï¿½ï¿½64 transitions) triggers assert.
+//      Normal lifecycle: Createdï¿½ï¿½ï¿½Blocked/WaitingAtSourceï¿½ï¿½ï¿½Assignedï¿½ï¿½ï¿½Moving
+//        ï¿½ï¿½ï¿½Arrivedï¿½ï¿½ï¿½AdvanceHopï¿½ï¿½ï¿½...ï¿½ï¿½ï¿½Delivered produces ~6ï¿½ï¿½ï¿½12 transitions.
 //
-// Phase 7.6 òÀÔ Multi-hop:
+// Phase 7.6 ï¿½ï¿½ï¿½ Multi-hop:
 //
-//  24. Three-hop chain AòÆÒBòÆÒCòÆÒD:
+//  24. Three-hop chain Aï¿½ï¿½ï¿½Bï¿½ï¿½ï¿½Cï¿½ï¿½ï¿½D:
 //      CreateTask(A, D). Full lifecycle with 4 flags:
-//        hop=1/3 AòÆÒB, arrive, AdvanceHop
-//        hop=2/3 BòÆÒC, arrive, AdvanceHop
-//        hop=3/3 CòÆÒD, arrive, CompleteDelivery
+//        hop=1/3 Aï¿½ï¿½ï¿½B, arrive, AdvanceHop
+//        hop=2/3 Bï¿½ï¿½ï¿½C, arrive, AdvanceHop
+//        hop=3/3 Cï¿½ï¿½ï¿½D, arrive, CompleteDelivery
 //      All 3 hops complete with same cargo object.
 //      route unchanged through entire lifecycle.
 //      Diagnostic output:
@@ -151,44 +151,44 @@
 //
 //  25. Same-carrier handoff:
 //      carrier1 assigned at A, walks to B, AdvanceHop releases.
-//      NotifyCarrierIdle(c1, B) òÆÒ same carrier assigned to next hop.
-//      carrier1 walks BòÆÒC, same pattern to D.
+//      NotifyCarrierIdle(c1, B) ï¿½ï¿½ï¿½ same carrier assigned to next hop.
+//      carrier1 walks Bï¿½ï¿½ï¿½C, same pattern to D.
 //      ValidateOwnership passes at every intermediate flag.
 //
 //  26. Different-carrier handoff:
-//      carrier1 AòÆÒB, drops at B.
+//      carrier1 Aï¿½ï¿½ï¿½B, drops at B.
 //      carrier2 idle at B picks up next hop.
-//      carrier2 BòÆÒC, drops at C.
+//      carrier2 Bï¿½ï¿½ï¿½C, drops at C.
 //      carrier3 idle at C picks up last hop.
-//      carrier3 CòÆÒD, delivers.
+//      carrier3 Cï¿½ï¿½ï¿½D, delivers.
 //      task->carrier changes each hop; route unchanged.
 //
 //  27. Mid-route cancellation:
-//      route AòÆÒBòÆÒCòÆÒD. Road BòÆÒC removed during Moving AòÆÒB.
-//      Arrived at B. IsRouteValid(BòÆÒD) == false.
-//      state òÆÒ TTS_Blocked, carrier released.
-//      Route rebuilt òÆÒ continue from B (not restart from A).
+//      route Aï¿½ï¿½ï¿½Bï¿½ï¿½ï¿½Cï¿½ï¿½ï¿½D. Road Bï¿½ï¿½ï¿½C removed during Moving Aï¿½ï¿½ï¿½B.
+//      Arrived at B. IsRouteValid(Bï¿½ï¿½ï¿½D) == false.
+//      state ï¿½ï¿½ï¿½ TTS_Blocked, carrier released.
+//      Route rebuilt ï¿½ï¿½ï¿½ continue from B (not restart from A).
 //
 //  28. Flag removal:
-//      Flag B removed. All tasks whose route includes B òÆÒ Blocked.
-//      WaitingAtSource at B: RemoveFromQueue òÆÒ Blocked.
-//      Assigned to B: release carrier òÆÒ Blocked.
-//      Moving toward B: release carrier, re-enqueue at A òÆÒ Blocked.
+//      Flag B removed. All tasks whose route includes B ï¿½ï¿½ï¿½ Blocked.
+//      WaitingAtSource at B: RemoveFromQueue ï¿½ï¿½ï¿½ Blocked.
+//      Assigned to B: release carrier ï¿½ï¿½ï¿½ Blocked.
+//      Moving toward B: release carrier, re-enqueue at A ï¿½ï¿½ï¿½ Blocked.
 //      Delivered/Cancelled: no-op.
 //
-// Phase 7.4 òÀÔ Priority dispatching:
+// Phase 7.4 ï¿½ï¿½ï¿½ Priority dispatching:
 //
 //  29. Priority order:
 //      Queue at flag A has tasks: T1(pri=300), T2(pri=100), T3(pri=200).
-//      PickNextTask(A) òÆÒ T1 (highest priority).
+//      PickNextTask(A) ï¿½ï¿½ï¿½ T1 (highest priority).
 //
 //  30. FIFO within same priority:
 //      Queue at flag A: T1(pri=100, order=1), T2(pri=100, order=2).
-//      PickNextTask(A) òÆÒ T1 (oldest enqueue order).
+//      PickNextTask(A) ï¿½ï¿½ï¿½ T1 (oldest enqueue order).
 //
 //  31. Age bonus prevents starvation:
 //      T1(pri=0, created=0), T2(pri=100, created=1).
-//      At tick 100: effective scores: T1=0+100=100, T2=100+99=199 òÆÒ T2.
+//      At tick 100: effective scores: T1=0+100=100, T2=100+99=199 ï¿½ï¿½ï¿½ T2.
 //      T1 score rises with age but capped at +200.
 //      Against same priority: older task always wins.
 //
@@ -201,7 +201,7 @@
 //      [Transport] Dispatch task=17 pri=300 age=12
 //      [Transport] Queue f=8 cnt=5 best=17
 //
-// Phase 7.7 òÀÔ Load balancing / telemetry:
+// Phase 7.7 ï¿½ï¿½ï¿½ Load balancing / telemetry:
 //
 //  34. Carrier utilization:
 //      Every 600 ticks, LogTelemetry scans all tasks:
@@ -244,6 +244,7 @@ namespace World {
         , m_activeCount(0)
         , m_currentTick(0)
         , m_enqueueCounter(1)
+        , m_recentDeliveryCount(0)
         , m_roads(roadGraph)
         , m_inventory(inventory)
         , m_cargo(cargo)
@@ -266,7 +267,7 @@ namespace World {
 
     TransportController::~TransportController() {}
 
-    // òÔÀòÔÀ State transitions òÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀ
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ State transitions ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
     void TransportController::SetTaskState(TransportTask* task, TransportTaskState newState)
     {
@@ -276,7 +277,7 @@ namespace World {
         task->state = newState;
     }
 
-    // òÔÀòÔÀ Pool allocation òÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀ
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Pool allocation ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
     TransportTask* TransportController::AllocateTask()
     {
@@ -289,7 +290,7 @@ namespace World {
         return NULL;
     }
 
-    // òÔÀòÔÀ Waiting queue òÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀ
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Waiting queue ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
     void TransportController::EnqueueWaiting(TransportTask* task, FlagId atFlag)
     {
@@ -307,9 +308,9 @@ namespace World {
         }
     }
 
-    // òÔÀòÔÀ Waiting queue òÀÔ internal helpers òÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀ
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Waiting queue ï¿½ï¿½ï¿½ internal helpers ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
-    // Phase 7.4 òÀÔ PickNextTask selects the best task from a per-flag queue.
+    // Phase 7.4 ï¿½ï¿½ï¿½ PickNextTask selects the best task from a per-flag queue.
     // Selection rule: (priority DESC, enqueueOrder ASC).
     // Age bonus = min(currentTick - createdTick, 200) added to basePriority.
     // This prevents starvation of old low-priority tasks.
@@ -349,7 +350,7 @@ namespace World {
         return best;
     }
 
-    // òÔÀòÔÀ Queue management òÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀ
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Queue management ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
     void TransportController::RemoveFromQueue(TransportTask* task)
     {
@@ -378,7 +379,7 @@ namespace World {
         }
     }
 
-    // òÔÀòÔÀ Ownership validation òÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀ
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Ownership validation ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
     void TransportController::ValidateAssignment(const TransportTask* task, const Carrier* c) const
     {
@@ -407,7 +408,7 @@ namespace World {
         assert(task->targetFlag == c->m_phase7TargetFlag);
     }
 
-    // òÔÀòÔÀ Retry / recovery òÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀ
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Retry / recovery ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
     bool TransportController::IsRouteValid(const TransportTask* task) const
     {
@@ -442,7 +443,7 @@ namespace World {
         }
     }
 
-    // òÔÀòÔÀ Hop management (Phase 7.3.4) òÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀ
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Hop management (Phase 7.3.4) ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
     bool TransportController::IsLastHop(const TransportTask* task) const
     {
@@ -461,12 +462,12 @@ namespace World {
         FlagId oldTargetFlag = task->targetFlag;
         FlagId arrivedFlagId = task->route.flags[task->hopIndex + 1];
 
-        // Advance hop index òÀÔ we are now at the arrived flag
+        // Advance hop index ï¿½ï¿½ï¿½ we are now at the arrived flag
         task->hopIndex++;
         task->targetFlag = task->route.flags[task->hopIndex + 1];
         SetTaskState(task, TTS_WaitingAtSource);
 
-        // Release carrier òÀÔ cargo stays at the flag with the task
+        // Release carrier ï¿½ï¿½ï¿½ cargo stays at the flag with the task
         task->carrier = NULL;
         c->m_phase7Task = NULL;
         c->m_phase7TargetFlag = 0;
@@ -493,7 +494,7 @@ namespace World {
         std::printf("%s", dbg);
 #endif
 
-        // Carrier becomes idle òÀÔ check for next hop
+        // Carrier becomes idle ï¿½ï¿½ï¿½ check for next hop
         NotifyCarrierIdle(c, arrivedFlagId);
     }
 
@@ -537,6 +538,13 @@ namespace World {
 
         SetTaskState(task, TTS_Delivered);
 
+        if (m_recentDeliveryCount < kMaxRecentDeliveries) {
+            m_recentDeliveries[m_recentDeliveryCount].resource = task->resource;
+            m_recentDeliveries[m_recentDeliveryCount].destinationFlag = destFlagId;
+            m_recentDeliveries[m_recentDeliveryCount].reason = task->reason;
+            m_recentDeliveryCount++;
+        }
+
         task->carrier = NULL;
         c->m_phase7Task = NULL;
         c->m_phase7TargetFlag = 0;
@@ -558,11 +566,11 @@ namespace World {
         NotifyCarrierIdle(c, destFlagId);
     }
 
-    // òÔÀòÔÀ Assignment (Phase 7.3.1) òÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀ
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Assignment (Phase 7.3.1) ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
     // TryAssignTask is the assignment policy:
     //   1. Peek at the waiting queue
-    //   2. No task òÆÒ return NULL (carrier stays idle)
+    //   2. No task ï¿½ï¿½ï¿½ return NULL (carrier stays idle)
     //   3. Acquire the task (remove from queue)
     //   4. Assign it (set state, link carrier)
     TransportTask* TransportController::TryAssignTask(void* carrier, FlagId atFlag)
@@ -588,7 +596,7 @@ namespace World {
         return task;
     }
 
-    // AssignTask is the single point where Carrier òÆÔ Task linkage is created.
+    // AssignTask is the single point where Carrier ï¿½ï¿½ï¿½ Task linkage is created.
     // All invariants are checked here.
     void TransportController::AssignTask(void* carrier, TransportTask* task)
     {
@@ -599,7 +607,7 @@ namespace World {
 
         task->carrier = c;
         SetTaskState(task, TTS_Assigned);
-        // First hop from source òÀÔ route.flags[0] is the source, flags[1] is the first hop target
+        // First hop from source ï¿½ï¿½ï¿½ route.flags[0] is the source, flags[1] is the first hop target
         task->targetFlag = task->route.flags[task->hopIndex + 1];
 
         c->AssignPhase7Task(task, task->targetFlag);
@@ -612,7 +620,7 @@ namespace World {
         ValidateAssignment(task, c);
     }
 
-    // òÔÀòÔÀ Lifecycle òÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀ
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Lifecycle ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
     TransportTask* TransportController::CreateTask(
         ResourceType resource,
@@ -700,12 +708,12 @@ namespace World {
             break;
 
         default:
-            // Delivered, Cancelled, Created òÀÔ no-op
+            // Delivered, Cancelled, Created ï¿½ï¿½ï¿½ no-op
             break;
         }
     }
 
-    // òÔÀòÔÀ Event callbacks (stubs until Phase 7.3+) òÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀ
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Event callbacks (stubs until Phase 7.3+) ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
     void TransportController::NotifyCarrierIdle(void* carrier, FlagId atFlag)
     {
@@ -729,7 +737,7 @@ namespace World {
         } else if (IsRouteValid(task)) {
             AdvanceHop(c, task);
         } else {
-            // Next hop is blocked òÀÔ stay at current flag, release carrier
+            // Next hop is blocked ï¿½ï¿½ï¿½ stay at current flag, release carrier
             SetTaskState(task, TTS_Blocked);
             task->carrier = NULL;
             c->m_phase7Task = NULL;
@@ -751,7 +759,7 @@ namespace World {
         ValidateAssignment(task, c);
         assert(task->state == TTS_Assigned);
 
-        // Ownership triangle: link Task òÆÔ Cargo òÆÔ Carrier
+        // Ownership triangle: link Task ï¿½ï¿½ï¿½ Cargo ï¿½ï¿½ï¿½ Carrier
         task->cargo = cargoObj;
         cargoObj->ownerTask = task;
         c->m_phase7Cargo = cargoObj;
@@ -768,7 +776,7 @@ namespace World {
     }
     void TransportController::NotifyFlagRemoved(FlagId flagId)
     {
-        // Scan all active tasks òÀÔ if route includes the removed flag, block them
+        // Scan all active tasks ï¿½ï¿½ï¿½ if route includes the removed flag, block them
         for (int i = 0; i < kMaxTasks; ++i) {
             TransportTask* task = &m_pool[i];
             if (task->id == 0) continue; // unused slot
@@ -820,13 +828,13 @@ namespace World {
             }
 
             default:
-                // Delivered, Cancelled, already Blocked òÀÔ no-op
+                // Delivered, Cancelled, already Blocked ï¿½ï¿½ï¿½ no-op
                 break;
             }
         }
     }
 
-    // òÔÀòÔÀ Query òÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀ
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Query ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
     int TransportController::GetActiveTaskCount() const { return m_activeCount; }
 
@@ -838,7 +846,7 @@ namespace World {
         return NULL;
     }
 
-    // òÔÀòÔÀ Debug / test API òÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀòÔÀ
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Debug / test API ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
     uint16_t TransportController::GetWaitingCount(FlagId flagId) const
     {

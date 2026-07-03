@@ -5,7 +5,7 @@
 namespace World {
 
     class TransportController;
-    class EconomySystem;
+    class ISimulationSystem;
     struct WorldModel;
     class IRoadGraph;
     class IFlagInventory;
@@ -17,15 +17,22 @@ namespace World {
         Simulation(const SimulationConfig& config);
         ~Simulation();
 
+        void AddSystem(ISimulationSystem* system);
         void LoadWorld(const WorldModel& world);
         void Tick();
         const SimulationState& GetState() const;
+        WorldModel& GetWorld();
 
     private:
         void ProcessTransportRequests();
+        void ClearDeliveryEvents();
+        void CaptureDeliveryEvents();
+
+        static const int kMaxSystems = 16;
+        ISimulationSystem* m_systems[kMaxSystems];
+        int m_systemCount;
 
         TransportController* m_transport;
-        EconomySystem* m_economy;
         WorldModel* m_world;
         SimulationState m_state;
         uint32_t m_tickCount;

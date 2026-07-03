@@ -9,6 +9,9 @@ namespace World {
         int blockedTransportTasks;
         uint32_t economyPendingRequests;
         uint32_t economyFulfilledRequests;
+        uint32_t constructionPendingRequests;
+        uint32_t constructionActiveSites;
+        uint32_t constructionCompletedSites;
         bool worldLoaded;
 
         SimulationState()
@@ -17,6 +20,9 @@ namespace World {
             , blockedTransportTasks(0)
             , economyPendingRequests(0)
             , economyFulfilledRequests(0)
+            , constructionPendingRequests(0)
+            , constructionActiveSites(0)
+            , constructionCompletedSites(0)
             , worldLoaded(false)
         {
         }

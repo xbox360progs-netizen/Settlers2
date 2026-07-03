@@ -59,12 +59,38 @@ Flag::building != NULL == instantiated building object
 ```
 **Never use `hasBuilding` as a check for object existence.** A flag with a planned construction site has `hasBuilding=true` but `building=NULL`. Use `flag->building != NULL` when you need to know whether a `Building` object actually exists.
 
+## Simulation Foundation v2 — Definition of Done ✅
+
+```
+1. Simulation — единственная точка входа.
+2. WorldModel — единственный источник доменного состояния.
+3. Все доменные системы реализуют ISimulationSystem.
+4. Simulation знает только интерфейс систем и порядок их выполнения.
+5. Межсистемное взаимодействие — через WorldModel (Requests/Events).
+6. Headless execution.
+7. Deterministic execution.
+8. Platform-independent.
+9. Новые системы регистрируются через AddSystem() без изменения Simulation.cpp.
+10. Существует минимум один полностью замкнутый сквозной pipeline.
+```
+
 ## Definition Pattern (Cycle 3)
 
 Domain types are the only stable identifiers. UI assets, render assets, metadata and gameplay properties must be obtained from definition tables/services keyed by the domain type. Systems must not derive domain types from resource names.
 
 **Permitted:** `BuildingType → sprite name`, `BuildingType → icon name`, `BuildingType → cost`
 **Forbidden:** `sprite name → BuildingType`, `icon name → BuildingType`
+
+**Implementation plan:** Replace hardcoded switch-based tables (GetBuildingCost, requiredProgress)
+with data-driven `BuildingDefinition[]`, `ResourceDefinition[]`, `WorkerDefinition[]`
+in a new `Definitions/` namespace. Systems read from definitions, not from switch statements.
+
+```
+BuildingType → BuildingDefinition { cost[], buildTime, footprint, produces, consumes, workerSlots }
+```
+
+`GetBuildingCost(type)` → `BuildingDefinitions[type].buildCost`
+`requiredProgress = 100` → `BuildingDefinitions[type].buildTime`
 
 ## Boundary Rules for PRs
 
@@ -83,33 +109,70 @@ or explicit domain requests. Systems never invoke domain logic in
 other systems directly.
 ```
 
-Derived from PR12: EconomySystem publishes `TransportRequest[]` to WorldModel;
-Simulation (coordinator) reads and converts; TransportController executes.
-Neither system knows the other's internals. Same pattern applies to all future
-systems (Construction, Workers, Buildings).
+Each system publishes **Requests** and consumes **Events** through WorldModel.
+Direct calls between domain systems are prohibited.
+
+Derived from PR12/PR16: Outbound contract (Request) and inbound contract (Event)
+form symmetric communication:
 
 ```
-EconomySystem → WorldModel (TransportRequest[])
-                                          ↓
-                                  Simulation
-                                      ↓
-                              TransportController
-                                      ↓
-                                  WorldModel
+System (Outbound) → Request → WorldModel → Simulation → Executor
+System (Inbound)  ← Event  ← WorldModel ← Simulation ← Executor
 ```
 
-## SimulationCore — Future System Lifecycle
+Concrete example (Construction → Transport → Delivery):
 
-All domain systems follow `Tick(WorldModel&)` — Simulation only owns ordering:
+```
+ConstructionSystem
+        │
+        ▼  (outbound)
+TransportRequest
+        │
+        ▼  (coordinator routes)
+TransportController
+        │
+        ▼  (inbound)
+DeliveryEvent
+        │
+        ▼
+ConstructionSystem
+```
+
+EconomySystem publishes `TransportRequest[]` to WorldModel;
+Simulation reads and converts; TransportController executes.
+Neither system knows the other's internals.
+
+## SimulationCore — Adding New Systems
+
+New `ISimulationSystem` implementations are plugged in via public `AddSystem()` — `Simulation.cpp` is never modified:
+
+```cpp
+sim.AddSystem(new EconomySystem());
+sim.AddSystem(new ConstructionSystem());
+```
 
 ```
 Simulation::Tick():
-    economy.Tick(world)       → writes requests
-    construction.Tick(world)  → writes build commands
-    workers.Tick(world)       → writes worker tasks
-    Simulation processes requests → TransportController.CreateTask()
-    transport.Update(dt)      → executes
+    for each system: system.Tick(world)       → writes requests
+    ProcessTransportRequests()                 → Convert to transport tasks
+    Telemetry from WorldModel
+    transport.Update(dt)                       → Execute movement
 ```
+
+## Three Development Tracks
+
+After Cycle 2 (PR18) and Simulation Validation (PR19), development splits into independent tracks:
+
+**A. Simulation Engine** — new domain systems:
+Worker AI, Production, Economy expansion, Save/Load, Building lifecycle.
+
+**B. Definition Pattern** — data-driven definitions:
+BuildingDefinition, ResourceDefinition, WorkerDefinition. Replace switch-based tables. Does not change simulation behavior.
+
+**C. Simulation Validation** — scenarios + invariants:
+`IScenario` interface, T1–T8 regression suite, categorized assertions (Transport, Construction, Economy, World), AI fuzzing.
+
+These tracks are independent: Definition Pattern is tested by existing scenarios, new Engine systems add their own scenarios, Validation expands coverage without touching domain code.
 
 ## Build Config
 

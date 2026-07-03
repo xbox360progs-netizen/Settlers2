@@ -106,6 +106,12 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Construction\ConstructionRequest.h" />
+    <ClInclude Include="Construction\ConstructionSite.h" />
+    <ClInclude Include="Construction\ConstructionState.h" />
+    <ClInclude Include="Definitions\BuildingDefinition.h" />
+    <ClInclude Include="Construction\ConstructionSystem.h" />
+    <ClInclude Include="Core\BuildingTypes.h" />
     <ClInclude Include="Core\ResourceTypes.h" />
     <ClInclude Include="Core\ResourceDebug.h" />
     <ClInclude Include="Core\Handle.h" />
@@ -118,10 +124,14 @@
     <ClInclude Include="Simulation\SimulationConfig.h" />
     <ClInclude Include="Simulation\SimulationState.h" />
     <ClInclude Include="Systems\EconomySystem.h" />
+    <ClInclude Include="Systems\ISimulationSystem.h" />
+    <ClInclude Include="Testing\SimulationAssertions.h" />
+    <ClInclude Include="Testing\TestScenario.h" />
     <ClInclude Include="Stubs\StubRoadGraph.h" />
     <ClInclude Include="Stubs\StubFlagInventory.h" />
     <ClInclude Include="Stubs\StubCargoRepository.h" />
     <ClInclude Include="Stubs\StubDemandService.h" />
+    <ClInclude Include="Worker\WorkerSystem.h" />
     <ClInclude Include="World\WorldModel.h" />
     <ClInclude Include="Transport\TransportTypes.h" />
     <ClInclude Include="Transport\TransportRoute.h" />
@@ -131,7 +141,11 @@
     <ClInclude Include="Transport\Carrier.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Construction\ConstructionSystem.cpp" />
+    <ClCompile Include="Definitions\BuildingDefinition.cpp" />
     <ClCompile Include="Simulation\Simulation.cpp" />
+    <ClCompile Include="Testing\Scenarios.cpp" />
+    <ClCompile Include="Worker\WorkerSystem.cpp" />
     <ClCompile Include="Systems\EconomySystem.cpp" />
     <ClCompile Include="Transport\TransportController.cpp" />
     <ClCompile Include="Transport\TransportTask.cpp" />

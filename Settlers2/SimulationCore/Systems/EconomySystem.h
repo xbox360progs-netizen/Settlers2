@@ -1,11 +1,12 @@
 #pragma once
 #include <stdint.h>
+#include "ISimulationSystem.h"
 
 namespace World {
 
     struct WorldModel;
 
-    class EconomySystem {
+    class EconomySystem : public ISimulationSystem {
     public:
         EconomySystem();
         ~EconomySystem();
