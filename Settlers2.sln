@@ -5,6 +5,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Settlers2", "Settlers2\Sett
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SimulationCore", "Settlers2\SimulationCore\SimulationCore.vcxproj", "{0E264B64-587C-4D28-9BAA-8BB7A61CFDB3}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SimulationCoreTests", "Settlers2\SimulationCoreTests\SimulationCoreTests.vcxproj", "{C4D7E39B-2A8F-4A67-BF0F-123456789ABC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		CodeAnalysis|Xbox 360 = CodeAnalysis|Xbox 360
@@ -35,6 +37,14 @@ Global
 		{0E264B64-587C-4D28-9BAA-8BB7A61CFDB3}.Release_LTCG|Xbox 360.ActiveCfg = Release|Xbox 360
 		{0E264B64-587C-4D28-9BAA-8BB7A61CFDB3}.Release|Xbox 360.ActiveCfg = Release|Xbox 360
 		{0E264B64-587C-4D28-9BAA-8BB7A61CFDB3}.Release|Xbox 360.Build.0 = Release|Xbox 360
+		{C4D7E39B-2A8F-4A67-BF0F-123456789ABC}.CodeAnalysis|Xbox 360.ActiveCfg = Debug|Xbox 360
+		{C4D7E39B-2A8F-4A67-BF0F-123456789ABC}.Debug|Xbox 360.ActiveCfg = Debug|Xbox 360
+		{C4D7E39B-2A8F-4A67-BF0F-123456789ABC}.Debug|Xbox 360.Build.0 = Debug|Xbox 360
+		{C4D7E39B-2A8F-4A67-BF0F-123456789ABC}.Profile|Xbox 360.ActiveCfg = Release|Xbox 360
+		{C4D7E39B-2A8F-4A67-BF0F-123456789ABC}.Profile_FastCap|Xbox 360.ActiveCfg = Release|Xbox 360
+		{C4D7E39B-2A8F-4A67-BF0F-123456789ABC}.Release_LTCG|Xbox 360.ActiveCfg = Release|Xbox 360
+		{C4D7E39B-2A8F-4A67-BF0F-123456789ABC}.Release|Xbox 360.ActiveCfg = Release|Xbox 360
+		{C4D7E39B-2A8F-4A67-BF0F-123456789ABC}.Release|Xbox 360.Build.0 = Release|Xbox 360
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
