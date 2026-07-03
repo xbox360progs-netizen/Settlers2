@@ -63,7 +63,7 @@ void WorkerPass::Execute(const RenderFrame& frame, const RenderContext& context,
     const std::vector<RenderWorker>& workers = frame.workers;
     if (workers.empty()) return;
 
-    // Resolve atlas via TextureRegistry (same as SettlerRenderer).
+    // Resolve atlas via TextureRegistry.
     TextureRegistry& reg = TextureRegistry::instance();
     std::tr1::shared_ptr<SpriteAtlas> unitsAtlas = reg.getAtlas("Units");
     if (!unitsAtlas) return;

@@ -4,7 +4,7 @@
 namespace Scene {
 
 // Scene-side render command DTO. Represents a single sprite draw call
-// from the perspective of scene renderers (SettlerRenderer, BuildingRenderer,
+// from the perspective of scene renderers (WorkerPass, BuildingRenderer,
 // TerrainPass). Converted to Graphics::RenderCommand in
 // RenderCommandBuffer::SubmitToQueue.
 //

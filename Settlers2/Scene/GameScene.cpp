@@ -586,12 +586,6 @@ namespace Scene {
         m_menuPresentationSystem.SetMenus(m_buildMenu, m_flagMenu);
         m_townHallPresentationSystem.SetManagers(m_flagManager, m_economyManager);
         m_logisticsDebugPresentationSystem.SetManagers(m_flagManager, m_carrierManager);
-        m_settlerPresentationSystem.SetManagers(
-            m_carrierManager,
-            m_constructionManager,
-            m_workerManager,
-            m_roadManager
-        );
         m_buildingPresentationSystem.SetManagers(
             m_flagManager,
             m_constructionManager
@@ -801,7 +795,6 @@ void GameScene::Update(float deltaTime)
       {
           RenderFrame next;
           m_terrainPresentationSystem.BuildRenderFrame(next);
-          m_settlerPresentationSystem.BuildRenderFrame(next);
           m_buildingPresentationSystem.BuildRenderFrame(next);
           // Suppress cursor during flag placement preview (replaced by preview sprite).
           m_cursorPresentationSystem.SetSuppressed(

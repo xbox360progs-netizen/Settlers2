@@ -23,7 +23,6 @@ void ProjectionSystem::SetCamera(Camera* camera)
 void ProjectionSystem::Project(RenderFrame& frame)
 {
     if (!m_camera) return;
-    ProjectSettlers(frame);
     ProjectBuildings(frame);
     ProjectTerrain(frame);
     ProjectCursor(frame);
@@ -37,17 +36,6 @@ void ProjectionSystem::Project(RenderFrame& frame)
     ProjectHighlights(frame);
     ProjectRoadConnections(frame);
     ProjectWorkSites(frame);
-}
-
-void ProjectionSystem::ProjectSettlers(RenderFrame& frame)
-{
-    for (size_t i = 0; i < frame.settlers.size(); ++i) {
-        RenderTransform& t = frame.settlers[i].transform;
-        float sx, sy;
-        m_camera->WorldToScreen(t.worldX, t.worldY, sx, sy);
-        t.screenX = (int)(sx + 0.5f);
-        t.screenY = (int)(sy + 0.5f);
-    }
 }
 
 void ProjectionSystem::ProjectBuildings(RenderFrame& frame)

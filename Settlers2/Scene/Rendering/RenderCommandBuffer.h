@@ -9,7 +9,7 @@ namespace Graphics {
 
 namespace Scene {
 
-// Collects render commands from all scene renderers (SettlerRenderer,
+    // Collects render commands from all scene renderers (WorkerPass,
 // BuildingRenderer, TerrainPass, etc.) and submits them to the graphics
 // RenderQueue in a single batch. Sorts by depth internally.
 class RenderCommandBuffer {

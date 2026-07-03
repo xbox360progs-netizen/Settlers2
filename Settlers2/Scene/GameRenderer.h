@@ -2,7 +2,6 @@
 
 #include "../Graphics/RenderQueue.h"
 #include "Shared/RenderFrame.h"
-#include "Settlers/SettlerRenderer.h"
 #include "Buildings/BuildingRenderer.h"
 #include "Terrain/TerrainPass.h"
 #include "Cursor/CursorPass.h"
@@ -48,14 +47,6 @@ public:
                  RenderCommandBuffer& buffer);
 };
 
-class SettlerRenderPass : public RenderPass {
-    SettlerRenderer& m_renderer;
-public:
-    explicit SettlerRenderPass(SettlerRenderer& r) : m_renderer(r) {}
-    void Execute(const RenderFrame& frame, const RenderContext& context,
-                 RenderCommandBuffer& buffer);
-};
-
 // ─── Render-only class (no game-logic knowledge) ───────────────────────
 class GameRenderer
 {
@@ -78,9 +69,6 @@ private:
     World::Map*       m_map;
     TextManager*                m_textManager;
 
-    // Settler renderer (reads DTOs only — no simulation access)
-    SettlerRenderer m_settlerRenderer;
-
     // Building renderer (reads DTOs only — renders flags + buildings)
     BuildingRenderer m_buildingRenderer;
 
@@ -94,7 +82,6 @@ private:
     RenderGraph m_renderGraph;
     TerrainPass m_terrainPass;
     BuildingRenderPass m_buildingRenderPass;
-    SettlerRenderPass m_settlerRenderPass;
     CursorPass m_cursorPass;
     FlagResourcePass m_flagResourcePass;
     WildlifePass m_wildlifePass;

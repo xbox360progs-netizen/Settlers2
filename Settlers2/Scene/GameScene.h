@@ -57,9 +57,7 @@
 #include "../UI/UiController.h"
 #include "../UI/LocalizationService.h"
 #include "../UI/StatusManager.h"
-#include "Settlers/RenderSettler.h"
 #include "Shared/RenderFrame.h"
-#include "Settlers/SettlerPresentationSystem.h"
 #include "Buildings/BuildingPresentationSystem.h"
 #include "Terrain/TerrainPresentationSystem.h"
 #include "Cursor/CursorPresentationSystem.h"
@@ -243,7 +241,6 @@ private:
     // Render frame snapshot (populated by Presentation systems each frame)
     RenderFrame m_renderFrame;
     TerrainPresentationSystem m_terrainPresentationSystem;
-    SettlerPresentationSystem m_settlerPresentationSystem;
     BuildingPresentationSystem m_buildingPresentationSystem;
     CursorPresentationSystem m_cursorPresentationSystem;
     FlagResourcePresentationSystem m_flagResourcePresentationSystem;

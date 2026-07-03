@@ -1,7 +1,6 @@
 #pragma once
 #include <vector>
 #include <stdint.h>
-#include "../Settlers/RenderSettler.h"
 #include "RenderBuilding.h"
 #include "../Terrain/RenderTerrainTile.h"
 #include "../Cursor/RenderCursor.h"
@@ -27,7 +26,6 @@ struct RenderFrame {
     uint32_t frameId;                  // incrementing frame counter
     uint32_t simulationTick;           // simulation tick at capture time
 
-    std::vector<RenderSettler> settlers;
     std::vector<RenderBuilding> buildings;
     std::vector<RenderTerrainTile> terrain;
     RenderCursor                  cursor;

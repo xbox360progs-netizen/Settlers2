@@ -8,7 +8,7 @@ namespace Scene {
 // Converts world coordinates in a RenderFrame to screen coordinates.
 // Called once per frame after all Presentation systems have run.
 // The renderers then read screenX/screenY instead of worldX/worldY.
-// Now handles all renderable categories: settlers, buildings, terrain, cursor, flag resources, wildlife, preview, road, work sites, road connections.
+// Now handles all renderable categories: buildings, terrain, cursor, flag resources, wildlife, preview, road, work sites, road connections, workers, overlays.
 class ProjectionSystem {
 public:
     void SetCamera(Camera* camera);
@@ -17,7 +17,6 @@ public:
     void Project(RenderFrame& frame);
 
 private:
-    void ProjectSettlers(RenderFrame& frame);
     void ProjectBuildings(RenderFrame& frame);
     void ProjectTerrain(RenderFrame& frame);
     void ProjectCursor(RenderFrame& frame);

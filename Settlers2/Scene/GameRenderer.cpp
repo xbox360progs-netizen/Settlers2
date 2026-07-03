@@ -21,11 +21,6 @@ void BuildingRenderPass::Execute(const RenderFrame& frame, const RenderContext& 
     m_renderer.Render(buffer, frame);
 }
 
-void SettlerRenderPass::Execute(const RenderFrame& frame, const RenderContext& context, RenderCommandBuffer& buffer)
-{
-    m_renderer.Render(buffer, frame);
-}
-
 // ─── GameRenderer ──────────────────────────────────────────────────────
 
 
@@ -45,7 +40,6 @@ GameRenderer::GameRenderer(
     , m_textManager(textManager)
     , m_terrainPass(*tileRenderer)
     , m_buildingRenderPass(m_buildingRenderer)
-    , m_settlerRenderPass(m_settlerRenderer)
     , m_huntingSpotPass(textManager)
     , m_confirmationMenuPass(textManager)
     , m_notificationPass(textManager)
@@ -56,14 +50,13 @@ GameRenderer::GameRenderer(
     , m_menuPass(textManager)
     , m_groundResourcePass(textManager)
 {
-    // Execute order: Background → Terrain → Buildings → RoadConnections → RoadPreview → PlacementPreview → Settlers → Wildlife → GroundResources → Workers → FlagResources → WorkSites → Overlays → HuntingSpots → UI → BuildingHighlight → TownHallPanel → ResourceHud → Banner → Cursor
+    // Execute order: Background → Terrain → Buildings → RoadConnections → RoadPreview → PlacementPreview → Wildlife → GroundResources → Workers → FlagResources → WorkSites → Overlays → HuntingSpots → UI → BuildingHighlight → TownHallPanel → ResourceHud → Banner → Cursor
     m_renderGraph.AddPass(&m_backgroundPass);
     m_renderGraph.AddPass(&m_terrainPass);
     m_renderGraph.AddPass(&m_buildingRenderPass);
     m_renderGraph.AddPass(&m_roadConnectionPass);
     m_renderGraph.AddPass(&m_roadPreviewPass);
     m_renderGraph.AddPass(&m_placementPreviewPass);
-    m_renderGraph.AddPass(&m_settlerRenderPass);
     m_renderGraph.AddPass(&m_wildlifePass);
     m_renderGraph.AddPass(&m_groundResourcePass);
     m_renderGraph.AddPass(&m_workerPass);
@@ -185,7 +178,7 @@ void GameRenderer::Render(Graphics::RenderQueue* renderQueue, const RenderFrame&
 
     // ─── Execute all registered render passes via RenderGraph ───────────
     // Each pass reads from RenderFrame + RenderContext and pushes to the buffer.
-    // Order: TerrainPass → BuildingPass → RoadPreviewPass → PlacementPreviewPass → SettlerPass → WildlifePass → GroundResourcePass → WorkerPass → FlagResourcePass → GeologistOverlayPass → ConfirmationMenuPass → NotificationPass → CursorPass
+    // Order: TerrainPass → BuildingPass → RoadPreviewPass → PlacementPreviewPass → WildlifePass → GroundResourcePass → WorkerPass → FlagResourcePass → GeologistOverlayPass → ConfirmationMenuPass → NotificationPass → CursorPass
     // Future: GamepadCursorPass, HudPass.
     if (spriteRenderer) {
         std::tr1::shared_ptr<SpriteAtlas> buildingsAtlas = reg.getAtlas("Buildings");
@@ -204,13 +197,6 @@ void GameRenderer::Render(Graphics::RenderQueue* renderQueue, const RenderFrame&
         if (unitsAtlas && unitsAtlas->GetTexture()) {
             LPDIRECT3DTEXTURE9 unitsTex = unitsAtlas->GetTexture();
             spriteRenderer->SetTextureSlot(SLOT_UNITS, unitsTex);
-
-            std::tr1::shared_ptr<SpriteAtlas> iconAtlas = reg.getAtlas("Icon");
-            m_settlerRenderer.SetAtlases(
-                unitsAtlas.get(),
-                iconAtlas.get(),
-                SLOT_UNITS
-            );
         }
 
         // Bind Icon atlas for flag resource pass
