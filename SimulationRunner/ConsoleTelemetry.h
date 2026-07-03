@@ -1,0 +1,18 @@
+#pragma once
+#include <stdio.h>
+#include "../Settlers2/SimulationCore/Simulation/SimulationState.h"
+
+inline void PrintTelemetry(const World::SimulationState& state)
+{
+    printf("[SIM] tick=%u transport_active=%d transport_blocked=%d world=%s\n",
+        state.tickCount,
+        state.activeTransportTasks,
+        state.blockedTransportTasks,
+        state.worldLoaded ? "loaded" : "empty");
+}
+
+inline void PrintHeader()
+{
+    printf("=== SimulationRunner ===\n");
+    printf("No graphics, no input, no audio — headless simulation only.\n\n");
+}
