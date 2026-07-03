@@ -13,6 +13,7 @@ int main()
 
     RunnerConfig runCfg;
     World::SimulationConfig simCfg;
+    simCfg.enableEconomy = true;
     World::Simulation simulation(simCfg);
 
     World::WorldModel world = Scenarios::CreateEmptyWorld();

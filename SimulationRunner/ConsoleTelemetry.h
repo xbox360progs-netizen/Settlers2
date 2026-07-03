@@ -4,10 +4,13 @@
 
 inline void PrintTelemetry(const World::SimulationState& state)
 {
-    printf("[SIM] tick=%u transport_active=%d transport_blocked=%d world=%s\n",
+    printf("[SIM] tick=%u transport_active=%d transport_blocked=%d"
+        " economy_pending=%u economy_fulfilled=%u world=%s\n",
         state.tickCount,
         state.activeTransportTasks,
         state.blockedTransportTasks,
+        state.economyPendingRequests,
+        state.economyFulfilledRequests,
         state.worldLoaded ? "loaded" : "empty");
 }
 

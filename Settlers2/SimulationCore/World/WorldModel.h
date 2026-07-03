@@ -1,25 +1,31 @@
 #pragma once
 #include <stdint.h>
+#include "../Core/ResourceTypes.h"
+#include "../Transport/TransportTypes.h"
 
 namespace World {
 
-    // Domain data for the simulation world.
-    // Currently a skeleton — populated as subsystems are migrated into SimulationCore.
-    // This is PURE DATA, not managers or systems.
+    static const int kMaxPendingRequests = 128;
+
+    struct TransportRequest {
+        ResourceType resource;
+        FlagId origin;
+        FlagId destination;
+        TransportTaskReason reason;
+        bool fulfilled;
+    };
+
     struct WorldModel {
         uint32_t width;
         uint32_t height;
 
-        // Future:
-        //   Tile[] tiles;
-        //   Flag[] flags;
-        //   Road[] roads;
-        //   Building[] buildings;
-        //   Worker[] workers;
+        TransportRequest pendingRequests[kMaxPendingRequests];
+        int pendingRequestCount;
 
         WorldModel()
             : width(0)
             , height(0)
+            , pendingRequestCount(0)
         {
         }
     };
