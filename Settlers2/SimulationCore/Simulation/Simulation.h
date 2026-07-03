@@ -5,7 +5,7 @@
 namespace World {
 
     class TransportController;
-    class WorldModel;
+    struct WorldModel;
     class IRoadGraph;
     class IFlagInventory;
     class ICargoRepository;

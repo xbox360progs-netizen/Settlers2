@@ -72,7 +72,7 @@
       <ExceptionHandling>false</ExceptionHandling>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -82,7 +82,7 @@
       <ExceptionHandling>false</ExceptionHandling>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">
@@ -110,7 +110,6 @@
     <ClInclude Include="Core\ResourceDebug.h" />
     <ClInclude Include="Core\Handle.h" />
     <ClInclude Include="Core\Vector2i.h" />
-    <ClInclude Include="Core\PlatformLock.h" />
     <ClInclude Include="Interfaces\IRoadGraph.h" />
     <ClInclude Include="Interfaces\IFlagInventory.h" />
     <ClInclude Include="Interfaces\ICargoRepository.h" />
@@ -131,7 +130,6 @@
     <ClInclude Include="Transport\Carrier.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Core\PlatformLock.cpp" />
     <ClCompile Include="Simulation\Simulation.cpp" />
     <ClCompile Include="Transport\TransportController.cpp" />
     <ClCompile Include="Transport\TransportTask.cpp" />

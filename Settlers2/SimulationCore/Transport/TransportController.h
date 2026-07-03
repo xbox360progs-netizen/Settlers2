@@ -35,6 +35,8 @@ namespace World {
 
         void NotifyCarrierIdle(void* carrier, FlagId atFlag);
         void NotifyCarrierArrived(void* carrier, FlagId flagId);
+        void NotifyCarrierPickedUp(void* carrier, void* cargo);
+        void NotifyCarrierDropped(void* carrier, FlagId flagId);
         void NotifyRoadNetworkChanged();
         void NotifyFlagRemoved(FlagId flagId);
 
@@ -51,15 +53,25 @@ namespace World {
 
         TransportTask* AllocateTask();
         void SetTaskState(TransportTask* task, TransportTaskState newState);
+
         void EnqueueWaiting(TransportTask* task, FlagId atFlag);
         TransportTask* PickNextTask(FlagId flagId);
         void RemoveFromQueue(TransportTask* task);
+
+        TransportTask* TryAssignTask(void* carrier, FlagId atFlag);
+        void AssignTask(void* carrier, TransportTask* task);
+
+        void ValidateAssignment(const TransportTask* task, const Carrier* c) const;
+        void ValidateOwnership(const TransportTask* task) const;
+        void ValidateMovement(const TransportTask* task) const;
+
         void RetryBlockedTasks();
         bool IsRouteValid(const TransportTask* task) const;
+        bool IsLastHop(const TransportTask* task) const;
         void AdvanceHop(Carrier* c, TransportTask* task);
         void CompleteDelivery(Carrier* c, TransportTask* task);
 
-        TransportTask* m_pool[kMaxTasks];
+        TransportTask m_pool[kMaxTasks];
         uint32_t m_nextTaskId;
         int m_activeCount;
         uint32_t m_currentTick;

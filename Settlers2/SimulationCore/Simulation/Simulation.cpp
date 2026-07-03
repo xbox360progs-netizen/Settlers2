@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include "Simulation.h"
 #include "../Transport/TransportController.h"
 #include "../World/WorldModel.h"
