@@ -174,12 +174,14 @@
   <ItemGroup>
     <ClInclude Include="Core\PlatformLock.h" />
     <ClInclude Include="Core\ResourceTypes.h" />
+    <ClInclude Include="Transport\TransportController.h" />
     <ClInclude Include="Transport\TransportRoute.h" />
     <ClInclude Include="Transport\TransportTask.h" />
     <ClInclude Include="Transport\TransportTypes.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\PlatformLock.cpp" />
+    <ClCompile Include="Transport\TransportTask.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

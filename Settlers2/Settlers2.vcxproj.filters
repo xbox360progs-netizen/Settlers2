@@ -882,9 +882,7 @@
     <ClCompile Include="World\TransportController.cpp">
       <Filter>World</Filter>
     </ClCompile>
-    <ClCompile Include="World\TransportTask.cpp">
-      <Filter>World</Filter>
-    </ClCompile>
+    <!-- TransportTask.cpp moved to SimulationCore.lib -->
     <ClCompile Include="World\HabitatRegistry.cpp">
       <Filter>World</Filter>
     </ClCompile>

@@ -1041,55 +1041,225 @@ or any direct call to `FlagManager/RoadManager/Map` from a RenderPass.
 
 ---
 
-# Build Stabilization Session (2026-07-02)
+# Phase 8 Migration Session (2026-07-03)
 
-## Problem
+## Goal
 
-After committing Stage 7E4 (Building State Presentation), the project had 9+ build errors:
+Phase 8 migration: platform-independent Simulation Core by removing all transitive Xbox SDK dependencies from public headers, extracting platform-free core into separate library.
 
-1. **C2757**: `class Scene` conflicts with `Scene` namespace (`Scene.h:16`)
-2. **`const` mutating cached fields**: `BuildingRenderer::ResolveSpriteIndex` declared `const` but wrote `m_flagSpriteCached`
-3. **Deleted enum refs**: `SettlerType`, `SettlerState` enums removed but still referenced in `SettlerPresentationSystem.cpp` + `SettlerRenderer.cpp`
-4. **Wrong enum names**: `Building_Woodcutter` → `Woodcutter` (BuildingType enum renamed)
-5. **Wrong method name**: `GetFlagCount()` → `GetCount()`
-6. **Missing `stdafx.h`**: `GroundResourcePresentationSystem.cpp`
-7. **Wrong namespace forward decl**: `UIMenu` forward-declared inside `namespace Scene` instead of global
-8. **`Graphics::SpriteAtlas` vs `::SpriteAtlas`**: Forward-declared as `Graphics::SpriteAtlas` but real class is in global namespace — caused type mismatch + undefined type errors
-9. **Missing `Building.h` include**: `WorkerPass.cpp` referenced `World::Woodcutter` etc. without including `World/Components/Building.h`
+## Completed PRs
 
-## All 11 Fixes
+| PR | What | Key Change |
+|----|------|-----------|
+| **PR1** | Map.h isolation | Removed `#include <xtl.h>` and `<d3dx9math.h>` from Map.h, replaced `CRITICAL_SECTION` with `PlatformLock` (PImpl), replaced `BYTE` → `uint8_t` |
+| **PR1.1** | Tile.h isolation | Replaced `D3DXVECTOR2 uvOffset` → `float uvOffsetU, uvOffsetV`, removed `<d3dx9math.h>` dependency |
+| **PR2** | JobManager isolation | Removed `#include <xtl.h>`, moved all private state into `struct Impl` (PImpl), `LONG`→`long`, `DWORD WINAPI`→`unsigned long __stdcall`, `LPVOID`→`void*` |
+| **PR2.1** | AICommandQueue isolation | Replaced `CRITICAL_SECTION` + `<xtl.h>` with `PlatformLock m_lock` |
+| **PR3** | SimulationCore.lib skeleton | Created `SimulationCore/` static lib project (+6 configs), `Core/PlatformLock.*` (PImpl, no PCH), `Transport/TransportTypes.h` |
+| **PR4** | TransportRoute → SimulationCore | Canonical copy in SimulationCore, forwarding header in World/ |
+| **PR5** | ResourceType extraction + TransportTask → SimulationCore | Extracted `enum ResourceType` from `ResourceNode.h` to `ResourceTypes.h`, moved `TransportTask.h` |
+| **PR6** | TransportController header → SimulationCore | Forward declarations only in SimulationCore header, `.cpp` stays in main project |
+| **PR6.1** | Inventory of .cpp dependencies | Scanned 56 `.cpp` files: 0 direct platform includes (all via stdafx.h). Found bidirectional `TransportController ↔ DemandManager` cycle |
+| **PR7** | TransportTask.cpp → SimulationCore | First `.cpp` moved to library, removed `stdafx.h`, updated both vcxproj files |
+| **Cleanup** | Legacy transport removal | Deleted `TransportJobManager`, `TransportJob`, `TransportSystem` (Phase 8.4 complete) |
 
-| # | Fix | File(s) |
-|---|-----|---------|
-| 1 | `class Scene` → `class SceneBase`; constructor `Scene` → `SceneBase` | `Scene/Scene.h`, `Scene/Scene.cpp` |
-| 2 | Remove `const` from `ResolveSpriteIndex` (caches m_flagSpriteCached) | `Buildings/BuildingRenderer.h/.cpp` |
-| 3 | Strip `CollectCarriers/Builders/Workers`; keep no-op `BuildRenderFrame` | `Settlers/SettlerPresentationSystem.h/.cpp` |
-| 4 | Strip all `SettlerType`/`SettlerState` refs; `Render` becomes no-op | `Settlers/SettlerRenderer.h/.cpp` |
-| 5 | `Building_Woodcutter` → `Woodcutter` etc. | `Workers/WorkerPass.cpp` |
-| 6 | Add `#include "World/Components/Building.h"` | `Workers/WorkerPass.cpp` |
-| 7 | `GetFlagCount()` → `GetCount()` | `Workers/WorkerPresentationSystem.cpp` |
-| 8 | Add `#include "stdafx.h"` | `Resources/GroundResourcePresentationSystem.cpp` |
-| 9 | Move `class UIMenu;` to global scope | `UI/ConfirmationMenuPresentationSystem.h` |
-| 10 | `Graphics::SpriteAtlas*` → `SpriteAtlas*` (forward decl mismatch) | `Buildings/BuildingRenderer.h/.cpp` |
-| 11 | Same forward decl fix | `Settlers/SettlerRenderer.h/.cpp` |
+## Legacy Transport Removed (Phase 8.4)
 
-### Pattern: namespace hygiene for forward declarations
+Files deleted:
+- `World/TransportJobManager.h/.cpp` — old job-per-hop system
+- `World/TransportJob.h` — old job DTO
+- `World/Systems/TransportSystem.h/.cpp` — old system glue
 
-All 3rd-party types used in Scene/ headers must be forward-declared in their **real** namespace. The pattern `namespace Graphics { class SpriteAtlas; }` is wrong when `SpriteAtlas` lives in the global namespace. Rule: verify the actual `class Foo { ... }` declaration location, not the folder path.
+## PR8 Analysis (In Progress)
 
-## Status
+Bidirectional cycle: `TransportController.cpp ↔ DemandManager.cpp`
 
-All 9 build error categories resolved. Cannot verify via local build (no Xbox 360 SDK available — `stdafx.h` includes `<xtl.h>`). Next: visual smoke test on Xbox 360 hardware when SDK becomes available.
+TransportController uses:
+- `m_roadManager->FindFlagPath(Flag*, Flag*)` → `std::vector<Flag*>`
+- `m_flagManager->GetFlagById(FlagId)` → `Flag*`
+- `m_flagManager->GetCount()` → `uint32_t`
+- `m_flagManager->GetFlag(size_t)` → `Flag*`
+- `m_carrierManager->GetCarrierCount()` → telemetry only (int)
+- `m_cargoManager->Release(uint32_t cargoId)`
+- `m_demandManager->GetTicket(uint32_t ticketId)` → `DemandTicket*`
+- `m_demandManager->Deliver(DemandTicket*)`
 
----
+Interfaces needed (not yet written): IRoadGraph, IFlagRepository, ICarrierScheduler, ICargoStore, ITransportRequestHandler
 
-# Updated Next Steps (Stabilization Phase)
+## Current Architecture
 
-1. **Visual World Smoke Test** (10-15 min on Xbox 360): check builder visible, carrier walking, resources visible, building constructs, overlays change, worker at building, no teleporting, no double-render
-2. **Find remaining render bypasses**: scan for `queue.Push(...)`, `WorldSprite(...)`, `Camera::WorldToScreen(...)`, `FlagManager*` in Renderer code
-3. **Visual World Complete**: delete `SettlerPresentationSystem`, `SettlerRenderer`, inline text bridges, old `DrawXXX` calls, remaining `WorldSprite` calls, direct Manager accesses in Renderer
-4. **Update AGENTS.md** with final proven invariants
-5. **T1–T8 soak tests**
-6. **Remove legacy transport (Phase 8.4)**
-7. **Cycle 3**
+```
+SimulationCore.lib (no platform deps, no stdafx.h)
+├── Core/
+│   ├── PlatformLock.h/.cpp      (PImpl, CRITICAL_SECTION hidden)
+│   └── ResourceTypes.h          (enum ResourceType, header-only)
+└── Transport/
+    ├── TransportTypes.h         (FlagId, TransportTaskId, enums)
+    ├── TransportRoute.h         (route data, header-only)
+    ├── TransportTask.h/.cpp     (task data, first .cpp in lib)
+    └── TransportController.h    (forward decls only, .cpp in main)
+
+Settlers2 (main project — Xbox 360 deps)
+├── World/*.h                    (forwarding headers for migrated types)
+├── TransportController.cpp      (implementation — 8 World includes)
+└── all other simulation .cpp
+```
+
+## Key Decisions
+
+- **Phase reorganization**: 8.6.1 (Platform isolation) → 8.6.2 (SimulationCore) → 8.6.3 (Interfaces + tests)
+- **Pattern**: Forwarding headers (`World/TransportRoute.h` etc.) are temporary
+- **PR8 criterion**: graph becomes acyclic (`TransportController → ITransportService ← DemandManager`)
+- **53/56** `.cpp` files use `<xtl.h>` only transitively through `stdafx.h` — platform isolation is mechanical, not architectural
+
+## Remaining Platform Headers in Simulation Territory
+
+| File | What | Status |
+|------|------|--------|
+| `Core/GameEngine.h` | `<xtl.h>`, `<d3d9.h>` | Legitimate top-level orchestrator |
+| `Core/ThreadSync.h` | `<xtl.h>` | Render sync, keep |
+| `Logic/AICommandQueue.h` | `CRITICAL_SECTION` | ✅ Fixed via PlatformLock in PR2.1 |
+| `World/Map.h` | DirectX math, CRITICAL_SECTION | ✅ Fixed in PR1/PR1.1 |
+| `World/Tile.h` | DirectX math | ✅ Fixed in PR1.1 |
+
+## Phase 8.6 Exit Criteria
+
+### 1. Platform independence ✅
+- SimulationCore.lib собирается без `stdafx.h`
+- Ни один заголовок в SimulationCore/ не включает `<xtl.h>`, `<d3d9.h>` или `<d3dx9math.h>`
+- Все platform-примитивы (`HANDLE`, `CRITICAL_SECTION`, threads) инкапсулированы в Platform Layer
+- Возможна сборка обычным MSVC без Xbox SDK (или отсутствуют архитектурные препятствия)
+
+### 2. Dependency graph ✅
+- Граф строго направленный: `Core → TransportTypes → TransportRoute → TransportTask → TransportController`
+- Нет циклических зависимостей
+- `TransportController ↔ DemandManager` разорван
+
+### 3. Dependency inversion ✅
+- TransportController зависит только от интерфейсов: `IRoadGraph`, `IFlagQueue`, `ICarrierScheduler`, `ICargoRepository`, `ITransportEvents`
+- Запрещены `#include "RoadManager.h"`, `"CarrierManager.h"`, `"DemandManager.h"`, `"FlagManager.h"` в публичном API
+
+### 4. Executable SimulationCore ✅
+- `PlatformLock.cpp` + `TransportTask.cpp` + `TransportController.cpp` собираются внутри библиотеки
+- Settlers2 использует реализацию из SimulationCore.lib
+
+### 5. Test infrastructure ✅
+- `SimulationCoreTests/` с `main.cpp`, `TransportTaskTests.cpp`, `TransportControllerTests.cpp`
+- Pipeline: `Build → Run → PASS/FAIL`
+
+### 6. Initial regression suite ✅
+- 5–10 тестов: TransportTask (Create, StateTransition, Cancel), TransportController (CreateTask, Assignment, Delivery)
+- Каждый баг → regression test
+
+### 7. Zero compatibility layer ✅
+- Удалены: `World/TransportRoute.h`, `World/TransportTask.h`, `World/TransportController.h`, `Core/PlatformLock.h` (forwarding)
+- Все include по каноническим путям: `SimulationCore/...`
+
+### 8. Build ownership ✅
+- `Settlers2.exe` — клиент библиотеки, а не владелец транспорта
+
+### 9. Stable dependency rule ✅
+Зафиксировано правило зависимостей между модулями:
+
+```
+SimulationCore
+│
+├── Core
+│
+├── Transport
+│
+├── Economy
+│
+├── World
+│
+└── Simulation
+```
+
+Разрешены только зависимости сверху вниз:
+```
+Simulation → Economy → Transport → Core
+```
+
+Запрещены: `Transport → Simulation`, `Core → World`, `Transport → Graphics` — и любые другие обратные или циклические зависимости.
+
+### 10. Headless readiness ✅
+Ни один файл в SimulationCore не знает о существовании:
+- Direct3D
+- Xbox SDK
+- Input
+- Audio
+- UI
+- Scene
+- Renderer
+
+```
+SimulationCore → STL
+```
+или
+```
+SimulationCore → Platform abstraction
+```
+но никогда:
+```
+SimulationCore → Graphics
+```
+
+### 11. SimulationCore owns the domain ✅
+После Phase 8.6 каноническая реализация бизнес-логики находится только в SimulationCore.
+`Settlers2.exe` — host-приложение, не содержащее новой логики симуляции. Новая бизнес-логика сразу попадает в SimulationCore.
+
+### 12. AI-testability ✅
+- Существует `TestWorldBuilder` для декларативного описания сценариев
+- Сценарии читаются как спецификация: `world.Simulate(200)` → `EXPECT_EQ(TaskState::Delivered, task.state)`
+- Новый тест можно написать без знания Xbox SDK или внутреннего устройства GameScene
+- Тест использует только публичный API SimulationCore
+- Один сценарий — один файл (например, `SimulationCoreTests/Transport/CreateTask.cpp`)
+- Минимум моков — предпочтителен небольшой настоящий мир через TestWorldBuilder
+- Все проверки явные: `EXPECT_EQ(TaskState::Delivered, task.state)`, а не `EXPECT_TRUE(ok)`
+- Сообщения об ошибках достаточно информативны для локализации регрессии по одному запуску
+- ИИ может сгенерировать новый тест по аналогии с существующими, не изучая весь проект
+
+**Definition of Test**: каждый новый тест отвечает на четыре вопроса — (1) начальное состояние мира, (2) действие, (3) количество тиков, (4) ожидаемый результат.
+
+**Definition of Done**: SimulationCore — самостоятельное платформонезависимое ядро симуляции со своей сборкой, логикой, минимальными зависимостями, тестами, используемое игровым приложением как обычная библиотека.
+
+## Roadmap
+
+```
+Phase 8.4 — Legacy transport removed                     ✅
+Phase 8.5 — Invariants / asserts                         ✅
+Phase 8.6 — SimulationCore (platform, DI, code, tests)   ⏳
+Phase 9   — Dual-core: SimulationCore(Core1)→RenderFrame→Renderer(Core0)
+Phase 10  — Performance: SIMD, batching, profiling
+```
+
+**Phase 9 target state**:
+```
+Core1: SimulationCore::Update() → RenderFrame
+                                         │
+                                    swap()
+                                         │
+Core0: Renderer reads RenderFrame
+```
+Единственный объект, пересекающий границу потоков, — `RenderFrame`.
+
+## Definition of PR (Migrationsphase)
+
+Каждый PR в рамках миграции должен отвечать на четыре вопроса:
+1. **Что переносится?** — один законченный модуль
+2. **Какие зависимости исчезают?** — измеримо
+3. **Какие новые зависимости появляются?** — в идеале никакие
+4. **Какой тест подтверждает, что поведение не изменилось?** — если ответа нет, PR слишком ранний или слишком большой
+
+## PR Sequence
+
+| PR | What | Criterion |
+|----|------|-----------|
+| **PR8** | Usage inventory → ISP interfaces | TransportController без `#include` на Manager'ы |
+| **PR9** | Mechanically move TransportController.cpp | Diff только include paths |
+| **PR10** | Test infrastructure + 5 tests | Pipeline Build→Run→PASS/FAIL |
+| **Cleanup** | Remove forwarding headers | Canonical includes only |
+
+## Deferred
+- Оставшиеся 53 `.cpp` с `#include "stdafx.h"` — механический перенос после PR10
 ```

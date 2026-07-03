@@ -675,7 +675,7 @@
     <ClCompile Include="World\RoadManager.cpp" />
     <ClCompile Include="World\StorehouseManager.cpp" />
     <ClCompile Include="World\TransportController.cpp" />
-    <!-- TransportTask.cpp moved to SimulationCore.lib (header-only struct, no impl) -->
+    <!-- TransportTask.cpp moved to SimulationCore.lib -->
     <ClCompile Include="World\ObjectDeletionRules.cpp" />
     <ClCompile Include="World\ObjectLifecycleManager.cpp" />
     <ClCompile Include="World\ConstructionSite.cpp" />
