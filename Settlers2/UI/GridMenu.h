@@ -123,6 +123,25 @@ public:
     void SetRenderer(class Renderer* renderer);
     void SetRenderQueue(Graphics::RenderQueue* renderQueue) { m_renderQueue = renderQueue; }
     void SetTextureSlots(WORD bgSlot, WORD cellSlot, WORD atlasSlot) { m_backgroundSlot = bgSlot; m_cellSlot = cellSlot; m_atlasSlot = atlasSlot; }
+    // Read-only accessors for rendering
+    float GetScreenX() const { return m_screenX; }
+    float GetScreenY() const { return m_screenY; }
+    float GetMenuWidth() const { return m_menuWidth; }
+    float GetMenuHeight() const { return m_menuHeight; }
+    float GetCellSpacingX() const { return m_cellSpacingX; }
+    float GetCellSpacingY() const { return m_cellSpacingY; }
+    float GetCellPadding() const { return m_cellPadding; }
+    float GetCellVisualWidth() const { return m_cellVisualWidth; }
+    float GetCellVisualHeight() const { return m_cellVisualHeight; }
+    int GetSelectedIndex() const { return m_selectedIndex; }
+    const std::vector<TileUV>& GetTileUVs() const { return m_tileUVs; }
+    const TileUV& GetBackgroundUV() const { return m_backgroundUV; }
+    const TileUV& GetCellUV() const { return m_cellUV; }
+    WORD GetBackgroundSlot() const { return m_backgroundSlot; }
+    WORD GetCellSlot() const { return m_cellSlot; }
+    WORD GetAtlasSlot() const { return m_atlasSlot; }
+    static int GetGridCols() { return kGridCols; }
+    static int GetGridRows() { return kGridRows; }
     // Background/cell UV sub-rects (for atlas-based bg/cell sprites)
     void SetBackgroundUV(const TileUV& uv) { m_backgroundUV = uv; }
     void SetCellUV(const TileUV& uv) { m_cellUV = uv; }

@@ -2,6 +2,8 @@
 #include "../Rendering/RenderPass.h"
 #include <stdint.h>
 
+class TextManager;
+
 namespace Scene {
 
 class RenderCommandBuffer;
@@ -10,7 +12,7 @@ struct RenderContext;
 
 class ConfirmationMenuPass : public RenderPass {
 public:
-    ConfirmationMenuPass();
+    explicit ConfirmationMenuPass(TextManager* textManager);
     virtual void Execute(const RenderFrame& frame, const RenderContext& context,
                          RenderCommandBuffer& buffer);
 
@@ -23,6 +25,7 @@ private:
     bool        m_atlasLoaded;
     uint16_t    m_bgSlot;
     uint16_t    m_iconSlot;
+    TextManager* m_textManager;
     SpriteSlot  m_bgPanel;       // menu panel background
     SpriteSlot  m_iconMountain;
     SpriteSlot  m_iconGeologist;

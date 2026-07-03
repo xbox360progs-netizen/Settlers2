@@ -9,10 +9,14 @@
 #include "../Wildlife/RenderWildlife.h"
 #include "../Placement/RenderPlacementPreview.h"
 #include "../Roads/RenderRoadPreview.h"
+#include "../Roads/RenderRoadConnection.h"
 #include "../Overlays/RenderOverlayMarker.h"
+#include "../Overlays/RenderWorkSite.h"
 #include "../Resources/RenderGroundResource.h"
 #include "../Workers/RenderWorker.h"
 #include "../UI/RenderUiFrame.h"
+#include "RenderBuildingHighlight.h"
+#include "../UI/RenderDebugLabel.h"
 
 namespace Scene {
 
@@ -34,6 +38,10 @@ struct RenderFrame {
     std::vector<RenderOverlayMarker> overlays;
     std::vector<RenderGroundResource> groundResources;
     std::vector<RenderWorker> workers;
+    std::vector<RenderBuildingHighlight> highlights;
+    std::vector<RenderDebugLabel> debugLabels;
+    std::vector<RenderRoadConnection> roadConnections;
+    std::vector<RenderWorkSite> workSites;
     RenderUiFrame ui;
 
     // Future: std::vector<RenderEffect> effects;

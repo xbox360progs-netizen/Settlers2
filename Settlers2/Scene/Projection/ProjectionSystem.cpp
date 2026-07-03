@@ -6,7 +6,11 @@
 #include "../Wildlife/RenderWildlife.h"
 #include "../Placement/RenderPlacementPreview.h"
 #include "../Roads/RenderRoadPreview.h"
+#include "../Resources/RenderGroundResource.h"
+#include "../Roads/RenderRoadConnection.h"
+#include "../Overlays/RenderWorkSite.h"
 #include "../Overlays/RenderOverlayMarker.h"
+#include "../Shared/RenderBuildingHighlight.h"
 #include "../../Graphics/Camera.h"
 
 namespace Scene {
@@ -30,6 +34,9 @@ void ProjectionSystem::Project(RenderFrame& frame)
     ProjectOverlays(frame);
     ProjectGroundResources(frame);
     ProjectWorkers(frame);
+    ProjectHighlights(frame);
+    ProjectRoadConnections(frame);
+    ProjectWorkSites(frame);
 }
 
 void ProjectionSystem::ProjectSettlers(RenderFrame& frame)
@@ -125,22 +132,38 @@ void ProjectionSystem::ProjectOverlays(RenderFrame& frame)
 
 void ProjectionSystem::ProjectCursor(RenderFrame& frame)
 {
-    if (!frame.cursor.valid) return;
-    float sx, sy;
-    m_camera->WorldToScreen(
-        frame.cursor.worldX, frame.cursor.worldY, sx, sy);
-    frame.cursor.screenX = static_cast<int>(sx + 0.5f);
-    frame.cursor.screenY = static_cast<int>(sy + 0.5f);
+    if (frame.cursor.valid) {
+        float sx, sy;
+        m_camera->WorldToScreen(
+            frame.cursor.worldX, frame.cursor.worldY, sx, sy);
+        frame.cursor.screenX = static_cast<int>(sx + 0.5f);
+        frame.cursor.screenY = static_cast<int>(sy + 0.5f);
+    }
+
+    if (frame.cursor.gamepadActive) {
+        float gsx, gsy;
+        m_camera->WorldToScreen(
+            frame.cursor.gamepadWorldX, frame.cursor.gamepadWorldY, gsx, gsy);
+        frame.cursor.gamepadScreenX = static_cast<int>(gsx + 0.5f);
+        frame.cursor.gamepadScreenY = static_cast<int>(gsy + 0.5f);
+    }
 }
 
 void ProjectionSystem::ProjectGroundResources(RenderFrame& frame)
 {
     for (size_t i = 0; i < frame.groundResources.size(); ++i) {
-        RenderTransform& t = frame.groundResources[i].transform;
+        RenderGroundResource& r = frame.groundResources[i];
+        RenderTransform& t = r.transform;
         float sx, sy;
         m_camera->WorldToScreen(t.worldX, t.worldY, sx, sy);
         t.screenX = static_cast<int>(sx + 0.5f);
         t.screenY = static_cast<int>(sy + 0.5f);
+
+        // Pre-project text position (40 world units above resource)
+        float tsx, tsy;
+        m_camera->WorldToScreen(t.worldX, t.worldY - 40.0f, tsx, tsy);
+        r.textScreenX = static_cast<int>(tsx + 0.5f);
+        r.textScreenY = static_cast<int>(tsy + 0.5f);
     }
 }
 
@@ -148,6 +171,42 @@ void ProjectionSystem::ProjectWorkers(RenderFrame& frame)
 {
     for (size_t i = 0; i < frame.workers.size(); ++i) {
         RenderTransform& t = frame.workers[i].transform;
+        float sx, sy;
+        m_camera->WorldToScreen(t.worldX, t.worldY, sx, sy);
+        t.screenX = static_cast<int>(sx + 0.5f);
+        t.screenY = static_cast<int>(sy + 0.5f);
+    }
+}
+
+void ProjectionSystem::ProjectHighlights(RenderFrame& frame)
+{
+    for (size_t i = 0; i < frame.highlights.size(); ++i) {
+        RenderTransform& t = frame.highlights[i].transform;
+        float sx, sy;
+        m_camera->WorldToScreen(t.worldX, t.worldY, sx, sy);
+        t.screenX = static_cast<int>(sx + 0.5f);
+        t.screenY = static_cast<int>(sy + 0.5f);
+    }
+}
+
+void ProjectionSystem::ProjectRoadConnections(RenderFrame& frame)
+{
+    for (size_t i = 0; i < frame.roadConnections.size(); ++i) {
+        RenderRoadConnection& seg = frame.roadConnections[i];
+        float sx0, sy0, sx1, sy1;
+        m_camera->WorldToScreen(seg.worldX0, seg.worldY0, sx0, sy0);
+        m_camera->WorldToScreen(seg.worldX1, seg.worldY1, sx1, sy1);
+        seg.screenX0 = static_cast<int>(sx0 + 0.5f);
+        seg.screenY0 = static_cast<int>(sy0 + 0.5f);
+        seg.screenX1 = static_cast<int>(sx1 + 0.5f);
+        seg.screenY1 = static_cast<int>(sy1 + 0.5f);
+    }
+}
+
+void ProjectionSystem::ProjectWorkSites(RenderFrame& frame)
+{
+    for (size_t i = 0; i < frame.workSites.size(); ++i) {
+        RenderTransform& t = frame.workSites[i].transform;
         float sx, sy;
         m_camera->WorldToScreen(t.worldX, t.worldY, sx, sy);
         t.screenX = static_cast<int>(sx + 0.5f);

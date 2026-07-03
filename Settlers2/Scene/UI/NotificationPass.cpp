@@ -3,12 +3,14 @@
 #include "RenderUiFrame.h"
 #include "../Shared/RenderFrame.h"
 #include "../Rendering/RenderCommandBuffer.h"
+#include "../../Graphics/TextManager.h"
 #include "../../Graphics/RenderLayers.h"
 
 namespace Scene {
 
-NotificationPass::NotificationPass()
+NotificationPass::NotificationPass(TextManager* textManager)
     : m_slot(0)
+    , m_textManager(textManager)
 {
 }
 
@@ -37,6 +39,19 @@ void NotificationPass::Execute(
             static_cast<WORD>(0.95f * 65535.0f),
             0xC8141428,
             0xFFFF, 0xFF, LAYER_UI);
+
+        // Notification text (pre-resolved in NotificationPresentationSystem).
+        if (m_textManager) {
+            float textX = startX + 10.0f;
+            m_textManager->DrawString(n.title, textX, yPos + 4.0f,
+                D3DCOLOR_ARGB(255, 255, 200, 80), 0.07f);
+            m_textManager->DrawString(n.line1, textX, yPos + 22.0f,
+                D3DCOLOR_ARGB(255, 220, 220, 220), 0.06f);
+            if (n.line2[0] != '\0') {
+                m_textManager->DrawString(n.line2, textX, yPos + 38.0f,
+                    D3DCOLOR_ARGB(255, 180, 180, 180), 0.055f);
+            }
+        }
     }
 }
 

@@ -27,6 +27,17 @@ void CursorPresentationSystem::BuildRenderFrame(const FrameContext& frame, Rende
     outCursor.worldX = wx;
     outCursor.worldY = wy;
     outCursor.valid = true;
+
+    // Gamepad cursor (independent of suppression and menu state)
+    outCursor.gamepadActive = false;
+    if (frame.input.gamepadActive) {
+        outCursor.gamepadActive = true;
+        outCursor.gamepadTileX = frame.input.gamepadCursorX;
+        outCursor.gamepadTileY = frame.input.gamepadCursorY;
+        CoordinateSystem::GetInstance().NodeTileToWorld(
+            outCursor.gamepadTileX, outCursor.gamepadTileY,
+            outCursor.gamepadWorldX, outCursor.gamepadWorldY);
+    }
 }
 
 } // namespace Scene

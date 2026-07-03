@@ -30,16 +30,22 @@ public:
     void SetItems(const ItemData* items, int count);
     void SetTextManager(TextManager* tm) { m_textManager = tm; }
     void SetRenderer(Graphics::SpriteRenderer* sr, Graphics::RenderQueue* rq);
+    // Read-only accessors for rendering
+    bool IsVisible() const { return m_visible; }
+    int GetItemCount() const { return m_itemCount; }
+    int GetSelectedIndex() const { return m_selectedIndex; }
+    const BackgroundData& GetBackground() const { return m_background; }
+    const ItemData* GetItems() const { return m_items; }
+    WORD GetAtlasSlot() const { return m_atlasSlot; }
+    LPDIRECT3DTEXTURE9 GetAtlasTexture() const { return m_atlasTexture; }
 
     void Show();
     void Hide();
-    bool IsVisible() const { return m_visible; }
 
     void Update(Input::Gamepad* pad, float deltaTime);
     void Render();
 
     bool HasSelection() const { return m_selectionMade; }
-    int GetSelectedIndex() const { return m_selectedIndex; }
     void ResetSelection();
 
 private:

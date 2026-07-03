@@ -1,8 +1,6 @@
 #pragma once
 
 #include "../Graphics/RenderQueue.h"
-#include "../World/Components/Building.h"
-#include "FrameContext.h"
 #include "Shared/RenderFrame.h"
 #include "Settlers/SettlerRenderer.h"
 #include "Buildings/BuildingRenderer.h"
@@ -13,10 +11,20 @@
 #include "Placement/PlacementPreviewPass.h"
 #include "Roads/RoadPreviewPass.h"
 #include "Overlays/GeologistOverlayPass.h"
+#include "Overlays/HuntingSpotPass.h"
 #include "UI/ConfirmationMenuPass.h"
 #include "UI/NotificationPass.h"
+#include "UI/TownHallPanelPass.h"
+#include "UI/LogisticsDebugPass.h"
+#include "UI/ResourceHudPass.h"
+#include "UI/BannerPass.h"
+#include "UI/MenuPass.h"
+#include "BackgroundPass.h"
+#include "Roads/RoadConnectionPass.h"
+#include "Overlays/WorkSitePass.h"
 #include "Resources/GroundResourcePass.h"
 #include "Workers/WorkerPass.h"
+#include "Buildings/BuildingHighlightPass.h"
 #include "Rendering/RenderCommandBuffer.h"
 #include "Rendering/RenderGraph.h"
 
@@ -27,22 +35,7 @@ class Camera;
 class TextManager;
 namespace World {
     class Map;
-    class FlagManager;
-    class CarrierManager;
-    class RoadManager;
-    class ConstructionManager;
-    class WorkerManager;
 }
-namespace Logic {
-    class EconomyManager;
-}
-namespace Scene {
-    class PlacementController;
-    class RoadController;
-}
-class GridMenu;
-class UIMenu;
-
 namespace Scene {
 
 // ─── Render pass wrappers (delegate to dedicated renderers) ────────────
@@ -72,37 +65,18 @@ public:
         Renderer*         renderer,
         Camera* camera,
         World::Map*       map,
-        World::FlagManager*         flagManager,
-        World::CarrierManager*      carrierManager,
-        World::ConstructionManager* constructionManager,
-        World::WorkerManager*       workerManager,
-        Logic::EconomyManager*      economyManager,
-        PlacementController*        placement,
-        GridMenu*                   buildMenu,
-        UIMenu*                     flagMenu,
         TextManager*                textManager
     );
 
-    void Render(Graphics::RenderQueue* renderQueue, const FrameContext& frame, const RenderFrame& renderFrame);
+    void Render(Graphics::RenderQueue* renderQueue, const RenderFrame& renderFrame);
 
 private:
-    void PushUiToQueue(Graphics::RenderQueue* renderQueue, const FrameContext& frame);
-
     // Dependencies (non-owning pointers)
     TileRenderer*     m_tileRenderer;
     Renderer*         m_renderer;
     Camera* m_camera;
     World::Map*       m_map;
-    World::FlagManager*         m_flagManager;
-    World::CarrierManager*      m_carrierManager;
-    World::ConstructionManager* m_constructionManager;
-    World::WorkerManager*       m_workerManager;
-    Logic::EconomyManager*      m_economyManager;
-    PlacementController*        m_placement;
-    GridMenu*                   m_buildMenu;
-    UIMenu*                     m_flagMenu;
     TextManager*                m_textManager;
-
 
     // Settler renderer (reads DTOs only — no simulation access)
     SettlerRenderer m_settlerRenderer;
@@ -127,8 +101,18 @@ private:
     PlacementPreviewPass m_placementPreviewPass;
     RoadPreviewPass m_roadPreviewPass;
     GeologistOverlayPass m_geologistOverlayPass;
+    HuntingSpotPass m_huntingSpotPass;
     ConfirmationMenuPass m_confirmationMenuPass;
     NotificationPass m_notificationPass;
+    TownHallPanelPass m_townHallPanelPass;
+    BuildingHighlightPass m_buildingHighlightPass;
+    LogisticsDebugPass m_logisticsDebugPass;
+    ResourceHudPass m_resourceHudPass;
+    BannerPass m_bannerPass;
+    MenuPass m_menuPass;
+    BackgroundPass m_backgroundPass;
+    RoadConnectionPass m_roadConnectionPass;
+    WorkSitePass m_workSitePass;
     GroundResourcePass m_groundResourcePass;
     WorkerPass m_workerPass;
 };

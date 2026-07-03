@@ -569,11 +569,7 @@ namespace Scene {
         {
             m_gameRenderer = new GameRenderer(
                 m_tileRenderer, m_renderer, m_camera,
-                m_map, m_flagManager, m_carrierManager,
-                m_constructionManager, m_workerManager,
-                m_economyManager,
-                &m_placement,
-                m_buildMenu, m_flagMenu,
+                m_map,
                 m_textManager
             );
             OutputDebugStringA("[GameScene::Load] GameRenderer created\n");
@@ -585,7 +581,11 @@ namespace Scene {
         // ─── Wire up Presentation Systems (simulation → DTO bridge) ──
         m_terrainPresentationSystem.SetMap(m_map, m_map->GetWidth(), m_map->GetHeight());
         m_geologistOverlayPresentationSystem.SetMap(m_map);
+        m_huntingSpotPresentationSystem.SetManagers(m_flagManager, m_map, &m_placement);
         m_confirmationMenuPresentationSystem.SetGeologistMenu(m_geologistMenu);
+        m_menuPresentationSystem.SetMenus(m_buildMenu, m_flagMenu);
+        m_townHallPresentationSystem.SetManagers(m_flagManager, m_economyManager);
+        m_logisticsDebugPresentationSystem.SetManagers(m_flagManager, m_carrierManager);
         m_settlerPresentationSystem.SetManagers(
             m_carrierManager,
             m_constructionManager,
@@ -607,6 +607,9 @@ namespace Scene {
             m_roadManager);
         m_placementPreviewPresentationSystem.SetPlacementController(&m_placement);
         m_roadPreviewPresentationSystem.SetControllers(&m_roadController, &m_placement);
+        m_roadConnectionPresentationSystem.SetMap(m_map);
+        m_resourceHudPresentationSystem.SetEconomyManager(m_economyManager);
+        m_workSitePresentationSystem.SetEconomyManager(m_economyManager);
 
 		// Initialize command handlers after managers are created
   m_buildingCommandHandler = new Handlers::BuildingCommandHandler(
@@ -810,10 +813,18 @@ void GameScene::Update(float deltaTime)
           m_workerPresentationSystem.BuildRenderFrame(next);
           m_placementPreviewPresentationSystem.BuildRenderFrame(m_frameContext, next.preview);
           m_roadPreviewPresentationSystem.BuildRenderFrame(next.roadPreview);
-           m_geologistOverlayPresentationSystem.BuildRenderFrame(m_frameContext, next.overlays);
-           m_confirmationMenuPresentationSystem.BuildRenderFrame(next.ui);
-           m_notificationPresentationSystem.BuildRenderFrame(m_frameContext.ui, next.ui);
-           m_projectionSystem.Project(next);
+            m_geologistOverlayPresentationSystem.BuildRenderFrame(m_frameContext, next.overlays);
+            m_huntingSpotPresentationSystem.BuildRenderFrame(m_frameContext, next.overlays);
+            m_workSitePresentationSystem.BuildRenderFrame(next.workSites);
+            m_confirmationMenuPresentationSystem.BuildRenderFrame(next.ui);
+            m_menuPresentationSystem.BuildRenderFrame(next.ui.menuPanel);
+            m_notificationPresentationSystem.BuildRenderFrame(m_frameContext.ui, next.ui);
+            m_townHallPresentationSystem.BuildRenderFrame(m_frameContext, next.ui.townHallPanel, next.highlights);
+            m_resourceHudPresentationSystem.BuildRenderFrame(m_frameContext, next.ui.resourceHud);
+            m_bannerPresentationSystem.BuildRenderFrame(m_frameContext, next.ui.banner);
+            m_logisticsDebugPresentationSystem.BuildRenderFrame(m_frameContext, next.debugLabels);
+            m_roadConnectionPresentationSystem.BuildRenderFrame(next.roadConnections);
+            m_projectionSystem.Project(next);
           next.frameId = m_frameCount;
            std::swap(m_renderFrame, next);
       }
@@ -878,7 +889,7 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
         return;
     }
 
-    m_gameRenderer->Render(renderQueue, m_frameContext, m_renderFrame);
+    m_gameRenderer->Render(renderQueue, m_renderFrame);
 }
     void GameScene::UpdateCursor()
     {

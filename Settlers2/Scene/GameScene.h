@@ -67,9 +67,17 @@
 #include "Wildlife/WildlifePresentationSystem.h"
 #include "Placement/PlacementPreviewPresentationSystem.h"
 #include "Roads/RoadPreviewPresentationSystem.h"
+#include "Roads/RoadConnectionPresentationSystem.h"
 #include "Overlays/GeologistOverlayPresentationSystem.h"
+#include "Overlays/HuntingSpotPresentationSystem.h"
 #include "UI/ConfirmationMenuPresentationSystem.h"
 #include "UI/NotificationPresentationSystem.h"
+#include "UI/TownHallPresentationSystem.h"
+#include "UI/LogisticsDebugPresentationSystem.h"
+#include "UI/ResourceHudPresentationSystem.h"
+#include "UI/BannerPresentationSystem.h"
+#include "UI/MenuPresentationSystem.h"
+#include "Overlays/WorkSitePresentationSystem.h"
 #include "Resources/GroundResourcePresentationSystem.h"
 #include "Workers/WorkerPresentationSystem.h"
 #include "Projection/ProjectionSystem.h"
@@ -242,9 +250,17 @@ private:
     WildlifePresentationSystem m_wildlifePresentationSystem;
     PlacementPreviewPresentationSystem m_placementPreviewPresentationSystem;
     RoadPreviewPresentationSystem m_roadPreviewPresentationSystem;
+    RoadConnectionPresentationSystem m_roadConnectionPresentationSystem;
     GeologistOverlayPresentationSystem m_geologistOverlayPresentationSystem;
+    HuntingSpotPresentationSystem m_huntingSpotPresentationSystem;
     ConfirmationMenuPresentationSystem m_confirmationMenuPresentationSystem;
     NotificationPresentationSystem m_notificationPresentationSystem;
+    TownHallPresentationSystem m_townHallPresentationSystem;
+    LogisticsDebugPresentationSystem m_logisticsDebugPresentationSystem;
+    ResourceHudPresentationSystem m_resourceHudPresentationSystem;
+    BannerPresentationSystem m_bannerPresentationSystem;
+    MenuPresentationSystem m_menuPresentationSystem;
+    WorkSitePresentationSystem m_workSitePresentationSystem;
     GroundResourcePresentationSystem m_groundResourcePresentationSystem;
     WorkerPresentationSystem m_workerPresentationSystem;
     ProjectionSystem m_projectionSystem;

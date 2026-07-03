@@ -1,13 +1,15 @@
-﻿Построение начато 02.07.2026 11:26:04.
+﻿Построение начато 03.07.2026 5:06:34.
      1>Проект "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" в узле 2 (целевые объекты build).
      1>InitializeBuildStatus:
          Создание "Release\Settlers2.unsuccessfulbuild", так как было задано "AlwaysCreate".
        ClCompile:
          Для всех выходных данных обновления не требуется.
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Core\GameEngine.cpp Scene\GameScene.cpp Scene\Terrain\TerrainPresentationSystem.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Core\GameEngine.cpp Scene\GameScene.cpp Scene\Overlays\HuntingSpotPresentationSystem.cpp Scene\UI\LogisticsDebugPresentationSystem.cpp Scene\UI\TownHallPresentationSystem.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
          GameEngine.cpp
          GameScene.cpp
-         TerrainPresentationSystem.cpp
+         HuntingSpotPresentationSystem.cpp
+         LogisticsDebugPresentationSystem.cpp
+         TownHallPresentationSystem.cpp
          Generating Code...
          Для всех выходных данных обновления не требуется.
          Для всех выходных данных обновления не требуется.
@@ -76,6 +78,7 @@
          Release\MenuScene.obj
          Release\Scene.obj
          Release\SceneManager.obj
+         Release\BuildingHighlightPass.obj
          Release\BuildingRenderer.obj
          Release\BuildingPresentationSystem.obj
          Release\CursorPass.obj
@@ -97,14 +100,31 @@
          Release\WildlifePresentationSystem.obj
          Release\PlacementPreviewPass.obj
          Release\PlacementPreviewPresentationSystem.obj
+         Release\BackgroundPass.obj
+         Release\RoadConnectionPass.obj
+         Release\RoadConnectionPresentationSystem.obj
          Release\RoadPreviewPass.obj
          Release\RoadPreviewPresentationSystem.obj
          Release\GeologistOverlayPass.obj
          Release\GeologistOverlayPresentationSystem.obj
+         Release\HuntingSpotPresentationSystem.obj
+         Release\HuntingSpotPass.obj
+         Release\WorkSitePresentationSystem.obj
+         Release\WorkSitePass.obj
          Release\ConfirmationMenuPass.obj
          Release\ConfirmationMenuPresentationSystem.obj
+         Release\MenuPass.obj
+         Release\MenuPresentationSystem.obj
          Release\NotificationPass.obj
          Release\NotificationPresentationSystem.obj
+         Release\TownHallPresentationSystem.obj
+         Release\TownHallPanelPass.obj
+         Release\LogisticsDebugPresentationSystem.obj
+         Release\LogisticsDebugPass.obj
+         Release\ResourceHudPresentationSystem.obj
+         Release\ResourceHudPass.obj
+         Release\BannerPresentationSystem.obj
+         Release\BannerPass.obj
          Release\Settlers2.obj
          Release\stdafx.obj
          Release\BuildMenu.obj
@@ -185,4 +205,4 @@
 
 Построение успешно завершено.
 
-Затраченное время: 00:00:23.72
+Затраченное время: 00:00:22.71

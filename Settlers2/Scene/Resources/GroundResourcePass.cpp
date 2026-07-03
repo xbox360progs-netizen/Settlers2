@@ -4,12 +4,14 @@
 #include "../Shared/RenderFrame.h"
 #include "../Rendering/RenderCommandBuffer.h"
 #include "../../Graphics/TextureRegistry.h"
+#include "../../Graphics/TextManager.h"
 #include "../TextureSlots.h"
 
 namespace Scene {
 
-GroundResourcePass::GroundResourcePass()
-    : m_atlasLoaded(false)
+GroundResourcePass::GroundResourcePass(TextManager* textManager)
+    : m_textManager(textManager)
+    , m_atlasLoaded(false)
     , m_textureSlot(0)
 {
     m_woodIcon.valid = false;
@@ -73,6 +75,16 @@ void GroundResourcePass::Execute(const RenderFrame& frame, const RenderContext& 
             0xFF,                        // blendMode: default
             0xFF                         // layer: default
         );
+
+        // Amount text overlay (pre-projected to textScreenX/Y)
+        if (m_textManager && r.amount > 0) {
+            char buf[16];
+            _snprintf(buf, sizeof(buf), "%d", r.amount);
+            m_textManager->DrawString(buf,
+                static_cast<float>(r.textScreenX),
+                static_cast<float>(r.textScreenY),
+                D3DCOLOR_ARGB(255, 255, 255, 0), 0.08f);
+        }
     }
 }
 

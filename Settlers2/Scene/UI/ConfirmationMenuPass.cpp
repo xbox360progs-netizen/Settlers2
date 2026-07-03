@@ -5,14 +5,16 @@
 #include "../Rendering/RenderCommandBuffer.h"
 #include "../../Graphics/TextureRegistry.h"
 #include "../../Graphics/SpriteAtlas.h"
+#include "../../Graphics/TextManager.h"
 #include "../../Graphics/RenderLayers.h"
 
 namespace Scene {
 
-ConfirmationMenuPass::ConfirmationMenuPass()
+ConfirmationMenuPass::ConfirmationMenuPass(TextManager* textManager)
     : m_atlasLoaded(false)
     , m_bgSlot(0)
     , m_iconSlot(0)
+    , m_textManager(textManager)
 {
 }
 
@@ -126,6 +128,24 @@ void ConfirmationMenuPass::Execute(
             m_ornament.u1, m_ornament.v1,
             m_iconSlot, 101, 0xC8B49650,
             0xFFFF, 0xFF, LAYER_UI);
+    }
+
+    // Title + body text (pre-resolved in RenderConfirmationMenu DTO).
+    if (m_textManager) {
+        if (frame.ui.confirmation.titleText[0] != '\0') {
+            m_textManager->DrawTextCenteredToScreen(
+                frame.ui.confirmation.titleText,
+                cx, yOff + 54.0f,
+                D3DCOLOR_ARGB(255, 255, 255, 220), 0.095f,
+                FONT_MENU, FONT_STYLE_NORMAL, LAYER_UI);
+        }
+        if (frame.ui.confirmation.bodyText[0] != '\0') {
+            m_textManager->DrawTextCenteredToScreen(
+                frame.ui.confirmation.bodyText,
+                cx, yOff + 162.0f,
+                D3DCOLOR_ARGB(255, 200, 200, 200), 0.08f,
+                FONT_MENU, FONT_STYLE_NORMAL, LAYER_UI);
+        }
     }
 }
 
