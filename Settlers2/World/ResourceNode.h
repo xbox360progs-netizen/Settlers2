@@ -13,6 +13,7 @@ enum WeightType
     Weight_Block = 3
 };
 
+#ifndef SIMCORE_RESOURCE_TYPES_H_
 enum ResourceType
 {
     ResourceType_None = 0,
@@ -48,6 +49,7 @@ enum ResourceType
     ResourceType_BronzeBar,
     ResourceType_Count
 };
+#endif // SIMCORE_RESOURCE_TYPES_H_
 
 // Tree growth states for ResourceType_Wood world nodes
 // Stored in ResourceNode.amount

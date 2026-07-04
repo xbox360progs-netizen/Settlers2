@@ -274,7 +274,9 @@
     <ClCompile Include="TransportTaskTests.cpp" />
     <ClCompile Include="TransportRouteTests.cpp" />
     <ClCompile Include="TransportControllerVerification.cpp" />
+    <ClCompile Include="TransportLifecycleTest.cpp" />
     <ClCompile Include="DemandManagerVerification.cpp" />
+    <ClCompile Include="..\SimulationCore\Testing\EconomyMetrics.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>

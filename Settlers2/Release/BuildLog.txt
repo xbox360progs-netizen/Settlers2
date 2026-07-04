@@ -1,203 +1,16 @@
-﻿Построение начато 03.07.2026 5:06:34.
+﻿Построение начато 04.07.2026 16:07:19.
      1>Проект "D:\development\Settlers2\Settlers2\Settlers2.vcxproj" в узле 2 (целевые объекты build).
      1>InitializeBuildStatus:
          Создание "Release\Settlers2.unsuccessfulbuild", так как было задано "AlwaysCreate".
        ClCompile:
          Для всех выходных данных обновления не требуется.
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\CL.exe /c /Zi /nologo /W3 /WX- /Od /D NDEBUG /D _XBOX /GF- /Gm- /MT /GS- /Gy- /fp:fast /fp:except- /Zc:wchar_t /Zc:forScope /GR- /openmp- /Yu"StdAfx.h" /Fp"D:\development\Settlers2\Settlers2\Release\Settlers2.pch" /Fo"Release\\" /Fd"Release\vc100.pdb" /TP Core\GameEngine.cpp Scene\GameScene.cpp Scene\Overlays\HuntingSpotPresentationSystem.cpp Scene\UI\LogisticsDebugPresentationSystem.cpp Scene\UI\TownHallPresentationSystem.cpp /FI"C:\Program Files (x86)\Microsoft Xbox 360 SDK\\include\xbox\xbox_intellisense_platform.h"
-         GameEngine.cpp
-         GameScene.cpp
-         HuntingSpotPresentationSystem.cpp
-         LogisticsDebugPresentationSystem.cpp
-         TownHallPresentationSystem.cpp
-         Generating Code...
+         Для всех выходных данных обновления не требуется.
          Для всех выходных данных обновления не требуется.
          Для всех выходных данных обновления не требуется.
        Link:
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\link.exe /ERRORREPORT:PROMPT /OUT:"D:\development\Settlers2\Settlers2\Release\Settlers2.exe" /INCREMENTAL:NO /NOLOGO xapilib.lib d3d9.lib d3dx9.lib xgraphics.lib xboxkrnl.lib xnet.lib xaudio2.lib xact3.lib x3daudio.lib xmcore.lib vcomp.lib /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"D:\development\Settlers2\Settlers2\Release\Settlers2.pdb" /STACK:"262144","262144" /OPT:REF /OPT:ICF /TLBID:1 /RELEASE /IMPLIB:"D:\development\Settlers2\Settlers2\Release\Settlers2.lib" Release\GameEngine.obj
-         Release\LanguageManager.obj
-         Release\JobManager.obj
-         Release\ThreadSync.obj
-         Release\CommandBus.obj
-         Release\EventBus.obj
-         Release\BatchBuilder.obj
-         Release\BinFileManager.obj
-         Release\BitmapFont.obj
-         Release\BitmapText.obj
-         Release\Camera.obj
-         Release\FallbackResources.obj
-         Release\Light.obj
-         Release\LightOptimizer.obj
-         Release\OverlayFPS.obj
-         Release\GPUTimer.obj
-         Release\PostFX.obj
-         Release\PostProcessing.obj
-         Release\Quad.obj
-         Release\RenderDebugOverlay.obj
-         Release\RenderFrame.obj
-         Release\Renderer.obj
-         Release\DebugOverlay.obj
-         Release\RenderCommandBuilder.obj
-         Release\RenderQueue.obj
-         Release\RenderStateValidator.obj
-         Release\RenderTargetManager.obj
-         Release\ShaderManager.obj
-         Release\SpriteAtlas.obj
-         Release\SpriteRenderer.obj
-         Release\SpriteShadow.obj
-         Release\TextManager.obj
-         Release\TextureLoader.obj
-         Release\TextureRegistry.obj
-         Release\TileRenderer.obj
-         Release\Xbox360EDRAM.obj
-         Release\Gamepad.obj
-         Release\InputContext.obj
-         Release\InputManager.obj
-         Release\ScreenKeyboard.obj
-         Release\AISystem.obj
-         Release\EconomyManager.obj
-         Release\ResourceRegistry.obj
-         Release\IsoGrid.obj
-         Release\WeightMap.obj
-         Release\BuildingPlacement.obj
-         Release\EditorScene.obj
-         Release\ConstructionVisualizer.obj
-         Release\GameRenderer.obj
-         Release\FrameContext.obj
-         Release\GeologistController.obj
-         Release\MenuBootstrap.obj
-         Release\PlacementController.obj
-         Release\RoadController.obj
-         Release\WorldBootstrap.obj
-         Release\WorldRestorer.obj
-         Release\GameScene.obj
-         Release\BuildingCommandHandler.obj
-         Release\ResourceCommandHandler.obj
-         Release\LoadingScene.obj
-         Release\MenuCommandDispatcher.obj
-         Release\MenuScene.obj
-         Release\Scene.obj
-         Release\SceneManager.obj
-         Release\BuildingHighlightPass.obj
-         Release\BuildingRenderer.obj
-         Release\BuildingPresentationSystem.obj
-         Release\CursorPass.obj
-         Release\CursorPresentationSystem.obj
-         Release\FlagResourcePass.obj
-         Release\FlagResourcePresentationSystem.obj
-         Release\ProjectionSystem.obj
-         Release\GroundResourcePass.obj
-         Release\GroundResourcePresentationSystem.obj
-         Release\RenderCommandBuffer.obj
-         Release\RenderGraph.obj
-         Release\SettlerPresentationSystem.obj
-         Release\SettlerRenderer.obj
-         Release\WorkerPass.obj
-         Release\WorkerPresentationSystem.obj
-         Release\TerrainPass.obj
-         Release\TerrainPresentationSystem.obj
-         Release\WildlifePass.obj
-         Release\WildlifePresentationSystem.obj
-         Release\PlacementPreviewPass.obj
-         Release\PlacementPreviewPresentationSystem.obj
-         Release\BackgroundPass.obj
-         Release\RoadConnectionPass.obj
-         Release\RoadConnectionPresentationSystem.obj
-         Release\RoadPreviewPass.obj
-         Release\RoadPreviewPresentationSystem.obj
-         Release\GeologistOverlayPass.obj
-         Release\GeologistOverlayPresentationSystem.obj
-         Release\HuntingSpotPresentationSystem.obj
-         Release\HuntingSpotPass.obj
-         Release\WorkSitePresentationSystem.obj
-         Release\WorkSitePass.obj
-         Release\ConfirmationMenuPass.obj
-         Release\ConfirmationMenuPresentationSystem.obj
-         Release\MenuPass.obj
-         Release\MenuPresentationSystem.obj
-         Release\NotificationPass.obj
-         Release\NotificationPresentationSystem.obj
-         Release\TownHallPresentationSystem.obj
-         Release\TownHallPanelPass.obj
-         Release\LogisticsDebugPresentationSystem.obj
-         Release\LogisticsDebugPass.obj
-         Release\ResourceHudPresentationSystem.obj
-         Release\ResourceHudPass.obj
-         Release\BannerPresentationSystem.obj
-         Release\BannerPass.obj
-         Release\Settlers2.obj
-         Release\stdafx.obj
-         Release\BuildMenu.obj
-         Release\Button.obj
-         Release\EditorUI.obj
-         Release\GridMenu.obj
-         Release\UIMenu.obj
-         Release\Minimap.obj
-         Release\Panel.obj
-         Release\RadialMenu.obj
-         Release\ResourceBar.obj
-         Release\UIManager.obj
-         Release\UiEventSystem.obj
-         Release\UiController.obj
-         Release\LocalizationService.obj
-         Release\NotificationManager.obj
-         Release\StatusManager.obj
-         Release\MenuModel.obj
-         Release\Widget.obj
-         Release\WeightMenu.obj
-         Release\Building.obj
-         Release\BuildingFactory.obj
-         Release\Collider.obj
-         Release\Model.obj
-         Release\Resource.obj
-         Release\Transform.obj
-         Release\Unit.obj
-         Release\CarrierManager.obj
-         Release\CargoManager.obj
-         Release\DemandManager.obj
-         Release\FlagManager.obj
-         Release\HabitatRegistry.obj
-         Release\RoadManager.obj
-         Release\StorehouseManager.obj
-         Release\TransportJobManager.obj
-         Release\TransportController.obj
-         Release\TransportTask.obj
-         Release\ObjectDeletionRules.obj
-         Release\ObjectLifecycleManager.obj
-         Release\ConstructionSite.obj
-         Release\ConstructionManager.obj
-         Release\Entity.obj
-         Release\EntityManager.obj
-         Release\Map.obj
-         Release\MapSerializer.obj
-         Release\AnimalManager.obj
-         Release\WorkerManager.obj
-         Release\WildlifeSystem.obj
-         Release\EconomySystem.obj
-         Release\PathfindingSystem.obj
-         Release\PhysicsSystem.obj
-         Release\AnimalSystem.obj
-         Release\CarrierSystem.obj
-         Release\RenderSystem.obj
-         Release\BuildingSystem.obj
-         Release\ConstructionSystem.obj
-         Release\RoadNetworkRelinker.obj
-         Release\SimulationSystem.obj
-         Release\TransportSystem.obj
-         Release\WorkforceSystem.obj
-         Release\WorldSystem.obj
-         Release\ConstructionFactory.obj
-         Release\TileLayer.obj
-         Release\MapEditor.obj
-         Release\UnitManager.obj
-         Release\TilePalette.obj
-         Release\\Input\InputController.obj
-         Release\\Scene\InputController.obj /XEX:NO
+         Для всех выходных данных обновления не требуется.
        ImageXex:
-         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\imagexex.exe /out:"D:\development\Settlers2\Settlers2\Release\Settlers2.xex" "D:\development\Settlers2\Settlers2\Release\Settlers2.exe" 
-         Microsoft(R) Xbox 360 Image File Builder Version 2.0.21256.0
-         (c)2012 Microsoft Corporation. All rights reserved.
-         
+       Целевой объект "ImageXex" пропускается, так как все выходные файлы актуальны по отношению к входным.
        FinalizeBuildStatus:
          Файл "Release\Settlers2.unsuccessfulbuild" удаляется.
          Обращение к "Release\Settlers2.lastbuildstate".
@@ -205,4 +18,4 @@
 
 Построение успешно завершено.
 
-Затраченное время: 00:00:22.71
+Затраченное время: 00:00:00.37

@@ -110,8 +110,13 @@
     <ClInclude Include="Construction\ConstructionSite.h" />
     <ClInclude Include="Construction\ConstructionState.h" />
     <ClInclude Include="Definitions\BuildingDefinition.h" />
+    <ClInclude Include="Definitions\ResourceDefinition.h" />
+    <ClInclude Include="Definitions\ProductionDefinition.h" />
+    <ClInclude Include="Definitions\WorkerDefinition.h" />
     <ClInclude Include="Construction\ConstructionSystem.h" />
     <ClInclude Include="Core\BuildingTypes.h" />
+    <ClInclude Include="Core\ProductionTypes.h" />
+    <ClInclude Include="Core\WorkerTypes.h" />
     <ClInclude Include="Core\ResourceTypes.h" />
     <ClInclude Include="Core\ResourceDebug.h" />
     <ClInclude Include="Core\Handle.h" />
@@ -123,15 +128,28 @@
     <ClInclude Include="Simulation\Simulation.h" />
     <ClInclude Include="Simulation\SimulationConfig.h" />
     <ClInclude Include="Simulation\SimulationState.h" />
+    <ClInclude Include="Systems\DemandManager.h" />
     <ClInclude Include="Systems\EconomySystem.h" />
     <ClInclude Include="Systems\ISimulationSystem.h" />
-    <ClInclude Include="Testing\SimulationAssertions.h" />
-    <ClInclude Include="Testing\TestScenario.h" />
+    <ClInclude Include="Systems\JobManager.h" />
+    <ClInclude Include="Testing\ISimulationScenario.h" />
+    <ClInclude Include="Testing\ScenarioRegistry.h" />
+    <ClInclude Include="Testing\Assertions\TransportAssertions.h" />
+    <ClInclude Include="Testing\Assertions\ConstructionAssertions.h" />
+    <ClInclude Include="Testing\Assertions\WorldAssertions.h" />
+    <ClInclude Include="Testing\Assertions\SimulationAssertions.h" />
+    <ClInclude Include="Testing\Scenarios\RegisterAll.h" />
+    <ClInclude Include="Settlement\SettlementSystem.h" />
+    <ClInclude Include="Warehouse\WarehouseSystem.h" />
     <ClInclude Include="Stubs\StubRoadGraph.h" />
+    <ClInclude Include="Stubs\DirectRouteRoadGraph.h" />
     <ClInclude Include="Stubs\StubFlagInventory.h" />
+    <ClInclude Include="Stubs\AcceptingFlagInventory.h" />
     <ClInclude Include="Stubs\StubCargoRepository.h" />
     <ClInclude Include="Stubs\StubDemandService.h" />
     <ClInclude Include="Worker\WorkerSystem.h" />
+    <ClInclude Include="Production\ProductionSystem.h" />
+    <ClInclude Include="World\Demand.h" />
     <ClInclude Include="World\WorldModel.h" />
     <ClInclude Include="Transport\TransportTypes.h" />
     <ClInclude Include="Transport\TransportRoute.h" />
@@ -139,16 +157,27 @@
     <ClInclude Include="Transport\TransportController.h" />
     <ClInclude Include="Transport\Cargo.h" />
     <ClInclude Include="Transport\Carrier.h" />
+    <ClInclude Include="Transport\SimpleTransportDriver.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Construction\ConstructionSystem.cpp" />
     <ClCompile Include="Definitions\BuildingDefinition.cpp" />
+    <ClCompile Include="Definitions\ResourceDefinition.cpp" />
+    <ClCompile Include="Definitions\ProductionDefinition.cpp" />
+    <ClCompile Include="Definitions\WorkerDefinition.cpp" />
     <ClCompile Include="Simulation\Simulation.cpp" />
-    <ClCompile Include="Testing\Scenarios.cpp" />
+    <ClCompile Include="Testing\ScenarioRegistry.cpp" />
+    <ClCompile Include="Testing\Scenarios\RegisterAll.cpp" />
     <ClCompile Include="Worker\WorkerSystem.cpp" />
+    <ClCompile Include="Systems\DemandManager.cpp" />
     <ClCompile Include="Systems\EconomySystem.cpp" />
+    <ClCompile Include="Systems\JobManager.cpp" />
+    <ClCompile Include="Production\ProductionSystem.cpp" />
     <ClCompile Include="Transport\TransportController.cpp" />
     <ClCompile Include="Transport\TransportTask.cpp" />
+    <ClCompile Include="Transport\SimpleTransportDriver.cpp" />
+    <ClCompile Include="Settlement\SettlementSystem.cpp" />
+    <ClCompile Include="Warehouse\WarehouseSystem.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

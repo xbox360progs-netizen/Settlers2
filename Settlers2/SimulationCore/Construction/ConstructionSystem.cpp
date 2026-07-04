@@ -1,11 +1,19 @@
+#include <stddef.h>
 #include "ConstructionSystem.h"
 #include "../World/WorldModel.h"
 #include "../Definitions/BuildingDefinition.h"
+#include "../Definitions/ProductionDefinition.h"
+#include "../Systems/DemandManager.h"
+#include "../Systems/JobManager.h"
+#include "../Core/JobTypes.h"
+#include "../Core/BuildingTypes.h"
 
 namespace World {
 
     ConstructionSystem::ConstructionSystem()
         : m_tickCount(0)
+        , m_demandManager(NULL)
+        , m_jobManager(NULL)
     {
     }
 
@@ -18,10 +26,35 @@ namespace World {
         ++m_tickCount;
 
         ProcessDeliveryEvents(world);
+        ProcessJobEvents(world);
         GenerateRequests(world);
         ProcessRequests(world);
-        UpdateSites(world);
-        PublishResourceRequests(world);
+        UpdateSites(world, m_tickCount);
+        CompleteSites(world);
+        RequestResources(world);
+    }
+
+    void ConstructionSystem::ProcessJobEvents(WorldModel& world)
+    {
+        for (int i = 0; i < world.jobEventCount; ++i) {
+            const JobEvent& ev = world.jobEvents[i];
+            if (ev.type != JET_Completed) continue;
+            if (ev.jobType != JobType_Construction) continue;
+            if (m_jobManager == NULL) continue;
+
+            const Job& job = m_jobManager->GetJob(ev.jobId);
+            if (job.state != JobState_Completed) continue;
+
+            // Convert JobEvent to ConstructionRequest
+            if (world.pendingConstructionCount >= kMaxConstructionRequests) break;
+
+            ConstructionRequest& req = world.pendingConstructionRequests[world.pendingConstructionCount++];
+            req.type = static_cast<BuildingType>(job.buildingIndex);
+            req.position = Vector2i(static_cast<int>(job.targetFlag), static_cast<int>(job.targetFlag));
+            req.owner = 0;
+            req.priority = 1;
+            req.fulfilled = false;
+        }
     }
 
     void ConstructionSystem::GenerateRequests(WorldModel& world)
@@ -54,7 +87,7 @@ namespace World {
         }
     }
 
-    void ConstructionSystem::UpdateSites(WorldModel& world)
+    void ConstructionSystem::UpdateSites(WorldModel& world, uint32_t currentTick)
     {
         for (int i = 0; i < world.activeSiteCount; ++i) {
             ConstructionSite& site = world.activeSites[i];
@@ -62,6 +95,7 @@ namespace World {
                 case CS_Pending:
                     site.state = CS_WaitingForResources;
                     InitializeSiteResources(site);
+                    site.lastStateChangeTick = currentTick;
                     break;
                 case CS_WaitingForResources: {
                     bool allDelivered = true;
@@ -73,20 +107,60 @@ namespace World {
                     }
                     if (allDelivered) {
                         site.state = CS_Building;
+                        site.lastStateChangeTick = currentTick;
                     }
                     break;
                 }
                 case CS_Building:
-                    if (site.builderAssigned) {
-                        site.progress++;
-                        if (site.progress >= site.requiredProgress) {
-                            site.state = CS_Completed;
-                        }
+                    site.builderAssigned = true;
+                    site.progress++;
+                    if (site.progress >= site.requiredProgress) {
+                        site.state = CS_Completed;
+                        site.lastStateChangeTick = currentTick;
                     }
                     break;
                 case CS_Completed:
                     break;
             }
+        }
+    }
+
+    void ConstructionSystem::CompleteSites(WorldModel& world)
+    {
+        for (int i = world.activeSiteCount - 1; i >= 0; --i) {
+            ConstructionSite& site = world.activeSites[i];
+            if (site.state != CS_Completed) continue;
+            if (world.productionBuildingCount >= kMaxProductionBuildings) continue;
+
+            const BuildingDefinition& bldDef = GetBuildingDefinition(site.type);
+            int idx = world.productionBuildingCount;
+            ProductionBuilding& pb = world.productionBuildings[idx];
+            pb.type = site.type;
+            pb.position = site.position;
+            pb.owner = site.owner;
+            pb.cycleTimer = 0;
+            pb.active = true;
+            pb.inputsRequested = false;
+
+            if (bldDef.production != PT_None) {
+                const ProductionDefinition& prodDef = GetProductionDefinition(bldDef.production);
+                for (int c = 0; c < kMaxProductionInputs; ++c) {
+                    pb.inputResources[c] = prodDef.consumes[c].resource;
+                    pb.inputRequired[c] = prodDef.consumes[c].amount;
+                    pb.inputDelivered[c] = 0;
+                    pb.outputResources[c] = prodDef.produces[c].resource;
+                    pb.outputBuffer[c] = 0;
+                    pb.totalOutput[c] = 0;
+                }
+            }
+
+            world.productionBuildingCount++;
+
+            // Remove site from activeSites by compacting
+            for (int j = i; j < world.activeSiteCount - 1; ++j) {
+                world.activeSites[j] = world.activeSites[j + 1];
+            }
+            world.activeSiteCount--;
         }
     }
 
@@ -128,25 +202,23 @@ namespace World {
         site.requiredProgress = def.buildTime;
     }
 
-    void ConstructionSystem::PublishResourceRequests(WorldModel& world)
+    void ConstructionSystem::RequestResources(WorldModel& world)
     {
+        if (!m_demandManager) return;
+
         for (int i = 0; i < world.activeSiteCount; ++i) {
             ConstructionSite& site = world.activeSites[i];
             if (site.state != CS_WaitingForResources) continue;
+
+            FlagId destFlag = 1 + i;
 
             for (int r = 0; r < site.resourceCount; ++r) {
                 BuildResourceSlot& slot = site.resources[r];
                 if (slot.requested) continue;
                 if (slot.delivered >= slot.required) continue;
 
-                if (world.pendingRequestCount >= kMaxPendingRequests) break;
-
-                TransportRequest& req = world.pendingRequests[world.pendingRequestCount++];
-                req.resource = slot.resource;
-                req.origin = 0;
-                req.destination = 0;
-                req.reason = TTR_Construction;
-                req.fulfilled = false;
+                uint32_t need = slot.required - slot.delivered;
+                m_demandManager->SetDemand(slot.resource, need, destFlag, TBP_Normal);
 
                 slot.requested = true;
             }

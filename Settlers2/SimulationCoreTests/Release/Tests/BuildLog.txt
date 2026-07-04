@@ -1,0 +1,23 @@
+﻿Построение начато 04.07.2026 16:07:19.
+     1>Проект "D:\development\Settlers2\Settlers2\SimulationCoreTests\SimulationCoreTests.vcxproj" в узле 3 (целевые объекты build).
+     1>InitializeBuildStatus:
+         Обращение к "Release\Tests\SimulationCoreTests.unsuccessfulbuild".
+       ClCompile:
+         Для всех выходных данных обновления не требуется.
+       Link:
+         C:\Program Files (x86)\Microsoft Xbox 360 SDK\bin\win32\link.exe /ERRORREPORT:PROMPT /OUT:"D:\development\Settlers2\Settlers2\SimulationCoreTests\Release\SimulationCoreTests.exe" /NOLOGO /LIBPATH:..\SimulationCore\Release SimulationCore.lib xapilib.lib xboxkrnl.lib /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /PDB:"D:\development\Settlers2\Release\Tests\SimulationCoreTests.pdb" /STACK:"262144","262144" /TLBID:1 /IMPLIB:"D:\development\Settlers2\Release\Tests\SimulationCoreTests.lib" Release\Tests\TestRunner.obj
+         Release\Tests\HandleTests.obj
+         Release\Tests\TransportTaskTests.obj
+         Release\Tests\TransportRouteTests.obj
+         Release\Tests\TransportControllerVerification.obj
+         Release\Tests\TransportLifecycleTest.obj
+         Release\Tests\DemandManagerVerification.obj
+         Release\Tests\EconomyMetrics.obj
+         Release\Tests\main.obj
+         D:\development\Settlers2\Settlers2\SimulationCore\Debug\SimulationCore.lib /XEX:NO
+     1>LINK : fatal error LNK1181: cannot open input file 'SimulationCore.lib'
+     1>Построение проекта "D:\development\Settlers2\Settlers2\SimulationCoreTests\SimulationCoreTests.vcxproj" завершено (целевые объекты build) с ошибкой.
+
+СБОЙ построения.
+
+Затраченное время: 00:00:00.49

@@ -26,12 +26,12 @@ publishes IDs                    stores IDs                    resolves text    
 
 ---
 
-## Transport v1 — Architecture
+## Transport v2 — Architecture
 
 ```
 Layer           Domain         Decision
 ─────────────────────────────────────────────
-Economy         WHY            requests movement
+DemandManager   WHY            requests movement (exclusive publisher)
 Route planner   WHERE          immutable execution plan
 Controller      WHAT STAGE     state machine + lifecycle
 Dispatcher      WHEN           priority + age-based selection
@@ -127,10 +127,11 @@ After `CreateTask()` and before `PickUp()`, a resource is physically on the grou
 > **Priority dispatcher decides WHEN cargo moves.**
 > The dispatcher (`PickNextTask`) selects among waiting tasks but never modifies route, hopIndex, or targetFlag. These responsibilities must never be mixed.
 
-#### Economy vs Transport
-> **Economy requests movement. Transport performs movement.**
-> Economy never moves resources directly.
-> DemandTicket lives at the boundary as an adapter — it connects DemandManager's request to TransportTask's lifecycle, then drops out of the model.
+#### DemandManager vs Transport
+> **DemandManager requests movement (exclusive publisher). Transport performs movement.**
+> Transport never inspects reason, owner, or domain origin — only `task.basePriority`.
+> DemandManager receives delivery notification through `observerTicketId`.
+> EconomySystem observes passively — never requests movement.
 
 ---
 
@@ -313,6 +314,414 @@ GPU
 ```
 
 **Violation**: any `#include` of a Simulation Manager header in a Renderer, or any direct call to `FlagManager/RoadManager/Map` from a RenderPass.
+
+---
+
+## Platform Milestones v1
+
+Four stable subsystems form the simulation platform. Dependencies flow in one direction:
+domain systems → DemandManager → Transport → DeliveryEvents → domain systems.
+EconomySystem observes ProductionBuilding::totalOutput — never writes.
+
+### Transport v2 — Stable
+
+Responsibility: Move resources between flags via carrier lifecycle. Knows nothing about domains,
+reasons, or owners.
+
+```
+Public contract:
+  CreateTask(resource, origin, destination, reason)  →  TransportTask*
+  SetTaskState(taskId, newState)                      →  state transition (single point)
+  PickNextTask()                                      →  dispatcher (priority+age, FIFO)
+  DeliverTask(taskId)                                 →  completion + DeliveryEvent
+  Update(dt)                                          →  carrier movement
+```
+
+Invariants:
+- `score = basePriority + min(tick - createdTick, 200)` — dispatcher never inspects reason/owner.
+- `enqueueOrder` is the deterministic FIFO tiebreaker for equal scores.
+- `transitionCount < 64` catches infinite loops.
+- Carrier reads only `targetFlag` — never reads `route[]` or task state.
+
+Clients: DemandManager (via `CreateTask`), SimpleTransportDriver (via `Tick`), Telemetry.
+
+Change rule: Requires a failing integration or soak test.
+
+### Production v1 — Stable
+
+Responsibility: Convert input resources to output resources on a cycle timer.
+Output accumulates in `outputBuffer[]`. ProductionSystem never publishes transport requests
+for completed output — that is the responsibility of external consumers (WarehouseSystem, etc.).
+
+```
+Public contract:
+  ProductionBuilding::totalOutput[p]      — monotonically increasing
+  ProductionBuilding::outputBuffer[p]     — finished goods pending collection
+  ProcessProduction()                     — cycle logic, input gate
+```
+
+Invariants:
+- `totalOutput` is the canonical source for output tracking (read by EconomySystem).
+- `outputBuffer` is written only by ProductionSystem, read by WarehouseSystem.
+- Cycle consumes inputs atomically — `inputDelivered` resets simultaneously.
+- `inputsRequested` guard prevents duplicate `SetDemand` per cycle.
+
+Clients: EconomySystem (reads `totalOutput`), WarehouseSystem (reads `outputBuffer`).
+
+Change rule: Requires a failing integration or soak test.
+
+### Economy v1 — Stable
+
+Responsibility: Observe and aggregate resource flow metrics. Never drives gameplay.
+
+```
+Public contract:
+  GetTotalProduced(type)         — cumulative from productionBuilding.totalOutput[]
+  GetTotalConsumed(type)         — derived from ProductionDefinition (e.g. 2 Wood per Plank)
+```
+
+Invariants:
+- `ProductionBuilding::totalOutput` is the canonical source — EconomySystem computes deltas.
+- Consumption is derived from ProductionDefinition, never from direct counters.
+- Every new building type (ProductionDefinition entry) automatically extends coverage.
+- EconomySystem never mutates ProductionBuilding, Transport, or DemandManager.
+
+Clients: Telemetry, tests, future UI (resource flow display).
+
+Change rule: If EconomySystem is removed, gameplay is unaffected — only telemetry is lost.
+
+### Warehouse v1 — Stable
+
+Responsibility: Store finished goods and create transport demand for them via DemandManager.
+
+```
+Public contract:
+  GetStockpileAmount(type)       — current stockpile in warehouse
+  GetStockpileCount()            — number of distinct resource types tracked
+```
+
+Flow:
+```
+Production → outputBuffer → WarehouseSystem (SetDemand) → Transport → Warehouse inventory
+```
+
+Invariants:
+- WarehouseSystem monitors `outputBuffer`, never writes it — Production is the sole writer.
+- Warehouse decrements `outputBuffer` on delivery receipt, one unit at a time.
+- `Stockpile = delivered - consumed` — verified monotonic in soak.
+- Transport never knows about Warehouse — `TTR_WarehouseBalance` routed through existing Dispatcher.
+- Zero changes to Production, Transport, or Economy.
+
+Clients: EconomySystem (future), Settlement AI (future), Market (future).
+
+Change rule: Requires a failing integration or soak test.
+
+### Dependency graph
+
+```
+                Domain Systems
+                      │
+        ┌─────────────┼─────────────┐
+        │             │             │
+ Production      Warehouse     Construction
+        │             │             │
+        └──────► DemandManager ◄────┘
+                      │
+               Transport v2
+                      │
+               DeliveryEvents
+                      │
+        ┌─────────────┴─────────────┐
+        │                           │
+   Production                 Warehouse
+        │
+   totalOutput
+        │
+   Economy (read-only)
+```
+
+No subsystem below the line knows about any subsystem above the line.
+
+---
+
+## Platform Architectural Patterns
+
+### Pattern 1 — Intent → Manager → Executor → Event
+
+```
+Domain Intent
+       │
+       ▼
+    Manager
+       │
+       ▼
+   Executor
+       │
+       ▼
+Immutable Event
+       │
+       ▼
+0..N Domain Subscribers
+```
+
+Independently validated across two subsystems:
+
+| Intent | Manager | Executor | Event |
+|--------|---------|----------|-------|
+| Demand | DemandManager | TransportController | DeliveryEvent |
+| Job | JobManager | WorkerSystem | JobEvent |
+
+#### Invariants
+
+1. **Domain publishes intent, does not execute it.**
+   `ConstructionSystem → CreateJob()`, `ProductionSystem → SetDemand()`.
+   Neither invokes WorkerSystem or TransportController directly.
+
+2. **Manager owns the lifecycle of the intent.**
+   `JobManager` owns Job state/ownership. `DemandManager` owns Demand state/fulfillment.
+   Neither delegates lifecycle to the executor.
+
+3. **Executor executes intent, does not know its business meaning.**
+   `Carrier` knows only `targetFlag`, never `TransportTaskReason`.
+   `WorkerSystem` knows only `Job::duration`, never `JobType` semantics.
+   There is no `switch(job.type)` in WorkerSystem, no `switch(task.reason)` in Carrier.
+
+4. **Executor publishes an immutable event, does not interpret it.**
+   `WorkerSystem::CaptureJobEvents()` publishes `JobEvent` to WorldModel.
+   `SimpleTransportDriver::CaptureDeliveryEvents()` publishes `DeliveryEvent`.
+   Neither executor reads or reacts to events it published.
+
+5. **Any number of domain systems may subscribe to the event.**
+   Construction, Economy, Achievement, Telemetry — all receive the same event.
+   Adding a new subscriber requires zero changes to the executor.
+
+6. **Adding a new subscriber does not require changes to the executor.**
+   The executor only publishes events. The WorldModel is the distribution point.
+
+#### Verification (cross-system)
+
+- T18–T19: WorkerSystem acquires/releases jobs through JobManager, never modifies them.
+- T20–T21: WorkerSystem completes jobs through `JobManager::CompleteJob()`, captures `JobEvent`.
+- T8–T14: TransportController delivers through DemandManager, captures `DeliveryEvent`.
+- Both pipelines use identical event lifecycle: publish at end of Tick N, consume at start of Tick N+1,
+  `Clear*Events()` after all consumers.
+
+#### Pattern recognition criterion
+
+A pattern becomes a platform primitive only after meeting all of the following:
+
+```
+1. One implementation   →  a design decision (might be specific to the subsystem)
+2. Two independent      →  a candidate pattern (reproduced without changing the first)
+   implementations
+3. Reproduced without   →  a platform primitive (the contract is stable enough
+   changing the contract     that new domains conform to it, not the other way around)
+```
+
+Intent → Manager → Executor → Event crossed from step 2 to step 3 when WorkerSystem
+adopted the same lifecycle as TransportController without modifying DeliveryEvent,
+ClearDeliveryEvents, or the Simulation tick order. The contract proved stable under
+a second, independent implementation.
+
+This criterion prevents premature abstraction: a single successful subsystem is not
+sufficient to document a platform pattern. The pattern must survive at least one
+independent reproduction.
+
+#### Next epoch — Platform validation
+
+The next development epoch (Settlement AI, resource allocation, trade) has a specific
+architectural goal — not "add Settlement AI", but:
+
+> Implement Settlement AI without modifying any existing Platform Architectural Pattern.
+
+Success criteria:
+- DemandManager unchanged
+- JobManager unchanged
+- TransportController unchanged
+- WorkerSystem unchanged
+- Intent → Manager → Executor → Event unchanged
+- Settlement AI publishes only Demand and Job; subscribes only to DeliveryEvent and JobEvent
+
+If Settlement AI can be built entirely within these constraints, the platform is not
+merely well-designed — it is capable of supporting game evolution without rebuilding
+its own foundation. This is the characteristic that distinguishes a long-lived simulation
+platform from a collection of coupled systems.
+
+---
+
+## Settlement AI — Contract
+
+### Responsibility
+
+Settlement AI decides what to do next. It never executes decisions itself.
+
+### Permitted operations (exhaustive)
+
+1. **Publish Job** — via `JobManager::CreateJob()`
+   (e.g. Build Sawmill, Repair Building, Harvest Forest, Explore Area)
+2. **Publish Demand** — via `DemandManager::SetDemand()`
+   (e.g. Need Wood, Need Stone, Rebalance Warehouse, Emergency Supply)
+3. **Read world state** — input for decision-making only:
+   - `EconomySystem::GetTotalProduced()`, `GetTotalConsumed()`
+   - `WarehouseSystem::GetStockpileAmount()`
+   - `ProductionBuilding::outputBuffer[]`, `totalOutput[]`
+   - `JobEvent[]`, `DeliveryEvent[]`
+
+### Prohibited operations (invariants)
+
+Settlement AI must not:
+- Create `TransportTask`
+- Assign a `Worker` to a `Job`
+- Change `Job` state or ownership
+- Change `Demand` state or fulfillment
+- Write to `ProductionBuilding`
+- Write to `WarehouseSystem` stockpile
+- Change `Carrier` state
+- Change `Worker` state
+
+In one sentence: **Settlement AI never executes decisions. It only publishes intent.**
+
+### Data flow
+
+```
+            Settlement AI
+                  │
+      ┌───────────┴───────────┐
+      │                       │
+Publish Job             Publish Demand
+      │                       │
+      ▼                       ▼
+ JobManager            DemandManager
+      │                       │
+      ▼                       ▼
+ WorkerSystem        TransportController
+      │                       │
+      ▼                       ▼
+ JobEvent            DeliveryEvent
+      └───────────┬───────────┘
+                  ▼
+            Settlement AI
+```
+
+Settlement AI is another event subscriber, not a central coordinator.
+It manages the flow of intent, not the executors themselves.
+
+### Architecture Audit (PR 0) — Existing integration points
+
+#### Existing Job publishers
+
+No domain system currently publishes Jobs. `JobManager::CreateJob()` is called only from tests (T18–T21).
+Settlement AI will be the first system to use JobManager in production.
+
+#### Existing Demand publishers
+
+| System | Method | Reason | Owner |
+|--------|--------|--------|-------|
+| `ConstructionSystem` | `SetDemand(resource, need, flag, TBP_Normal)` | `TTR_Construction` (default) | `DemandOwner_Construction` (default) |
+| `ProductionSystem` | `SetDemand(resource, need, flag, TBP_Normal, DemandOwner_Production, TTR_Production)` | `TTR_Production` | `DemandOwner_Production` |
+| `WarehouseSystem` | `SetDemand(resource, need, flag, priority, ...)` | `TTR_WarehouseBalance` | — |
+
+DemandManager is the exclusive publisher of `TransportRequest[]` into WorldModel.
+All three systems use it, Settlement AI will be the fourth.
+
+#### Existing Events
+
+**DeliveryEvent** (WorldModel, max 64 per tick):
+```
+type        = DET_Completed
+resource    = ResourceType
+amount      = int (always 1)
+destinationFlag = FlagId
+reason      = TransportTaskReason
+```
+
+**JobEvent** (WorldModel, max 64 per tick):
+```
+type    = JET_Completed
+jobId   = JobId
+jobType = JobType
+worker  = WorkerId
+```
+
+Both follow identical lifecycle: published at end of Tick N via `Capture*Events()`,
+consumed at start of Tick N+1, cleared via `Clear*Events()`.
+
+#### Existing Observables
+
+| API | Returns | Source |
+|-----|---------|--------|
+| `EconomySystem::GetTotalProduced(type)` | `int` | cumulative from `totalOutput[]` |
+| `EconomySystem::GetTotalConsumed(type)` | `int` | derived from `ProductionDefinition` |
+| `WarehouseSystem::GetStockpileAmount(type)` | `int` | internal stockpile |
+| `WarehouseSystem::GetStockpileCount()` | `int` | distinct resource types |
+| `JobManager::GetWaitingJobCount()` | `int` | jobs not yet assigned |
+| `JobManager::GetAssignedJobCount()` | `int` | jobs in progress |
+| `JobManager::GetCompletedJobCount()` | `int` | finished jobs |
+| `SimulationState::activeTransportTasks` | `int` | in-flight tasks |
+| `SimulationState::economyPendingRequests` | `uint32` | unfulfilled demands |
+| `WorldModel::pendingRequestCount` | `int` | transport requests |
+| `WorldModel::productionBuildings[]` | array | per-building outputBuffer, totalOutput, type |
+| `WorldModel::deliveryEvents[]` | array | last tick's deliveries |
+| `WorldModel::jobEvents[]` | array | last tick's completed jobs |
+| `WorldModel::workers[]` | array | worker states |
+| `WorldModel::workerCount` | `int` | number of workers |
+
+#### What Settlement AI needs (not yet exposed)
+
+- **List of active Jobs by type** — `JobManager` does not expose `GetJobsByType(JobType)`.
+  Settlement will need to iterate `GetJobCount()` and read each `GetJob(i)`.
+- **Per-job status** — `GetJob(id)` takes index, not JobId. For now, iterating by index is sufficient.
+- **Building type queries** — `ConstructionSystem` does not expose "what is being built where."
+  Settlement would need to scan `WorldModel::activeSites[]` directly.
+- **Worker availability** — `WorkerSystem` does not expose "idle worker count."
+  Settlement can scan `WorldModel::workers[]` states directly.
+
+None of these require new infrastructure — they are direct reads of existing WorldModel state.
+Settlement AI will use the same data that tests and telemetry already read.
+
+### Settlement v1 — Decision Loop (PR 1 target)
+
+```
+Observe → Decide → Publish Intent → Wait for Events → Observe
+```
+
+Concrete example:
+- Read world state
+- If no Woodcutter exists → publish Job for Woodcutter construction
+- If Wood stockpile is low → publish Demand for Wood
+- Wait for JobEvent / DeliveryEvent
+- On event → re-evaluate
+
+No scheduler, no strategies, no development priorities. Settlement AI v1 only
+proves the cycle exists and stays within the permitted operations.
+
+### Architectural role
+
+Each platform subsystem answers one fundamental question:
+
+| Subsystem | Question |
+|-----------|----------|
+| Transport | How to move? |
+| Worker | How to execute work? |
+| Production | How to convert resources? |
+| Warehouse | Where to store? |
+| Economy | How to measure? |
+| Settlement AI | **What to do next?** |
+
+Settlement AI is the first system whose answer must be expressed entirely through
+existing platform primitives (Job, Demand, Event) — without new infrastructure.
+If it succeeds, it validates the platform's architectural closure.
+
+After Settlement AI, a further criterion becomes testable:
+
+> **Platform Closure Criterion:** The platform is architecturally closed if two
+> consecutive major domain systems were implemented using only existing Platform
+> Architectural Patterns, without introducing new platform primitives.
+
+If both Settlement AI and a subsequent system (e.g. Market/Trading) satisfy this,
+the architectural vocabulary of the project is stable — all future game development
+proceeds through composition of known primitives, not invention of new fundamental
+mechanisms.
 
 ---
 

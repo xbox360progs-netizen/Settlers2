@@ -2,6 +2,8 @@
 #include <stdint.h>
 
 // Phase 7 — Data model types. No logic.
+// Definitions skipped when SimulationCore's canonical version is already included.
+#ifndef SIMCORE_TRANSPORT_TYPES_H_
 
 namespace World {
 
@@ -50,3 +52,5 @@ namespace World {
     }
 
 } // namespace World
+
+#endif // SIMCORE_TRANSPORT_TYPES_H_

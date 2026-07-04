@@ -2,11 +2,21 @@
 #include "Simulation.h"
 #include "../Systems/ISimulationSystem.h"
 #include "../Systems/EconomySystem.h"
+#include "../Production/ProductionSystem.h"
+#include "../Warehouse/WarehouseSystem.h"
+#include "../Systems/DemandManager.h"
+#include "../Systems/JobManager.h"
+#include "../Worker/WorkerSystem.h"
+#include "../Settlement/SettlementSystem.h"
+#include "../Construction/ConstructionSystem.h"
+#include "../Systems/ConsumptionSystem.h"
+#include "../Systems/RenewableResourceSystem.h"
 #include "../Transport/TransportController.h"
+#include "../Transport/SimpleTransportDriver.h"
 #include "../World/WorldModel.h"
 #include "../Construction/ConstructionState.h"
-#include "../Stubs/StubRoadGraph.h"
-#include "../Stubs/StubFlagInventory.h"
+#include "../Stubs/DirectRouteRoadGraph.h"
+#include "../Stubs/AcceptingFlagInventory.h"
 #include "../Stubs/StubCargoRepository.h"
 #include "../Stubs/StubDemandService.h"
 
@@ -15,29 +25,118 @@ namespace World {
     Simulation::Simulation(const SimulationConfig& config)
         : m_systemCount(0)
         , m_transport(NULL)
+        , m_transportDriver(NULL)
+        , m_demandManager(NULL)
         , m_world(NULL)
         , m_tickCount(config.initialTick)
-        , m_stubRoadGraph(NULL)
-        , m_stubFlagInventory(NULL)
-        , m_stubCargoRepository(NULL)
-        , m_stubDemandService(NULL)
+        , m_roadGraph(NULL)
+        , m_flagInventory(NULL)
+        , m_cargoRepository(NULL)
+        , m_demandService(NULL)
+        , m_productionSystem(NULL)
+        , m_economySystem(NULL)
+        , m_warehouseSystem(NULL)
+        , m_jobManager(NULL)
+        , m_workerSystem(NULL)
+        , m_settlementSystem(NULL)
+        , m_constructionSystem(NULL)
+        , m_consumptionSystem(NULL)
+        , m_renewableSystem(NULL)
+        , m_config(config)
     {
+        // Create DemandManager first — may be needed as IDemandService by TransportController
+        if (config.enableEconomy) {
+            m_demandManager = new DemandManager();
+            AddSystem(m_demandManager);
+        }
+
         if (config.enableTransport) {
-            m_stubRoadGraph = new StubRoadGraph();
-            m_stubFlagInventory = new StubFlagInventory();
-            m_stubCargoRepository = new StubCargoRepository();
-            m_stubDemandService = new StubDemandService();
+            m_roadGraph = new DirectRouteRoadGraph();
+            m_flagInventory = new AcceptingFlagInventory();
+            m_cargoRepository = new StubCargoRepository();
+
+            // Use DemandManager as the demand service if available
+            if (m_demandManager) {
+                m_demandService = m_demandManager;
+            } else {
+                m_demandService = new StubDemandService();
+            }
 
             m_transport = new TransportController(
-                *m_stubRoadGraph,
-                *m_stubFlagInventory,
-                *m_stubCargoRepository,
-                *m_stubDemandService
+                *m_roadGraph,
+                *m_flagInventory,
+                *m_cargoRepository,
+                *m_demandService
             );
+
+            m_transportDriver = new SimpleTransportDriver(*m_transport);
         }
 
         if (config.enableEconomy) {
-            AddSystem(new EconomySystem());
+            m_economySystem = new EconomySystem();
+            AddSystem(m_economySystem);
+        }
+
+        if (config.enableTreeDepletion) {
+            m_renewableSystem = new RenewableResourceSystem();
+            AddSystem(m_renewableSystem);
+        }
+
+        if (config.enableConsumption) {
+            m_consumptionSystem = new ConsumptionSystem();
+            if (m_demandManager != NULL) {
+                m_consumptionSystem->SetDemandManager(m_demandManager);
+            }
+            AddSystem(m_consumptionSystem);
+        }
+
+        if (config.enableProduction) {
+            m_productionSystem = new ProductionSystem();
+            m_productionSystem->SetRenewableSystem(m_renewableSystem);
+            m_productionSystem->SetConsumptionEnabled(config.enableConsumption);
+            if (m_demandManager != NULL) {
+                m_productionSystem->SetDemandManager(m_demandManager);
+            }
+            AddSystem(m_productionSystem);
+        }
+
+        if (config.enableWarehouse) {
+            m_warehouseSystem = new WarehouseSystem();
+            if (m_demandManager != NULL) {
+                m_warehouseSystem->SetDemandManager(m_demandManager);
+            }
+            AddSystem(m_warehouseSystem);
+        }
+
+        if (config.enableWorkers) {
+            m_jobManager = new JobManager();
+            AddSystem(m_jobManager);
+
+            m_workerSystem = new WorkerSystem();
+            m_workerSystem->SetJobManager(m_jobManager);
+            AddSystem(m_workerSystem);
+        }
+
+        if (config.enableConstruction) {
+            m_constructionSystem = new ConstructionSystem();
+            if (m_demandManager != NULL) {
+                m_constructionSystem->SetDemandManager(m_demandManager);
+            }
+            if (m_jobManager != NULL) {
+                m_constructionSystem->SetJobManager(m_jobManager);
+            }
+            AddSystem(m_constructionSystem);
+        }
+
+        if (config.enableSettlement) {
+            m_settlementSystem = new SettlementSystem();
+            if (m_jobManager != NULL) {
+                m_settlementSystem->SetJobManager(m_jobManager);
+            }
+            if (m_economySystem != NULL) {
+                m_settlementSystem->SetEconomySystem(m_economySystem);
+            }
+            AddSystem(m_settlementSystem);
         }
     }
 
@@ -49,17 +148,32 @@ namespace World {
         }
         m_systemCount = 0;
 
+        delete m_transportDriver;
+        m_transportDriver = NULL;
+
         delete m_transport;
         m_transport = NULL;
 
-        delete m_stubDemandService;
-        m_stubDemandService = NULL;
-        delete m_stubCargoRepository;
-        m_stubCargoRepository = NULL;
-        delete m_stubFlagInventory;
-        m_stubFlagInventory = NULL;
-        delete m_stubRoadGraph;
-        m_stubRoadGraph = NULL;
+        // m_demandService may point to m_demandManager; avoid double-delete
+        // DemandManager is deleted via m_systems[] loop above (set to NULL below)
+        if (m_demandService != m_demandManager) {
+            delete m_demandService;
+        }
+        m_demandService = NULL;
+        m_economySystem = NULL;
+        m_workerSystem = NULL;
+        m_settlementSystem = NULL;
+        m_constructionSystem = NULL;
+        m_consumptionSystem = NULL;
+        m_renewableSystem = NULL;
+        m_jobManager = NULL;
+        m_demandManager = NULL;
+        delete m_cargoRepository;
+        m_cargoRepository = NULL;
+        delete m_flagInventory;
+        m_flagInventory = NULL;
+        delete m_roadGraph;
+        m_roadGraph = NULL;
 
         delete m_world;
         m_world = NULL;
@@ -85,17 +199,25 @@ namespace World {
         ++m_tickCount;
         m_state.tickCount = m_tickCount;
 
-        ClearDeliveryEvents();
-
-        // 1. All domain systems — read WorldModel, write requests
+        // 1. All domain systems — read WorldModel, write requests.
+        //    Systems consume DeliveryEvent from the previous tick's transport.
         for (int i = 0; i < m_systemCount; ++i) {
             m_systems[i]->Tick(*m_world);
         }
 
-        // 2. Convert pending requests to transport tasks
+        // 2. Clear old delivery and job events AFTER all consumers have processed them.
+        ClearDeliveryEvents();
+        ClearJobEvents();
+
+        // 3. Convert pending requests to transport tasks
         ProcessTransportRequests();
 
-        // 3. Capture economy telemetry from WorldModel
+        // 4. Drive transport — advance tasks through carrier lifecycle
+        if (m_transportDriver) {
+            m_transportDriver->Tick(*m_world);
+        }
+
+        // 5. Capture economy telemetry from WorldModel
         m_state.economyPendingRequests = 0;
         m_state.economyFulfilledRequests = 0;
         for (int i = 0; i < m_world->pendingRequestCount; ++i) {
@@ -105,7 +227,7 @@ namespace World {
                 m_state.economyPendingRequests++;
         }
 
-        // 4. Capture construction telemetry from WorldModel
+        // 6. Capture construction telemetry from WorldModel
         m_state.constructionPendingRequests = 0;
         m_state.constructionActiveSites = 0;
         m_state.constructionCompletedSites = 0;
@@ -120,9 +242,15 @@ namespace World {
                 m_state.constructionActiveSites++;
         }
 
-        // 5. Transport — move cargo
+        // 7. Capture new job events — published after WorkerSystem ticked in the system loop
+        if (m_workerSystem) {
+            m_workerSystem->CaptureJobEvents(*m_world);
+        }
+
+        // 8. Transport — move cargo
         if (m_transport) {
             m_transport->Update(0.0f);
+            // Capture new delivery events for systems to consume on the next tick.
             CaptureDeliveryEvents();
             m_state.activeTransportTasks = m_transport->GetActiveTaskCount();
             m_state.blockedTransportTasks = m_transport->GetBlockedCount();
@@ -142,6 +270,10 @@ namespace World {
 
             if (task != NULL) {
                 req.fulfilled = true;
+                if (req.demandIndex != kNoDemand && m_demandManager != NULL) {
+                    task->observerTicketId = static_cast<uint32_t>(req.demandIndex) + 1;
+                    m_demandManager->OnTaskCreated(req.demandIndex, task->id);
+                }
             }
         }
     }
@@ -149,6 +281,11 @@ namespace World {
     void Simulation::ClearDeliveryEvents()
     {
         m_world->deliveryEventCount = 0;
+    }
+
+    void Simulation::ClearJobEvents()
+    {
+        m_world->jobEventCount = 0;
     }
 
     void Simulation::CaptureDeliveryEvents()

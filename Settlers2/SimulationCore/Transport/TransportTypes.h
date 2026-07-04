@@ -1,6 +1,9 @@
 #pragma once
 #include <stdint.h>
 
+#ifndef SIMCORE_TRANSPORT_TYPES_H_
+#define SIMCORE_TRANSPORT_TYPES_H_
+
 namespace World {
 
     typedef uint32_t TransportTaskId;
@@ -38,7 +41,7 @@ namespace World {
             case TTR_Emergency:        return TBP_Critical;
             case TTR_Food:             return TBP_High;
             case TTR_Military:         return TBP_High;
-            case TTR_Construction:     return TBP_Normal;
+            case TTR_Construction:     return TBP_High;
             case TTR_Production:       return TBP_Normal;
             case TTR_WarehouseBalance: return TBP_Low;
             default:                   return TBP_Normal;
@@ -46,3 +49,5 @@ namespace World {
     }
 
 } // namespace World
+
+#endif // SIMCORE_TRANSPORT_TYPES_H_

@@ -26,6 +26,7 @@ namespace World {
         int resourceCount;
         bool builderAssigned;
         int requiredProgress;
+        int lastStateChangeTick;
 
         ConstructionSite()
             : state(CS_Pending)
@@ -36,6 +37,7 @@ namespace World {
             , resourceCount(0)
             , builderAssigned(false)
             , requiredProgress(100)
+            , lastStateChangeTick(0)
         {
             for (int i = 0; i < kMaxBuildResources; ++i) {
                 resources[i].resource = ResourceType_None;

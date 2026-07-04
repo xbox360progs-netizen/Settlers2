@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef SIMCORE_RESOURCE_TYPES_H_
+#define SIMCORE_RESOURCE_TYPES_H_
+
 namespace World {
 
 enum ResourceType
@@ -35,7 +38,11 @@ enum ResourceType
     ResourceType_WildlifeSpawner_Snake,
     ResourceType_WaterSource,
     ResourceType_BronzeBar,
+    ResourceType_Weapons,
+    ResourceType_Soldiers,
     ResourceType_Count
 };
 
 } // namespace World
+
+#endif // SIMCORE_RESOURCE_TYPES_H_
