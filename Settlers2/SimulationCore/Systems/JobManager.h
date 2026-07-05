@@ -16,7 +16,7 @@ namespace World {
         virtual void Tick(WorldModel& world);
 
         // Called by domain systems to publish work
-        JobId CreateJob(JobType type, uint8_t targetFlag, uint8_t buildingIndex, uint16_t duration = kDefaultJobDuration);
+        JobId CreateJob(JobType type, uint16_t targetFlag, uint8_t buildingIndex, uint16_t duration = kDefaultJobDuration);
 
         // Called by WorkerSystem to acquire waiting work
         // Returns true if a job was assigned, false if none available

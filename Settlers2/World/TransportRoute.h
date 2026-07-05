@@ -5,6 +5,7 @@
 // Phase 7 — Route data. Immutable after creation.
 // Definitions skipped when SimulationCore's canonical version is already included.
 #ifndef SIMCORE_TRANSPORT_ROUTE_H_
+#define SIMCORE_TRANSPORT_ROUTE_H_
 
 namespace World {
 

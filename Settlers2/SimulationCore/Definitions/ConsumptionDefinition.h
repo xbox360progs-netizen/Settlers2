@@ -1,6 +1,7 @@
 #pragma once
 #include "../Core/ResourceTypes.h"
 #include "../Core/ProductionTypes.h"
+#include "../Core/BuildingTypes.h"
 
 namespace World {
 

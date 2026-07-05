@@ -37,6 +37,15 @@
 #include "T42ForestStabilityTest.cpp"
 #include "T43HunterTest.cpp"
 #include "T44FisherTest.cpp"
+#include "T45FoodMineTest.cpp"
+#include "T46AgricultureTest.cpp"
+#include "T47MiningMetallurgyTest.cpp"
+#include "T48MultiInputArchitecturalTest.cpp"
+#include "T49EconomicReachabilityTest.cpp"
+#include "T50EconomicIndependenceTest.cpp"
+#include "T51ClosedWoodLoopTest.cpp"
+#include "T52MilitaryTest.cpp"
+#include "T53FullEconomySoak.cpp"
 #include "T54FullEconomyBootstrapTest.cpp"
 
 namespace World {

@@ -280,7 +280,7 @@ TEST(PriorityForReason_Values) {
     EXPECT_EQ(World::PriorityForReason(World::TTR_Emergency), World::TBP_Critical);
     EXPECT_EQ(World::PriorityForReason(World::TTR_Food), World::TBP_High);
     EXPECT_EQ(World::PriorityForReason(World::TTR_Military), World::TBP_High);
-    EXPECT_EQ(World::PriorityForReason(World::TTR_Construction), World::TBP_Normal);
+    EXPECT_EQ(World::PriorityForReason(World::TTR_Construction), World::TBP_High);
     EXPECT_EQ(World::PriorityForReason(World::TTR_Production), World::TBP_Normal);
     EXPECT_EQ(World::PriorityForReason(World::TTR_WarehouseBalance), World::TBP_Low);
 }

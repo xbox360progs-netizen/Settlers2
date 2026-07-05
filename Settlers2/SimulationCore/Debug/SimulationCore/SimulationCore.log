@@ -1,0 +1,80 @@
+﻿Построение начато 05.07.2026 3:47:36.
+     1>Проект "D:\development\Settlers2\Settlers2\SimulationCore\SimulationCore.vcxproj" в узле 2 (целевые объекты build).
+     1>InitializeBuildStatus:
+         Обращение к "Debug\SimulationCore\SimulationCore.unsuccessfulbuild".
+       ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /I..\ /ZI /nologo /W3 /WX- /Od /Oy- /D _DEBUG /D _CRT_SECURE_NO_WARNINGS /Gm /RTC1 /MTd /GS- /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\SimulationCore\\" /Fd"Debug\SimulationCore\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt Construction\ConstructionSystem.cpp Definitions\BuildingDefinition.cpp Definitions\ResourceDefinition.cpp Definitions\ProductionDefinition.cpp Definitions\ConsumptionDefinition.cpp Definitions\RenewableResourceDefinition.cpp Definitions\WorkerDefinition.cpp Simulation\Simulation.cpp Testing\ScenarioRegistry.cpp Testing\Scenarios\RegisterAll.cpp Worker\WorkerSystem.cpp Systems\DemandManager.cpp Systems\EconomySystem.cpp Systems\ConsumptionSystem.cpp Systems\RenewableResourceSystem.cpp Systems\JobManager.cpp Production\ProductionSystem.cpp Transport\TransportController.cpp Transport\TransportTask.cpp Transport\SimpleTransportDriver.cpp Settlement\SettlementSystem.cpp Warehouse\WarehouseSystem.cpp ..\Platform\Win32\Lock.cpp
+         Lock.cpp
+         WarehouseSystem.cpp
+         SettlementSystem.cpp
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(145): warning C4305: аргумент: усечение из "int" к "uint8_t"
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(145): warning C4309: аргумент: усечение константного значения
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(172): warning C4305: аргумент: усечение из "int" к "uint8_t"
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(172): warning C4309: аргумент: усечение константного значения
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(180): warning C4305: аргумент: усечение из "int" к "uint8_t"
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(180): warning C4309: аргумент: усечение константного значения
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(186): warning C4305: аргумент: усечение из "int" к "uint8_t"
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(186): warning C4309: аргумент: усечение константного значения
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(230): warning C4305: аргумент: усечение из "int" к "uint8_t"
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(230): warning C4309: аргумент: усечение константного значения
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(259): warning C4305: аргумент: усечение из "int" к "uint8_t"
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(259): warning C4309: аргумент: усечение константного значения
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(288): warning C4305: аргумент: усечение из "int" к "uint8_t"
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(288): warning C4309: аргумент: усечение константного значения
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(330): warning C4305: аргумент: усечение из "int" к "uint8_t"
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(330): warning C4309: аргумент: усечение константного значения
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(361): warning C4305: аргумент: усечение из "int" к "uint8_t"
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(361): warning C4309: аргумент: усечение константного значения
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(389): warning C4305: аргумент: усечение из "int" к "uint8_t"
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(389): warning C4309: аргумент: усечение константного значения
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(417): warning C4305: аргумент: усечение из "int" к "uint8_t"
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(417): warning C4309: аргумент: усечение константного значения
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(451): warning C4305: аргумент: усечение из "int" к "uint8_t"
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(451): warning C4309: аргумент: усечение константного значения
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(493): warning C4305: аргумент: усечение из "int" к "uint8_t"
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(493): warning C4309: аргумент: усечение константного значения
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(524): warning C4305: аргумент: усечение из "int" к "uint8_t"
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(524): warning C4309: аргумент: усечение константного значения
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(553): warning C4305: аргумент: усечение из "int" к "uint8_t"
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(553): warning C4309: аргумент: усечение константного значения
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(582): warning C4305: аргумент: усечение из "int" к "uint8_t"
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(582): warning C4309: аргумент: усечение константного значения
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(628): warning C4305: аргумент: усечение из "int" к "uint8_t"
+     1>d:\development\settlers2\settlers2\simulationcore\settlement\settlementsystem.cpp(628): warning C4309: аргумент: усечение константного значения
+         SimpleTransportDriver.cpp
+         TransportTask.cpp
+         TransportController.cpp
+         ProductionSystem.cpp
+         JobManager.cpp
+         RenewableResourceSystem.cpp
+         ConsumptionSystem.cpp
+         EconomySystem.cpp
+         DemandManager.cpp
+         WorkerSystem.cpp
+         RegisterAll.cpp
+     1>d:\development\settlers2\settlers2\simulationcore\testing\scenarios\t50economicindependencetest.cpp(27): error C2084: функция "bool World::IsRenewable(World::ResourceType)" уже имеет текст реализации
+                 d:\development\settlers2\settlers2\simulationcore\testing\scenarios\t49economicreachabilitytest.cpp(23): см. предыдущее определение "IsRenewable"
+     1>d:\development\settlers2\settlers2\simulationcore\testing\scenarios\t50economicindependencetest.cpp(41): error C2084: функция "bool World::IsNoneOrZero(const World::ResourceAmount &)" уже имеет текст реализации
+                 d:\development\settlers2\settlers2\simulationcore\testing\scenarios\t49economicreachabilitytest.cpp(37): см. предыдущее определение "IsNoneOrZero"
+     1>d:\development\settlers2\settlers2\simulationcore\testing\scenarios\t50economicindependencetest.cpp(76): error C3861: IsRenewable: идентификатор не найден
+     1>d:\development\settlers2\settlers2\simulationcore\testing\scenarios\t50economicindependencetest.cpp(90): error C3861: IsNoneOrZero: идентификатор не найден
+     1>d:\development\settlers2\settlers2\simulationcore\testing\scenarios\t50economicindependencetest.cpp(162): error C3861: IsRenewable: идентификатор не найден
+     1>d:\development\settlers2\settlers2\simulationcore\testing\scenarios\t50economicindependencetest.cpp(184): error C3861: IsRenewable: идентификатор не найден
+     1>d:\development\settlers2\settlers2\simulationcore\testing\scenarios\t50economicindependencetest.cpp(198): error C3861: IsRenewable: идентификатор не найден
+         ScenarioRegistry.cpp
+         Simulation.cpp
+         WorkerDefinition.cpp
+         RenewableResourceDefinition.cpp
+         ConsumptionDefinition.cpp
+         ProductionDefinition.cpp
+         Создание кода...
+         Компиляция...
+         ResourceDefinition.cpp
+         BuildingDefinition.cpp
+         ConstructionSystem.cpp
+         Создание кода...
+     1>Построение проекта "D:\development\Settlers2\Settlers2\SimulationCore\SimulationCore.vcxproj" завершено (целевые объекты build) с ошибкой.
+
+СБОЙ построения.
+
+Затраченное время: 00:00:10.48

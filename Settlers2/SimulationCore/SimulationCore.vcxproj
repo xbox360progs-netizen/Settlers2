@@ -73,6 +73,7 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PreprocessorDefinitions>_DEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -83,6 +84,7 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PreprocessorDefinitions>NDEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Xbox 360'">
@@ -93,6 +95,7 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PreprocessorDefinitions>_DEBUG;_XBOX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Xbox 360'">
@@ -103,6 +106,7 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PreprocessorDefinitions>NDEBUG;_XBOX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -112,15 +116,21 @@
     <ClInclude Include="Definitions\BuildingDefinition.h" />
     <ClInclude Include="Definitions\ResourceDefinition.h" />
     <ClInclude Include="Definitions\ProductionDefinition.h" />
+    <ClInclude Include="Definitions\ConsumptionDefinition.h" />
+    <ClInclude Include="Definitions\RenewableResourceDefinition.h" />
     <ClInclude Include="Definitions\WorkerDefinition.h" />
     <ClInclude Include="Construction\ConstructionSystem.h" />
     <ClInclude Include="Core\BuildingTypes.h" />
+    <ClInclude Include="Core\DemandTypes.h" />
+    <ClInclude Include="Core\JobTypes.h" />
+    <ClInclude Include="Core\TreeSystem.h" />
     <ClInclude Include="Core\ProductionTypes.h" />
     <ClInclude Include="Core\WorkerTypes.h" />
     <ClInclude Include="Core\ResourceTypes.h" />
     <ClInclude Include="Core\ResourceDebug.h" />
     <ClInclude Include="Core\Handle.h" />
     <ClInclude Include="Core\Vector2i.h" />
+    <ClInclude Include="..\Platform\Lock.h" />
     <ClInclude Include="Interfaces\IRoadGraph.h" />
     <ClInclude Include="Interfaces\IFlagInventory.h" />
     <ClInclude Include="Interfaces\ICargoRepository.h" />
@@ -129,11 +139,16 @@
     <ClInclude Include="Simulation\SimulationConfig.h" />
     <ClInclude Include="Simulation\SimulationState.h" />
     <ClInclude Include="Systems\DemandManager.h" />
+    <ClInclude Include="Systems\ConsumptionSystem.h" />
+    <ClInclude Include="Systems\RenewableResourceSystem.h" />
     <ClInclude Include="Systems\EconomySystem.h" />
     <ClInclude Include="Systems\ISimulationSystem.h" />
     <ClInclude Include="Systems\JobManager.h" />
     <ClInclude Include="Testing\ISimulationScenario.h" />
     <ClInclude Include="Testing\ScenarioRegistry.h" />
+    <ClInclude Include="Testing\EconomicTestHelpers.h" />
+    <ClInclude Include="Testing\EconomyMetrics.h" />
+    <ClInclude Include="Testing\SoakHarness.h" />
     <ClInclude Include="Testing\Assertions\TransportAssertions.h" />
     <ClInclude Include="Testing\Assertions\ConstructionAssertions.h" />
     <ClInclude Include="Testing\Assertions\WorldAssertions.h" />
@@ -164,13 +179,18 @@
     <ClCompile Include="Definitions\BuildingDefinition.cpp" />
     <ClCompile Include="Definitions\ResourceDefinition.cpp" />
     <ClCompile Include="Definitions\ProductionDefinition.cpp" />
+    <ClCompile Include="Definitions\ConsumptionDefinition.cpp" />
+    <ClCompile Include="Definitions\RenewableResourceDefinition.cpp" />
     <ClCompile Include="Definitions\WorkerDefinition.cpp" />
     <ClCompile Include="Simulation\Simulation.cpp" />
     <ClCompile Include="Testing\ScenarioRegistry.cpp" />
+    <ClCompile Include="Testing\EconomyMetrics.cpp" />
     <ClCompile Include="Testing\Scenarios\RegisterAll.cpp" />
     <ClCompile Include="Worker\WorkerSystem.cpp" />
     <ClCompile Include="Systems\DemandManager.cpp" />
     <ClCompile Include="Systems\EconomySystem.cpp" />
+    <ClCompile Include="Systems\ConsumptionSystem.cpp" />
+    <ClCompile Include="Systems\RenewableResourceSystem.cpp" />
     <ClCompile Include="Systems\JobManager.cpp" />
     <ClCompile Include="Production\ProductionSystem.cpp" />
     <ClCompile Include="Transport\TransportController.cpp" />
@@ -178,6 +198,8 @@
     <ClCompile Include="Transport\SimpleTransportDriver.cpp" />
     <ClCompile Include="Settlement\SettlementSystem.cpp" />
     <ClCompile Include="Warehouse\WarehouseSystem.cpp" />
+    <ClCompile Include="..\Platform\Win32\Lock.cpp" Condition="'$(Platform)'=='Win32'" />
+    <ClCompile Include="..\Platform\Xbox360\Lock.cpp" Condition="'$(Platform)'=='Xbox 360'" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

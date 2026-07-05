@@ -1,0 +1,15 @@
+﻿Построение начато 05.07.2026 3:12:18.
+     1>Проект "D:\development\Settlers2\SimulationRunner\SimulationRunner.vcxproj" в узле 2 (целевые объекты build).
+     1>InitializeBuildStatus:
+         Создание "Release\SimulationRunner\SimulationRunner.unsuccessfulbuild", так как было задано "AlwaysCreate".
+       ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /I..\Settlers2 /Zi /nologo /W3 /WX- /O2 /Oy- /Gm- /MT /GS- /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\SimulationRunner\\" /Fd"Release\SimulationRunner\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt main.cpp
+         main.cpp
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"Release\SimulationRunner.exe" /NOLOGO /LIBPATH:..\Settlers2\SimulationCore\Release SimulationCore.lib /MANIFEST /ManifestFile:"Release\SimulationRunner\SimulationRunner.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /PDB:"D:\development\Settlers2\SimulationRunner\Release\SimulationRunner.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"Release\SimulationRunner.lib" /MACHINE:X86 Release\SimulationRunner\main.obj
+     1>LINK : fatal error LNK1181: не удается открыть входной файл "SimulationCore.lib"
+     1>Построение проекта "D:\development\Settlers2\SimulationRunner\SimulationRunner.vcxproj" завершено (целевые объекты build) с ошибкой.
+
+СБОЙ построения.
+
+Затраченное время: 00:00:01.49

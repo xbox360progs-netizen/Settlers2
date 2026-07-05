@@ -8,7 +8,7 @@
 #include "../../Definitions/BuildingDefinition.h"
 #include "../../Definitions/ProductionDefinition.h"
 #include "../../Systems/EconomySystem.h"
-#include "../../Systems/WarehouseSystem.h"
+#include "../../Warehouse/WarehouseSystem.h"
 #include "../../Construction/ConstructionSite.h"
 #include "../../Construction/ConstructionState.h"
 #include <stdio.h>

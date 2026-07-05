@@ -43,7 +43,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <ExceptionHandling>false</ExceptionHandling>
+      <ExceptionHandling>Sync</ExceptionHandling>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <AdditionalIncludeDirectories>..\Settlers2</AdditionalIncludeDirectories>
@@ -52,6 +52,8 @@
       <AdditionalLibraryDirectories>..\Settlers2\SimulationCore\Debug</AdditionalLibraryDirectories>
       <AdditionalDependencies>SimulationCore.lib</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
+      <LinkIncremental>false</LinkIncremental>
+      <EnableCOMDATFolding>false</EnableCOMDATFolding>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

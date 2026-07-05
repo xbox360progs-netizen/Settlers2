@@ -1,0 +1,1 @@
+#pragma once// Forwarding header Ú¿‘ canonical PlatformLock lives in SimulationCore/Core/.#include "../SimulationCore/Core/PlatformLock.h"

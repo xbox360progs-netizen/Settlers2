@@ -14,6 +14,7 @@ enum WeightType
 };
 
 #ifndef SIMCORE_RESOURCE_TYPES_H_
+#define SIMCORE_RESOURCE_TYPES_H_
 enum ResourceType
 {
     ResourceType_None = 0,

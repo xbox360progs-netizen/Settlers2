@@ -9,7 +9,7 @@
 #include "../../Definitions/ProductionDefinition.h"
 #include "../../Definitions/BuildingDefinition.h"
 #include "../../Systems/EconomySystem.h"
-#include "../../Systems/WarehouseSystem.h"
+#include "../../Warehouse/WarehouseSystem.h"
 #include "../../Systems/JobManager.h"
 #include <stdio.h>
 #include "../../Core/TreeSystem.h"

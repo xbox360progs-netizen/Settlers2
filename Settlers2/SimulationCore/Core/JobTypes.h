@@ -25,7 +25,7 @@ namespace World {
         JobId id;
         JobType type;
         JobState state;
-        uint8_t targetFlag;
+        uint16_t targetFlag;
         uint8_t buildingIndex;
         WorkerId worker;
         uint16_t duration;

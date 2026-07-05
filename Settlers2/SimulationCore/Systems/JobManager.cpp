@@ -19,7 +19,7 @@ namespace World {
         // Future: clean up stale jobs, republish, etc.
     }
 
-    JobId JobManager::CreateJob(JobType type, uint8_t targetFlag, uint8_t buildingIndex, uint16_t duration)
+    JobId JobManager::CreateJob(JobType type, uint16_t targetFlag, uint8_t buildingIndex, uint16_t duration)
     {
         if (m_jobCount >= kMaxJobs) return kInvalidJobId;
 

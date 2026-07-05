@@ -1,4 +1,5 @@
 #include "../../Testing/ISimulationScenario.h"
+#include "../../Testing/EconomicTestHelpers.h"
 #include "../../Definitions/ProductionDefinition.h"
 #include "../../Definitions/BuildingDefinition.h"
 #include "../../Core/ResourceTypes.h"
@@ -18,26 +19,6 @@ namespace World {
     //   2. Every producer's inputs are themselves reachable from renewables
     //   3. No cycles without a renewable source (detected by visited[] guard)
     //   4. No dangling resources (produced by none, consumed by none)
-
-    // Renewable resources are produced directly by the world, not by buildings
-    static bool IsRenewable(ResourceType r)
-    {
-        switch (r) {
-            case ResourceType_Wood:
-            case ResourceType_Fish:
-            case ResourceType_Meat:
-            case ResourceType_Wheat:
-            case ResourceType_Water:
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    static bool IsNoneOrZero(const ResourceAmount& ra)
-    {
-        return ra.resource == ResourceType_None || ra.amount <= 0;
-    }
 
     // Recursive reachability check.
     // visited[] prevents infinite loops on cycles (return false = cycle without source).

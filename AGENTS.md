@@ -989,3 +989,55 @@ The project focus shifts from infrastructure to AI behaviour quality:
 - Future: "How good is the simulation behaviour?"
 
 The architecture is no longer a constraint. It has become a foundation.
+
+## Platform Independence
+
+```
+SimulationCore не должен напрямую зависеть от Win32, Xbox SDK, Direct3D
+или других платформенных API.
+Любая платформенно-зависимая функциональность проходит через слой Platform/.
+Settlers2 отвечает за интеграцию платформенного слоя с игровым приложением.
+```
+
+### Структура Platform/
+
+```
+Platform/
+    Lock.h          — абстракция мьютекса (class Lock)
+    Thread.h        — (future)
+    Time.h          — (future)
+    Atomic.h        — (future)
+
+    Win32/
+        Lock.cpp    — CRITICAL_SECTION
+        Thread.cpp  — (future)
+        Time.cpp    — (future)
+
+    Xbox360/
+        Lock.cpp    — Xbox SDK critical section
+        Thread.cpp  — (future)
+        Time.cpp    — (future)
+```
+
+### Правила
+
+1. **SimulationCore никогда не включает `<windows.h>` или `<xbox.h>` напрямую.**
+2. Платформенный слой подключается через условную компиляцию в `.vcxproj`:
+   - Win32 → `Platform/Win32/Lock.cpp`
+   - Xbox 360 → `Platform/Xbox360/Lock.cpp`
+3. Новые платформенные зависимости (Thread, Time, Atomic) добавляются по тому же шаблону:
+   - единый заголовок в `Platform/`,
+   - по одной имплементации на платформу.
+4. `Settlers2.sln` использует `ProjectReference` → `SimulationCore` (не предсобранный .lib).
+5. `SimulationCore.sln` собирает ядро, тесты и раннер под `Win32` без Xbox SDK.
+
+### Избранные решения
+
+- **Lock.h** использует PIMPL (`struct Impl* m_impl`), чтобы скрыть платформенный тип
+  (CRITICAL_SECTION) из заголовка. Это позволяет SimulationCore не зависеть от
+  `<windows.h>` на уровне типов.
+- Методы названы `Acquire()`/`Release()` вместо `Lock()`/`Unlock()`, чтобы избежать
+  конфликта имён с макросом `Lock` в некоторых API.
+- Platform/ находится на одном уровне с SimulationCore/ и Settlers2/ (все три в
+  директории `Settlers2/` репозитория). Include path `..\` добавляется в
+  SimulationCore.vcxproj для доступа к `#include <Platform/Lock.h>`.

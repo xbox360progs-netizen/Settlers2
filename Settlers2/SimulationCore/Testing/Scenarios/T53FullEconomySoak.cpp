@@ -9,7 +9,7 @@
 #include "../../Core/ProductionTypes.h"
 #include "../../Core/TreeSystem.h"
 #include "../../Systems/EconomySystem.h"
-#include "../../Systems/WarehouseSystem.h"
+#include "../../Warehouse/WarehouseSystem.h"
 #include <stdio.h>
 
 namespace World {

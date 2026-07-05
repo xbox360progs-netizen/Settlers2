@@ -136,7 +136,7 @@ namespace World {
         int woodNeeded = 0;
         for (int i = 0; i < 4; ++i) {
             if (def.buildCost[i].resource == ResourceType_Wood) {
-                woodNeeded = def.buildCost[i].amount;
+                woodNeeded = def.buildCost[i].required;
                 break;
             }
         }
@@ -221,8 +221,8 @@ namespace World {
         const BuildingDefinition& bldDef = GetBuildingDefinition(toolBld);
         for (int i = 0; i < 4; ++i) {
             if (bldDef.buildCost[i].resource == ResourceType_None) continue;
-            if (bldDef.buildCost[i].amount <= 0) continue;
-            if (m_economySystem->GetAvailable(bldDef.buildCost[i].resource, world) < static_cast<int>(bldDef.buildCost[i].amount)) {
+            if (bldDef.buildCost[i].required <= 0) continue;
+            if (m_economySystem->GetAvailable(bldDef.buildCost[i].resource, world) < static_cast<int>(bldDef.buildCost[i].required)) {
                 return;
             }
         }
@@ -250,8 +250,8 @@ namespace World {
         const BuildingDefinition& bldDef = GetBuildingDefinition(bldType);
         for (int i = 0; i < 4; ++i) {
             if (bldDef.buildCost[i].resource == ResourceType_None) continue;
-            if (bldDef.buildCost[i].amount <= 0) continue;
-            if (m_economySystem->GetAvailable(bldDef.buildCost[i].resource, world) < static_cast<int>(bldDef.buildCost[i].amount)) {
+            if (bldDef.buildCost[i].required <= 0) continue;
+            if (m_economySystem->GetAvailable(bldDef.buildCost[i].resource, world) < static_cast<int>(bldDef.buildCost[i].required)) {
                 return;
             }
         }
@@ -279,8 +279,8 @@ namespace World {
         const BuildingDefinition& bldDef = GetBuildingDefinition(bldType);
         for (int i = 0; i < 4; ++i) {
             if (bldDef.buildCost[i].resource == ResourceType_None) continue;
-            if (bldDef.buildCost[i].amount <= 0) continue;
-            if (m_economySystem->GetAvailable(bldDef.buildCost[i].resource, world) < static_cast<int>(bldDef.buildCost[i].amount)) {
+            if (bldDef.buildCost[i].required <= 0) continue;
+            if (m_economySystem->GetAvailable(bldDef.buildCost[i].resource, world) < static_cast<int>(bldDef.buildCost[i].required)) {
                 return;
             }
         }
@@ -320,9 +320,9 @@ namespace World {
         const BuildingDefinition& bldDef = GetBuildingDefinition(foodBldType);
         for (int i = 0; i < 4; ++i) {
             if (bldDef.buildCost[i].resource == ResourceType_None) continue;
-            if (bldDef.buildCost[i].amount <= 0) continue;
+            if (bldDef.buildCost[i].required <= 0) continue;
             if (m_economySystem != NULL &&
-                m_economySystem->GetAvailable(bldDef.buildCost[i].resource, world) < static_cast<int>(bldDef.buildCost[i].amount)) {
+                m_economySystem->GetAvailable(bldDef.buildCost[i].resource, world) < static_cast<int>(bldDef.buildCost[i].required)) {
                 return;
             }
         }
@@ -351,8 +351,8 @@ namespace World {
                 bool canAfford = true;
                 for (int i = 0; i < 4; ++i) {
                     if (def.buildCost[i].resource == ResourceType_None) continue;
-                    if (def.buildCost[i].amount <= 0) continue;
-                    if (m_economySystem->GetAvailable(def.buildCost[i].resource, world) < static_cast<int>(def.buildCost[i].amount)) {
+                    if (def.buildCost[i].required <= 0) continue;
+                    if (m_economySystem->GetAvailable(def.buildCost[i].resource, world) < static_cast<int>(def.buildCost[i].required)) {
                         canAfford = false;
                         break;
                     }
@@ -379,8 +379,8 @@ namespace World {
                 bool canAfford = true;
                 for (int i = 0; i < 4; ++i) {
                     if (def.buildCost[i].resource == ResourceType_None) continue;
-                    if (def.buildCost[i].amount <= 0) continue;
-                    if (m_economySystem->GetAvailable(def.buildCost[i].resource, world) < static_cast<int>(def.buildCost[i].amount)) {
+                    if (def.buildCost[i].required <= 0) continue;
+                    if (m_economySystem->GetAvailable(def.buildCost[i].resource, world) < static_cast<int>(def.buildCost[i].required)) {
                         canAfford = false;
                         break;
                     }
@@ -407,8 +407,8 @@ namespace World {
                 bool canAfford = true;
                 for (int i = 0; i < 4; ++i) {
                     if (def.buildCost[i].resource == ResourceType_None) continue;
-                    if (def.buildCost[i].amount <= 0) continue;
-                    if (m_economySystem->GetAvailable(def.buildCost[i].resource, world) < static_cast<int>(def.buildCost[i].amount)) {
+                    if (def.buildCost[i].required <= 0) continue;
+                    if (m_economySystem->GetAvailable(def.buildCost[i].resource, world) < static_cast<int>(def.buildCost[i].required)) {
                         canAfford = false;
                         break;
                     }
@@ -441,8 +441,8 @@ namespace World {
                 bool canAfford = true;
                 for (int i = 0; i < 4; ++i) {
                     if (def.buildCost[i].resource == ResourceType_None) continue;
-                    if (def.buildCost[i].amount <= 0) continue;
-                    if (m_economySystem->GetAvailable(def.buildCost[i].resource, world) < static_cast<int>(def.buildCost[i].amount)) {
+                    if (def.buildCost[i].required <= 0) continue;
+                    if (m_economySystem->GetAvailable(def.buildCost[i].resource, world) < static_cast<int>(def.buildCost[i].required)) {
                         canAfford = false;
                         break;
                     }
@@ -479,8 +479,8 @@ namespace World {
                             bool canAfford = true;
                             for (int i = 0; i < 4; ++i) {
                                 if (def.buildCost[i].resource == ResourceType_None) continue;
-                                if (def.buildCost[i].amount <= 0) continue;
-                                if (m_economySystem->GetAvailable(def.buildCost[i].resource, world) < static_cast<int>(def.buildCost[i].amount)) {
+                                if (def.buildCost[i].required <= 0) continue;
+                                if (m_economySystem->GetAvailable(def.buildCost[i].resource, world) < static_cast<int>(def.buildCost[i].required)) {
                                     canAfford = false;
                                     break;
                                 }
@@ -514,8 +514,8 @@ namespace World {
                 bool canAfford = true;
                 for (int i = 0; i < 4; ++i) {
                     if (def.buildCost[i].resource == ResourceType_None) continue;
-                    if (def.buildCost[i].amount <= 0) continue;
-                    if (m_economySystem->GetAvailable(def.buildCost[i].resource, world) < static_cast<int>(def.buildCost[i].amount)) {
+                    if (def.buildCost[i].required <= 0) continue;
+                    if (m_economySystem->GetAvailable(def.buildCost[i].resource, world) < static_cast<int>(def.buildCost[i].required)) {
                         canAfford = false;
                         break;
                     }
@@ -543,8 +543,8 @@ namespace World {
                 bool canAfford = true;
                 for (int i = 0; i < 4; ++i) {
                     if (def.buildCost[i].resource == ResourceType_None) continue;
-                    if (def.buildCost[i].amount <= 0) continue;
-                    if (m_economySystem->GetAvailable(def.buildCost[i].resource, world) < static_cast<int>(def.buildCost[i].amount)) {
+                    if (def.buildCost[i].required <= 0) continue;
+                    if (m_economySystem->GetAvailable(def.buildCost[i].resource, world) < static_cast<int>(def.buildCost[i].required)) {
                         canAfford = false;
                         break;
                     }
@@ -572,8 +572,8 @@ namespace World {
                 bool canAfford = true;
                 for (int i = 0; i < 4; ++i) {
                     if (def.buildCost[i].resource == ResourceType_None) continue;
-                    if (def.buildCost[i].amount <= 0) continue;
-                    if (m_economySystem->GetAvailable(def.buildCost[i].resource, world) < static_cast<int>(def.buildCost[i].amount)) {
+                    if (def.buildCost[i].required <= 0) continue;
+                    if (m_economySystem->GetAvailable(def.buildCost[i].resource, world) < static_cast<int>(def.buildCost[i].required)) {
                         canAfford = false;
                         break;
                     }
@@ -619,8 +619,8 @@ namespace World {
         const BuildingDefinition& bldDef = GetBuildingDefinition(barracksBld);
         for (int i = 0; i < 4; ++i) {
             if (bldDef.buildCost[i].resource == ResourceType_None) continue;
-            if (bldDef.buildCost[i].amount <= 0) continue;
-            if (m_economySystem->GetAvailable(bldDef.buildCost[i].resource, world) < static_cast<int>(bldDef.buildCost[i].amount)) {
+            if (bldDef.buildCost[i].required <= 0) continue;
+            if (m_economySystem->GetAvailable(bldDef.buildCost[i].resource, world) < static_cast<int>(bldDef.buildCost[i].required)) {
                 return;
             }
         }

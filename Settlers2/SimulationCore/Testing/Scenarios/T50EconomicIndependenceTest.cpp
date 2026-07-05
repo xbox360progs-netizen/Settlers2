@@ -1,4 +1,5 @@
 #include "../../Testing/ISimulationScenario.h"
+#include "../../Testing/EconomicTestHelpers.h"
 #include "../../Definitions/ProductionDefinition.h"
 #include "../../Definitions/BuildingDefinition.h"
 #include "../../Core/ResourceTypes.h"
@@ -22,25 +23,6 @@ namespace World {
         const char* name;
         ProductionType members[8];
     };
-
-    static bool IsRenewable(ResourceType r)
-    {
-        switch (r) {
-            case ResourceType_Wood:
-            case ResourceType_Fish:
-            case ResourceType_Meat:
-            case ResourceType_Wheat:
-            case ResourceType_Water:
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    static bool IsNoneOrZero(const ResourceAmount& ra)
-    {
-        return ra.resource == ResourceType_None || ra.amount <= 0;
-    }
 
     // Check if a ProductionType is excluded
     static bool IsExcluded(ProductionType pt, const IndustryGroup& group)

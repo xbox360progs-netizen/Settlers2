@@ -54,6 +54,34 @@ namespace World {
         int snapshotCount;
     };
 
+    // Summary metrics for a single checkpoint (used by SoakHarness).
+    struct EconomyMetrics {
+        uint32_t tick;
+        int totalProduced[ResourceType_Count];
+        int totalConsumed[ResourceType_Count];
+        int flow[ResourceType_Count];
+        float potential[ResourceType_Count];
+        int stockpile[ResourceType_Count];
+        int outputBuffer[ResourceType_Count];
+        int buildingCount;
+        int idleWorkers;
+        int pendingRequests;
+    };
+
+    // Collect economy metrics from current simulation state.
+    EconomyMetrics CollectEconomyMetrics(
+        const WorldModel& world,
+        const EconomySystem* eco,
+        const WarehouseSystem* wh
+    );
+
+    // Report and check metrics — returns true if all invariants hold.
+    bool ReportAndCheckMetrics(
+        const EconomyMetrics& m,
+        uint32_t tick,
+        const char* name
+    );
+
     // Collect a full snapshot of the current economy state.
     EconomySnapshot CollectSnapshot(
         const WorldModel& world,

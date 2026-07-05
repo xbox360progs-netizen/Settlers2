@@ -104,6 +104,87 @@ namespace World {
         history.snapshotCount++;
     }
 
+    EconomyMetrics CollectEconomyMetrics(
+        const WorldModel& world,
+        const EconomySystem* eco,
+        const WarehouseSystem* wh)
+    {
+        EconomyMetrics m;
+        memset(m.totalProduced, 0, sizeof(m.totalProduced));
+        memset(m.totalConsumed, 0, sizeof(m.totalConsumed));
+        memset(m.flow, 0, sizeof(m.flow));
+        memset(m.potential, 0, sizeof(m.potential));
+        memset(m.stockpile, 0, sizeof(m.stockpile));
+        memset(m.outputBuffer, 0, sizeof(m.outputBuffer));
+
+        m.buildingCount = 0;
+        m.idleWorkers = 0;
+        m.pendingRequests = 0;
+
+        if (eco == NULL) return m;
+
+        for (int r = 1; r < static_cast<int>(ResourceType_Count); ++r) {
+            ResourceType rt = static_cast<ResourceType>(r);
+            m.totalProduced[r] = eco->GetTotalProduced(rt);
+            m.totalConsumed[r] = eco->GetTotalConsumed(rt);
+            m.flow[r] = eco->GetResourceFlow(rt);
+            m.potential[r] = eco->GetProductionPotential(rt, world);
+            m.stockpile[r] = (wh != NULL) ? wh->GetStockpileAmount(rt) : 0;
+            m.outputBuffer[r] = eco->GetAvailable(rt, world);
+        }
+
+        for (int i = 0; i < world.workerCount; ++i) {
+            if (world.workers[i].state == WorkerState_Idle) {
+                m.idleWorkers++;
+            }
+        }
+
+        m.pendingRequests = world.pendingRequestCount;
+
+        // Count active buildings
+        for (int i = 0; i < world.productionBuildingCount; ++i) {
+            if (world.productionBuildings[i].active) {
+                m.buildingCount++;
+            }
+        }
+
+        return m;
+    }
+
+    bool ReportAndCheckMetrics(
+        const EconomyMetrics& m,
+        uint32_t tick,
+        const char* name)
+    {
+        // Check essential resources were produced
+        ResourceType essentials[] = {
+            ResourceType_Wood, ResourceType_Planks,
+            ResourceType_Stone, ResourceType_Tools
+        };
+        bool ok = true;
+        for (int i = 0; i < 4; ++i) {
+            ResourceType rt = essentials[i];
+            if (m.totalProduced[rt] <= 0) {
+                printf("[FAIL][%s] No %s produced (tick=%u)\n",
+                    name, ResourceTypeToString(rt), tick);
+                ok = false;
+            }
+        }
+
+        // Check flow does not exceed potential
+        for (int r = 1; r < ResourceType_Count; ++r) {
+            ResourceType rt = static_cast<ResourceType>(r);
+            if (m.potential[r] <= 0.0f) continue;
+            int maxFlow = static_cast<int>(m.potential[r] * EconomySystem::kFlowWindow + 0.5f);
+            if (m.flow[r] > maxFlow) {
+                printf("[WARN][%s] Flow exceeds potential for %s: %d > %d (tick=%u)\n",
+                    name, ResourceTypeToString(rt), m.flow[r], maxFlow, tick);
+            }
+        }
+
+        return ok;
+    }
+
     static bool IsEssentialResource(ResourceType type)
     {
         return type == ResourceType_Wood ||

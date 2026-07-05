@@ -1,0 +1,50 @@
+﻿Построение начато 05.07.2026 3:56:13.
+     1>Проект "D:\development\Settlers2\Settlers2\SimulationCoreTests\SimulationCoreTests.vcxproj" в узле 2 (целевые объекты build).
+     1>InitializeBuildStatus:
+         Создание "Debug\Tests\SimulationCoreTests.unsuccessfulbuild", так как было задано "AlwaysCreate".
+       ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /I..\SimulationCore /Zi /nologo /W3 /WX- /Od /Oy- /D _CRT_SECURE_NO_WARNINGS /D _DEBUG /D _MBCS /Gm- /MTd /GS- /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\Tests\\" /Fd"Debug\Tests\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt TestRunner.cpp HandleTests.cpp TransportTaskTests.cpp TransportRouteTests.cpp TransportControllerVerification.cpp TransportLifecycleTest.cpp DemandManagerVerification.cpp ..\SimulationCore\Testing\EconomyMetrics.cpp main.cpp
+         TestRunner.cpp
+         HandleTests.cpp
+     1>C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\vector(753): warning C4530: Использован обработчик исключений C++, но семантика уничтожения объектов не включена. Задайте параметр /EHsc
+                 C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\vector(746): при компиляции функции-члена "void std::vector<_Ty>::reserve(unsigned int)" класса шаблон
+                 with
+                 [
+                     _Ty=World::HandleRegistry::Slot
+                 ]
+                 d:\development\settlers2\settlers2\simulationcoretests\../SimulationCore/Core/Handle.h(105): см. ссылку на создание экземпляров класса шаблон при компиляции "std::vector<_Ty>"
+                 with
+                 [
+                     _Ty=World::HandleRegistry::Slot
+                 ]
+         TransportTaskTests.cpp
+         TransportRouteTests.cpp
+         TransportControllerVerification.cpp
+         TransportLifecycleTest.cpp
+         DemandManagerVerification.cpp
+         EconomyMetrics.cpp
+         main.cpp
+         Создание кода...
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"D:\development\Settlers2\Debug\Tests\SimulationCoreTests.exe" /NOLOGO /LIBPATH:..\SimulationCore\Debug SimulationCore.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Debug\Tests\SimulationCoreTests.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /PDB:"D:\development\Settlers2\Debug\Tests\SimulationCoreTests.pdb" /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:\development\Settlers2\Debug\Tests\SimulationCoreTests.lib" /MACHINE:X86 Debug\Tests\TestRunner.obj
+         Debug\Tests\HandleTests.obj
+         Debug\Tests\TransportTaskTests.obj
+         Debug\Tests\TransportRouteTests.obj
+         Debug\Tests\TransportControllerVerification.obj
+         Debug\Tests\TransportLifecycleTest.obj
+         Debug\Tests\DemandManagerVerification.obj
+         Debug\Tests\EconomyMetrics.obj
+         Debug\Tests\main.obj
+         D:\development\Settlers2\Settlers2\SimulationCore\Debug\SimulationCore.lib
+     1>SimulationCore.lib(TransportController.obj) : warning LNK4075: не учитывается "/EDITANDCONTINUE" из-за спецификации "/OPT:ICF"
+         SimulationCoreTests.vcxproj -> D:\development\Settlers2\Debug\Tests\SimulationCoreTests.exe
+       Manifest:
+         C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /outputresource:"D:\development\Settlers2\Debug\Tests\SimulationCoreTests.exe;#1" /manifest Debug\Tests\SimulationCoreTests.exe.intermediate.manifest
+       FinalizeBuildStatus:
+         Файл "Debug\Tests\SimulationCoreTests.unsuccessfulbuild" удаляется.
+         Обращение к "Debug\Tests\SimulationCoreTests.lastbuildstate".
+     1>Построение проекта "D:\development\Settlers2\Settlers2\SimulationCoreTests\SimulationCoreTests.vcxproj" завершено (целевые объекты build).
+
+Построение успешно завершено.
+
+Затраченное время: 00:00:04.66
