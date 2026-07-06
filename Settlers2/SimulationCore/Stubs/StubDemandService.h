@@ -10,6 +10,11 @@ namespace World {
         {
             (void)observerTicketId;
         }
+        virtual void OnTaskCreated(uint32_t demandIndex, uint32_t taskId)
+        {
+            (void)demandIndex;
+            (void)taskId;
+        }
     };
 
 } // namespace World

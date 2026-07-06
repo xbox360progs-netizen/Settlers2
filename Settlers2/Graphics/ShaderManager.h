@@ -117,8 +117,6 @@ private:
 
     HRESULT LoadInternal(ShaderID id, const char* path, const char* technique);
 
-    CRITICAL_SECTION m_cs;
-    
     bool m_shaderBegan;  // Track if BeginShader was called
 };
 

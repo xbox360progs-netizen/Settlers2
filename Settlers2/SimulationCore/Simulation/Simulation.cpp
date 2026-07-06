@@ -13,6 +13,7 @@
 #include "../Systems/RenewableResourceSystem.h"
 #include "../Transport/TransportController.h"
 #include "../Transport/SimpleTransportDriver.h"
+#include "../Transport/LocalTransferSystem.h"
 #include "../World/WorldModel.h"
 #include "../Construction/ConstructionState.h"
 #include "../Stubs/DirectRouteRoadGraph.h"
@@ -79,6 +80,7 @@ namespace World {
 
         if (config.enableTreeDepletion) {
             m_renewableSystem = new RenewableResourceSystem();
+            m_renewableSystem->SetEnabled(true);
             AddSystem(m_renewableSystem);
         }
 
@@ -100,14 +102,6 @@ namespace World {
             AddSystem(m_productionSystem);
         }
 
-        if (config.enableWarehouse) {
-            m_warehouseSystem = new WarehouseSystem();
-            if (m_demandManager != NULL) {
-                m_warehouseSystem->SetDemandManager(m_demandManager);
-            }
-            AddSystem(m_warehouseSystem);
-        }
-
         if (config.enableWorkers) {
             m_jobManager = new JobManager();
             AddSystem(m_jobManager);
@@ -126,6 +120,18 @@ namespace World {
                 m_constructionSystem->SetJobManager(m_jobManager);
             }
             AddSystem(m_constructionSystem);
+        }
+
+        // LocalTransferSystem must tick before WarehouseSystem.
+        // WarehouseSystem observes TransportNode state, never ProductionBuilding buffers.
+        AddSystem(new LocalTransferSystem());
+
+        if (config.enableWarehouse) {
+            m_warehouseSystem = new WarehouseSystem();
+            if (m_demandManager != NULL) {
+                m_warehouseSystem->SetDemandManager(m_demandManager);
+            }
+            AddSystem(m_warehouseSystem);
         }
 
         if (config.enableSettlement) {
@@ -209,12 +215,9 @@ namespace World {
         ClearDeliveryEvents();
         ClearJobEvents();
 
-        // 3. Convert pending requests to transport tasks
-        ProcessTransportRequests();
-
-        // 4. Drive transport — advance tasks through carrier lifecycle
-        if (m_transportDriver) {
-            m_transportDriver->Tick(*m_world);
+        // 3. PR 3.8 — TransportController::Tick processes requests + drives carrier lifecycle
+        if (m_transport) {
+            m_transport->Tick(*m_world);
         }
 
         // 5. Capture economy telemetry from WorldModel
@@ -247,34 +250,11 @@ namespace World {
             m_workerSystem->CaptureJobEvents(*m_world);
         }
 
-        // 8. Transport — move cargo
+        // 8. Capture new delivery events for systems to consume on the next tick.
         if (m_transport) {
-            m_transport->Update(0.0f);
-            // Capture new delivery events for systems to consume on the next tick.
             CaptureDeliveryEvents();
             m_state.activeTransportTasks = m_transport->GetActiveTaskCount();
             m_state.blockedTransportTasks = m_transport->GetBlockedCount();
-        }
-    }
-
-    void Simulation::ProcessTransportRequests()
-    {
-        if (!m_world || !m_transport) return;
-
-        for (int i = 0; i < m_world->pendingRequestCount; ++i) {
-            TransportRequest& req = m_world->pendingRequests[i];
-            if (req.fulfilled) continue;
-
-            TransportTask* task = m_transport->CreateTask(
-                req.resource, req.origin, req.destination, req.reason);
-
-            if (task != NULL) {
-                req.fulfilled = true;
-                if (req.demandIndex != kNoDemand && m_demandManager != NULL) {
-                    task->observerTicketId = static_cast<uint32_t>(req.demandIndex) + 1;
-                    m_demandManager->OnTaskCreated(req.demandIndex, task->id);
-                }
-            }
         }
     }
 
@@ -313,6 +293,18 @@ namespace World {
     WorldModel& Simulation::GetWorld()
     {
         return *m_world;
+    }
+
+    int Simulation::GetCargoCount() const
+    {
+        if (m_transportDriver == NULL) return 0;
+        return m_transportDriver->GetCargoCount();
+    }
+
+    const Cargo* Simulation::GetCargoAt(int index) const
+    {
+        if (m_transportDriver == NULL) return NULL;
+        return m_transportDriver->GetCargoAt(index);
     }
 
 } // namespace World

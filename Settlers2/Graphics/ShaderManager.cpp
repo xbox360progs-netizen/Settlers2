@@ -25,7 +25,6 @@ ShaderManager::ShaderManager()
     }
     D3DXMatrixIdentity(&m_cachedView);
     D3DXMatrixIdentity(&m_cachedProj);
-    InitializeCriticalSection(&m_cs);
 }
 
 ShaderManager::~ShaderManager() {
@@ -48,7 +47,6 @@ void ShaderManager::Shutdown() {
     m_pActiveShader = NULL;
     m_pActiveEffect = NULL;
     m_shaderBegan = false;
-    DeleteCriticalSection(&m_cs);
 }
 
 HRESULT ShaderManager::LoadInternal(ShaderID id, const char* path, const char* technique) {

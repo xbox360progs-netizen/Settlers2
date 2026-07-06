@@ -1,0 +1,636 @@
+[log] Writing output to D:\development\Settlers2\t38_log.txt
+=== SimulationRunner — Scenario Mode ===
+
+[Transport] Queue f=0 cnt=1 best=1
+[Transport] Dispatch task=1 pri=200 age=0
+[Transport] Delivered task=1 type=Wood dest=flag10
+[Transport] Complete task=1 hops=1 transitions=4 dest=10
+[Transport] Queue f=0 cnt=1 best=2
+[Transport] Dispatch task=2 pri=200 age=0
+[Transport] Delivered task=2 type=Wood dest=flag10
+[Transport] Complete task=2 hops=1 transitions=4 dest=10
+[Transport] Queue f=0 cnt=1 best=3
+[Transport] Dispatch task=3 pri=200 age=0
+[Transport] Delivered task=3 type=Wood dest=flag10
+[Transport] Complete task=3 hops=1 transitions=4 dest=10
+[Transport] Queue f=0 cnt=2 best=4
+[Transport] Dispatch task=4 pri=200 age=0
+[Transport] Delivered task=4 type=Wood dest=flag150
+[Transport] Complete task=4 hops=1 transitions=4 dest=150
+[Transport] Queue f=0 cnt=1 best=5
+[Transport] Dispatch task=5 pri=200 age=0
+[Transport] Delivered task=5 type=Stone dest=flag150
+[Transport] Complete task=5 hops=1 transitions=4 dest=150
+[Transport] Queue f=0 cnt=2 best=6
+[Transport] Dispatch task=6 pri=200 age=0
+[Transport] Delivered task=6 type=Wood dest=flag150
+[Transport] Complete task=6 hops=1 transitions=4 dest=150
+[Transport] Queue f=0 cnt=1 best=7
+[Transport] Dispatch task=7 pri=200 age=0
+[Transport] Delivered task=7 type=Stone dest=flag150
+[Transport] Complete task=7 hops=1 transitions=4 dest=150
+[Transport] Queue f=0 cnt=2 best=8
+[Transport] Dispatch task=8 pri=200 age=0
+[Transport] Delivered task=8 type=Wood dest=flag150
+[Transport] Complete task=8 hops=1 transitions=4 dest=150
+[Transport] Queue f=0 cnt=1 best=9
+[Transport] Dispatch task=9 pri=200 age=0
+[Transport] Delivered task=9 type=Stone dest=flag150
+[Transport] Complete task=9 hops=1 transitions=4 dest=150
+[Transport] Queue f=0 cnt=1 best=10
+[Transport] Dispatch task=10 pri=200 age=0
+[Transport] Delivered task=10 type=Wood dest=flag150
+[Transport] Complete task=10 hops=1 transitions=4 dest=150
+[Transport] Queue f=0 cnt=1 best=11
+[Transport] Dispatch task=11 pri=200 age=0
+[Transport] Delivered task=11 type=Wood dest=flag150
+[Transport] Complete task=11 hops=1 transitions=4 dest=150
+[Transport] Queue f=0 cnt=1 best=12
+[Transport] Dispatch task=12 pri=200 age=0
+[Transport] Delivered task=12 type=Wood dest=flag150
+[Transport] Complete task=12 hops=1 transitions=4 dest=150
+[Transport] Queue f=0 cnt=1 best=13
+[Transport] Dispatch task=13 pri=200 age=0
+[Transport] Delivered task=13 type=Wood dest=flag150
+[Transport] Complete task=13 hops=1 transitions=4 dest=150
+[Transport] Queue f=0 cnt=1 best=14
+[Transport] Dispatch task=14 pri=200 age=0
+[Transport] Delivered task=14 type=Wood dest=flag150
+[Transport] Complete task=14 hops=1 transitions=4 dest=150
+[Transport] Queue f=0 cnt=1 best=15
+[Transport] Dispatch task=15 pri=200 age=0
+[Transport] Delivered task=15 type=Wood dest=flag150
+[Transport] Complete task=15 hops=1 transitions=4 dest=150
+[Transport] Queue f=0 cnt=1 best=16
+[Transport] Dispatch task=16 pri=200 age=0
+[Transport] Delivered task=16 type=Wood dest=flag150
+[Transport] Complete task=16 hops=1 transitions=4 dest=150
+[Transport] Queue f=0 cnt=2 best=17
+[Transport] Dispatch task=17 pri=200 age=0
+[Transport] Delivered task=17 type=Wood dest=flag150
+[Transport] Complete task=17 hops=1 transitions=4 dest=150
+[Transport] Queue f=0 cnt=1 best=18
+[Transport] Dispatch task=18 pri=200 age=0
+[Transport] Delivered task=18 type=Stone dest=flag150
+[Transport] Complete task=18 hops=1 transitions=4 dest=150
+[Transport] Queue f=0 cnt=2 best=19
+[Transport] Dispatch task=19 pri=200 age=0
+[Transport] Delivered task=19 type=Wood dest=flag150
+[Transport] Complete task=19 hops=1 transitions=4 dest=150
+[Transport] Queue f=0 cnt=1 best=20
+[Transport] Dispatch task=20 pri=200 age=0
+[Transport] Delivered task=20 type=Stone dest=flag150
+[Transport] Complete task=20 hops=1 transitions=4 dest=150
+[Transport] Queue f=0 cnt=2 best=21
+[Transport] Dispatch task=21 pri=200 age=0
+[Transport] Delivered task=21 type=Wood dest=flag150
+[Transport] Complete task=21 hops=1 transitions=4 dest=150
+[Transport] Queue f=0 cnt=1 best=22
+[Transport] Dispatch task=22 pri=200 age=0
+[Transport] Delivered task=22 type=Stone dest=flag150
+[Transport] Complete task=22 hops=1 transitions=4 dest=150
+[Transport] Queue f=0 cnt=1 best=23
+[Transport] Dispatch task=23 pri=200 age=0
+[Transport] Delivered task=23 type=Wood dest=flag150
+[Transport] Complete task=23 hops=1 transitions=4 dest=150
+[Transport] Queue f=0 cnt=1 best=24
+[Transport] Dispatch task=24 pri=200 age=0
+[Transport] Delivered task=24 type=Wood dest=flag150
+[Transport] Complete task=24 hops=1 transitions=4 dest=150
+[Transport] Queue f=0 cnt=1 best=25
+[Transport] Dispatch task=25 pri=200 age=0
+[Transport] Delivered task=25 type=Wood dest=flag150
+[Transport] Complete task=25 hops=1 transitions=4 dest=150
+[Transport] Queue f=0 cnt=1 best=26
+[Transport] Dispatch task=26 pri=200 age=0
+[Transport] Delivered task=26 type=Wood dest=flag150
+[Transport] Complete task=26 hops=1 transitions=4 dest=150
+[Transport] Queue f=0 cnt=1 best=27
+[Transport] Dispatch task=27 pri=200 age=0
+[Transport] Delivered task=27 type=Wood dest=flag150
+[Transport] Complete task=27 hops=1 transitions=4 dest=150
+[Transport] Queue f=0 cnt=1 best=28
+[Transport] Dispatch task=28 pri=200 age=0
+[Transport] Delivered task=28 type=Wood dest=flag150
+[Transport] Complete task=28 hops=1 transitions=4 dest=150
+[Transport] Queue f=0 cnt=1 best=29
+[Transport] Dispatch task=29 pri=200 age=0
+[Transport] Delivered task=29 type=Wood dest=flag150
+[Transport] Complete task=29 hops=1 transitions=4 dest=150
+[Transport] Queue f=0 cnt=1 best=30
+[Transport] Dispatch task=30 pri=200 age=0
+[Transport] Delivered task=30 type=Wood dest=flag350
+[Transport] Complete task=30 hops=1 transitions=4 dest=350
+[Transport] Queue f=0 cnt=1 best=31
+[Transport] Dispatch task=31 pri=200 age=0
+[Transport] Delivered task=31 type=Wood dest=flag350
+[Transport] Complete task=31 hops=1 transitions=4 dest=350
+[Transport] Queue f=0 cnt=4 best=32
+[Transport] Dispatch task=32 pri=200 age=0
+[Transport] Delivered task=32 type=Wood dest=flag350
+[Transport] Complete task=32 hops=1 transitions=4 dest=350
+[Transport] Queue f=0 cnt=3 best=33
+[Transport] Dispatch task=33 pri=200 age=0
+[Transport] Delivered task=33 type=Wood dest=flag300
+[Transport] Complete task=33 hops=1 transitions=4 dest=300
+[Transport] Queue f=0 cnt=2 best=34
+[Transport] Dispatch task=34 pri=200 age=0
+[Transport] Delivered task=34 type=Wood dest=flag310
+[Transport] Complete task=34 hops=1 transitions=4 dest=310
+[Transport] Queue f=0 cnt=1 best=35
+[Transport] Dispatch task=35 pri=200 age=0
+[Transport] Delivered task=35 type=Wood dest=flag360
+[Transport] Complete task=35 hops=1 transitions=4 dest=360
+[Transport] Queue f=0 cnt=4 best=36
+[Transport] Dispatch task=36 pri=200 age=0
+[Transport] Delivered task=36 type=Wood dest=flag350
+[Transport] Complete task=36 hops=1 transitions=4 dest=350
+[Transport] Queue f=0 cnt=3 best=37
+[Transport] Dispatch task=37 pri=200 age=0
+[Transport] Delivered task=37 type=Wood dest=flag300
+[Transport] Complete task=37 hops=1 transitions=4 dest=300
+[Transport] Queue f=0 cnt=2 best=38
+[Transport] Dispatch task=38 pri=200 age=0
+[Transport] Delivered task=38 type=Wood dest=flag310
+[Transport] Complete task=38 hops=1 transitions=4 dest=310
+[Transport] Queue f=0 cnt=1 best=39
+[Transport] Dispatch task=39 pri=200 age=0
+[Transport] Delivered task=39 type=Wood dest=flag360
+[Transport] Complete task=39 hops=1 transitions=4 dest=360
+[Transport] Queue f=0 cnt=3 best=40
+[Transport] Dispatch task=40 pri=200 age=0
+[Transport] Delivered task=40 type=Wood dest=flag300
+[Transport] Complete task=40 hops=1 transitions=4 dest=300
+[Transport] Queue f=0 cnt=2 best=41
+[Transport] Dispatch task=41 pri=200 age=0
+[Transport] Delivered task=41 type=Wood dest=flag310
+[Transport] Complete task=41 hops=1 transitions=4 dest=310
+[Transport] Queue f=0 cnt=1 best=42
+[Transport] Dispatch task=42 pri=200 age=0
+[Transport] Delivered task=42 type=Wood dest=flag360
+[Transport] Complete task=42 hops=1 transitions=4 dest=360
+[Transport] Queue f=0 cnt=3 best=43
+[Transport] Dispatch task=43 pri=200 age=0
+[Transport] Delivered task=43 type=Wood dest=flag300
+[Transport] Complete task=43 hops=1 transitions=4 dest=300
+[Transport] Queue f=0 cnt=2 best=44
+[Transport] Dispatch task=44 pri=200 age=0
+[Transport] Delivered task=44 type=Wood dest=flag310
+[Transport] Complete task=44 hops=1 transitions=4 dest=310
+[Transport] Queue f=0 cnt=1 best=45
+[Transport] Dispatch task=45 pri=200 age=0
+[Transport] Delivered task=45 type=Wood dest=flag360
+[Transport] Complete task=45 hops=1 transitions=4 dest=360
+[Transport] Queue f=0 cnt=3 best=46
+[Transport] Dispatch task=46 pri=200 age=0
+[Transport] Delivered task=46 type=Wood dest=flag300
+[Transport] Complete task=46 hops=1 transitions=4 dest=300
+[Transport] Queue f=0 cnt=2 best=47
+[Transport] Dispatch task=47 pri=200 age=0
+[Transport] Delivered task=47 type=Wood dest=flag310
+[Transport] Complete task=47 hops=1 transitions=4 dest=310
+[Transport] Queue f=0 cnt=1 best=48
+[Transport] Dispatch task=48 pri=200 age=0
+[Transport] Delivered task=48 type=Wood dest=flag360
+[Transport] Complete task=48 hops=1 transitions=4 dest=360
+[Transport] Queue f=0 cnt=3 best=49
+[Transport] Dispatch task=49 pri=200 age=0
+[Transport] Delivered task=49 type=Wood dest=flag300
+[Transport] Complete task=49 hops=1 transitions=4 dest=300
+[Transport] Queue f=0 cnt=2 best=50
+[Transport] Dispatch task=50 pri=200 age=0
+[Transport] Delivered task=50 type=Wood dest=flag310
+[Transport] Complete task=50 hops=1 transitions=4 dest=310
+[Transport] Queue f=0 cnt=1 best=51
+[Transport] Dispatch task=51 pri=200 age=0
+[Transport] Delivered task=51 type=Wood dest=flag360
+[Transport] Complete task=51 hops=1 transitions=4 dest=360
+[Transport] Queue f=0 cnt=1 best=52
+[Transport] Dispatch task=52 pri=200 age=0
+[Transport] Delivered task=52 type=Wood dest=flag10
+[Transport] Complete task=52 hops=1 transitions=4 dest=10
+[Transport] Queue f=0 cnt=1 best=53
+[Transport] Dispatch task=53 pri=200 age=0
+[Transport] Delivered task=53 type=Wood dest=flag10
+[Transport] Complete task=53 hops=1 transitions=4 dest=10
+[Transport] Queue f=0 cnt=1 best=54
+[Transport] Dispatch task=54 pri=200 age=0
+[Transport] Delivered task=54 type=Wood dest=flag10
+[Transport] Complete task=54 hops=1 transitions=4 dest=10
+[Transport] Queue f=0 cnt=1 best=55
+[Transport] Dispatch task=55 pri=100 age=0
+[Transport] Delivered task=55 type=Wood dest=flag102
+[Transport] Complete task=55 hops=1 transitions=4 dest=102
+[Transport] Queue f=0 cnt=1 best=56
+[Transport] Dispatch task=56 pri=100 age=0
+[Transport] Delivered task=56 type=Wood dest=flag102
+[Transport] Complete task=56 hops=1 transitions=4 dest=102
+[Transport] Queue f=0 cnt=1 best=57
+[Transport] Dispatch task=57 pri=100 age=0
+[Transport] Delivered task=57 type=Wood dest=flag102
+[Transport] Complete task=57 hops=1 transitions=4 dest=102
+[Transport] Queue f=0 cnt=1 best=58
+[Transport] Dispatch task=58 pri=100 age=0
+[Transport] Delivered task=58 type=Wood dest=flag102
+[Transport] Complete task=58 hops=1 transitions=4 dest=102
+[Transport] Queue f=0 cnt=1 best=59
+[Transport] Dispatch task=59 pri=100 age=0
+[Transport] Delivered task=59 type=Wood dest=flag102
+[Transport] Complete task=59 hops=1 transitions=4 dest=102
+[Transport] Queue f=0 cnt=1 best=60
+[Transport] Dispatch task=60 pri=100 age=0
+[Transport] Delivered task=60 type=Wood dest=flag102
+[Transport] Complete task=60 hops=1 transitions=4 dest=102
+[Transport] Queue f=0 cnt=1 best=61
+[Transport] Dispatch task=61 pri=200 age=0
+[Transport] Delivered task=61 type=Wood dest=flag10
+[Transport] Complete task=61 hops=1 transitions=4 dest=10
+[Transport] Queue f=0 cnt=1 best=62
+[Transport] Dispatch task=62 pri=200 age=0
+[Transport] Delivered task=62 type=Wood dest=flag10
+[Transport] Complete task=62 hops=1 transitions=4 dest=10
+[Transport] Queue f=0 cnt=1 best=63
+[Transport] Dispatch task=63 pri=200 age=0
+[Transport] Delivered task=63 type=Wood dest=flag10
+[Transport] Complete task=63 hops=1 transitions=4 dest=10
+[Transport] Queue f=0 cnt=1 best=64
+[Transport] Dispatch task=64 pri=100 age=0
+[Transport] Delivered task=64 type=Wood dest=flag117
+[Transport] Complete task=64 hops=1 transitions=4 dest=117
+[Transport] Queue f=0 cnt=1 best=65
+[Transport] Dispatch task=65 pri=100 age=0
+[Transport] Delivered task=65 type=Wood dest=flag117
+[Transport] Complete task=65 hops=1 transitions=4 dest=117
+[Transport] Queue f=0 cnt=1 best=66
+[Transport] Dispatch task=66 pri=100 age=0
+[Transport] Delivered task=66 type=Wood dest=flag102
+[Transport] Complete task=66 hops=1 transitions=4 dest=102
+[Transport] Queue f=0 cnt=1 best=67
+[Transport] Dispatch task=67 pri=100 age=0
+[Transport] Delivered task=67 type=Wood dest=flag102
+[Transport] Complete task=67 hops=1 transitions=4 dest=102
+[Transport] Queue f=0 cnt=1 best=68
+[Transport] Dispatch task=68 pri=100 age=0
+[Transport] Delivered task=68 type=Wood dest=flag118
+[Transport] Complete task=68 hops=1 transitions=4 dest=118
+[Transport] Queue f=0 cnt=1 best=69
+[Transport] Dispatch task=69 pri=100 age=0
+[Transport] Delivered task=69 type=Wood dest=flag118
+[Transport] Complete task=69 hops=1 transitions=4 dest=118
+[Transport] Queue f=0 cnt=2 best=70
+[Transport] Dispatch task=70 pri=200 age=0
+[Transport] Delivered task=70 type=Wood dest=flag370
+[Transport] Complete task=70 hops=1 transitions=4 dest=370
+[Transport] Queue f=0 cnt=1 best=71
+[Transport] Dispatch task=71 pri=200 age=0
+[Transport] Delivered task=71 type=Stone dest=flag370
+[Transport] Complete task=71 hops=1 transitions=4 dest=370
+[Transport] Queue f=0 cnt=1 best=72
+[Transport] Dispatch task=72 pri=200 age=0
+[Transport] Delivered task=72 type=Wood dest=flag370
+[Transport] Complete task=72 hops=1 transitions=4 dest=370
+[Transport] Queue f=0 cnt=1 best=73
+[Transport] Dispatch task=73 pri=200 age=0
+[Transport] Delivered task=73 type=Wood dest=flag370
+[Transport] Complete task=73 hops=1 transitions=4 dest=370
+[Transport] Queue f=0 cnt=6 best=74
+[Transport] Dispatch task=74 pri=200 age=0
+[Transport] Delivered task=74 type=Wood dest=flag370
+[Transport] Complete task=74 hops=1 transitions=4 dest=370
+[Transport] Queue f=0 cnt=5 best=75
+[Transport] Dispatch task=75 pri=200 age=0
+[Transport] Delivered task=75 type=Stone dest=flag370
+[Transport] Complete task=75 hops=1 transitions=4 dest=370
+[Transport] Queue f=0 cnt=4 best=76
+[Transport] Dispatch task=76 pri=200 age=0
+[Transport] Delivered task=76 type=Wood dest=flag500
+[Transport] Complete task=76 hops=1 transitions=4 dest=500
+[Transport] Queue f=0 cnt=3 best=77
+[Transport] Dispatch task=77 pri=200 age=0
+[Transport] Delivered task=77 type=Stone dest=flag500
+[Transport] Complete task=77 hops=1 transitions=4 dest=500
+[Transport] Queue f=0 cnt=2 best=78
+[Transport] Dispatch task=78 pri=200 age=0
+[Transport] Delivered task=78 type=Wood dest=flag320
+[Transport] Complete task=78 hops=1 transitions=4 dest=320
+[Transport] Queue f=0 cnt=1 best=79
+[Transport] Dispatch task=79 pri=200 age=0
+[Transport] Delivered task=79 type=Stone dest=flag320
+[Transport] Complete task=79 hops=1 transitions=4 dest=320
+[Transport] Queue f=0 cnt=6 best=81
+[Transport] Dispatch task=81 pri=200 age=0
+[Transport] Delivered task=81 type=Wood dest=flag370
+[Transport] Complete task=81 hops=1 transitions=4 dest=370
+[Transport] Queue f=0 cnt=5 best=82
+[Transport] Dispatch task=82 pri=200 age=0
+[Transport] Delivered task=82 type=Wood dest=flag500
+[Transport] Complete task=82 hops=1 transitions=4 dest=500
+[Transport] Queue f=0 cnt=4 best=83
+[Transport] Dispatch task=83 pri=200 age=0
+[Transport] Delivered task=83 type=Stone dest=flag500
+[Transport] Complete task=83 hops=1 transitions=4 dest=500
+[Transport] Queue f=0 cnt=3 best=84
+[Transport] Dispatch task=84 pri=200 age=0
+[Transport] Delivered task=84 type=Wood dest=flag320
+[Transport] Complete task=84 hops=1 transitions=4 dest=320
+[Transport] Queue f=0 cnt=2 best=85
+[Transport] Dispatch task=85 pri=200 age=0
+[Transport] Delivered task=85 type=Stone dest=flag320
+[Transport] Complete task=85 hops=1 transitions=4 dest=320
+[Transport] Queue f=0 cnt=1 best=80
+[Transport] Dispatch task=80 pri=100 age=0
+[Transport] Delivered task=80 type=Wood dest=flag117
+[Transport] Complete task=80 hops=1 transitions=4 dest=117
+[Transport] Queue f=0 cnt=6 best=87
+[Transport] Dispatch task=87 pri=200 age=0
+[Transport] Delivered task=87 type=Wood dest=flag370
+[Transport] Complete task=87 hops=1 transitions=4 dest=370
+[Transport] Queue f=0 cnt=5 best=88
+[Transport] Dispatch task=88 pri=200 age=0
+[Transport] Delivered task=88 type=Wood dest=flag500
+[Transport] Complete task=88 hops=1 transitions=4 dest=500
+[Transport] Queue f=0 cnt=4 best=89
+[Transport] Dispatch task=89 pri=200 age=0
+[Transport] Delivered task=89 type=Stone dest=flag500
+[Transport] Complete task=89 hops=1 transitions=4 dest=500
+[Transport] Queue f=0 cnt=3 best=90
+[Transport] Dispatch task=90 pri=200 age=0
+[Transport] Delivered task=90 type=Wood dest=flag320
+[Transport] Complete task=90 hops=1 transitions=4 dest=320
+[Transport] Queue f=0 cnt=2 best=91
+[Transport] Dispatch task=91 pri=200 age=0
+[Transport] Delivered task=91 type=Stone dest=flag320
+[Transport] Complete task=91 hops=1 transitions=4 dest=320
+[Transport] Queue f=0 cnt=1 best=86
+[Transport] Dispatch task=86 pri=100 age=0
+[Transport] Delivered task=86 type=Wood dest=flag117
+[Transport] Complete task=86 hops=1 transitions=4 dest=117
+[Transport] Queue f=0 cnt=2 best=93
+[Transport] Dispatch task=93 pri=200 age=0
+[Transport] Delivered task=93 type=Wood dest=flag320
+[Transport] Complete task=93 hops=1 transitions=4 dest=320
+[Transport] Queue f=0 cnt=1 best=92
+[Transport] Dispatch task=92 pri=100 age=0
+[Transport] Delivered task=92 type=Wood dest=flag102
+[Transport] Complete task=92 hops=1 transitions=4 dest=102
+[Transport] Queue f=0 cnt=3 best=95
+[Transport] Dispatch task=95 pri=200 age=0
+[Transport] Delivered task=95 type=Wood dest=flag320
+[Transport] Complete task=95 hops=1 transitions=4 dest=320
+[Transport] Queue f=0 cnt=2 best=96
+[Transport] Dispatch task=96 pri=200 age=0
+[Transport] Delivered task=96 type=Wood dest=flag380
+[Transport] Complete task=96 hops=1 transitions=4 dest=380
+[Transport] Queue f=0 cnt=1 best=94
+[Transport] Dispatch task=94 pri=100 age=0
+[Transport] Delivered task=94 type=Wood dest=flag102
+[Transport] Complete task=94 hops=1 transitions=4 dest=102
+[Transport] Queue f=0 cnt=2 best=97
+[Transport] Dispatch task=97 pri=200 age=0
+[Transport] Delivered task=97 type=Wood dest=flag320
+[Transport] Complete task=97 hops=1 transitions=4 dest=320
+[Transport] Queue f=0 cnt=1 best=98
+[Transport] Dispatch task=98 pri=200 age=0
+[Transport] Delivered task=98 type=Wood dest=flag380
+[Transport] Complete task=98 hops=1 transitions=4 dest=380
+[Transport] Queue f=0 cnt=1 best=99
+[Transport] Dispatch task=99 pri=200 age=0
+[Transport] Delivered task=99 type=Wood dest=flag380
+[Transport] Complete task=99 hops=1 transitions=4 dest=380
+[Transport] Queue f=0 cnt=1 best=100
+[Transport] Dispatch task=100 pri=100 age=0
+[Transport] Delivered task=100 type=Wood dest=flag118
+[Transport] Complete task=100 hops=1 transitions=4 dest=118
+[Transport] Queue f=0 cnt=1 best=101
+[Transport] Dispatch task=101 pri=100 age=0
+[Transport] Delivered task=101 type=Wood dest=flag118
+[Transport] Complete task=101 hops=1 transitions=4 dest=118
+[Transport] Queue f=0 cnt=4 best=102
+[Transport] Dispatch task=102 pri=200 age=0
+[Transport] Delivered task=102 type=Wood dest=flag500
+[Transport] Complete task=102 hops=1 transitions=4 dest=500
+[Transport] Queue f=0 cnt=3 best=103
+[Transport] Dispatch task=103 pri=200 age=0
+[Transport] Delivered task=103 type=Stone dest=flag500
+[Transport] Complete task=103 hops=1 transitions=4 dest=500
+[Transport] Queue f=0 cnt=2 best=104
+[Transport] Dispatch task=104 pri=200 age=0
+[Transport] Delivered task=104 type=Wood dest=flag320
+[Transport] Complete task=104 hops=1 transitions=4 dest=320
+[Transport] Queue f=0 cnt=1 best=105
+[Transport] Dispatch task=105 pri=200 age=0
+[Transport] Delivered task=105 type=Stone dest=flag320
+[Transport] Complete task=105 hops=1 transitions=4 dest=320
+[Transport] Queue f=0 cnt=6 best=106
+[Transport] Dispatch task=106 pri=200 age=0
+[Transport] Delivered task=106 type=Wood dest=flag500
+[Transport] Complete task=106 hops=1 transitions=4 dest=500
+[Transport] Queue f=0 cnt=5 best=107
+[Transport] Dispatch task=107 pri=200 age=0
+[Transport] Delivered task=107 type=Stone dest=flag500
+[Transport] Complete task=107 hops=1 transitions=4 dest=500
+[Transport] Queue f=0 cnt=4 best=108
+[Transport] Dispatch task=108 pri=200 age=0
+[Transport] Delivered task=108 type=Wood dest=flag320
+[Transport] Complete task=108 hops=1 transitions=4 dest=320
+[Transport] Queue f=0 cnt=3 best=109
+[Transport] Dispatch task=109 pri=200 age=0
+[Transport] Delivered task=109 type=Stone dest=flag320
+[Transport] Complete task=109 hops=1 transitions=4 dest=320
+[Transport] Queue f=0 cnt=2 best=110
+[Transport] Dispatch task=110 pri=100 age=0
+[Transport] Delivered task=110 type=Wood dest=flag121
+[Transport] Complete task=110 hops=1 transitions=4 dest=121
+[Transport] Queue f=0 cnt=1 best=111
+[Transport] Dispatch task=111 pri=100 age=0
+[Transport] Delivered task=111 type=Stone dest=flag121
+[Transport] Complete task=111 hops=1 transitions=4 dest=121
+[Transport] Queue f=0 cnt=5 best=112
+[Transport] Dispatch task=112 pri=200 age=0
+[Transport] Delivered task=112 type=Wood dest=flag500
+[Transport] Complete task=112 hops=1 transitions=4 dest=500
+[Transport] Queue f=0 cnt=4 best=113
+[Transport] Dispatch task=113 pri=200 age=0
+[Transport] Delivered task=113 type=Stone dest=flag500
+[Transport] Complete task=113 hops=1 transitions=4 dest=500
+[Transport] Queue f=0 cnt=3 best=114
+[Transport] Dispatch task=114 pri=200 age=0
+[Transport] Delivered task=114 type=Wood dest=flag320
+[Transport] Complete task=114 hops=1 transitions=4 dest=320
+[Transport] Queue f=0 cnt=2 best=115
+[Transport] Dispatch task=115 pri=200 age=0
+[Transport] Delivered task=115 type=Stone dest=flag320
+[Transport] Complete task=115 hops=1 transitions=4 dest=320
+[Transport] Queue f=0 cnt=1 best=116
+[Transport] Dispatch task=116 pri=100 age=0
+[Transport] Delivered task=116 type=Wheat dest=flag122
+[Transport] Complete task=116 hops=1 transitions=4 dest=122
+[Transport] Queue f=0 cnt=1 best=117
+[Transport] Dispatch task=117 pri=200 age=0
+[Transport] Delivered task=117 type=Wood dest=flag320
+[Transport] Complete task=117 hops=1 transitions=4 dest=320
+[Transport] Queue f=0 cnt=2 best=118
+[Transport] Dispatch task=118 pri=200 age=0
+[Transport] Delivered task=118 type=Wood dest=flag320
+[Transport] Complete task=118 hops=1 transitions=4 dest=320
+[Transport] Queue f=0 cnt=1 best=119
+[Transport] Dispatch task=119 pri=200 age=0
+[Transport] Delivered task=119 type=Wood dest=flag380
+[Transport] Complete task=119 hops=1 transitions=4 dest=380
+[Transport] Queue f=0 cnt=3 best=120
+[Transport] Dispatch task=120 pri=200 age=0
+[Transport] Delivered task=120 type=Wood dest=flag320
+[Transport] Complete task=120 hops=1 transitions=4 dest=320
+[Transport] Queue f=0 cnt=2 best=121
+[Transport] Dispatch task=121 pri=200 age=0
+[Transport] Delivered task=121 type=Wood dest=flag380
+[Transport] Complete task=121 hops=1 transitions=4 dest=380
+[Transport] Queue f=0 cnt=1 best=122
+[Transport] Dispatch task=122 pri=100 age=0
+[Transport] Delivered task=122 type=IronOre dest=flag123
+[Transport] Complete task=122 hops=1 transitions=4 dest=123
+[Transport] Queue f=0 cnt=1 best=123
+[Transport] Dispatch task=123 pri=200 age=0
+[Transport] Delivered task=123 type=Wood dest=flag380
+[Transport] Complete task=123 hops=1 transitions=4 dest=380
+[Transport] Queue f=0 cnt=2 best=124
+[Transport] Dispatch task=124 pri=100 age=0
+[Transport] Delivered task=124 type=Wood dest=flag124
+[Transport] Complete task=124 hops=1 transitions=4 dest=124
+[Transport] Queue f=0 cnt=1 best=125
+[Transport] Dispatch task=125 pri=100 age=0
+[Transport] Delivered task=125 type=Stone dest=flag124
+[Transport] Complete task=125 hops=1 transitions=4 dest=124
+[Transport] Queue f=0 cnt=1 best=126
+[Transport] Dispatch task=126 pri=200 age=0
+[Transport] Delivered task=126 type=Wood dest=flag330
+[Transport] Complete task=126 hops=1 transitions=4 dest=330
+[Transport] Queue f=0 cnt=1 best=127
+[Transport] Dispatch task=127 pri=200 age=0
+[Transport] Delivered task=127 type=Wood dest=flag330
+[Transport] Complete task=127 hops=1 transitions=4 dest=330
+[Transport] Queue f=0 cnt=1 best=128
+[Transport] Dispatch task=128 pri=200 age=0
+[Transport] Delivered task=128 type=Wood dest=flag330
+[Transport] Complete task=128 hops=1 transitions=4 dest=330
+
+=== [T38] Soak Complete: 50000 ticks ===
+  Final metrics:
+  Metrics collected: 50 checkpoints
+
+=== [T38] Economy Stability Report ===
+  Resource         Mean StdDev   CV%    Min    Max Streak  Status
+  ──────────────────────────────────────────────────────────────────
+  Wood              3.3    0.4  13.3      3      4     0  → Stable
+  Planks            0.0    0.0   0.0      0      0     0  → Stable
+  Fish              3.2    0.4  12.5      3      4     0  → Stable
+  Coal              3.2    0.4  12.5      3      4     0  → Stable
+  IronOre           3.2    0.4  12.5      3      4     0  → Stable
+  GoldOre           0.0    0.0   0.0      0      0     0  → Stable
+  IronBar           0.0    0.0   0.0      0      0     0  → Stable
+  GoldBar           0.0    0.0   0.0      0      0     0  → Stable
+  Stone             3.2    0.4  12.5      3      4     0  → Stable
+  Meat              3.2    0.4  12.5      3      4     0  → Stable
+  Wheat             3.2    0.4  12.5      3      4     0  → Stable
+  Flour             0.0    0.0   0.0      0      0     0  → Stable
+  Bread             0.0    0.0   0.0      0      0     0  → Stable
+  Water             0.0    0.0   0.0      0      0     0  → Stable
+  Tools             0.0    0.0   0.0      0      0     0  → Stable
+  Trap              0.0    0.0   0.0      0      0     0  → Stable
+  Field             0.0    0.0   0.0      0      0     0  → Stable
+  RealWood          0.0    0.0   0.0      0      0     0  → Stable
+  ExoticWood        0.0    0.0   0.0      0      0     0  → Stable
+  BronzeOre         0.0    0.0   0.0      0      0     0  → Stable
+  Marble            0.0    0.0   0.0      0      0     0  → Stable
+  Granite           0.0    0.0   0.0      0      0     0  → Stable
+  Titanium          0.0    0.0   0.0      0      0     0  → Stable
+  Salpeter          0.0    0.0   0.0      0      0     0  → Stable
+  DeerSpawner       0.0    0.0   0.0      0      0     0  → Stable
+  RabbitSpawner     0.0    0.0   0.0      0      0     0  → Stable
+  CrocodileSpawner    0.0    0.0   0.0      0      0     0  → Stable
+  SnakeSpawner      0.0    0.0   0.0      0      0     0  → Stable
+  WaterSource       0.0    0.0   0.0      0      0     0  → Stable
+  BronzeBar         0.0    0.0   0.0      0      0     0  → Stable
+  None              0.0    0.0   0.0      0      0     0  → Stable
+  None              0.0    0.0   0.0      0      0     0  → Stable
+
+
+=== [T38] Stability Propagation ===
+
+  Chain                                      Status         Pattern     
+  ──────────────────────────────────────────────────────────────────────────
+  Wood (Stable) → Planks                   Stable                     
+  Wheat (Stable) → Flour                   Stable                     
+  Flour (Stable) → Bread                   Stable                     
+  IronOre (Stable) → IronBar               Stable                     
+  Wood (Stable) → Tools                    Stable                     
+  Stone (Stable) → Tools                   Stable                     
+  IronBar (Stable) → None                  Stable                     
+  Coal (Stable) → None                     Stable                     
+  None (Stable) → None                     Stable                     
+
+  Root-cause analysis:
+    No stability propagation detected
+
+  Upstream contributors:
+    No upstream contributors detected
+
+  Cascade analysis:
+    No cascading instability detected
+
+
+=== [T38] Economy Snapshot Report over 50000 ticks ===
+  Checkpoints: 1000 2000 3000 4000 5000 6000 7000 8000 9000 10000 11000 12000 13000 14000 15000 16000 17000 18000 19000 20000 (20 snapshots)
+
+  Resource trends:
+    Wood         produced= +1225  flow=  3 (was   4)  stock=   0  [stable]
+    Planks       produced=    +0  flow=  0 (was   0)  stock=   0  [stable]
+    Fish         produced= +1226  flow=  3 (was   3)  stock=   0  [stable]
+    Coal         produced= +1226  flow=  3 (was   3)  stock=   0  [stable]
+    IronOre      produced= +1226  flow=  4 (was   3)  stock=   0  [stable]
+    GoldOre      produced=    +0  flow=  0 (was   0)  stock=   0  [stable]
+    IronBar      produced=    +0  flow=  0 (was   0)  stock=   0  [stable]
+    Stone        produced= +1226  flow=  3 (was   3)  stock=   0  [stable]
+    Meat         produced= +1226  flow=  3 (was   3)  stock=   0  [stable]
+    Wheat        produced= +1226  flow=  3 (was   3)  stock=   0  [stable]
+    Flour        produced=    +0  flow=  0 (was   0)  stock=   0  [stable]
+    Bread        produced=    +0  flow=  0 (was   0)  stock=   0  [stable]
+    Water        produced=    +0  flow=  0 (was   0)  stock=   0  [stable]
+    Tools        produced=    +0  flow=  0 (was   0)  stock=   0  [stable]
+    None         produced=    +0  flow=  0 (was   0)  stock=   0  [stable]
+    None         produced=    +0  flow=  0 (was   0)  stock=   0  [stable]
+
+  Building counts:
+    PT_1: count=2 active=2
+    PT_2: count=2 active=2
+    PT_3: count=3 active=3
+    PT_4: count=2 active=2
+    PT_5: count=2 active=2
+    PT_6: count=2 active=2
+    PT_7: count=2 active=2
+    PT_8: count=2 active=2
+    PT_9: count=1 active=1
+    PT_10: count=2 active=2
+    PT_11: count=2 active=2
+    PT_12: count=0 active=0
+    PT_13: count=2 active=2
+    PT_14: count=2 active=2
+    PT_15: count=0 active=0
+    PT_16: count=0 active=0
+    PT_17: count=0 active=0
+
+  Ecology:
+  [ 50000] Ecology: trees=500/1000  animals=0  fish=0
+
+  Supply crisis check:
+    No supply crises detected [PASS]
+
+  Workers & demand:
+    Idle workers: 10  Pending requests: 128
+
+[PASS][T38] Economy stable across 50000 ticks, 20 snapshots
+  Total produced: Wood=3217 Planks=9 Stone=3206 Tools=2
+[PASS][T38] All invariants held for 50000 ticks
+
+Final state:
+[SIM] tick=50000 transport_a=128 transport_b=0 econ_pend=0 econ_ful=128 constr_pend=36 constr_active=64 constr_done=0 world=loaded

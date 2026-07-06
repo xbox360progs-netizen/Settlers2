@@ -1,23 +1,21 @@
 #pragma once
 #include <vector>
 #include "RenderFlagResource.h"
+#include "../Presentation/Migration/IFlagSource.h"
 
-namespace World {
-    class FlagManager;
-}
+// Reads flag inventory from IFlagSource and produces RenderFlagResource DTOs
+// with world coords. ProjectionSystem later transforms to screen coords.
 
 namespace Scene {
 
-// Reads flag inventory from FlagManager and produces RenderFlagResource DTOs
-// with world coords. ProjectionSystem later transforms to screen coords.
 class FlagResourcePresentationSystem {
 public:
-    void SetFlagManager(World::FlagManager* mgr) { m_flagManager = mgr; }
+    void SetFlagSource(IFlagSource* source) { m_flagSource = source; }
 
     void BuildRenderFrame(std::vector<RenderFlagResource>& outResources);
 
 private:
-    World::FlagManager* m_flagManager;
+    IFlagSource* m_flagSource;
 };
 
 } // namespace Scene

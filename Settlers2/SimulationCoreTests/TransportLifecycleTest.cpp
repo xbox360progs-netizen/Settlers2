@@ -21,6 +21,7 @@ struct StubCargoRepository : public World::ICargoRepository {
 
 struct StubDemandService : public World::IDemandService {
     virtual void CompleteDemand(uint32_t) {}
+    virtual void OnTaskCreated(uint32_t, uint32_t) {}
 };
 
 struct StubRoadGraph_Direct : public World::IRoadGraph {

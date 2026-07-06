@@ -30,7 +30,7 @@ namespace World {
         pb.owner = 0;
         pb.cycleTimer = 0;
         pb.active = true;
-        pb.inputsRequested = false;
+        pb.inputsRequested = !hasWeapons;
 
         pb.inputResources[0] = ResourceType_Weapons;
         pb.inputRequired[0] = 1;

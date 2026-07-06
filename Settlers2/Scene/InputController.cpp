@@ -289,6 +289,13 @@ namespace Scene {
                     m_townHallPanelOpen = true;
                 }
             }
+            // X button → inspect entity at cursor (migration verification tool)
+            {
+                bool xPressed = pad->IsButtonPressed(Input::GP_X);
+                if (xPressed && m_host) {
+                    m_host->InspectAt(m_cursorTileX, m_cursorTileY);
+                }
+            }
             if (yPressed) {
                 bool skipFlagMenu = false;
                 if (m_map) {

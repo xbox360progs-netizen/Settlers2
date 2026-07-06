@@ -1,5 +1,8 @@
 #pragma once
-#include <xtl.h>
+
+#include "../Platform/Thread.h"
+#include "../Platform/Event.h"
+#include "../Platform/Atomic.h"
 
 typedef void (*JobFunction)(void*);
 
@@ -25,16 +28,16 @@ private:
     static const int QUEUE_SIZE = 256;
 
     Job m_jobs[QUEUE_SIZE];
-    volatile LONG m_head;
-    volatile LONG m_tail;
-    volatile LONG m_counter;
+    volatile long m_head;
+    volatile long m_tail;
+    volatile long m_counter;
 
     int m_numWorkers;
     struct WorkerThread
     {
         JobManager* owner;
-        HANDLE handle;
-        HANDLE wakeEvent;
+        Platform::Thread* thread;
+        Platform::Event* wakeEvent;
         volatile bool running;
         int processor;
     }* m_workers;
@@ -42,5 +45,5 @@ private:
     void Push(JobFunction func, void* data);
     bool TryPop(Job& job);
 
-    static DWORD WINAPI WorkerProc(LPVOID param);
+    static unsigned int __stdcall WorkerProc(void* param);
 };

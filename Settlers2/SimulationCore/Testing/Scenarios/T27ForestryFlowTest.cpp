@@ -55,6 +55,13 @@ public:
             pb.totalOutput[0] = 0;
         }
 
+        // Seed trees: 50 mature trees + 20 empty spots (Woodcutter has been cutting)
+        loadedWorld.treeMatureCount = 50;
+        loadedWorld.treeYoungCount = 10;
+        loadedWorld.treeSaplingCount = 5;
+        loadedWorld.treeStumpCount = 3;
+        loadedWorld.treeEmptySpots = 20;
+
         // Add 1 worker to execute construction jobs
         if (loadedWorld.workerCount < kMaxWorkers) {
             Worker& w = loadedWorld.workers[loadedWorld.workerCount++];
@@ -169,10 +176,10 @@ public:
         }
 
         if (!foundForesterJob) {
-            printf("[FAIL][T27.B] No Forester job created — flow-based decision failed\n");
+            printf("[FAIL][T27.B] No Forester job created — tree observation decision failed\n");
             ok = false;
         } else {
-            printf("[PASS][T27.B] Forester job created (Wood flow >= threshold)\n");
+            printf("[PASS][T27.B] Forester job created (emptySpots=%d > 5, tree observations)\n", world.treeEmptySpots);
         }
 
         // Check 3: Forester building exists (construction completed)
@@ -260,9 +267,9 @@ public:
         }
 
         if (ok) {
-            printf("[PASS] T27: Flow-based decision verified\n");
-            printf("  EconomySystem tracks production rate via GetResourceFlow()\n");
-            printf("  Settlement uses flow (not stock) to decide BootstrapForestry\n");
+            printf("[PASS] T27: Observation-based decision verified\n");
+            printf("  BootstrapForestry uses treeMatureCount and treeEmptySpots\n");
+            printf("  to decide when to build a Forester (tree observations, not flow)\n");
         }
         return ok;
     }

@@ -1,6 +1,8 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdarg.h>
 #include "../Settlers2/SimulationCore/Simulation/Simulation.h"
 #include "../Settlers2/SimulationCore/Simulation/SimulationConfig.h"
 #include "../Settlers2/SimulationCore/Simulation/SimulationState.h"
@@ -75,9 +77,33 @@ static int RunScenario(const char* name)
     return 0;
 }
 
+// Remove --log and its argument from argv. Returns the new argument count.
+static int RemoveLogArg(int argc, char* argv[])
+{
+    int originalArgc = argc;
+    for (int i = 1; i < originalArgc - 1; ++i) {
+        if (strcmp(argv[i], "--log") == 0) {
+            FILE* newStdout = freopen(argv[i + 1], "w", stdout);
+            if (newStdout != NULL) {
+                printf("[log] Writing output to %s\n", argv[i + 1]);
+            }
+            // Shift remaining args left by 2 to remove --log <path>
+            int shift = 2;
+            for (int j = i; j + shift < originalArgc; ++j) {
+                argv[j] = argv[j + shift];
+            }
+            argc -= 2;
+            break;
+        }
+    }
+    return argc;
+}
+
 int main(int argc, char* argv[])
 {
     World::RegisterAllScenarios();
+
+    argc = RemoveLogArg(argc, argv);
 
     if (argc > 1 && strcmp(argv[1], "--scenario") == 0) {
         if (argc > 2) {
@@ -90,8 +116,10 @@ int main(int argc, char* argv[])
 
     if (argc > 1 && strcmp(argv[1], "--help") == 0) {
         printf("Usage:\n");
-        printf("  SimulationRunner              — run default tick loop\n");
-        printf("  SimulationRunner --scenario T1 — run scenario\n");
+        printf("  SimulationRunner                        — run default tick loop\n");
+        printf("  SimulationRunner --log <file>           — with log file\n");
+        printf("  SimulationRunner --scenario <name>      — run scenario\n");
+        printf("  SimulationRunner --log <file> --scenario <name>  — both\n");
         World::ScenarioRegistry::ListAll();
         return 0;
     }

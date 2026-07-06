@@ -10,6 +10,9 @@
 
 namespace World {
 
+    // Forward declaration for static helper used in CompleteSites
+    static void AttachBuildingToTransportNode(WorldModel& world, int buildingIdx);
+
     ConstructionSystem::ConstructionSystem()
         : m_tickCount(0)
         , m_demandManager(NULL)
@@ -27,7 +30,6 @@ namespace World {
 
         ProcessDeliveryEvents(world);
         ProcessJobEvents(world);
-        GenerateRequests(world);
         ProcessRequests(world);
         UpdateSites(world, m_tickCount);
         CompleteSites(world);
@@ -55,19 +57,6 @@ namespace World {
             req.priority = 1;
             req.fulfilled = false;
         }
-    }
-
-    void ConstructionSystem::GenerateRequests(WorldModel& world)
-    {
-        if ((m_tickCount % 100) != 0) return;
-        if (world.pendingConstructionCount >= kMaxConstructionRequests) return;
-
-        ConstructionRequest& req = world.pendingConstructionRequests[world.pendingConstructionCount++];
-        req.type = BuildingType_Sawmill;
-        req.position = Vector2i(10 + (m_tickCount % 50), 10);
-        req.owner = 0;
-        req.priority = 1;
-        req.fulfilled = false;
     }
 
     void ConstructionSystem::ProcessRequests(WorldModel& world)
@@ -156,6 +145,8 @@ namespace World {
 
             world.productionBuildingCount++;
 
+            AttachBuildingToTransportNode(world, idx);
+
             // Remove site from activeSites by compacting
             for (int j = i; j < world.activeSiteCount - 1; ++j) {
                 world.activeSites[j] = world.activeSites[j + 1];
@@ -174,6 +165,8 @@ namespace World {
             for (int s = 0; s < world.activeSiteCount; ++s) {
                 ConstructionSite& site = world.activeSites[s];
                 if (site.state != CS_WaitingForResources) continue;
+
+                if (static_cast<FlagId>(site.position.x) != ev.destinationFlag) continue;
 
                 for (int r = 0; r < site.resourceCount; ++r) {
                     BuildResourceSlot& slot = site.resources[r];
@@ -210,7 +203,8 @@ namespace World {
             ConstructionSite& site = world.activeSites[i];
             if (site.state != CS_WaitingForResources) continue;
 
-            FlagId destFlag = 1 + i;
+            FlagId destFlag = static_cast<FlagId>(site.position.x);
+            if (destFlag == 0) destFlag = 1 + i;
 
             for (int r = 0; r < site.resourceCount; ++r) {
                 BuildResourceSlot& slot = site.resources[r];
@@ -224,5 +218,46 @@ namespace World {
             }
         }
     }
+
+static void AttachBuildingToTransportNode(WorldModel& world, int buildingIdx)
+{
+    ProductionBuilding& pb = world.productionBuildings[buildingIdx];
+
+    bool hasInputs = false;
+    bool hasOutputs = false;
+    ResourceType inputs[kMaxNodeInputs];
+    int inputCount = 0;
+
+    for (int i = 0; i < kMaxProductionInputs; ++i) {
+        if (pb.inputResources[i] != ResourceType_None) {
+            hasInputs = true;
+            if (inputCount < kMaxNodeInputs) {
+                inputs[inputCount++] = pb.inputResources[i];
+            }
+        }
+    }
+
+    for (int i = 0; i < kMaxProductionInputs; ++i) {
+        if (pb.outputResources[i] != ResourceType_None) {
+            hasOutputs = true;
+        }
+    }
+
+    if (!hasInputs && !hasOutputs) return;
+
+    AttachmentRole role = AR_Consumer;
+    if (hasInputs && hasOutputs) {
+        role = AR_ProducerConsumer;
+    } else if (hasOutputs) {
+        role = AR_Producer;
+    }
+
+    if (world.transportNodeCount >= kMaxTransportNodes) return;
+
+    TransportNode& node = world.transportNodes[world.transportNodeCount];
+    node.id = static_cast<uint8_t>(world.transportNodeCount);
+    node.AttachBuilding(static_cast<uint8_t>(buildingIdx), inputs, inputCount, role);
+    world.transportNodeCount++;
+}
 
 } // namespace World

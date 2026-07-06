@@ -1,21 +1,20 @@
 #pragma once
 #include "../Shared/RenderFrame.h"
+#include "../Presentation/Migration/IBuildingSource.h"
+#include "../Presentation/Migration/IFlagSource.h"
 
-namespace World {
-    class FlagManager;
-    class ConstructionManager;
-}
+// Produces RenderBuilding DTOs from IBuildingSource, IConstructionSiteSource,
+// and IFlagSource. Called once per frame from GameScene::Update().
+// Covers flags, completed buildings, and construction sites.
 
 namespace Scene {
 
-// Reads FlagManager + ConstructionManager to produce RenderBuilding DTOs.
-// Called once per frame from GameScene::Update().
-// Covers flags, completed buildings, and construction sites.
 class BuildingPresentationSystem {
 public:
-    void SetManagers(
-        World::FlagManager* flagManager,
-        World::ConstructionManager* constructionManager
+    void SetSources(
+        IFlagSource* flagSource,
+        IBuildingSource* buildingSource,
+        IConstructionSiteSource* constructionSiteSource
     );
 
     void BuildRenderFrame(RenderFrame& frame);
@@ -25,8 +24,9 @@ private:
     void CollectBuildings(std::vector<RenderBuilding>& out);
     void CollectConstructionSites(std::vector<RenderBuilding>& out);
 
-    World::FlagManager*         m_flagManager;
-    World::ConstructionManager* m_constructionManager;
+    IFlagSource*            m_flagSource;
+    IBuildingSource*        m_buildingSource;
+    IConstructionSiteSource* m_constructionSiteSource;
 };
 
 } // namespace Scene

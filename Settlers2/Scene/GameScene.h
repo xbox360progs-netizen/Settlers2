@@ -12,6 +12,9 @@
 #include "../World/EntityManager.h"
 #include "../World/Systems/AnimalSystem.h"
 #include "../World/Systems/SimulationSystem.h"
+#include "../../SimulationCore/Simulation/Simulation.h"
+#include "../../SimulationCore/Simulation/SimulationConfig.h"
+#include "../../SimulationCore/World/WorldModel.h"
 #include "../Logic/EconomyManager.h"
 #include "../World/CarrierManager.h"
 #include "../World/Systems/CarrierSystem.h"
@@ -77,8 +80,17 @@
 #include "UI/MenuPresentationSystem.h"
 #include "Overlays/WorkSitePresentationSystem.h"
 #include "Resources/GroundResourcePresentationSystem.h"
-#include "Workers/WorkerPresentationSystem.h"
+#include "Workers/BuildingWorkerPresentation.h"
+#include "Transport/CarrierPresentation.h"
 #include "Projection/ProjectionSystem.h"
+
+// ─── Migration adapter layer (temporary — being removed as PresentationSystems migrate) ───
+#include "Presentation/Migration/LegacyBuildingSource.h"
+#include "Presentation/Migration/LegacyFlagSource.h"
+#include "Presentation/Migration/SimulationCoreBuildingSource.h"
+#include "Presentation/Migration/SimulationCoreWorkerSource.h"
+#include "Presentation/Migration/LegacyCarrierSource.h"
+#include "Presentation/Migration/Inspector.h"
 
 namespace Scene {
 
@@ -111,6 +123,7 @@ public:
     virtual void DeleteFlagAt(int tileX, int tileY);
     virtual void OnMountainTileAction(int tileX, int tileY);
     virtual void CancelGeologist();
+    virtual void InspectAt(int tileX, int tileY);
 
     // IGeologistHost
     virtual void SetGeologistMenuActive(bool active);
@@ -119,6 +132,9 @@ private:
 	 // Command Handlers
       Handlers::BuildingCommandHandler* m_buildingCommandHandler;
       Handlers::ResourceCommandHandler* m_resourceCommandHandler;
+
+    // ─── Simulation core (new architecture) ─────────────────
+    World::Simulation m_simulationCore;
 
     // ─── Simulation system (owns game logic subsystems) ──────
     World::SimulationSystem m_simulation;
@@ -259,7 +275,16 @@ private:
     MenuPresentationSystem m_menuPresentationSystem;
     WorkSitePresentationSystem m_workSitePresentationSystem;
     GroundResourcePresentationSystem m_groundResourcePresentationSystem;
-    WorkerPresentationSystem m_workerPresentationSystem;
+    BuildingWorkerPresentation m_buildingWorkerPresentation;
+    CarrierPresentation       m_carrierPresentation;
+
+    // ─── Migration adapter sources (temporary — remove after Legacy*Source deleted) ───
+    LegacyBuildingSource         m_legacyBuildingSource;
+    LegacyFlagSource            m_legacyFlagSource;
+    SimulationCoreBuildingSource m_simulationCoreBuildingSource;
+    SimulationCoreWorkerSource   m_simulationCoreWorkerSource;
+    LegacyCarrierSource          m_legacyCarrierSource;
+    Inspector                    m_inspector;
     ProjectionSystem m_projectionSystem;
 
     // Job data (reused each frame)

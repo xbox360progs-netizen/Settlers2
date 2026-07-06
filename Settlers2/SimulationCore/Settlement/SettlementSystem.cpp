@@ -17,7 +17,11 @@ namespace World {
         , m_economySystem(NULL)
         , m_tickCount(0)
         , m_hasMineFoodRule(false)
+        , m_eventCount(0)
     {
+        for (int i = 0; i < kMaxEvents; ++i) {
+            m_events[i] = ExpansionEvent();
+        }
     }
 
     SettlementSystem::~SettlementSystem()
@@ -30,6 +34,7 @@ namespace World {
 
         BootstrapProduction(world);
         BootstrapIndustry(world);
+        BootstrapAgriculture(world);
         BootstrapInfrastructure(world);
         BootstrapMining(world);
         BootstrapForestry(world);
@@ -37,7 +42,6 @@ namespace World {
         BootstrapHunter(world);
         BootstrapFisher(world);
         BootstrapMiningExpanded(world);
-        BootstrapAgriculture(world);
         BootstrapMetallurgy(world);
         BootstrapMilitary(world);
     }
@@ -54,6 +58,7 @@ namespace World {
         if (m_jobManager == NULL) return;
 
         // Encode building type in buildingIndex field
+        RecordEvent(ER_Bootstrap_Woodcutter, BuildingType_Woodcutter, world);
         m_jobManager->CreateJob(JobType_Construction, 100, (uint8_t)BuildingType_Woodcutter, 10);
     }
 
@@ -68,6 +73,7 @@ namespace World {
             !HasPendingJob(BuildingType_Sawmill, world))
         {
             if (m_economySystem->GetAvailable(ResourceType_Wood, world) < kWoodForSawmill) return;
+            RecordEvent(ER_First_Sawmill, BuildingType_Sawmill, world);
             m_jobManager->CreateJob(JobType_Construction, 200, (uint8_t)BuildingType_Sawmill, 10);
             return;
         }
@@ -90,6 +96,7 @@ namespace World {
         float woodPerTick = (float)m_economySystem->GetResourceFlow(ResourceType_Wood) / EconomySystem::kFlowWindow;
         if (woodPerTick <= flowPerTick * 2.0f + 0.001f) return;
 
+        RecordEvent(ER_Expand_Sawmill, BuildingType_Sawmill, world);
         m_jobManager->CreateJob(JobType_Construction, 200, (uint8_t)BuildingType_Sawmill, 10);
     }
 
@@ -110,6 +117,7 @@ namespace World {
         }
         if (!hasProducer) return;
 
+        RecordEvent(ER_Bootstrap_Storehouse, BuildingType_Storehouse, world);
         m_jobManager->CreateJob(JobType_Construction, 150, (uint8_t)BuildingType_Storehouse, 10);
     }
 
@@ -142,6 +150,7 @@ namespace World {
         }
         if (m_economySystem->GetAvailable(ResourceType_Wood, world) < woodNeeded) return;
 
+        RecordEvent(ER_First_Quarry, bldType, world);
         m_jobManager->CreateJob(JobType_Construction, 300, (uint8_t)bldType, 10);
     }
 
@@ -169,6 +178,7 @@ namespace World {
         // Rule 1: No Forester at all → build first one if there's room to plant
         if (fCount == 0) {
             if (emptySpots > 5) {
+                RecordEvent(ER_First_Forester, BuildingType_Forester, world);
                 m_jobManager->CreateJob(JobType_Construction, 400, (uint8_t)BuildingType_Forester, 10);
             }
             return;
@@ -177,12 +187,14 @@ namespace World {
         // Rule 2: Build additional Foresters if empty spots are accumulating
         // (signals cutting exceeds planting capacity) and more cutters than planters.
         if (emptySpots > 15 && wcCount > fCount && fCount < 3) {
+            RecordEvent(ER_Expand_Forester, BuildingType_Forester, world);
             m_jobManager->CreateJob(JobType_Construction, 400, (uint8_t)BuildingType_Forester, 10);
             return;
         }
 
         // Rule 3: Emergency — very few mature trees but room for planting
         if (matureTrees < 5 && emptySpots > 10 && fCount < 2) {
+            RecordEvent(ER_Emergency_Forester, BuildingType_Forester, world);
             m_jobManager->CreateJob(JobType_Construction, 400, (uint8_t)BuildingType_Forester, 10);
             return;
         }
@@ -227,6 +239,7 @@ namespace World {
             }
         }
 
+        RecordEvent(ER_First_Toolmaker, toolBld, world);
         m_jobManager->CreateJob(JobType_Construction, 500, (uint8_t)toolBld, 10);
     }
 
@@ -256,6 +269,7 @@ namespace World {
             }
         }
 
+        RecordEvent(ER_First_Hunter, bldType, world);
         m_jobManager->CreateJob(JobType_Construction, 350, (uint8_t)bldType, 10);
     }
 
@@ -285,6 +299,7 @@ namespace World {
             }
         }
 
+        RecordEvent(ER_First_Fisher, bldType, world);
         m_jobManager->CreateJob(JobType_Construction, 350, (uint8_t)bldType, 10);
     }
 
@@ -327,6 +342,7 @@ namespace World {
             }
         }
 
+        RecordEvent(ER_Mine_Food, foodBldType, world);
         m_jobManager->CreateJob(JobType_Construction, 350, (uint8_t)foodBldType, 10);
         m_hasMineFoodRule = true;
     }
@@ -358,6 +374,7 @@ namespace World {
                     }
                 }
                 if (canAfford) {
+                    RecordEvent(ER_First_Farm, bld, world);
                     m_jobManager->CreateJob(JobType_Construction, 310, (uint8_t)bld, 10);
                     return;
                 }
@@ -386,6 +403,7 @@ namespace World {
                     }
                 }
                 if (canAfford) {
+                    RecordEvent(ER_First_Mill, bld, world);
                     m_jobManager->CreateJob(JobType_Construction, 320, (uint8_t)bld, 10);
                     return;
                 }
@@ -409,11 +427,17 @@ namespace World {
                     if (def.buildCost[i].resource == ResourceType_None) continue;
                     if (def.buildCost[i].required <= 0) continue;
                     if (m_economySystem->GetAvailable(def.buildCost[i].resource, world) < static_cast<int>(def.buildCost[i].required)) {
-                        canAfford = false;
-                        break;
+                        // Use total produced as proxy when output buffer is drained
+                        // by high construction demand (Sawmills consume all available Wood).
+                        if (def.buildCost[i].resource != ResourceType_Wood ||
+                            m_economySystem->GetTotalProduced(ResourceType_Wood) < static_cast<int>(def.buildCost[i].required)) {
+                            canAfford = false;
+                            break;
+                        }
                     }
                 }
                 if (canAfford) {
+                    RecordEvent(ER_First_Bakery, bld, world);
                     m_jobManager->CreateJob(JobType_Construction, 330, (uint8_t)bld, 10);
                     return;
                 }
@@ -448,6 +472,7 @@ namespace World {
                     }
                 }
                 if (canAfford) {
+                    RecordEvent(ER_First_CoalMine, bld, world);
                     m_jobManager->CreateJob(JobType_Construction, 360, (uint8_t)bld, 10);
                     return;
                 }
@@ -490,6 +515,7 @@ namespace World {
 
                             // Feed into signal accumulator (3 consecutive windows = ~3000 ticks)
                             if (m_coalSignal.Update(saturated, 3, 1000)) {
+                                RecordEvent(ER_Expand_CoalMine, coalBld, world);
                                 m_jobManager->CreateJob(JobType_Construction, 360, (uint8_t)coalBld, 10);
                                 m_coalSignal.Reset();
                             }
@@ -521,6 +547,7 @@ namespace World {
                     }
                 }
                 if (canAfford) {
+                    RecordEvent(ER_First_IronMine, bld, world);
                     m_jobManager->CreateJob(JobType_Construction, 370, (uint8_t)bld, 10);
                     return;
                 }
@@ -550,13 +577,14 @@ namespace World {
                     }
                 }
                 if (canAfford) {
+                    RecordEvent(ER_First_IronSmelter, bld, world);
                     m_jobManager->CreateJob(JobType_Construction, 380, (uint8_t)bld, 10);
                     return;
                 }
             }
         }
 
-        // Rule 4: Build WeaponSmith (IronBar + Coal → Weapons) — only if both inputs exist
+        // Rule 4: Build WeaponSmith (IronBar + Coal → Weapons)
         {
             ProductionType ironProd = GetProducer(ResourceType_IronBar);
             BuildingType ironSmlBld = GetBuildingTypeForProduction(ironProd);
@@ -574,11 +602,16 @@ namespace World {
                     if (def.buildCost[i].resource == ResourceType_None) continue;
                     if (def.buildCost[i].required <= 0) continue;
                     if (m_economySystem->GetAvailable(def.buildCost[i].resource, world) < static_cast<int>(def.buildCost[i].required)) {
-                        canAfford = false;
-                        break;
+                        // Use total produced as proxy when output buffer is drained
+                        if (def.buildCost[i].resource != ResourceType_Wood ||
+                            m_economySystem->GetTotalProduced(ResourceType_Wood) < static_cast<int>(def.buildCost[i].required)) {
+                            canAfford = false;
+                            break;
+                        }
                     }
                 }
                 if (canAfford) {
+                    RecordEvent(ER_First_WeaponSmith, bld, world);
                     m_jobManager->CreateJob(JobType_Construction, 390, (uint8_t)bld, 10);
                     return;
                 }
@@ -621,10 +654,15 @@ namespace World {
             if (bldDef.buildCost[i].resource == ResourceType_None) continue;
             if (bldDef.buildCost[i].required <= 0) continue;
             if (m_economySystem->GetAvailable(bldDef.buildCost[i].resource, world) < static_cast<int>(bldDef.buildCost[i].required)) {
-                return;
+                // Use total produced as proxy when output buffer is drained
+                if (bldDef.buildCost[i].resource != ResourceType_Wood ||
+                    m_economySystem->GetTotalProduced(ResourceType_Wood) < static_cast<int>(bldDef.buildCost[i].required)) {
+                    return;
+                }
             }
         }
 
+        RecordEvent(ER_First_Barracks, barracksBld, world);
         m_jobManager->CreateJob(JobType_Construction, 600, (uint8_t)barracksBld, 10);
     }
 
@@ -647,13 +685,65 @@ namespace World {
     bool SettlementSystem::HasPendingJob(BuildingType type, const WorldModel& world) const
     {
         if (m_jobManager == NULL) return false;
-        // Check all existing jobs for a Build-<type> job
+
+        bool hasActiveJob = false;
+        bool hasCompletedJob = false;
         for (int i = 0; i < m_jobManager->GetJobCount(); ++i) {
             const Job& job = m_jobManager->GetJob(i);
-            if (job.state == JobState_Completed) continue;
-            if (job.type == JobType_Construction && job.buildingIndex == (uint8_t)type) return true;
+            if (job.type != JobType_Construction || job.buildingIndex != (uint8_t)type) continue;
+            if (job.state == JobState_Completed) {
+                hasCompletedJob = true;
+            } else {
+                hasActiveJob = true;
+            }
+        }
+        if (hasActiveJob) return true;
+
+        // A completed job without a matching site or building means the pipeline
+        // is in the gap between job completion and site creation (1 tick).
+        // Treat as pending to prevent duplicate construction decisions.
+        if (hasCompletedJob) {
+            bool hasSite = false;
+            for (int s = 0; s < world.activeSiteCount; ++s) {
+                if (world.activeSites[s].type == type) { hasSite = true; break; }
+            }
+            bool hasBuilding = false;
+            for (int b = 0; b < world.productionBuildingCount; ++b) {
+                if (world.productionBuildings[b].type == type) { hasBuilding = true; break; }
+            }
+            if (!hasSite && !hasBuilding) return true;
+        }
+
+        // Check for unfulfilled construction requests
+        for (int i = 0; i < world.pendingConstructionCount; ++i) {
+            if (!world.pendingConstructionRequests[i].fulfilled &&
+                world.pendingConstructionRequests[i].type == type) {
+                return true;
+            }
         }
         return false;
+    }
+
+    const ExpansionEvent& SettlementSystem::GetExpansionEvent(int index) const
+    {
+        static const ExpansionEvent s_empty;
+        if (index < 0 || index >= m_eventCount) return s_empty;
+        return m_events[index];
+    }
+
+    void SettlementSystem::RecordEvent(ExpansionRuleId ruleId, BuildingType bt, const WorldModel& world)
+    {
+        if (m_eventCount >= kMaxEvents) return;
+        ExpansionEvent& ev = m_events[m_eventCount];
+        ev.tick = m_tickCount;
+        ev.ruleId = ruleId;
+        ev.buildingType = bt;
+        ev.woodFlow = m_economySystem ? m_economySystem->GetResourceFlow(ResourceType_Wood) : 0;
+        ev.woodPotential = m_economySystem ? m_economySystem->GetProductionPotential(ResourceType_Wood, world) : 0.0f;
+        ev.stoneFlow = m_economySystem ? m_economySystem->GetResourceFlow(ResourceType_Stone) : 0;
+        ev.stonePotential = m_economySystem ? m_economySystem->GetProductionPotential(ResourceType_Stone, world) : 0.0f;
+        ev.availableWood = m_economySystem ? m_economySystem->GetAvailable(ResourceType_Wood, world) : 0;
+        m_eventCount++;
     }
 
 }

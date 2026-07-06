@@ -7,7 +7,6 @@
 #include <cstdio>
 #include <fstream>
 #include <io.h>
-#include <xtl.h>
 #include <d3d9.h>
 #include <d3dx9.h>
 // Static BinFileManager pointer (avoids circular dependency in header)
@@ -31,10 +30,10 @@ TextureRegistry& TextureRegistry::instance() {
 }
 
 LPDIRECT3DTEXTURE9 TextureRegistry::getTexture(const std::string& name) {
-    EnterCriticalSection(&m_cs);
+    m_lock.Acquire();
     std::map<std::string, LPDIRECT3DTEXTURE9>::iterator it = m_textures.find(name);
     LPDIRECT3DTEXTURE9 result = (it != m_textures.end()) ? it->second : NULL;
-    LeaveCriticalSection(&m_cs);
+    m_lock.Release();
     return result;
 }
 
@@ -43,32 +42,32 @@ LPDIRECT3DTEXTURE9 TextureRegistry::getNotFoundTexture() const {
 }
 
 void TextureRegistry::registerAtlas(const std::string& name, std::tr1::shared_ptr<SpriteAtlas> atlas) {
-    EnterCriticalSection(&m_cs);
+    m_lock.Acquire();
     std::map<std::string, std::tr1::shared_ptr<class SpriteAtlas> >::iterator it = m_atlases.find(name);
     if (it != m_atlases.end()) {
         it->second = atlas;
     } else {
         m_atlases.insert(std::pair<std::string, std::tr1::shared_ptr<class SpriteAtlas> >(name, atlas));
     }
-    LeaveCriticalSection(&m_cs);
+    m_lock.Release();
 }
 
 std::tr1::shared_ptr<class SpriteAtlas> TextureRegistry::getAtlas(const std::string& name) {
-    EnterCriticalSection(&m_cs);
+    m_lock.Acquire();
     std::map<std::string, std::tr1::shared_ptr<class SpriteAtlas> >::iterator it = m_atlases.find(name);
     std::tr1::shared_ptr<class SpriteAtlas> result = (it != m_atlases.end()) ? it->second : std::tr1::shared_ptr<class SpriteAtlas>();
-    LeaveCriticalSection(&m_cs);
+    m_lock.Release();
     return result;
 }
 
 void TextureRegistry::unregisterAtlas(const std::string& name) {
-    EnterCriticalSection(&m_cs);
+    m_lock.Acquire();
     m_atlases.erase(name);
-    LeaveCriticalSection(&m_cs);
+    m_lock.Release();
 }
 
 LPDIRECT3DTEXTURE9 TextureRegistry::getTextureOrLoad(const std::string& name) {
-    EnterCriticalSection(&m_cs);
+    m_lock.Acquire();
 
     // Directly access m_textures to avoid double-lock with getTexture()
     std::map<std::string, LPDIRECT3DTEXTURE9>::iterator it = m_textures.find(name);
@@ -78,7 +77,7 @@ LPDIRECT3DTEXTURE9 TextureRegistry::getTextureOrLoad(const std::string& name) {
 //        char buf[256];
 //        _snprintf(buf, sizeof(buf), "[TextureRegistry] Texture '%s' found in cache\n", name.c_str());
 //        OutputDebugStringA(buf);
-        LeaveCriticalSection(&m_cs);
+        m_lock.Release();
         return tex;
     }
     
@@ -88,12 +87,12 @@ LPDIRECT3DTEXTURE9 TextureRegistry::getTextureOrLoad(const std::string& name) {
 //        char buf[256];
 //        _snprintf(buf, sizeof(buf), "[TextureRegistry] Path not registered for '%s'\n", name.c_str());
 //        OutputDebugStringA(buf);
-        LeaveCriticalSection(&m_cs);
+        m_lock.Release();
         return m_notFoundTexture;
     }
     
     std::wstring wpath = itPath->second;
-    LeaveCriticalSection(&m_cs);
+    m_lock.Release();
     
     // Build full path for Xbox 360
     if (wpath.find(L"game:\\") != 0 && wpath.find(L"game:/") != 0) {
@@ -173,17 +172,17 @@ LPDIRECT3DTEXTURE9 TextureRegistry::getTextureOrLoad(const std::string& name) {
 
 // Refresh a specific texture by reloading it if invalid
 bool TextureRegistry::refreshTexture(const std::string& name) {
-    EnterCriticalSection(&m_cs);
+    m_lock.Acquire();
     
     std::map<std::string, LPDIRECT3DTEXTURE9>::iterator it = m_textures.find(name);
     if (it == m_textures.end()) {
-        LeaveCriticalSection(&m_cs);
+        m_lock.Release();
         return false;
     }
     
     std::map<std::string, std::wstring>::const_iterator itPath = m_texturePaths.find(name);
     if (itPath == m_texturePaths.end()) {
-        LeaveCriticalSection(&m_cs);
+        m_lock.Release();
         return false;
     }
     
@@ -197,7 +196,7 @@ bool TextureRegistry::refreshTexture(const std::string& name) {
         wpath = basePath + wpath;
     }
     
-    LeaveCriticalSection(&m_cs); 
+    m_lock.Release(); 
     
     if (!m_device) return false;
     
@@ -222,32 +221,32 @@ bool TextureRegistry::refreshTexture(const std::string& name) {
 
 void TextureRegistry::registerTexture(const std::string& name, LPDIRECT3DTEXTURE9 tex) {
     if (name.empty()) return;
-    EnterCriticalSection(&m_cs);
+    m_lock.Acquire();
     std::map<std::string, LPDIRECT3DTEXTURE9>::iterator it = m_textures.find(name);
     if (it != m_textures.end()) {
         if (it->second) it->second->Release();
         it->second = tex;
         if (tex) tex->AddRef();
-        LeaveCriticalSection(&m_cs);
+        m_lock.Release();
         return;
     }
     m_textures.insert(std::pair<std::string, LPDIRECT3DTEXTURE9>(name, tex));
     if (tex) tex->AddRef();
-    LeaveCriticalSection(&m_cs);
+    m_lock.Release();
 }
 
 void TextureRegistry::unregisterTexture(const std::string& name) {
-    EnterCriticalSection(&m_cs);
+    m_lock.Acquire();
     std::map<std::string, LPDIRECT3DTEXTURE9>::iterator it = m_textures.find(name);
     if (it != m_textures.end()) {
         if (it->second) it->second->Release();
         m_textures.erase(it);
     }
-    LeaveCriticalSection(&m_cs);
+    m_lock.Release();
 }
 
 void TextureRegistry::clear() {
-    EnterCriticalSection(&m_cs);
+    m_lock.Acquire();
     for (std::map<std::string, LPDIRECT3DTEXTURE9>::iterator it = m_textures.begin(); it != m_textures.end(); ++it) {
         if (it->second) it->second->Release();
     }
@@ -258,7 +257,7 @@ void TextureRegistry::clear() {
         m_notFoundTexture->Release();
         m_notFoundTexture = NULL;
     }
-    LeaveCriticalSection(&m_cs);
+    m_lock.Release();
 }
 
 void TextureRegistry::initialize(LPDIRECT3DDEVICE9 device) {
@@ -280,24 +279,24 @@ void TextureRegistry::initialize(LPDIRECT3DDEVICE9 device) {
 
 void TextureRegistry::registerTexturePath(const std::string& name, const std::string& path) {
     if (name.empty()) return;
-    EnterCriticalSection(&m_cs);
+    m_lock.Acquire();
     std::wstring wpath(path.begin(), path.end());
     m_texturePaths[name] = wpath;
-    LeaveCriticalSection(&m_cs);
+    m_lock.Release();
 }
 
 void TextureRegistry::initializeFromManifest(const std::string& manifestPath, const std::string& sectionName) {
-    EnterCriticalSection(&m_cs);
+    m_lock.Acquire();
     
     if (manifestPath.empty()) {
         OutputDebugStringA("[TextureRegistry] initializeFromManifest: manifestPath is empty\n");
-        LeaveCriticalSection(&m_cs);
+        m_lock.Release();
         return;
     }
     
     if (isManifestDisabled()) {
         OutputDebugStringA("[TextureRegistry] initializeFromManifest: manifest disabled\n");
-        LeaveCriticalSection(&m_cs);
+        m_lock.Release();
         return;
     }
     
@@ -311,7 +310,7 @@ void TextureRegistry::initializeFromManifest(const std::string& manifestPath, co
     if (err != 0 || !fin) {
         _snprintf(logBuf, sizeof(logBuf), "[TextureRegistry] FAILED to open manifest: error=%d\n", err);
         OutputDebugStringA(logBuf);
-        LeaveCriticalSection(&m_cs);
+        m_lock.Release();
         return;
     }
     
@@ -360,32 +359,32 @@ void TextureRegistry::initializeFromManifest(const std::string& manifestPath, co
     _snprintf(logBuf, sizeof(logBuf), "[TextureRegistry] Total loaded: %d\n", totalLoaded);
     OutputDebugStringA(logBuf);
     
-    LeaveCriticalSection(&m_cs);
+    m_lock.Release();
 }
 
 bool TextureRegistry::isPathRegistered(const std::string& name) {
-    EnterCriticalSection(&m_cs);
+    m_lock.Acquire();
     bool result = m_texturePaths.find(name) != m_texturePaths.end();
-    LeaveCriticalSection(&m_cs);
+    m_lock.Release();
     return result;
 }
 
 bool TextureRegistry::doesPathExistForName(const std::string& name) {
-    EnterCriticalSection(&m_cs);
+    m_lock.Acquire();
     std::map<std::string, std::wstring>::iterator it = m_texturePaths.find(name);
     bool result = false;
     if (it != m_texturePaths.end()) {
         result = (_waccess(it->second.c_str(), 0) == 0);
     }
-    LeaveCriticalSection(&m_cs);
+    m_lock.Release();
     return result;
 }
 
 void TextureRegistry::logManifestPathsStatus() {
-    EnterCriticalSection(&m_cs);
+    m_lock.Acquire();
     if (m_texturePaths.empty()) {
         OutputDebugStringA("[TextureRegistry] No paths registered\n");
-        LeaveCriticalSection(&m_cs);
+        m_lock.Release();
         return;
     }
     char buf[256];
@@ -398,7 +397,7 @@ void TextureRegistry::logManifestPathsStatus() {
         _snprintf(log, sizeof(log), "[TextureRegistry] %s -> exists=%d\n", kv->first.c_str(), exists ? 1 : 0);
         OutputDebugStringA(log);
     }
-    LeaveCriticalSection(&m_cs);
+    m_lock.Release();
 
     int missing = 0;
     for (std::map<std::string, std::wstring>::const_iterator kv = m_texturePaths.begin(); 

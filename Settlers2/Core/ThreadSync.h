@@ -1,9 +1,6 @@
 #pragma once
-#ifdef _XBOX
-#include <xtl.h>
-#else
-#include <windows.h>
-#endif
+
+#include "../Platform/Lock.h"
 #include <algorithm>
 
 struct LogicRenderCmd {
@@ -23,14 +20,13 @@ struct LogicFrameBuffer {
 
 class ThreadSync {
 public:
-    CRITICAL_SECTION criticalSection;
+    Platform::Lock m_lock;
     LogicFrameBuffer frameBuffers[2];
     volatile int writeBufferIndex;
     volatile int readBufferIndex;
     volatile bool swapRequested;
 
     void Initialize() {
-        InitializeCriticalSection(&criticalSection);
         for (int i = 0; i < 2; i++) {
             frameBuffers[i].commandCount = 0;
             frameBuffers[i].isReady = false;
@@ -41,14 +37,14 @@ public:
     }
 
     void SwapBuffers() {
-        EnterCriticalSection(&criticalSection);
+        m_lock.Acquire();
         if (frameBuffers[writeBufferIndex].isReady && !frameBuffers[readBufferIndex].isReady) {
             int temp = writeBufferIndex;
             writeBufferIndex = readBufferIndex;
             readBufferIndex = temp;
             swapRequested = true;
         }
-        LeaveCriticalSection(&criticalSection);
+        m_lock.Release();
     }
 
     LogicFrameBuffer& GetWriteBuffer() {
@@ -60,14 +56,14 @@ public:
     }
 
     void MarkReadBufferConsumed() {
-        EnterCriticalSection(&criticalSection);
+        m_lock.Acquire();
         frameBuffers[readBufferIndex].isReady = false;
         swapRequested = false;
-        LeaveCriticalSection(&criticalSection);
+        m_lock.Release();
     }
 
     void SortReadBufferByDepth() {
-        EnterCriticalSection(&criticalSection);
+        m_lock.Acquire();
         LogicFrameBuffer& buffer = frameBuffers[readBufferIndex];
         if (buffer.commandCount > 1) {
             std::sort(buffer.commands, buffer.commands + buffer.commandCount,
@@ -75,7 +71,7 @@ public:
                     return a.depth > b.depth;
                 });
         }
-        LeaveCriticalSection(&criticalSection);
+        m_lock.Release();
     }
 };
 

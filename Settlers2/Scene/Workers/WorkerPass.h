@@ -8,10 +8,10 @@ class RenderCommandBuffer;
 struct RenderFrame;
 struct RenderContext;
 
-// Renders all worker types (carriers, builders, building workers, arriving workers).
+// Renders all worker types (carriers, builders, building workers).
 // Reads RenderFrame.workers — projected screen coords + visual state.
 // Resolves sprite indices from worker type/state/direction/profession.
-    // Replaces the deprecated SettlerPass for all worker rendering.
+// Data comes from BuildingWorkerPresentation + CarrierPresentation.
 class WorkerPass : public RenderPass {
 public:
     WorkerPass();

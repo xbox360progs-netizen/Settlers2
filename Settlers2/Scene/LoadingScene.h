@@ -11,8 +11,6 @@
 #include <vector>
 #include <functional>
 
-#include <xtl.h>
-
 using Graphics::SpriteRenderer;
 using Graphics::ShaderManager;
 
@@ -53,8 +51,6 @@ private:
     void LoadAtlasOrTexture(const char* name, const char* pngPath);
     void StartAsyncLoading();
 
-    // Xbox 360 Async Loading
-    static DWORD WINAPI XboxThreadFunc(LPVOID lpParam);
     void AsyncLoadResources();
 
     struct LoadTask {
@@ -69,8 +65,8 @@ private:
     SpriteRenderer* m_spriteRenderer;
     ShaderManager* m_shaderManager;
     BinFileManager* m_binFileManager;
-    Texture m_backgroundTexture;  // Loading screen background
-    LPDIRECT3DTEXTURE9 m_progressTexture;  // Progress bar texture
+    Texture m_backgroundTexture;
+    LPDIRECT3DTEXTURE9 m_progressTexture;
     std::vector<LoadTask> m_loadTasks;
     float m_screenW;
     float m_screenH;
@@ -83,11 +79,9 @@ private:
     bool m_loadingComplete;
     bool m_loadStarted;
 
-    // Xbox 360 threading variables
-    HANDLE m_hLoadingThread;
-    volatile LONG m_targetProgressPercentage;  // 0-100
-    volatile LONG m_isLoadComplete;            // 0 or 1
-    float m_currentRenderProgress;            // 0.0f - 1.0f (smoothed)
+    volatile long m_targetProgressPercentage;
+    volatile long m_isLoadComplete;
+    float m_currentRenderProgress;
 };
 
 }

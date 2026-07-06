@@ -225,6 +225,7 @@
 #include <cstdio>
 #include "TransportController.h"
 #include "TransportTask.h"
+#include "TransportNode.h"
 #include "Carrier.h"
 #include "Cargo.h"
 #include "../Core/ResourceDebug.h"
@@ -232,6 +233,7 @@
 #include "../Interfaces/IFlagInventory.h"
 #include "../Interfaces/ICargoRepository.h"
 #include "../Interfaces/IDemandService.h"
+#include "../World/WorldModel.h"
 
 namespace World {
 
@@ -263,6 +265,12 @@ namespace World {
             m_waitingHead[i] = NULL;
             m_waitingTail[i] = NULL;
         }
+        for (int i = 0; i < kMaxCarriers; ++i) {
+            m_carriers[i].state = TCS_Idle;
+            m_carriers[i].taskId = 0;
+            m_carriers[i].cargoType = ResourceType_None;
+            m_carriers[i].cargoAmount = 0;
+        }
     }
 
     TransportController::~TransportController() {}
@@ -288,6 +296,29 @@ namespace World {
             }
         }
         return NULL;
+    }
+
+    void TransportController::FreeTask(TransportTask* task)
+    {
+        ReleaseCarrierForTask(task->id);
+        task->id = 0;
+        task->state = TTS_Delivered;
+        task->carrier = NULL;
+        task->cargo = NULL;
+        task->resource = ResourceType_None;
+        task->reason = TTR_Construction;
+        task->hopIndex = 0;
+        task->targetFlag = 0;
+        task->enqueueOrder = 0;
+        task->basePriority = 0;
+        task->observerTicketId = 0;
+        task->createdTick = 0;
+        task->transitionCount = 0;
+        for (int i = 0; i < task->route.count; ++i) {
+            task->route.flags[i] = 0;
+        }
+        task->route.count = 0;
+        m_activeCount--;
     }
 
     // ������ Waiting queue ������������������������������������������������������������������������������������������������������������������������������������������������������������
@@ -512,29 +543,23 @@ namespace World {
         c->m_phase7Cargo = NULL;
         c->m_cargo = NULL;
 
-        // Physically deliver cargo to destination flag inventory
-        if (m_inventory.ReceiveDelivery(destFlagId, resType, amount, cargoId)) {
-            if (task->observerTicketId > 0) {
-                m_demand.CompleteDemand(task->observerTicketId);
-            }
-            task->cargo = NULL;
-            m_cargo.Release(cargoId);
+        // Release cargo — resource goes out of tracked system (legacy path)
+        task->cargo = NULL;
+        m_cargo.Release(cargoId);
+
+        if (task->observerTicketId > 0) {
+            m_demand.CompleteDemand(task->observerTicketId);
+        }
 
 #ifdef _DEBUG
+        {
             char dbg[256];
             _snprintf(dbg, sizeof(dbg),
                 "[Transport] Delivered task=%u type=%s dest=flag%u\n",
                 task->id, ResourceTypeToString(resType), destFlagId);
             std::printf("%s", dbg);
-#endif
-        } else {
-            char dbg[256];
-            _snprintf(dbg, sizeof(dbg),
-                "[Transport] Deliver task=%u FAILED: flag slots full dest=flag%u\n",
-                task->id, destFlagId);
-            std::printf("%s", dbg);
-            task->cargo = NULL;
         }
+#endif
 
         SetTaskState(task, TTS_Delivered);
 
@@ -555,14 +580,17 @@ namespace World {
         assert(c->m_phase7Task == NULL);
 
 #ifdef _DEBUG
-        char dbg[256];
-        _snprintf(dbg, sizeof(dbg),
-            "[Transport] Complete task=%u hops=%u transitions=%u dest=%u\n",
-            task->id, task->route.count - 1,
-            task->transitionCount, destFlagId);
-        std::printf("%s", dbg);
+        {
+            char dbg2[256];
+            _snprintf(dbg2, sizeof(dbg2),
+                "[Transport] Complete task=%u hops=%u transitions=%u dest=%u\n",
+                task->id, task->route.count - 1,
+                task->transitionCount, destFlagId);
+            std::printf("%s", dbg2);
+        }
 #endif
 
+        FreeTask(task);
         NotifyCarrierIdle(c, destFlagId);
     }
 
@@ -673,42 +701,22 @@ namespace World {
             SetTaskState(task, TTS_Cancelled);
             break;
 
-        case TTS_Assigned: {
-            // Release carrier and cancel
-            Carrier* c = static_cast<Carrier*>(task->carrier);
-            if (c) {
-                c->m_phase7Task = NULL;
-                c->m_phase7TargetFlag = 0;
-                c->m_phase7Cargo = NULL;
-                c->m_cargo = NULL;
-                task->carrier = NULL;
-            }
+        case TTS_Assigned:
+            ReleaseCarrierForTask(task->id);
             SetTaskState(task, TTS_Cancelled);
             break;
-        }
 
-        case TTS_Moving: {
-            // Release carrier, re-enqueue at current hop source, go back to waiting
-            Carrier* c = static_cast<Carrier*>(task->carrier);
-            if (c) {
-                c->m_phase7Task = NULL;
-                c->m_phase7TargetFlag = 0;
-                c->m_phase7Cargo = NULL;
-                c->m_cargo = NULL;
-                task->carrier = NULL;
-            }
-            FlagId sourceFlag = task->route.flags[task->hopIndex];
-            EnqueueWaiting(task, sourceFlag);
+        case TTS_Moving:
+            ReleaseCarrierForTask(task->id);
+            EnqueueWaiting(task, task->route.flags[task->hopIndex]);
             SetTaskState(task, TTS_WaitingAtSource);
             break;
-        }
 
         case TTS_Blocked:
             SetTaskState(task, TTS_Cancelled);
             break;
 
         default:
-            // Delivered, Cancelled, Created ��� no-op
             break;
         }
     }
@@ -798,34 +806,16 @@ namespace World {
                 SetTaskState(task, TTS_Blocked);
                 break;
 
-            case TTS_Assigned: {
-                Carrier* c = static_cast<Carrier*>(task->carrier);
-                if (c) {
-                    c->m_phase7Task = NULL;
-                    c->m_phase7TargetFlag = 0;
-                    c->m_phase7Cargo = NULL;
-                    c->m_cargo = NULL;
-                    task->carrier = NULL;
-                }
+            case TTS_Assigned:
+                ReleaseCarrierForTask(task->id);
                 SetTaskState(task, TTS_Blocked);
                 break;
-            }
 
-            case TTS_Moving: {
-                Carrier* c = static_cast<Carrier*>(task->carrier);
-                if (c) {
-                    c->m_phase7Task = NULL;
-                    c->m_phase7TargetFlag = 0;
-                    c->m_phase7Cargo = NULL;
-                    c->m_cargo = NULL;
-                    task->carrier = NULL;
-                }
-                // Re-enqueue at current position for potential retry
-                FlagId sourceFlag = task->route.flags[task->hopIndex];
-                EnqueueWaiting(task, sourceFlag);
+            case TTS_Moving:
+                ReleaseCarrierForTask(task->id);
+                EnqueueWaiting(task, task->route.flags[task->hopIndex]);
                 SetTaskState(task, TTS_Blocked);
                 break;
-            }
 
             default:
                 // Delivered, Cancelled, already Blocked ��� no-op
@@ -879,5 +869,197 @@ namespace World {
         m_currentTick++;
     }
 
+    // ������ PR 3.2 ��� Carrier pool dispatching ������������������������������������������������������������
+
+    TransportNode* TransportController::FindNodeForFlag(WorldModel& world, FlagId flag) const
+    {
+        if (flag < kNodeDemandFlagBase) return NULL;
+        int idx = (int)(flag - kNodeDemandFlagBase);
+        if (idx >= world.transportNodeCount) return NULL;
+        return &world.transportNodes[idx];
+    }
+
+    void TransportController::Tick(WorldModel& world)
+    {
+        // 1. Process pending requests into tasks (same as Simulation::ProcessTransportRequests)
+        int writeIdx = 0;
+        for (int i = 0; i < world.pendingRequestCount; ++i) {
+            TransportRequest& req = world.pendingRequests[i];
+            if (req.fulfilled) continue;
+
+            TransportTask* task = CreateTask(req.resource, req.origin, req.destination, req.reason);
+            if (task != NULL) {
+                req.fulfilled = true;
+                if (req.demandIndex != kNoDemand) {
+                    task->observerTicketId = static_cast<uint32_t>(req.demandIndex) + 1;
+                    m_demand.OnTaskCreated(req.demandIndex, task->id);
+                }
+            }
+
+            if (!req.fulfilled) {
+                if (writeIdx != i) {
+                    world.pendingRequests[writeIdx] = req;
+                }
+                writeIdx++;
+            }
+        }
+        world.pendingRequestCount = writeIdx;
+
+        // 2. Assign idle carriers to waiting tasks
+        while (TryAssignWaitingTask() > 0) {}
+
+        // 3. Execute carrier state machine (PR 3.3)
+        for (int i = 0; i < kMaxCarriers; ++i) {
+            TransportCarrier& c = m_carriers[i];
+
+            // TCS_Assigned → try pickup from source node buffer
+            // PR 3.4: pickup only if both source AND destination nodes exist
+            if (c.state == TCS_Assigned) {
+                TransportTask* task = GetTaskById(c.taskId);
+                if (task && task->state == TTS_Assigned) {
+                    FlagId srcFlag = task->route.flags[0];
+                    FlagId dstFlag = task->route.flags[task->route.count - 1];
+                    TransportNode* src = FindNodeForFlag(world, srcFlag);
+                    TransportNode* dst = FindNodeForFlag(world, dstFlag);
+                    if (src && dst && src->GetBufferAmount(task->resource) >= 1) {
+                        src->buffer.Remove(task->resource, 1);
+                        c.cargoType = task->resource;
+                        c.cargoAmount = 1;
+                        c.state = TCS_Pickup;
+                        SetTaskState(task, TTS_Moving);
+                    }
+                }
+            }
+
+            // TCS_Pickup → TCS_Travelling (immediate transition)
+            if (c.state == TCS_Pickup) {
+                c.state = TCS_Travelling;
+            }
+
+            // TCS_Travelling → advance ONE hop per tick (PR 3.5)
+            if (c.state == TCS_Travelling) {
+                TransportTask* task = GetTaskById(c.taskId);
+                if (!task) { c.state = TCS_Idle; continue; }
+
+                if (IsLastHop(task)) {
+                    // At the last hop → deliver
+                    c.state = TCS_Delivering;
+                } else {
+                    // Advance one hop toward destination
+                    task->hopIndex++;
+                    task->targetFlag = task->route.flags[task->hopIndex + 1];
+                }
+            }
+
+            // TCS_Delivering → deliver cargo to destination node
+            // PR 3.4: dest guaranteed non-NULL (validated at pickup) — assert safety
+            // PR 3.6: demand completion before FreeTask clears observerTicketId
+            if (c.state == TCS_Delivering) {
+                TransportTask* task = GetTaskById(c.taskId);
+                if (!task) { c.state = TCS_Idle; continue; }
+
+                FlagId destFlag = task->route.flags[task->route.count - 1];
+                TransportNode* dest = FindNodeForFlag(world, destFlag);
+                assert(dest != NULL);
+                dest->ReceiveCargo(c.cargoType, c.cargoAmount);
+
+                if (task->observerTicketId > 0) {
+                    m_demand.CompleteDemand(task->observerTicketId);
+                }
+
+                if (m_recentDeliveryCount < kMaxRecentDeliveries) {
+                    m_recentDeliveries[m_recentDeliveryCount].resource = task->resource;
+                    m_recentDeliveries[m_recentDeliveryCount].destinationFlag = destFlag;
+                    m_recentDeliveries[m_recentDeliveryCount].reason = task->reason;
+                    m_recentDeliveryCount++;
+                }
+
+                SetTaskState(task, TTS_Delivered);
+                FreeTask(task);
+            }
+        }
+
+        // 4. Assign freed carriers to remaining waiting tasks
+        while (TryAssignWaitingTask() > 0) {}
+
+        m_currentTick++;
+    }
+
+    void TransportController::ReleaseCarrierForTask(TransportTaskId taskId)
+    {
+        // 1. Release TransportCarrier pool slot (new Tick() path)
+        for (int i = 0; i < kMaxCarriers; ++i) {
+            if (m_carriers[i].taskId == taskId) {
+                m_carriers[i].state = TCS_Idle;
+                m_carriers[i].taskId = 0;
+                m_carriers[i].cargoType = ResourceType_None;
+                m_carriers[i].cargoAmount = 0;
+                break;
+            }
+        }
+
+        // 2. Release legacy Phase 7 Carrier if present (PR 3.7 — single cleanup point)
+        TransportTask* task = GetTaskById(taskId);
+        if (task && task->carrier) {
+            Carrier* c = static_cast<Carrier*>(task->carrier);
+            c->m_phase7Task = NULL;
+            c->m_phase7TargetFlag = 0;
+            c->m_phase7Cargo = NULL;
+            c->m_cargo = NULL;
+            task->carrier = NULL;
+        }
+    }
+
+    int TransportController::TryAssignWaitingTask()
+    {
+        int carrierIdx = -1;
+        for (int i = 0; i < kMaxCarriers; ++i) {
+            if (m_carriers[i].state == TCS_Idle) {
+                carrierIdx = i;
+                break;
+            }
+        }
+        if (carrierIdx < 0) return 0;
+
+        TransportTask* best = NULL;
+        FlagId bestFlag = 0;
+        for (uint32_t f = 0; f < kMaxFlags; ++f) {
+            if (m_waitingHead[f] != NULL) {
+                best = PickNextTask(f);
+                if (best != NULL) {
+                    bestFlag = f;
+                    break;
+                }
+            }
+        }
+        if (!best) return 0;
+
+        RemoveFromQueue(best);
+        SetTaskState(best, TTS_Assigned);
+        best->targetFlag = best->route.flags[best->hopIndex + 1];
+
+        m_carriers[carrierIdx].state = TCS_Assigned;
+        m_carriers[carrierIdx].taskId = best->id;
+
+        return 1;
+    }
+
+    int TransportController::GetIdleCarrierCount() const
+    {
+        int count = 0;
+        for (int i = 0; i < kMaxCarriers; ++i) {
+            if (m_carriers[i].state == TCS_Idle) count++;
+        }
+        return count;
+    }
+
+    int TransportController::GetBusyCarrierCount() const
+    {
+        int count = 0;
+        for (int i = 0; i < kMaxCarriers; ++i) {
+            if (m_carriers[i].state != TCS_Idle) count++;
+        }
+        return count;
+    }
 
 } // namespace World

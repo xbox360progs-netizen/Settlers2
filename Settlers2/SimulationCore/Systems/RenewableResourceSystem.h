@@ -14,6 +14,8 @@ namespace World {
 
         virtual void Tick(WorldModel& world);
 
+        void SetEnabled(bool enabled) { m_enabled = enabled; }
+
         // World seeding — replaces TreeSystem.h functions
         void SeedTrees(WorldModel& world, int matureCount, int emptySpots);
         void SeedAnimals(WorldModel& world, int count, int maxCount);
@@ -31,6 +33,11 @@ namespace World {
         void AdvanceTreeGrowth(WorldModel& world);
         void RegenerateAnimals(WorldModel& world);
         void RegenerateFish(WorldModel& world);
+
+        // Every growth cycle (100 ticks), natural regrowth produces
+        // emptySpots / kNaturalRegrowthDivisor new saplings (minimum 1 if any empty spots).
+        // Higher divisor = slower natural regrowth.
+        static const int kNaturalRegrowthDivisor = 30;
 
         uint32_t m_tickCount;
         bool m_enabled;

@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include "../Core/ResourceTypes.h"
 
 #ifndef SIMCORE_TRANSPORT_TYPES_H_
 #define SIMCORE_TRANSPORT_TYPES_H_
@@ -8,6 +9,8 @@ namespace World {
 
     typedef uint32_t TransportTaskId;
     typedef uint32_t FlagId;
+
+    static const FlagId kNodeDemandFlagBase = 400;    // flag range for TransportNode-originated demands
 
     enum TransportTaskState {
         TTS_Created,
@@ -47,6 +50,25 @@ namespace World {
             default:                   return TBP_Normal;
         }
     }
+
+    enum TransportCarrierState {
+        TCS_Idle,
+        TCS_Assigned,
+        TCS_Pickup,
+        TCS_Travelling,
+        TCS_Delivering
+    };
+
+    // Invariant: cargoType/cargoAmount are valid only in Pickup/Travelling/Delivering states.
+    // Idle and Assigned always have cargoType=None, cargoAmount=0.
+    struct TransportCarrier {
+        TransportCarrierState state;
+        TransportTaskId taskId;
+        ResourceType cargoType;
+        uint16_t cargoAmount;
+
+        TransportCarrier() : state(TCS_Idle), taskId(0), cargoType(ResourceType_None), cargoAmount(0) {}
+    };
 
 } // namespace World
 

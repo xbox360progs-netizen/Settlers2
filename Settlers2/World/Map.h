@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include <xtl.h> // For CRITICAL_SECTION
+#include "../Platform/Lock.h"
 #include "TileLayer.h"
 #include "TileType.h"
 #include "ResourceNode.h"
@@ -37,8 +37,8 @@ public:
     Map(int groundWidth, int groundHeight, int otherWidth, int otherHeight);
     ~Map();
 
-    void Lock() { EnterCriticalSection(&m_cs); }
-    void Unlock() { LeaveCriticalSection(&m_cs); }
+    void Lock() { m_lock.Acquire(); }
+    void Unlock() { m_lock.Release(); }
 
     int GetWidth() const { return m_width; }
 
@@ -154,7 +154,7 @@ private:
     CargoManager* m_cargoManager;
     DemandManager* m_demandManager;
 
-    CRITICAL_SECTION m_cs;
+    mutable Platform::Lock m_lock;
 };
 
 } // namespace World

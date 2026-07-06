@@ -40,8 +40,9 @@ namespace World {
             config.enableProduction = true;
             config.enableEconomy = true;
             config.enableConstruction = true;
-            config.enableWarehouse = true;
+            config.enableWarehouse = false;
             config.enableSettlement = true;
+            config.enableWorkers = true;
             config.enableTreeDepletion = true;
             config.enableConsumption = true;
         }
@@ -57,6 +58,17 @@ namespace World {
             world.fishCount = 50;
             world.maxFishCount = 50;
             sim.LoadWorld(world);
+
+            // Add workers to execute construction jobs
+            WorldModel& loaded = sim.GetWorld();
+            for (int i = 0; i < 10; ++i) {
+                if (loaded.workerCount >= kMaxWorkers) break;
+                Worker& w = loaded.workers[loaded.workerCount++];
+                w.id = i;
+                w.state = WorkerState_Idle;
+                w.currentJob = 0;
+                w.workTicksRemaining = 0;
+            }
         }
 
         bool Tick(Simulation& sim)

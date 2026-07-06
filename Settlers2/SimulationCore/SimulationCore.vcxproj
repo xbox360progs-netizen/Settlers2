@@ -131,6 +131,14 @@
     <ClInclude Include="Core\Handle.h" />
     <ClInclude Include="Core\Vector2i.h" />
     <ClInclude Include="..\Platform\Lock.h" />
+    <ClInclude Include="..\Platform\Thread.h" />
+    <ClInclude Include="..\Platform\Event.h" />
+    <ClInclude Include="..\Platform\Semaphore.h" />
+    <ClInclude Include="..\Platform\Atomic.h" />
+    <ClInclude Include="..\Platform\Affinity.h" />
+    <ClInclude Include="..\Platform\Timer.h" />
+    <ClInclude Include="..\Platform\FileSystem.h" />
+    <ClInclude Include="..\Platform\Window.h" />
     <ClInclude Include="Interfaces\IRoadGraph.h" />
     <ClInclude Include="Interfaces\IFlagInventory.h" />
     <ClInclude Include="Interfaces\ICargoRepository.h" />
@@ -149,6 +157,8 @@
     <ClInclude Include="Testing\EconomicTestHelpers.h" />
     <ClInclude Include="Testing\EconomyMetrics.h" />
     <ClInclude Include="Testing\SoakHarness.h" />
+    <ClInclude Include="Testing\TelemetryTypes.h" />
+    <ClInclude Include="Testing\TelemetryCollector.h" />
     <ClInclude Include="Testing\Assertions\TransportAssertions.h" />
     <ClInclude Include="Testing\Assertions\ConstructionAssertions.h" />
     <ClInclude Include="Testing\Assertions\WorldAssertions.h" />
@@ -170,9 +180,13 @@
     <ClInclude Include="Transport\TransportRoute.h" />
     <ClInclude Include="Transport\TransportTask.h" />
     <ClInclude Include="Transport\TransportController.h" />
+    <ClInclude Include="Transport\TransportNode.h" />
+    <ClInclude Include="Transport\ResourceBuffer.h" />
+    <ClInclude Include="Transport\LocalTransferSystem.h" />
     <ClInclude Include="Transport\Cargo.h" />
     <ClInclude Include="Transport\Carrier.h" />
     <ClInclude Include="Transport\SimpleTransportDriver.h" />
+    <ClInclude Include="Transport\RoadGraph.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Construction\ConstructionSystem.cpp" />
@@ -185,6 +199,7 @@
     <ClCompile Include="Simulation\Simulation.cpp" />
     <ClCompile Include="Testing\ScenarioRegistry.cpp" />
     <ClCompile Include="Testing\EconomyMetrics.cpp" />
+    <ClCompile Include="Testing\TelemetryCollector.cpp" />
     <ClCompile Include="Testing\Scenarios\RegisterAll.cpp" />
     <ClCompile Include="Worker\WorkerSystem.cpp" />
     <ClCompile Include="Systems\DemandManager.cpp" />
@@ -194,12 +209,27 @@
     <ClCompile Include="Systems\JobManager.cpp" />
     <ClCompile Include="Production\ProductionSystem.cpp" />
     <ClCompile Include="Transport\TransportController.cpp" />
+    <ClCompile Include="Transport\TransportNode.cpp" />
+    <ClCompile Include="Transport\LocalTransferSystem.cpp" />
     <ClCompile Include="Transport\TransportTask.cpp" />
     <ClCompile Include="Transport\SimpleTransportDriver.cpp" />
+    <ClCompile Include="Transport\RoadGraph.cpp" />
     <ClCompile Include="Settlement\SettlementSystem.cpp" />
     <ClCompile Include="Warehouse\WarehouseSystem.cpp" />
     <ClCompile Include="..\Platform\Win32\Lock.cpp" Condition="'$(Platform)'=='Win32'" />
+    <ClCompile Include="..\Platform\Win32\Thread.cpp" Condition="'$(Platform)'=='Win32'" />
+    <ClCompile Include="..\Platform\Win32\Event.cpp" Condition="'$(Platform)'=='Win32'" />
+    <ClCompile Include="..\Platform\Win32\Semaphore.cpp" Condition="'$(Platform)'=='Win32'" />
+    <ClCompile Include="..\Platform\Win32\Affinity.cpp" Condition="'$(Platform)'=='Win32'" />
+    <ClCompile Include="..\Platform\Win32\FileSystem.cpp" Condition="'$(Platform)'=='Win32'" />
+    <ClCompile Include="..\Platform\Win32\Window.cpp" Condition="'$(Platform)'=='Win32'" />
     <ClCompile Include="..\Platform\Xbox360\Lock.cpp" Condition="'$(Platform)'=='Xbox 360'" />
+    <ClCompile Include="..\Platform\Xbox360\Thread.cpp" Condition="'$(Platform)'=='Xbox 360'" />
+    <ClCompile Include="..\Platform\Xbox360\Event.cpp" Condition="'$(Platform)'=='Xbox 360'" />
+    <ClCompile Include="..\Platform\Xbox360\Semaphore.cpp" Condition="'$(Platform)'=='Xbox 360'" />
+    <ClCompile Include="..\Platform\Xbox360\Affinity.cpp" Condition="'$(Platform)'=='Xbox 360'" />
+    <ClCompile Include="..\Platform\Xbox360\FileSystem.cpp" Condition="'$(Platform)'=='Xbox 360'" />
+    <ClCompile Include="..\Platform\Xbox360\Window.cpp" Condition="'$(Platform)'=='Xbox 360'" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

@@ -8,6 +8,7 @@
 #include "../../Definitions/BuildingDefinition.h"
 #include "../../Definitions/ProductionDefinition.h"
 #include "../../Systems/EconomySystem.h"
+#include "../../Testing/EconomyMetrics.h"
 #include "../../Warehouse/WarehouseSystem.h"
 #include "../../Construction/ConstructionSite.h"
 #include "../../Construction/ConstructionState.h"
@@ -26,8 +27,9 @@ public:
         config.enableProduction = true;
         config.enableEconomy = true;
         config.enableConstruction = true;
-        config.enableWarehouse = true;
+        config.enableWarehouse = false;
         config.enableSettlement = true;
+        config.enableWorkers = true;
         config.enableTreeDepletion = true;
     }
 
@@ -38,6 +40,17 @@ public:
         world.height = 50;
         SeedTrees(world, 500, 500);
         sim.LoadWorld(world);
+
+        // Add workers to execute construction jobs
+        WorldModel& loaded = sim.GetWorld();
+        for (int i = 0; i < 10; ++i) {
+            if (loaded.workerCount >= kMaxWorkers) break;
+            Worker& w = loaded.workers[loaded.workerCount++];
+            w.id = i;
+            w.state = WorkerState_Idle;
+            w.currentJob = 0;
+            w.workTicksRemaining = 0;
+        }
     }
 
     bool Tick(Simulation& sim)
@@ -136,15 +149,19 @@ public:
         for (int r = 0; r < numResources; ++r) {
             int flow = eco->GetResourceFlow(activeResources[r]);
             float potential = eco->GetProductionPotential(activeResources[r], world);
-            if (flow > static_cast<int>(potential * EconomySystem::kFlowWindow + 0.5f)) {
-                printf("[FAIL][T37.C] %s flow %d > potential %.4f * %d\n",
-                    ResourceTypeToString(activeResources[r]), flow, potential, EconomySystem::kFlowWindow);
+            int discreteBound = ComputeDiscreteProductionUpperBound(
+                activeResources[r], world, EconomySystem::kFlowWindow);
+            if (flow > discreteBound) {
+                printf("[FAIL][T37.C] %s flow %d > discrete bound %d\n",
+                    ResourceTypeToString(activeResources[r]), flow, discreteBound);
+                DiagnoseFlowVsPotential(world, eco, activeResources[r],
+                    flow, potential, sim.GetState().tickCount, "T37");
                 allFlowsValid = false;
             }
         }
 
         if (allFlowsValid) {
-            printf("[PASS][T37.C] Flow <= Potential for all active resources\n");
+            printf("[PASS][T37.C] Flow <= Discrete bound for all active resources\n");
         } else {
             ok = false;
         }

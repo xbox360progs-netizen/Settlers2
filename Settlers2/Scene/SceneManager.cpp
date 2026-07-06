@@ -26,33 +26,15 @@ SceneManager::SceneManager()
     , m_renderer(NULL)
     , m_renderFrame(NULL)
     , m_renderQueue(NULL)
-#ifdef _XBOX
-    , m_pAsyncCall(NULL)
-    , m_pCommandBuffer(NULL)
-    , m_pRecordCommandBuffer(NULL)
-#endif
     , m_isSceneReady(false)
     , m_bSceneGraphicsReady(false)
     , m_frameRendered(false)
 {
-    InitializeCriticalSection(&m_cs);
     s_pInstance = this;
 }
 
 SceneManager::~SceneManager()
 {
-#ifdef _XBOX
-    // Clean up async command buffer objects
-    if (m_pAsyncCall) {
-        m_pAsyncCall->Release();
-        m_pAsyncCall = NULL;
-    }
-    if (m_pCommandBuffer) {
-        m_pCommandBuffer->Release();
-        m_pCommandBuffer = NULL;
-    }
-#endif
-    DeleteCriticalSection(&m_cs);
     Clear();
 }
 
@@ -102,7 +84,7 @@ bool SceneManager::SwitchTo(const std::string& name)
 
     // THREAD SAFETY: Lock BEFORE modifying m_currentScene
     OutputDebugStringA("[SceneManager::SwitchTo] Entering critical section\n");
-    EnterCriticalSection(&m_cs);
+    m_lock.Acquire();
     OutputDebugStringA("[SceneManager::SwitchTo] Critical section entered OK\n");
 
     // BLOCK render thread on Core 1 - scene is being loaded
@@ -115,7 +97,7 @@ bool SceneManager::SwitchTo(const std::string& name)
     {
         _snprintf(buf, sizeof(buf), "[SceneManager::SwitchTo] ERROR Scene not found=%s\n", name.c_str());
         OutputDebugStringA(buf);
-        LeaveCriticalSection(&m_cs);
+        m_lock.Release();
         return false;
     }
     OutputDebugStringA("[SceneManager::SwitchTo] Scene found\n");
@@ -125,9 +107,9 @@ bool SceneManager::SwitchTo(const std::string& name)
     if (oldScene)
     {
         OutputDebugStringA("[SceneManager::SwitchTo] Found old scene, exiting\n");
-        LeaveCriticalSection(&m_cs);
+        m_lock.Release();
         oldScene->OnExit();
-        EnterCriticalSection(&m_cs);
+        m_lock.Acquire();
         OutputDebugStringA("[SceneManager::SwitchTo] OnExit done\n");
     }
 
@@ -140,7 +122,7 @@ bool SceneManager::SwitchTo(const std::string& name)
     bool needsLoad = !m_currentScene->IsLoaded();
     _snprintf(buf, sizeof(buf), "[SceneManager::SwitchTo] needsLoad=%d\n", needsLoad?1:0);
     OutputDebugStringA(buf);
-    LeaveCriticalSection(&m_cs);
+    m_lock.Release();
     OutputDebugStringA("[SceneManager::SwitchTo] Left critical section for Load\n");
 
     // Load OUTSIDE critical section to prevent deadlock
@@ -159,7 +141,7 @@ bool SceneManager::SwitchTo(const std::string& name)
     
     // Re-lock just for setting ready flags
     OutputDebugStringA("[SceneManager::SwitchTo] Re-entering critical section\n");
-    EnterCriticalSection(&m_cs);
+    m_lock.Acquire();
     OutputDebugStringA("[SceneManager::SwitchTo] Re-entered critical section\n");
     
     _snprintf(buf, sizeof(buf), "[SceneManager::SwitchTo] Switch complete to=%s\n", name.c_str());
@@ -178,7 +160,7 @@ bool SceneManager::SwitchTo(const std::string& name)
     }
 
     OutputDebugStringA("[SceneManager::SwitchTo] Leaving critical section\n");
-    LeaveCriticalSection(&m_cs);
+    m_lock.Release();
     OutputDebugStringA("[SceneManager::SwitchTo] DONE\n");
     return true;
 }
@@ -276,48 +258,5 @@ void SceneManager::RenderOverlay()
 void SceneManager::ResetFrameRendered() {
     m_frameRendered = false;
 }
-
-#ifdef _XBOX
-void SceneManager::InitializeAsyncCommandBuffer(LPDIRECT3DDEVICE9 pDevice)
-{
-    if (!pDevice) {
-        OutputDebugStringA("[SceneManager] ERROR: NULL device passed to InitializeAsyncCommandBuffer\n");
-        return;
-    }
-
-    // 1. Create command buffer for sprite rendering (64KB should be sufficient)
-    HRESULT hr = pDevice->CreateCommandBuffer(64 * 1024, 0, &m_pCommandBuffer);
-    if (FAILED(hr)) {
-        char errBuf[256];
-        sprintf(errBuf, "[SceneManager] ERROR: CreateCommandBuffer failed with HRESULT=0x%08X\n", hr);
-        OutputDebugStringA(errBuf);
-        return;
-    }
-    OutputDebugStringA("[SceneManager] Command buffer created successfully\n");
-
-    // 2. Create async command buffer call
-    // NULL for inherit/persist tags to use standard render state
-    hr = pDevice->CreateAsyncCommandBufferCall(
-        NULL, // pInheritTags
-        NULL, // pPersistTags
-        1,    // NumSegments (1 segment = fastest, no GPU delays)
-        0,    // Flags
-        &m_pAsyncCall
-    );
-
-    if (FAILED(hr)) {
-        char errBuf[256];
-        sprintf(errBuf, "[SceneManager] ERROR: CreateAsyncCommandBufferCall failed with HRESULT=0x%08X\n", hr);
-        OutputDebugStringA(errBuf);
-        // Clean up command buffer if async call creation failed
-        if (m_pCommandBuffer) {
-            m_pCommandBuffer->Release();
-            m_pCommandBuffer = NULL;
-        }
-        return;
-    }
-    OutputDebugStringA("[SceneManager] Async command buffer call created successfully\n");
-}
-#endif
 
 } // namespace Scene

@@ -273,13 +273,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="PlatformTests.cpp" />
     <ClCompile Include="TestRunner.cpp" />
     <ClCompile Include="HandleTests.cpp" />
     <ClCompile Include="TransportTaskTests.cpp" />
     <ClCompile Include="TransportRouteTests.cpp" />
+    <ClCompile Include="ResourceBufferTests.cpp" />
+    <ClCompile Include="TransportNodeTests.cpp" />
+    <ClCompile Include="LocalTransferSystemTests.cpp" />
     <ClCompile Include="TransportControllerVerification.cpp" />
     <ClCompile Include="TransportLifecycleTest.cpp" />
     <ClCompile Include="DemandManagerVerification.cpp" />
+    <ClCompile Include="DemandManagerTests.cpp" />
+    <ClCompile Include="TransportDispatchTests.cpp" />
+    <ClCompile Include="TransportCarrierExecutionTests.cpp" />
+    <ClCompile Include="RoadGraphTests.cpp" />
     <ClCompile Include="..\SimulationCore\Testing\EconomyMetrics.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>

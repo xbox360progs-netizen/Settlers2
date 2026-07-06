@@ -4,6 +4,7 @@
 #include "../Graphics/TextureRegistry.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/ShaderManager.h"
+#include "../Platform/Atomic.h"
 #include "../Graphics/RenderLayers.h"
 #include "../Graphics/RenderQueue.h"
 #include "../Graphics/RenderCommandBuilder.h"
@@ -30,7 +31,6 @@ LoadingScene::LoadingScene()
     , m_screenW(1280.0f)
     , m_screenH(720.0f)
     , m_progressTexture(nullptr)
-    , m_hLoadingThread(NULL)
     , m_targetProgressPercentage(0)
     , m_isLoadComplete(0)
     , m_currentRenderProgress(0.0f)
@@ -77,9 +77,6 @@ void LoadingScene::Load()
     if (m_renderer) {
         std::cout << "[LoadingScene] Initializing TextureRegistry..." << std::endl;
         std::cout.flush();
-        
-        // Initialize thread safety first
-        TextureRegistry::instance().initThreadSafety();
         
         TextureRegistry::instance().initialize(m_renderer->GetDevice());
         // Set BinFileManager for atlas loading support using static helper
@@ -158,28 +155,10 @@ void LoadingScene::OnExit()
 
 void LoadingScene::Unload()
 {
-    // Wait for loading thread to complete if still running
-    if (m_hLoadingThread != NULL) {
-        WaitForSingleObject(m_hLoadingThread, INFINITE);
-        XCloseHandle(m_hLoadingThread);
-        m_hLoadingThread = NULL;
-    }
-
     m_loadTasks.clear();
     m_loaded = false;
 }
 
-// Xbox 360 static thread function - bridge to instance method
-DWORD WINAPI LoadingScene::XboxThreadFunc(LPVOID lpParam)
-{
-    LoadingScene* pScene = static_cast<LoadingScene*>(lpParam);
-    if (pScene) {
-        pScene->AsyncLoadResources();
-    }
-    return 0;
-}
-
-// Async loading running on background thread
 void LoadingScene::AsyncLoadResources()
 {
     std::cout << "[LoadingScene::AsyncLoadResources] Started!" << std::endl;
@@ -210,7 +189,7 @@ void LoadingScene::AsyncLoadResources()
         float progressPercent = (completedSoFar / m_totalWeight) * 100.0f;
 
         // Update target progress atomically
-        InterlockedExchange(&m_targetProgressPercentage, (LONG)progressPercent);
+        Platform::AtomicExchange(&m_targetProgressPercentage, (LONG)progressPercent);
 
         // Update completed weight
         m_completedWeight = completedSoFar;
@@ -222,7 +201,7 @@ void LoadingScene::AsyncLoadResources()
     }
 
     // Signal completion
-    InterlockedExchange(&m_isLoadComplete, 1);
+    Platform::AtomicExchange(&m_isLoadComplete, 1);
     std::cout << "[LoadingScene::AsyncLoadResources] All tasks completed" << std::endl;
     OutputDebugStringA("[LoadingScene::AsyncLoadResources] *** ALL TASKS COMPLETED ***\n");
     std::cout.flush();
@@ -404,17 +383,17 @@ void LoadingScene::Update(float deltaTime)
         ExecuteCurrentTask();
 
         float progressPercent = (m_totalWeight > 0.0f) ? ((m_completedWeight / m_totalWeight) * 100.0f) : 100.0f;
-        InterlockedExchange(&m_targetProgressPercentage, (LONG)progressPercent);
+        Platform::AtomicExchange(&m_targetProgressPercentage, (LONG)progressPercent);
 
         if (m_currentTaskIndex >= m_loadTasks.size()) {
-            InterlockedExchange(&m_isLoadComplete, 1);
-            InterlockedExchange(&m_targetProgressPercentage, 100);
+            Platform::AtomicExchange(&m_isLoadComplete, 1);
+            Platform::AtomicExchange(&m_targetProgressPercentage, 100);
             OutputDebugStringA("[LoadingScene] Single-thread loading complete\n");
         }
     }
 
     // Atomically read target progress (0-100)
-    LONG targetProgress = InterlockedExchangeAdd(&m_targetProgressPercentage, 0);
+    LONG targetProgress = Platform::AtomicRead(&m_targetProgressPercentage);
     float targetProgressFloat = (float)targetProgress / 100.0f; // Convert to 0.0-1.0
 
     // LERP for smooth progress bar movement
@@ -426,7 +405,7 @@ void LoadingScene::Update(float deltaTime)
     if (m_currentRenderProgress > 1.0f) m_currentRenderProgress = 1.0f;
 
     // Check if loading is complete
-    LONG isComplete = InterlockedExchangeAdd(&m_isLoadComplete, 0);
+    LONG isComplete = Platform::AtomicRead(&m_isLoadComplete);
     if (!m_loadingComplete && isComplete && m_currentRenderProgress >= 0.99f) {
         OutputDebugStringA("[LoadingScene] Creating next scene...\n");
         CreateNextScene();

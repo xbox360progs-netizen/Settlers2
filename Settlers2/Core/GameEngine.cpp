@@ -18,17 +18,16 @@
 #include "../Scene/EditorScene.h"
 #include "../Input/InputManager.h"
 
+#include "../Platform/Timer.h"
+#include "../Platform/Affinity.h"
+
 #include <iostream>
-#include <xtl.h>
 #include <stdio.h>
 
 extern void SetBinFileManagerStatic(BinFileManager* mgr);
 
 volatile bool g_IsEngineRunning = true;
 
-//-------------------------------------------------------------------------------------
-// Constructor / Destructor
-//-------------------------------------------------------------------------------------
 GameEngine::GameEngine()
     : m_running(false)
     , m_initialized(false)
@@ -47,13 +46,8 @@ GameEngine::~GameEngine()
     Shutdown();
 }
 
-
-//-------------------------------------------------------------------------------------
-// Scene Creation
-//-------------------------------------------------------------------------------------
 void GameEngine::CreateScenes()
 {
-    // Create LoadingScene
     Scene::LoadingScene* loadingScene = new Scene::LoadingScene();
     if (loadingScene) {
         if (m_textureLoader)
@@ -64,7 +58,6 @@ void GameEngine::CreateScenes()
             loadingScene->SetSpriteRenderer(m_spriteRenderer);
         if (m_binFileManager)
             loadingScene->SetBinFileManager(m_binFileManager);
-        // LoadingScene will be used by MenuScene before switching to Game/Editor
     }
 
 	char buf[256];
@@ -88,7 +81,6 @@ void GameEngine::CreateScenes()
     
     OutputDebugStringA("[GameEngine::CreateScenes] BEFORE AddScene(menuScene)\n");
     m_sceneManager->AddScene(menuScene);
-    // Wire MenuCommandDispatcher
     {
         Scene::MenuCommandDispatcher* dispatcher = new Scene::MenuCommandDispatcher(m_sceneManager);
         menuScene->SetDispatcher(dispatcher);
@@ -97,7 +89,6 @@ void GameEngine::CreateScenes()
 
     OutputDebugStringA("[GameEngine::CreateScenes] AFTER AddScene(menuScene)\n");
     
-    // Create GameScene (placeholder for now)
     OutputDebugStringA("[CreateScenes] BEFORE GameScene creation\n");
     Scene::GameScene* gameScene = new Scene::GameScene();
     if (gameScene) {
@@ -113,7 +104,6 @@ void GameEngine::CreateScenes()
     m_sceneManager->AddScene(gameScene);
     OutputDebugStringA("[CreateScenes] AFTER AddScene(gameScene)\n");
     
-    // Create EditorScene (placeholder for now)
     OutputDebugStringA("[CreateScenes] BEFORE EditorScene creation\n");
     Scene::EditorScene* editorScene = new Scene::EditorScene();
     if (editorScene) {
@@ -130,9 +120,6 @@ void GameEngine::CreateScenes()
     OutputDebugStringA("[CreateScenes] AFTER SwitchTo\n");
 }
 
-//-------------------------------------------------------------------------------------
-// Initialize
-//-------------------------------------------------------------------------------------
 bool GameEngine::Initialize()
 {
     setvbuf(stdout, NULL, _IONBF, 0);
@@ -168,7 +155,6 @@ bool GameEngine::Initialize()
         OutputDebugStringA("[GameEngine] Failed to initialize SpriteRenderer\n");
         return false;
     }
-
 
 	m_renderer->SetSpriteRenderer(m_spriteRenderer); 
 
@@ -213,9 +199,6 @@ bool GameEngine::Initialize()
     m_binFileManager->SetDevice(m_renderer->GetDevice());
     m_textureLoader = new TextureLoader(m_renderer->GetDevice());
 
-    // Initialize TextureRegistry before any scene can query it.
-    OutputDebugStringA("[GameEngine::Initialize] Initializing TextureRegistry thread safety...\n");
-    TextureRegistry::instance().initThreadSafety();
     OutputDebugStringA("[GameEngine::Initialize] Initializing TextureRegistry device...\n");
     TextureRegistry::instance().initialize(m_renderer->GetDevice());
     SetBinFileManagerStatic(m_binFileManager);
@@ -230,9 +213,6 @@ bool GameEngine::Initialize()
     return true;
 }
 
-//-------------------------------------------------------------------------------------
-// Shutdown
-//-------------------------------------------------------------------------------------
 void GameEngine::Shutdown()
 {
     if (!m_initialized)
@@ -323,7 +303,6 @@ void GameEngine::ProcessSceneRequests()
 
 void GameEngine::Update(float deltaTime)
 {
-    // GUARD: Wait for scene to be ready before updating
     if (m_sceneManager && !m_sceneManager->IsSceneReady()) {
         return;
     }
@@ -377,66 +356,12 @@ void GameEngine::Run()
         return;
     }
 
-#ifdef _XBOX
-    XSetThreadProcessor(GetCurrentThread(), 0);
-#endif
-
     m_running = true;
-    DWORD lastTime = GetTickCount();
-
-//    OutputDebugStringA("[GameEngine] Entering main loop\n");
+    unsigned int lastTime = Platform::GetTickCount();
 
     while (m_running)
     {
-#ifdef _XBOX
-//        OutputDebugStringA("[Loop] 1 - top of loop\n");
-        DWORD currentTime = GetTickCount();
-        float deltaTime = (currentTime - lastTime) / 1000.0f;
-        lastTime = currentTime;
-        if (deltaTime < 0.001f) deltaTime = 0.016f;
-        if (deltaTime > 0.1f) deltaTime = 0.1f;
-
-//        OutputDebugStringA("[Loop] 2 - before input update\n");
-        if (m_inputManager) m_inputManager->Update();
-//        OutputDebugStringA("[Loop] 3 - after input update\n");
-        if (m_sceneManager) m_sceneManager->Update(deltaTime);
-//        OutputDebugStringA("[Loop] 4 - after scene update\n");
-
-        ProcessSceneRequests();
-//        OutputDebugStringA("[Loop] 5 - after process requests\n");
-        if (m_sceneManager && m_sceneManager->IsSceneReady()) {
-//            OutputDebugStringA("[Loop] 6 - scene ready, rendering\n");
-            m_sceneManager->ResetFrameRendered();
-            m_renderer->BeginFrame();
-//            OutputDebugStringA("[Loop] 7 - after BeginFrame\n");
-
-            RenderFrame* renderFrame = m_renderer->GetRenderFrame();
-            if (renderFrame) {
-//                OutputDebugStringA("[Loop] 8 - renderFrame BeginFrame\n");
-                renderFrame->BeginFrame();
-//                OutputDebugStringA("[Loop] 9 - before SceneManager::Render\n");
-                m_sceneManager->Render();
-//                OutputDebugStringA("[Loop] 10 - after Render, before Execute\n");
-                renderFrame->Execute();
-//                OutputDebugStringA("[Loop] 11 - after Execute, before RenderOverlay\n");
-                m_sceneManager->RenderOverlay();
-//                OutputDebugStringA("[Loop] 12 - after RenderOverlay, EndFrame\n");
-                renderFrame->EndFrame();
-            } else {
-                OutputDebugStringA("[Loop] 8b - no renderFrame, calling Render directly\n");
-                m_sceneManager->Render();
-            }
-
-//            OutputDebugStringA("[Loop] 13 - before EndFrame\n");
-            m_renderer->EndFrame();
-//            OutputDebugStringA("[Loop] 14 - after EndFrame\n");
-        } else {
-            OutputDebugStringA("[Loop] 6b - scene NOT ready\n");
-        }
-        
-        Sleep(16);
-#else
-        DWORD currentTime = GetTickCount();
+        unsigned int currentTime = Platform::GetTickCount();
         float deltaTime = (currentTime - lastTime) / 1000.0f;
         lastTime = currentTime;
 
@@ -445,21 +370,13 @@ void GameEngine::Run()
 
         Update(deltaTime);
         Render();
-#endif
 
-        Sleep(16);
+        Platform::Sleep(16);
     }
 
-OutputDebugStringA("[GameEngine] Exiting main loop\n");
+    OutputDebugStringA("[GameEngine] Exiting main loop\n");
 
     if (m_renderer) {
         m_renderer->Shutdown();
     }
-
-#ifdef _XBOX
-    OutputDebugStringA("[GameEngine] Safe shutdown. Returning to Xbox Dashboard...\n");
-    // XLaunchNewImage requires Xbox 360 XDK - use XEX loader alternative
-    XSetThreadProcessor(GetCurrentThread(), 0);
-    Sleep(1000);
-#endif
 }

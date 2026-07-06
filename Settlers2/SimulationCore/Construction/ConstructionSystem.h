@@ -21,7 +21,6 @@ namespace World {
 
     private:
         void ProcessJobEvents(WorldModel& world);
-        void GenerateRequests(WorldModel& world);
         void ProcessRequests(WorldModel& world);
         void UpdateSites(WorldModel& world, uint32_t currentTick);
         void CompleteSites(WorldModel& world);

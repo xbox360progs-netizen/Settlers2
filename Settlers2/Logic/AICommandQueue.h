@@ -1,7 +1,7 @@
 #pragma once
 #include "../World/Components/Building.h"
+#include "../Platform/Lock.h"
 #include <queue>
-#include <xtl.h> // Xbox specific
 
 namespace Logic {
     struct BuildingOrder {
@@ -11,29 +11,29 @@ namespace Logic {
 
     class AICommandQueue {
     public:
-        AICommandQueue() { InitializeCriticalSection(&m_cs); }
-        ~AICommandQueue() { DeleteCriticalSection(&m_cs); }
+        AICommandQueue() {}
+        ~AICommandQueue() {}
 
         void Push(BuildingOrder order) {
-            EnterCriticalSection(&m_cs);
+            m_lock.Acquire();
             m_queue.push(order);
-            LeaveCriticalSection(&m_cs);
+            m_lock.Release();
         }
 
         bool Pop(BuildingOrder& order) {
-            EnterCriticalSection(&m_cs);
+            m_lock.Acquire();
             if (m_queue.empty()) {
-                LeaveCriticalSection(&m_cs);
+                m_lock.Release();
                 return false;
             }
             order = m_queue.front();
             m_queue.pop();
-            LeaveCriticalSection(&m_cs);
+            m_lock.Release();
             return true;
         }
 
     private:
         std::queue<BuildingOrder> m_queue;
-        CRITICAL_SECTION m_cs;
+        Platform::Lock m_lock;
     };
 }

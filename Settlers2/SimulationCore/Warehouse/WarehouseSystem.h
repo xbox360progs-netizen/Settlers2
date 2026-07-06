@@ -31,7 +31,7 @@ namespace World {
 
     private:
         void HandleDeliveryEvents(WorldModel& world);
-        void ScanProductionBuffers(WorldModel& world);
+        void ScanTransportBuffers(WorldModel& world);
 
         DemandManager* m_demandManager;
         uint32_t m_tickCount;

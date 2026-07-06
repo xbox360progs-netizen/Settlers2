@@ -8,9 +8,12 @@
 #include "../../Definitions/BuildingDefinition.h"
 #include "../../Definitions/ProductionDefinition.h"
 #include "../../Systems/EconomySystem.h"
+#include "../../Systems/RenewableResourceSystem.h"
+#include "../../Testing/EconomyMetrics.h"
 #include "../../Warehouse/WarehouseSystem.h"
 #include "../../Construction/ConstructionSite.h"
 #include "../../Construction/ConstructionState.h"
+#include "../../Core/TreeSystem.h"
 #include <stdio.h>
 
 namespace World {
@@ -24,8 +27,10 @@ public:
         config.enableProduction = true;
         config.enableEconomy = true;
         config.enableConstruction = true;
-        config.enableWarehouse = true;
+        config.enableWarehouse = false;
         config.enableSettlement = true;
+        config.enableWorkers = true;
+        config.enableTreeDepletion = true;
     }
 
     void Initialize(Simulation& sim)
@@ -33,7 +38,22 @@ public:
         WorldModel world;
         world.width = 50;
         world.height = 50;
+
+        // Seed forest for renewable Wood cycle
+        SeedTrees(world, 500, 500);
+
         sim.LoadWorld(world);
+
+        // Add workers to execute construction jobs
+        WorldModel& loaded = sim.GetWorld();
+        for (int i = 0; i < 10; ++i) {
+            if (loaded.workerCount >= kMaxWorkers) break;
+            Worker& w = loaded.workers[loaded.workerCount++];
+            w.id = i;
+            w.state = WorkerState_Idle;
+            w.currentJob = 0;
+            w.workTicksRemaining = 0;
+        }
     }
 
     bool Tick(Simulation& sim)
@@ -159,13 +179,17 @@ public:
         for (int f = 0; f < numFlow; ++f) {
             int flow = eco->GetResourceFlow(flowChecks[f].resource);
             float potential = eco->GetProductionPotential(flowChecks[f].resource, world);
-            if (flow > static_cast<int>(potential * EconomySystem::kFlowWindow + 0.5f)) {
-                printf("[FAIL][T36.E] %s flow (%d) exceeds potential (%.4f * %d)\n",
-                    flowChecks[f].name, flow, potential, EconomySystem::kFlowWindow);
+            int discreteBound = ComputeDiscreteProductionUpperBound(
+                flowChecks[f].resource, world, EconomySystem::kFlowWindow);
+            if (flow > discreteBound) {
+                printf("[FAIL][T36.E] %s flow (%d) exceeds discrete bound (%d)\n",
+                    flowChecks[f].name, flow, discreteBound);
+                DiagnoseFlowVsPotential(world, eco, flowChecks[f].resource,
+                    flow, potential, sim.GetState().tickCount, "T36");
                 ok = false;
             } else {
-                printf("[PASS][T36.E] %s flow <= potential: %d <= %.4f * %d\n",
-                    flowChecks[f].name, flow, potential, EconomySystem::kFlowWindow);
+                printf("[PASS][T36.E] %s flow (%d) <= discrete bound (%d) (potential=%.4f/tick)\n",
+                    flowChecks[f].name, flow, discreteBound, potential);
             }
         }
 

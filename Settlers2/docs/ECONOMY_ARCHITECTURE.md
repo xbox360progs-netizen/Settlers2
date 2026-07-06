@@ -34,7 +34,7 @@ Systems read only their own aspect. No system reads BuildingType.
 | ConsumptionSystem | `ConsumptionDefinition`, `DeliveryEvent` | `fed`, `foodStored` | touch production logic |
 | RenewableResourceSystem | `RenewableResourceDefinition` | `tree*`, `animalCount`, `fishCount` | know which building type called it |
 | DemandManager | `TransportRequest` | demand lifecycle | interpret request content |
-| WarehouseSystem | `outputBuffer` | stockpile | write `outputBuffer` |
+| WarehouseSystem | `TransportNode.buffer` | stockpile | read `outputBuffer`, write `outputBuffer` |
 | EconomySystem | `totalOutput`, definitions | metrics | mutate world state |
 | SettlementSystem | definitions, economy state | `Job`, `Demand` | create `TransportTask` directly |
 

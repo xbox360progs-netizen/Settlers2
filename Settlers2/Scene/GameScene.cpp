@@ -25,8 +25,24 @@ namespace Scene {
 
     static void AdjustEntranceForParity(bool buildingEvenY, int& entranceX, int entranceY);
 
+    static World::SimulationConfig MakeGameSimConfig()
+    {
+        World::SimulationConfig cfg;
+        cfg.enableTransport = true;
+        cfg.enableEconomy = true;
+        cfg.enableConstruction = true;
+        cfg.enableProduction = true;
+        cfg.enableWarehouse = true;
+        cfg.enableWorkers = true;
+        cfg.enableSettlement = true;
+        cfg.enableTreeDepletion = true;
+        cfg.enableConsumption = true;
+        return cfg;
+    }
+
     GameScene::GameScene()
         : SceneBase("Game")
+        , m_simulationCore(MakeGameSimConfig())
 		, m_buildingCommandHandler(NULL)
 		, m_resourceCommandHandler(NULL)
         , m_eventBus(NULL)
@@ -575,6 +591,15 @@ namespace Scene {
             OutputDebugStringA("[GameScene::Load] GameRenderer created\n");
         }
 
+        // ─── Load world into SimulationCore ─────────────────────────
+        if (m_map) {
+            World::WorldModel coreWorld;
+            coreWorld.width = static_cast<uint32_t>(m_map->GetWidth());
+            coreWorld.height = static_cast<uint32_t>(m_map->GetHeight());
+            m_simulationCore.LoadWorld(coreWorld);
+            OutputDebugStringA("[GameScene::Load] SimulationCore world loaded\n");
+        }
+
         // ─── Wire ProjectionSystem with camera ──────────────────────
         m_projectionSystem.SetCamera(m_camera);
 
@@ -586,19 +611,32 @@ namespace Scene {
         m_menuPresentationSystem.SetMenus(m_buildMenu, m_flagMenu);
         m_townHallPresentationSystem.SetManagers(m_flagManager, m_economyManager);
         m_logisticsDebugPresentationSystem.SetManagers(m_flagManager, m_carrierManager);
-        m_buildingPresentationSystem.SetManagers(
-            m_flagManager,
-            m_constructionManager
+        m_buildingPresentationSystem.SetSources(
+            &m_legacyFlagSource,
+            &m_legacyBuildingSource,
+            &m_legacyBuildingSource   // implements both IBuildingSource and IConstructionSiteSource
         );
-        m_flagResourcePresentationSystem.SetFlagManager(m_flagManager);
+
+        // ─── Wire migration adapter sources (temporary — remove after Legacy*Source deleted) ───
+        m_legacyBuildingSource.SetManagers(m_flagManager, m_constructionManager);
+        m_legacyFlagSource.SetFlagManager(m_flagManager);
+        m_simulationCoreBuildingSource.SetWorldModel(&m_simulationCore.GetWorld());
+        m_simulationCoreWorkerSource.SetWorldModel(&m_simulationCore.GetWorld());
+
+        m_inspector.SetSources(
+            &m_legacyFlagSource,
+            &m_legacyBuildingSource,
+            &m_legacyBuildingSource   // implements IConstructionSiteSource
+        );
+
+        m_flagResourcePresentationSystem.SetFlagSource(&m_legacyFlagSource);
         m_wildlifePresentationSystem.SetWildlifeSystem(m_wildlife);
         m_groundResourcePresentationSystem.SetMap(m_map);
-        m_workerPresentationSystem.SetManagers(
-            m_carrierManager,
-            m_constructionManager,
-            m_workerManager,
-            m_flagManager,
-            m_roadManager);
+        m_buildingWorkerPresentation.SetSources(
+            &m_legacyBuildingSource,  // IBuildingSource
+            &m_legacyBuildingSource); // IConstructionSiteSource
+        m_legacyCarrierSource.SetCarrierManager(m_carrierManager);
+        m_carrierPresentation.SetCarrierSource(&m_legacyCarrierSource);
         m_placementPreviewPresentationSystem.SetPlacementController(&m_placement);
         m_roadPreviewPresentationSystem.SetControllers(&m_roadController, &m_placement);
         m_roadConnectionPresentationSystem.SetMap(m_map);
@@ -788,8 +826,11 @@ void GameScene::Update(float deltaTime)
       //  StatusManager resolves and writes statusText to FrameContext
       m_statusManager.FillFrameContext(m_frameContext.input, &m_localization);
 
-      //  Simulation
-      m_simulation.Update(deltaTime);
+        //  SimulationCore (new architecture — ticks independently)
+        m_simulationCore.Tick();
+
+        //  Simulation (legacy — drives presentation during migration)
+        m_simulation.Update(deltaTime);
 
       // Build render snapshot into a fresh frame, then swap (double-buffer pattern)
       {
@@ -803,7 +844,8 @@ void GameScene::Update(float deltaTime)
           m_flagResourcePresentationSystem.BuildRenderFrame(next.flagResources);
           m_wildlifePresentationSystem.BuildRenderFrame(next.wildlife);
           m_groundResourcePresentationSystem.BuildRenderFrame(next);
-          m_workerPresentationSystem.BuildRenderFrame(next);
+          m_buildingWorkerPresentation.BuildRenderFrame(next);
+          m_carrierPresentation.BuildRenderFrame(next);
           m_placementPreviewPresentationSystem.BuildRenderFrame(m_frameContext, next.preview);
           m_roadPreviewPresentationSystem.BuildRenderFrame(next.roadPreview);
             m_geologistOverlayPresentationSystem.BuildRenderFrame(m_frameContext, next.overlays);
@@ -816,6 +858,7 @@ void GameScene::Update(float deltaTime)
             m_resourceHudPresentationSystem.BuildRenderFrame(m_frameContext, next.ui.resourceHud);
             m_bannerPresentationSystem.BuildRenderFrame(m_frameContext, next.ui.banner);
             m_logisticsDebugPresentationSystem.BuildRenderFrame(m_frameContext, next.debugLabels);
+            m_inspector.BuildDebugLabels(next.debugLabels);
             m_roadConnectionPresentationSystem.BuildRenderFrame(next.roadConnections);
             m_projectionSystem.Project(next);
           next.frameId = m_frameCount;
@@ -1344,6 +1387,14 @@ void GameScene::Render(Graphics::RenderQueue* renderQueue)
     void GameScene::OnMountainTileAction(int tileX, int tileY)
     {
         if (m_geologistController) m_geologistController->OnTileAction(tileX, tileY);
+    }
+
+    void GameScene::InspectAt(int tileX, int tileY)
+    {
+        CoordinateSystem& coords = CoordinateSystem::GetInstance();
+        float wx, wy;
+        coords.NodeTileToWorld(tileX, tileY, wx, wy);
+        m_inspector.OnClick(wx, wy);
     }
 
 } // namespace Scene

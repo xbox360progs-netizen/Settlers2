@@ -1,5 +1,34 @@
 # Changelog
 
+## Phase 2 — Local Transport Foundation ✅ (2026-07-05)
+
+### Milestone: Production→Transport pipeline fully in SimulationCore
+
+```
+TransportNode      ← passive buffer + attachment registry (new)
+ResourceBuffer     ← typed 8-slot storage (new)
+LocalTransferSystem ← single owner of local distribution (new)
+WarehouseSystem    ← migrated from outputBuffer → TransportNode
+ScanProductionBuffers ← removed (replaced by ScanTransportBuffers)
+```
+
+### Key changes
+
+- **TransportNode** introduced: buffer, attachments, pendingDemand. Passive storage with atomic operations. Does not evaluate deficits in the integrated pipeline.
+- **ResourceBuffer** introduced: 8-slot fixed buffer with `Add/Remove/Has/Count/FindEmptySlot` contract.
+- **LocalTransferSystem** introduced: Tick order = Export → Supply → Evaluate Deficit → outgoingCount.
+- **WarehouseSystem migration**: from direct `ProductionBuilding::outputBuffer` access to `TransportNode.buffer` observation. `ScanProductionBuffers` renamed to `ScanTransportBuffers`. Dual-writer eliminated.
+- **outputBuffer single-writer invariant restored**: only ConstructionSystem (init), ProductionSystem (fill), and LocalTransferSystem (drain) write to `outputBuffer`.
+- **Tick order enforced**: LocalTransferSystem ticks before WarehouseSystem, so node buffer state is current at observation time.
+- **T15/T17 passing**: Warehouse integration and 50k soak confirm production→warehouse pipeline through TransportNode.
+- **Test coverage**: 164/164 unit tests pass. ResourceBuffer (15), TransportNode (22), LocalTransferSystem (20).
+
+### Known temporary limitation
+
+Until Carrier ownership is implemented (Milestone 3), `WarehouseSystem::HandleDeliveryEvents` performs an accounting `TransportNode.buffer.Remove()` as a stub bypass. `AcceptingFlagInventory` creates resources from nothing, breaking closed-form conservation.
+
+---
+
 ## Cycle 2 — Unified Domain Model ✅ (tag: `architecture-cycle-2`)
 
 ### Milestone: Two parallel migration lines converged

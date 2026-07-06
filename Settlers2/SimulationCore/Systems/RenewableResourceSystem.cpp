@@ -139,17 +139,29 @@ namespace World {
         world.treeStumpCount = 0;
         world.treeEmptySpots += decayedStumps;
 
+        // Natural regrowth: empty spots slowly produce saplings without Forester.
+        // This prevents total forest extinction and enables bootstrap scenarios
+        // where Forester may not be built yet.
+        int naturalSaplings = world.treeEmptySpots / kNaturalRegrowthDivisor;
+        if (naturalSaplings == 0 && world.treeEmptySpots > 0) {
+            naturalSaplings = 1;  // minimum trickle when any space exists
+        }
+        if (naturalSaplings > 0) {
+            if (naturalSaplings > world.treeEmptySpots)
+                naturalSaplings = world.treeEmptySpots;
+            world.treeEmptySpots -= naturalSaplings;
+            world.treeSaplingCount += naturalSaplings;
+        }
+
         // Young trees mature
         int matured = world.treeYoungCount;
         world.treeYoungCount = 0;
         world.treeMatureCount += matured;
 
-        // Saplings grow to young
+        // Saplings grow to young (includes both Forester-planted and natural)
         int grew = world.treeSaplingCount;
         world.treeSaplingCount = 0;
         world.treeYoungCount += grew;
-
-        // Empty spots get reclaimed (optional, already handled by stump decay)
     }
 
     void RenewableResourceSystem::RegenerateAnimals(WorldModel& world)

@@ -76,10 +76,14 @@ namespace World {
     );
 
     // Report and check metrics — returns true if all invariants hold.
+    // If world is non-NULL, per-building diagnostics are printed
+    // when flow exceeds potential.
     bool ReportAndCheckMetrics(
         const EconomyMetrics& m,
         uint32_t tick,
-        const char* name
+        const char* name,
+        const WorldModel* world = NULL,
+        const EconomySystem* eco = NULL
     );
 
     // Collect a full snapshot of the current economy state.
@@ -107,6 +111,32 @@ namespace World {
 
     // Print ecology metrics at a checkpoint.
     bool ReportEcologyMetrics(const EcologyMetrics& e, uint32_t tick);
+
+    // Compute the discrete production upper bound per window:
+    // Σ active_producers outputPerCycle * (floor(window / cycleTime) + 1)
+    // This is the strict physical maximum independent of phase alignment
+    // between production cycles and the measurement window.
+    // Unlike GetProductionPotential() * window (continuous rate), this
+    // accounts for the fact that multiple discrete completions from
+    // multiple producers can cluster within one window.
+    int ComputeDiscreteProductionUpperBound(
+        ResourceType type,
+        const WorldModel& world,
+        int windowSize
+    );
+
+    // Diagnostic: when flow exceeds potential, print per-building breakdown
+    // to identify whether the cause is inactive buildings, burst overlap, or
+    // measurement mismatch. Shows both continuous potential and discrete upper bound.
+    void DiagnoseFlowVsPotential(
+        const WorldModel& world,
+        const EconomySystem* eco,
+        ResourceType rt,
+        int observedFlow,
+        float potential,
+        uint32_t tick,
+        const char* name
+    );
 
     // ──────────────────────────────────────────────
     // Level 2 & 3: Window statistics + stability

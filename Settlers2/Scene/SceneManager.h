@@ -2,9 +2,9 @@
 
 #include "Scene.h"
 #include "../Graphics/RenderFrame.h"
+#include "../Platform/Lock.h"
 #include <map>
 #include <string>
-#include <xtl.h>
 
 // Forward declarations
 namespace Graphics { class ShaderManager; class SpriteRenderer; class RenderQueue; }
@@ -12,12 +12,6 @@ using Graphics::ShaderManager;
 using Graphics::RenderQueue;
 class Renderer;
 using Graphics::RenderFrame;
-
-// Xbox 360 async command buffer forward declarations
-#ifdef _XBOX
-struct IDirect3DAsyncCommandBufferCall9;
-struct IDirect3DCommandBuffer9;
-#endif
 
 namespace Scene {
 
@@ -62,15 +56,6 @@ public:
     void SetRenderQueue(RenderQueue* queue) { m_renderQueue = queue; }
     RenderQueue* GetRenderQueue() const { return m_renderQueue; }
 
-    // Xbox 360 async command buffer support
-#ifdef _XBOX
-    void InitializeAsyncCommandBuffer(LPDIRECT3DDEVICE9 pDevice);
-    IDirect3DCommandBuffer9* GetSpriteCommandBuffer() const { return m_pCommandBuffer; }
-    IDirect3DAsyncCommandBufferCall9* GetAsyncCall() const { return m_pAsyncCall; }
-    IDirect3DCommandBuffer9* GetRecordCommandBuffer() const { return m_pRecordCommandBuffer; }
-    void SetRecordCommandBuffer(IDirect3DCommandBuffer9* buf) { m_pRecordCommandBuffer = buf; }
-#endif
-
     // Thread barrier for scene readiness (prevents Core 1 render thread from accessing unloaded resources)
     bool IsSceneReady() const { return m_isSceneReady; }
     void SetSceneReady(bool ready) { m_isSceneReady = ready; }
@@ -80,8 +65,8 @@ public:
     void SetGraphicsReady(bool ready) { m_bSceneGraphicsReady = ready; }
 
     // Thread-safe scene access
-    void Lock() { EnterCriticalSection(&m_cs); }
-    void Unlock() { LeaveCriticalSection(&m_cs); }
+    void Lock() { m_lock.Acquire(); }
+    void Unlock() { m_lock.Release(); }
 
     // Frame rendering flag management
     void ResetFrameRendered();
@@ -95,12 +80,6 @@ private:
     RenderFrame* m_renderFrame;
     RenderQueue* m_renderQueue;
 
-#ifdef _XBOX
-    IDirect3DAsyncCommandBufferCall9* m_pAsyncCall;
-    IDirect3DCommandBuffer9* m_pCommandBuffer;
-    IDirect3DCommandBuffer9* m_pRecordCommandBuffer;
-#endif
-
     // Thread barrier for scene readiness
     volatile bool m_isSceneReady;
     volatile bool m_bSceneGraphicsReady;
@@ -111,7 +90,7 @@ private:
     static SceneManager* s_pInstance;
 
     // Critical section for thread-safe scene switching
-    CRITICAL_SECTION m_cs;
+    Platform::Lock m_lock;
 };
 
 } // namespace Scene

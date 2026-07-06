@@ -47,6 +47,8 @@
 #include "T52MilitaryTest.cpp"
 #include "T53FullEconomySoak.cpp"
 #include "T54FullEconomyBootstrapTest.cpp"
+#include "T55ExpansionRulesTest.cpp"
+#include "T56RenewableEconomySoak.cpp"
 
 namespace World {
 
@@ -103,6 +105,8 @@ namespace World {
         extern T52MilitaryTest g_t52;
         extern T53FullEconomySoak g_t53;
         extern T54FullEconomyBootstrapTest g_t54;
+        extern T55ExpansionRulesTest g_t55ExpansionRulesTest;
+        extern T56RenewableEconomySoak g_t56;
 
         ScenarioRegistry::Register(&s_t1);
         ScenarioRegistry::Register(&s_t2);
@@ -155,6 +159,8 @@ namespace World {
         ScenarioRegistry::Register(&g_t52);
         ScenarioRegistry::Register(&g_t53);
         ScenarioRegistry::Register(&g_t54);
+        ScenarioRegistry::Register(&g_t55ExpansionRulesTest);
+        ScenarioRegistry::Register(&g_t56);
     }
 
 }

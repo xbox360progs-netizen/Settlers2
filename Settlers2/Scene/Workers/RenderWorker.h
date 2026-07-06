@@ -5,7 +5,7 @@
 namespace Scene {
 
 // Pure visual identity for any worker type (carrier, builder, building worker).
-// Produced by WorkerPresentationSystem, consumed by WorkerPass.
+// Produced by BuildingWorkerPresentation + CarrierPresentation, consumed by WorkerPass.
 // All spatial + visual state in one DTO — no simulation pointers.
 struct RenderWorker {
     RenderTransform transform;

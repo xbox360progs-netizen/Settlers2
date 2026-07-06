@@ -19,7 +19,6 @@ Map::Map(int groundWidth, int groundHeight, int otherWidth, int otherHeight)
     , m_cargoManager(NULL)
     , m_demandManager(NULL)
 {
-    InitializeCriticalSection(&m_cs);
     m_layers.resize(static_cast<int>(LayerCount), NULL);
 
     // Ground layer: 20x20
@@ -45,7 +44,6 @@ Map::Map(int groundWidth, int groundHeight, int otherWidth, int otherHeight)
 
 Map::~Map()
 {
-    DeleteCriticalSection(&m_cs);
     for (size_t i = 0; i < m_layers.size(); ++i)
     {
         delete m_layers[i];
@@ -487,7 +485,7 @@ void Map::SetResourceRegistry(Logic::ResourceRegistry* rr) {
 
 bool Map::FindResourceInRadius(int centerX, int centerY, int radius, ResourceType type, int& foundX, int& foundY) const
 {
-    EnterCriticalSection(&const_cast<Map*>(this)->m_cs);
+    m_lock.Acquire();
     int layerWidth = m_width * 2;
     int layerHeight = m_height * 4;
 
@@ -509,16 +507,16 @@ bool Map::FindResourceInRadius(int centerX, int centerY, int radius, ResourceTyp
         }
     }
 end:
-    LeaveCriticalSection(&const_cast<Map*>(this)->m_cs);
+    m_lock.Release();
     return found;
 }
 
 bool Map::FindTileTypeInRadius(int centerX, int centerY, int radius, LayerType layer, TileType type, int& foundX, int& foundY) const
 {
-    EnterCriticalSection(&const_cast<Map*>(this)->m_cs);
+m_lock.Acquire();
     TileLayer* tileLayer = const_cast<Map*>(this)->GetLayer(layer);
     if (!tileLayer) {
-        LeaveCriticalSection(&const_cast<Map*>(this)->m_cs);
+        m_lock.Release();
         return false;
     }
     
@@ -542,7 +540,7 @@ bool Map::FindTileTypeInRadius(int centerX, int centerY, int radius, LayerType l
         }
     }
 end_tile:
-    LeaveCriticalSection(&const_cast<Map*>(this)->m_cs);
+    m_lock.Release();
     return found;
 }
 

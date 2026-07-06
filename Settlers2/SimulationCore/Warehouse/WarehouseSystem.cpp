@@ -37,7 +37,7 @@ namespace World {
     {
         ++m_tickCount;
         HandleDeliveryEvents(world);
-        ScanProductionBuffers(world);
+        ScanTransportBuffers(world);
     }
 
     void WarehouseSystem::HandleDeliveryEvents(WorldModel& world)
@@ -63,35 +63,33 @@ namespace World {
                 m_stockpile[idx].amount++;
             }
 
-            // Decrement source production building's outputBuffer
-            for (int b = 0; b < world.productionBuildingCount; ++b) {
-                ProductionBuilding& pb = world.productionBuildings[b];
-                if (!pb.active) continue;
-                for (int p = 0; p < kMaxProductionInputs; ++p) {
-                    if (pb.outputResources[p] == ev.resource && pb.outputBuffer[p] > 0) {
-                        pb.outputBuffer[p]--;
-                        goto consumed;
-                    }
+            // Decrement source transport node's buffer (resources already exported
+            // from building to node by LocalTransferSystem)
+            for (int n = 0; n < world.transportNodeCount; ++n) {
+                TransportNode& node = world.transportNodes[n];
+                if (node.buffer.Remove(ev.resource, 1) > 0) {
+                    break;
                 }
             }
-            consumed:;
         }
     }
 
-    void WarehouseSystem::ScanProductionBuffers(WorldModel& world)
+    void WarehouseSystem::ScanTransportBuffers(WorldModel& world)
     {
         if (!m_demandManager) return;
 
-        for (int b = 0; b < world.productionBuildingCount; ++b) {
-            ProductionBuilding& pb = world.productionBuildings[b];
-            if (!pb.active) continue;
+        for (int n = 0; n < world.transportNodeCount; ++n) {
+            TransportNode& node = world.transportNodes[n];
+            if (node.outgoingCount <= 0) continue;
 
-            for (int p = 0; p < kMaxProductionInputs; ++p) {
-                if (pb.outputResources[p] == ResourceType_None) continue;
-                if (pb.outputBuffer[p] <= 0) continue;
+            for (int s = 0; s < kNodeBufferSlots; ++s) {
+                ResourceType r = node.buffer.slots[s].type;
+                if (r == ResourceType_None) continue;
+                if (node.buffer.slots[s].amount <= 0) continue;
+                if (node.FindDemand(r) >= 0) continue;
 
                 m_demandManager->SetDemand(
-                    pb.outputResources[p],
+                    r,
                     1,
                     kWarehouseFlag,
                     TBP_Normal,

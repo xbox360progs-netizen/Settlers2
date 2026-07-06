@@ -8,6 +8,7 @@
 #include "../Core/DemandTypes.h"
 #include "../Core/WorkerTypes.h"
 #include "../Core/JobTypes.h"
+#include "../Transport/TransportNode.h"
 
 namespace World {
 
@@ -138,6 +139,9 @@ namespace World {
         Worker workers[kMaxWorkers];
         int workerCount;
 
+        TransportNode transportNodes[kMaxTransportNodes];
+        int transportNodeCount;
+
         int treeMatureCount;
         int treeYoungCount;
         int treeSaplingCount;
@@ -160,6 +164,7 @@ namespace World {
             , jobEventCount(0)
             , productionBuildingCount(0)
             , workerCount(0)
+            , transportNodeCount(0)
             , treeMatureCount(0)
             , treeYoungCount(0)
             , treeSaplingCount(0)

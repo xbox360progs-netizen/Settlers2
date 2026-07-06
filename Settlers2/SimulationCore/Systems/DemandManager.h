@@ -23,9 +23,7 @@ namespace World {
 
         // IDemandService
         virtual void CompleteDemand(uint32_t observerTicketId);
-
-        // Called from Simulation::ProcessTransportRequests when a task is created for a demand
-        void OnTaskCreated(int demandIndex, TransportTaskId taskId);
+        virtual void OnTaskCreated(uint32_t demandIndex, uint32_t taskId);
 
         // Testability — expose demand state
         int GetDemandCount() const { return m_demandCount; }

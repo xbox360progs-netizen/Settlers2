@@ -29,6 +29,7 @@ namespace Scene {
         virtual void DeleteFlagAt(int tileX, int tileY) = 0;
         virtual void OnMountainTileAction(int tileX, int tileY) = 0;
         virtual void CancelGeologist() = 0;
+        virtual void InspectAt(int tileX, int tileY) = 0;
     };
 
     class InputController {

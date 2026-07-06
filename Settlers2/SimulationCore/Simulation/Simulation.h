@@ -23,6 +23,7 @@ namespace World {
 
     class ConsumptionSystem;
     class RenewableResourceSystem;
+    struct Cargo;
 
     class Simulation {
     public:
@@ -45,8 +46,11 @@ namespace World {
         RenewableResourceSystem* GetRenewableResourceSystem() { return m_renewableSystem; }
         const SimulationConfig& GetConfig() const { return m_config; }
 
+        const TransportController* GetTransportController() const { return m_transport; }
+        int GetCargoCount() const;
+        const Cargo* GetCargoAt(int index) const;
+
     private:
-        void ProcessTransportRequests();
         void ClearDeliveryEvents();
         void ClearJobEvents();
         void CaptureDeliveryEvents();

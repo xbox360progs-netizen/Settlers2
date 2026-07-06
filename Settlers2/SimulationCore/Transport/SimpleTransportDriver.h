@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include <stddef.h>
 #include "../Systems/ISimulationSystem.h"
 #include "../Transport/TransportTypes.h"
 
@@ -14,9 +15,15 @@ namespace World {
         SimpleTransportDriver(TransportController& controller);
         ~SimpleTransportDriver();
 
-        virtual void Tick(WorldModel& world);
+    virtual void Tick(WorldModel& world);
 
-    private:
+    int GetCargoCount() const { return m_cargoCount; }
+    const Cargo* GetCargoAt(int index) const {
+        if (index < 0 || index >= m_cargoCount) return NULL;
+        return m_cargoPool[index];
+    }
+
+private:
         SimpleTransportDriver(const SimpleTransportDriver&);
         void operator=(const SimpleTransportDriver&);
 

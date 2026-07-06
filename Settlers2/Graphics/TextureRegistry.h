@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../Platform/Lock.h"
 #include <string>
 #include <map>
 #include <memory>
@@ -47,29 +48,17 @@ private:
     TextureRegistry()
         : m_notFoundTexture(nullptr)
         , m_device(nullptr)
-        , m_threadSafetyInitialized(false)
     {
-        initThreadSafety();
     }
 
     ~TextureRegistry()
     {
-        shutdownThreadSafety();
     }
     
 public:
-    // Call this once at startup to initialize critical section
     void initThreadSafety() {
-        if (!m_threadSafetyInitialized) {
-            InitializeCriticalSection(&m_cs);
-            m_threadSafetyInitialized = true;
-        }
     }
     void shutdownThreadSafety() {
-        if (m_threadSafetyInitialized) {
-            DeleteCriticalSection(&m_cs);
-            m_threadSafetyInitialized = false;
-        }
     }
     
 private:
@@ -84,7 +73,7 @@ private:
     std::map<std::string, std::tr1::shared_ptr<class SpriteAtlas> > m_atlases;
     // Additional registry for manifest-based texture paths
     std::map<std::string, std::wstring> m_texturePaths;
-    // Thread safety (non-const for EnterCriticalSection)
-    mutable CRITICAL_SECTION m_cs;
+    // Thread safety
+    mutable Platform::Lock m_lock;
     bool m_threadSafetyInitialized;
 };

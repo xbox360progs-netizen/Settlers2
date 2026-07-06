@@ -151,10 +151,129 @@ namespace World {
         return m;
     }
 
+    static const char* ActiveLabel(bool active)
+    {
+        return active ? "YES" : "NO";
+    }
+
+    int ComputeDiscreteProductionUpperBound(
+        ResourceType type,
+        const WorldModel& world,
+        int windowSize)
+    {
+        int total = 0;
+        for (int i = 0; i < world.productionBuildingCount; ++i) {
+            const ProductionBuilding& pb = world.productionBuildings[i];
+            if (!pb.active) continue;
+
+            ProductionType pt = GetBuildingDefinition(pb.type).production;
+            if (pt == PT_None) continue;
+            const ProductionDefinition& def = GetProductionDefinition(pt);
+
+            for (int p = 0; p < 4; ++p) {
+                if (def.produces[p].resource == type && def.produces[p].amount > 0) {
+                    int cycle = def.cycleTime;
+                    int amount = def.produces[p].amount;
+                    // Upper bound: floor(window / cycle) + 1 — accounts for
+                    // worst-case phase alignment between window and cycle start.
+                    int maxPerProducer = amount * ((cycle > 0) ? (windowSize / cycle + 1) : 1);
+                    total += maxPerProducer;
+                    break;
+                }
+            }
+        }
+        return total;
+    }
+
+    void DiagnoseFlowVsPotential(
+        const WorldModel& world,
+        const EconomySystem* eco,
+        ResourceType rt,
+        int observedFlow,
+        float potential,
+        uint32_t tick,
+        const char* name)
+    {
+        if (eco == NULL) return;
+
+        int continuousMax = static_cast<int>(potential * EconomySystem::kFlowWindow + 0.5f);
+        int discreteBound = ComputeDiscreteProductionUpperBound(rt, world, EconomySystem::kFlowWindow);
+
+        printf("[DIGN][%s] Flow vs Potential Diagnostic for %s at tick %u:\n",
+            name, ResourceTypeToString(rt), tick);
+        printf("  Observed flow=%d  Continuous potential=%.4f/tick (%d/window)  Discrete upper bound=%d/window\n",
+            observedFlow, potential, continuousMax, discreteBound);
+
+        if (observedFlow <= discreteBound) {
+            printf("  => PASS (within discrete production limit)\n");
+        } else {
+            printf("  => FAIL (exceeds physical discrete maximum)\n");
+        }
+
+        // Per-building breakdown
+        int totalBuildings = 0;
+        int activeBuildings = 0;
+        float activePotential = 0.0f;
+        float fullPotential = 0.0f;
+        int activeDiscrete = 0;
+        int totalDiscrete = 0;
+
+        printf("  Buildings producing %s:\n", ResourceTypeToString(rt));
+
+        for (int i = 0; i < world.productionBuildingCount; ++i) {
+            const ProductionBuilding& pb = world.productionBuildings[i];
+            BuildingType bt = pb.type;
+            ProductionType pt = GetBuildingDefinition(bt).production;
+            if (pt == PT_None) continue;
+            const ProductionDefinition& def = GetProductionDefinition(pt);
+
+            bool produces = false;
+            float contrib = 0.0f;
+            int slotOutput = 0;
+            int perBuildingBound = 0;
+            for (int p = 0; p < 4; ++p) {
+                if (def.produces[p].resource == rt && def.produces[p].amount > 0) {
+                    produces = true;
+                    contrib = (float)def.produces[p].amount / (float)def.cycleTime;
+                    slotOutput = pb.totalOutput[p];
+                    perBuildingBound = def.produces[p].amount * (
+                        (def.cycleTime > 0) ? (EconomySystem::kFlowWindow / def.cycleTime + 1) : 1);
+                    break;
+                }
+            }
+            if (!produces) continue;
+
+            totalBuildings++;
+            if (pb.active) {
+                activeBuildings++;
+                activePotential += contrib;
+                activeDiscrete += perBuildingBound;
+            }
+            fullPotential += contrib;
+            totalDiscrete += perBuildingBound;
+
+            printf("    [%d] BT_%-3d active=%s totalOutput=%d cycle=%d out/cycle=%d bound/window=%d contrib=%.4f\n",
+                i, static_cast<int>(bt),
+                ActiveLabel(pb.active), slotOutput, def.cycleTime,
+                def.produces[0].amount, perBuildingBound, pb.active ? contrib : 0.0f);
+        }
+
+        printf("  Summary: %d exist, %d active, %d inactive\n",
+            totalBuildings, activeBuildings, totalBuildings - activeBuildings);
+        printf("  Continuous potential (active only): %.4f/tick (%d/window)\n",
+            activePotential, static_cast<int>(activePotential * EconomySystem::kFlowWindow + 0.5f));
+        printf("  Discrete upper bound (active only): %d/window\n", activeDiscrete);
+        printf("  Continuous potential (all buildings): %.4f/tick (%d/window)\n",
+            fullPotential, static_cast<int>(fullPotential * EconomySystem::kFlowWindow + 0.5f));
+        printf("  Discrete upper bound (all buildings): %d/window\n", totalDiscrete);
+    }
+
     bool ReportAndCheckMetrics(
         const EconomyMetrics& m,
         uint32_t tick,
-        const char* name)
+        const char* name,
+        const WorldModel* world,
+        const EconomySystem* eco)
     {
         // Check essential resources were produced
         ResourceType essentials[] = {
@@ -171,14 +290,36 @@ namespace World {
             }
         }
 
-        // Check flow does not exceed potential
+        // Check flow does not exceed physical discrete maximum
         for (int r = 1; r < ResourceType_Count; ++r) {
             ResourceType rt = static_cast<ResourceType>(r);
+            if (m.potential[r] <= 0.0f && world != NULL) {
+                // Check discrete bound anyway if we have the world
+                int discreteBound = ComputeDiscreteProductionUpperBound(rt, *world, EconomySystem::kFlowWindow);
+                if (discreteBound > 0) {
+                    // We have active producers but potential was 0? That's weird, but warn anyway
+                    if (m.flow[r] > discreteBound) {
+                        printf("[WARN][%s] Flow exceeds discrete bound for %s: %d > %d (tick=%u)\n",
+                            name, ResourceTypeToString(rt), m.flow[r], discreteBound, tick);
+                    }
+                }
+                continue;
+            }
             if (m.potential[r] <= 0.0f) continue;
-            int maxFlow = static_cast<int>(m.potential[r] * EconomySystem::kFlowWindow + 0.5f);
-            if (m.flow[r] > maxFlow) {
-                printf("[WARN][%s] Flow exceeds potential for %s: %d > %d (tick=%u)\n",
-                    name, ResourceTypeToString(rt), m.flow[r], maxFlow, tick);
+            if (world != NULL && eco != NULL) {
+                int discreteBound = ComputeDiscreteProductionUpperBound(rt, *world, EconomySystem::kFlowWindow);
+                if (m.flow[r] > discreteBound) {
+                    printf("[WARN][%s] Flow exceeds discrete bound for %s: %d > %d (tick=%u)\n",
+                        name, ResourceTypeToString(rt), m.flow[r], discreteBound, tick);
+                    DiagnoseFlowVsPotential(*world, eco, rt, m.flow[r], m.potential[r], tick, name);
+                }
+            } else {
+                // Fallback to continuous check (less accurate but no WorldModel available)
+                int maxFlow = static_cast<int>(m.potential[r] * EconomySystem::kFlowWindow + 0.5f);
+                if (m.flow[r] > maxFlow) {
+                    printf("[WARN][%s] Flow exceeds potential for %s: %d > %d (tick=%u)\n",
+                        name, ResourceTypeToString(rt), m.flow[r], maxFlow, tick);
+                }
             }
         }
 

@@ -2,6 +2,10 @@
 
 ## Transport v2 — Stable ✅ (PR A/B/C + Priority A/B/C) — Milestone 2026-07-03
 
+*Note: Transport v2 refers to the task-based routing system of PR A/B/C era.
+Milestone 3 (2026-07-06) supersedes it with the complete demand-driven TransportController pipeline.
+See "Milestone 3" section below.*
+
 ```
 Layer           Domain         Decision
 ─────────────────────────────────────────────
@@ -203,11 +207,13 @@ ClearDeliveryEvents() runs AFTER all consumers, BEFORE the next transport batch.
 ```
 1. Systems run — read DeliveryEvent/JobEvent from previous tick
 2. ClearDeliveryEvents() + ClearJobEvents() — clear consumed events
-3. ProcessTransportRequests — convert pending to tasks
-4. transportDriver.Tick() — drive carrier lifecycle
-5. WorkerSystem::CaptureJobEvents() — publish job events for next tick
-6. Telemetry from WorldModel
-7. transport.Update() + CaptureDeliveryEvents() — publish delivery events for next tick
+3. TransportController::Tick() — single pipeline:
+   a. Process TransportRequests → CreateTask
+   b. Dispatch → carrier lifecycle (Pickup → Travelling → Delivering)
+   c. CompleteDemand → freed carriers reassigned
+4. WorkerSystem::CaptureJobEvents() — publish job events for next tick
+5. Telemetry from WorldModel
+6. transport.Update() + CaptureDeliveryEvents() — publish delivery events for next tick
 ```
 
 **Consequence:** A DeliveryEvent lives for exactly one system processing stage.
@@ -236,16 +242,17 @@ sim.AddSystem(new ConstructionSystem());
 ```
 
 ```
-Simulation::Tick():
-    for each system: system.Tick(world)       → reads DeliveryEvent (prev tick), writes requests
-    ClearDeliveryEvents()                      → consumed events cleared
-    ClearJobEvents()                           → consumed events cleared
-    ProcessTransportRequests()                 → Convert to transport tasks
-    if transportDriver: transportDriver.Tick() → drive carrier lifecycle
-    WorkerSystem::CaptureJobEvents()           → publish job events for next tick
-    Telemetry from WorldModel
-    transport.Update(dt)                       → Execute movement
-    CaptureDeliveryEvents()                    → publish events for next tick
+Simulation::Tick() (Milestone 3):
+    1. Systems run — read JobEvent/DeliveryEvent from previous tick
+    2. ClearDeliveryEvents() + ClearJobEvents()
+    3. TransportController::Tick() — single pipeline:
+       a. Process pending TransportRequests → CreateTask
+       b. Dispatch idle carriers → Pickup → Travelling → Delivering
+       c. CompleteDemand on successful delivery
+       d. Re-assign freed carriers
+    4. WorkerSystem::CaptureJobEvents()
+    5. Telemetry from WorldModel
+    6. transport.Update() + CaptureDeliveryEvents()
 ```
 
 ## Three Development Tracks
@@ -297,17 +304,27 @@ When the migration is deemed complete, a dedicated cleanup PR must satisfy:
 5. All unit tests and scenarios (T1–T8) pass with identical behavior.
 6. No files outside `World/` include the legacy headers directly (they include SimulationCore versions instead).
 
+### Status (2026-07-06)
+- ✅ `World/TransportTypes.h` → forwarding header to `SimulationCore/Transport/TransportTypes.h`
+- ✅ `World/TransportRoute.h` → forwarding header to `SimulationCore/Transport/TransportRoute.h`
+- ✅ `World/ResourceNode.h` — still has own def (guarded by `SIMCORE_RESOURCE_TYPES_H_`), deferred to TechDebt
+- ✅ `World/TransportTask.h` — still has own def (no guard), compiled only in World/ TUs, not forwarded — deferred to TechDebt
+- ✅ Criteria #6 verified: zero `#include.*World/` in `Scene/` or `Presentation/`
+- ✅ SimulationCore platform dependence: zero `#include.*(windows.h|xtl.h|xbox)`
+
 ---
 
 ## Documentation Split
 
 | File | Content |
 |------|---------|
-| `ARCHITECTURE.md` | Full architecture documentation (Transport v2, Render Pipeline, Component Responsibility Map, Platform Milestones v1: Production/Economy/Warehouse) |
-| `ROADMAP.md` | Pipeline stages, Scene maturity, PR sequence, Cycle 2 (Domain Systems) plan |
-| `CHANGELOG.md` | Cycle history, Phase 6b, Post-merge stabilization, Cycle 1 completion |
-| `MIGRATION.md` | Phase 8 checklist, Current status, Stabilization checklist, Verification criteria |
-| This file | Essential invariants, cross-references, build config |
+| `docs/ARCHITECTURE.md` | Architecture baseline — Milestone 3 freeze, component map, invariants |
+| `docs/DEMAND_LAYER_SPEC.md` | Milestone 3 spec — demand lifecycle, carrier model, exit criteria (completed ✅) |
+| `docs/ECONOMY_ARCHITECTURE.md` | Economy core freeze — three relationship types, verified properties (T46–T50) |
+| `docs/TRANSPORTNODE_CONTRACT.md` | TransportNode contract — passive buffer, attachment registry |
+| `docs/ECONOMY_DECOMPOSITION.md` | Economic decomposition analysis |
+| `docs/AI_EXPERIMENTS.md` | AI experiment documentation |
+| This file | Essential invariants, cross-references, build config, milestone summaries |
 
 ## Production Integration ✅
 
@@ -617,11 +634,14 @@ captures new events.
 
 **Tick order enforced in `Simulation::Tick()`:**
 ```
-1. Systems run — read JobEvent from previous tick's WorkerSystem
+1. Systems run — read JobEvent from previous tick
 2. ClearDeliveryEvents() + ClearJobEvents() — clear consumed events
-3. ProcessTransportRequests
-4. transportDriver.Tick()
-5. WorkerSystem::CaptureJobEvents() — publish events for next tick
+3. TransportController::Tick() — single pipeline:
+   a. Process TransportRequests → CreateTask
+   b. Dispatch → carrier lifecycle (Pickup → Travelling → Delivering)
+   c. CompleteDemand → freed carriers reassigned
+4. WorkerSystem::CaptureJobEvents() — publish events for next tick
+5. Telemetry from WorldModel
 6. transport.Update() + CaptureDeliveryEvents()
 ```
 
@@ -989,6 +1009,178 @@ The project focus shifts from infrastructure to AI behaviour quality:
 - Future: "How good is the simulation behaviour?"
 
 The architecture is no longer a constraint. It has become a foundation.
+
+## Phase 2 — Local Transport Foundation ✅ (2026-07-05)
+
+### Milestone summary
+
+TransportNode, ResourceBuffer, and LocalTransferSystem introduced as the local resource movement layer. WarehouseSystem migrated from direct `outputBuffer` access to TransportNode-based observation. Legacy `ScanProductionBuffers` removed.
+
+### Key architectural results
+
+```
+ProductionSystem
+       │
+       ▼
+  outputBuffer      ← ProductionSystem (fill), LocalTransferSystem (drain)
+       │
+       ▼
+LocalTransferSystem  ← single owner of local distribution
+       │
+       ├── ReceiveExport()     → TransportNode.buffer (export)
+       ├── TakeForBuilding()   → building.inputDelivered++ (local supply)
+       └── Deficit evaluation  → TransportNode.pendingDemand[]
+       │
+       ▼
+  TransportNode      ← passive buffer + attachment registry
+       │
+       ├── Consumers        (attached buildings, local supply)
+       └── WarehouseSystem  (observation via ScanTransportBuffers)
+```
+
+### What changed
+
+- **TransportNode** (new): domain aggregate — buffer, attachments, pendingDemand. Passive storage with atomic operations. Does not evaluate deficits in the integrated pipeline.
+- **ResourceBuffer** (new): 8-slot fixed buffer with typed storage. `Add`/`Remove`/`Has`/`Count`/`FindEmptySlot` contract.
+- **LocalTransferSystem** (new): `ISimulationSystem` with Tick order — Export → Supply → Evaluate Deficit → Calculate outgoingCount. Sole owner of local distribution decisions.
+- **WarehouseSystem migration**: `ScanProductionBuffers` → `ScanTransportBuffers`. No longer reads or writes `ProductionBuilding::outputBuffer`. Works exclusively through TransportNode observation.
+- **Dual-writer eliminated**: `WarehouseSystem::HandleDeliveryEvents` no longer decrements `building.outputBuffer[p]--`. The only writers of `outputBuffer` are now ConstructionSystem (init), ProductionSystem (fill), and LocalTransferSystem (drain).
+- **Tick order enforced**: LocalTransferSystem runs before WarehouseSystem, so node buffer state is current when warehouse observes it.
+- **T15, T17 passing**: Integration and soak scenarios confirm production→warehouse pipeline works end-to-end through TransportNode.
+
+### Resolved in Milestone 3
+
+- `WarehouseSystem::HandleDeliveryEvents` no longer calls `buffer.Remove()` — all buffer decrements happen at Carrier::Pickup
+- `AcceptingFlagInventory.ReceiveDelivery()` no longer called by any delivery path
+- `DirectRouteRoadGraph` replaced by `RoadGraph` (BFS pathfinding)
+- Conservation invariant verified: Σ(node buffers) + Σ(carrier cargo) = constant
+
+### Test coverage
+
+- 164/164 unit tests pass
+- T15: Warehouse integration — production→warehouse pipeline verified
+- T17: 50k warehouse soak — throughput, stockpile monotonic, demand tracking
+- Unit: ResourceBuffer (15), TransportNode (22), LocalTransferSystem (20)
+
+## Milestone 3 — Demand & Inter-Node Transport ✅ (2026-07-06)
+
+### Architecture summary
+
+```
+DemandManager (publish requests) → TransportController::Tick()
+    → CreateTask → Dispatcher → Carrier pool → Pickup → Travelling → Delivering
+    → CompleteDemand → carrier freed
+```
+
+Single `TransportController::Tick()` pipeline replaces the split
+`ProcessTransportRequests + SimpleTransportDriver.Tick() + transport.Update()`.
+
+### Key changes
+
+| PR | What happened |
+|----|---------------|
+| 3.1 | `DemandManager` — full lifecycle (SetDemand, CompleteDemand, dedup, activeTask guard) |
+| 3.2 | `TransportController` — CreateTask, dispatch, carrier pool, Dispatcher integration |
+| 3.3 | Carrier DFA (Idle → Assigned → Pickup → Travelling → Delivering → Idle) |
+| 3.4 | Remove AcceptingFlagInventory, conservation invariant, delivery to TransportNode |
+| 3.5 | `RoadGraph` (BFS), one-hop-per-tick travel, multi-hop verified (3 hops = 3 ticks) |
+| 3.6 | Demand completion in Tick() path via `CompleteDemand` at delivery |
+| 3.7 | `CancelTask` single release path through `ReleaseCarrierForTask` |
+| 3.8 | Wire `TransportController::Tick()` into `Simulation::Tick()` |
+| B | `ICarrierSource`/`CarrierView` — abstraction for carrier visualization |
+| Cleanup | `World/TransportTypes.h` + `World/TransportRoute.h` → forwarding; 0 `#include World/` in Scene/ |
+
+### Test baseline
+
+- 212/212 unit tests pass
+- 10 RoadGraph, 13 dispatch, 11 carrier execution, 12 DemandManager, 20 LTS, 22 TransportNode tests
+- T15, T17, all soak tests — no regression
+
+### Feature-freeze invariant
+
+**Transport subsystem is architecturally complete.** Any functional change to
+`TransportController`, `Dispatcher`, `DemandManager`, carrier lifecycle, or task
+scheduling requires a failing integration or soak test demonstrating the necessity
+of the change. Bug fixes, optimization, new tests, and new domain clients (via
+`DemandManager`) are permitted without exception.
+
+**Future domain systems connect through `DemandManager` — never by modifying Transport:**
+
+```
+ProductionSystem  →  DemandManager  →  Transport   (unchanged)
+WorkerAI          →  DemandManager  →  Transport   (unchanged)
+MilitaryLogistics →  DemandManager  →  Transport   (unchanged)
+```
+
+## Milestone 4 — Carrier Visualization (planned)
+
+### Hypothesis
+
+Carrier is currently a purely logical object (`TransportCarrier` pool: state, taskId,
+cargoType, cargoAmount — no spatial data). Visualization reads from the legacy
+Phase 7 `World::Carrier` which has position data (transitTiles, road, ep, walkDir, cargo).
+
+Milestone 4 will introduce the first **position-computing model**:
+
+```
+TransportCarrier (logical)  →  CarrierPosition (spatial)  →  CarrierView (visual DTO)
+```
+
+### Design — separate position model
+
+`TransportCarrier` remains pure logical state — **no spatial fields added**.
+Position is a separate model, computed by a Position Computer:
+
+```cpp
+struct CarrierPosition {
+    CarrierId  carrier;
+    FlagId     routeFlags[kMaxRouteLength];
+    uint8_t    routeCount;
+    uint8_t    currentHop;
+    float      progress;
+    bool       carrying;
+    ResourceType cargoType;
+};
+```
+
+### Separation
+
+```
+TransportCarrier          CarrierPosition
+    owns task              owns spatial
+    owns cargo             interpolation
+    owns state
+           │                      │
+           │   Position Computer  │
+           └──── reads ─────► computes
+                                 │
+                          CarrierView
+                          (DTO → renderer)
+```
+
+### Invariant — visual state is derived state
+
+```
+Renderer never modifies Carrier.
+PositionModel never modifies Demand or TransportController.
+No simulation logic depends on coordinates.
+```
+
+### In scope
+
+- `CarrierPosition` struct + position computer (route→tile→world interpolation)
+- `SimulationCoreCarrierSource` reads `TransportCarrier` + computed position → `CarrierView`
+- Extend `CarrierView` with spatial fields
+- Remove `LegacyCarrierSource` after parity verified
+
+### Out of scope
+
+- Changes to `TransportController`, `DemandManager`, `LocalTransferSystem`, or `ProductionSystem`
+- Changes to `TransportCarrier` pool structure, lifecycle, or state machine
+- Animated sprites, cargo sprite overlays (already exist in `WorkerPass`)
+- Debug overlay (separate, parallel)
+
+Transport logic remains frozen. Milestone 4 adds ONLY spatial data computed on top of the existing logical carrier state machine.
 
 ## Platform Independence
 
